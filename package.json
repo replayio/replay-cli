@@ -12,6 +12,9 @@
   "author": "",
   "license": "ISC",
   "workspaces": [
-    "packages/replay-cli"
-  ]
+    "packages/*"
+  ],
+  "devDependencies": {
+    "lerna": "^4.0.0"
+  }
 }
