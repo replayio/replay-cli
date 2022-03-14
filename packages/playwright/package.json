@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "0.2.1",
+  "version": "0.0.1",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,5 @@
   "license": "BSD-3-Clause",
   "devDependencies": {
     "@types/node": "^17.0.21"
-  },
-  "dependencies": {}
+  }
 }
