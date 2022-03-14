@@ -1,0 +1,26 @@
+{
+  "name": "@recordreplay/recordings-cli",
+  "version": "0.10.3",
+  "description": "CLI tool for uploading and managing recordings",
+  "bin": {
+    "replay-recordings": "bin/replay-recordings"
+  },
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RecordReplay/recordings-cli.git"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/RecordReplay/recordings-cli/issues"
+  },
+  "homepage": "https://github.com/RecordReplay/recordings-cli#readme",
+  "dependencies": {
+    "commander": "^7.2.0",
+    "ws": "^7.5.0"
+  }
+}
