@@ -317,7 +317,10 @@ async function doUploadRecording(
   connectionProcessRecording(recordingId);
   await connectionUploadRecording(recordingId, contents);
   addRecordingEvent(dir, "uploadFinished", recording.id);
-  maybeLog(verbose, "Upload finished.");
+  maybeLog(
+    verbose,
+    `Upload finished! View your Replay at: https://app.replay.io/recording/${recordingId}`
+  );
   closeConnection();
   return recordingId;
 }
