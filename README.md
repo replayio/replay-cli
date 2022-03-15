@@ -9,8 +9,3 @@
 ### Examples
 
 - [Create React App & Typescript](./examples/create-react-app-typescript/README.md) A minimal CRA template using Replay and Playwright for testing.
-
-```
-lerna publish
-ler
-```
