@@ -38,12 +38,10 @@ If all goes well you should see something like the following output:
 Starting upload for 1146850316...
 Created remote recording 884d0a6a-78e2-4762-bcd7-b96dd649c0d3, uploading...
 Setting recording metadata for 884d0a6a-78e2-4762-bcd7-b96dd649c0d3
-Upload finished.
+Upload finished! View your Replay at: https://app.replay.io/recording/884d0a6a-78e2-4762-bcd7-b96dd649c0d3
 ```
 
-### Viewing your Replay
-
-If you got an ID returned from the `upload` command you should be able to view that Replay via `https://app.replay.io/recording/[YOUR_RECORDING_ID]`. Or, you can view my recording [here](https://app.replay.io/recording/replay-of-localhost3000--884d0a6a-78e2-4762-bcd7-b96dd649c0d3).
+You can now review that test run in Replay!
 
 ### Todo List
 
