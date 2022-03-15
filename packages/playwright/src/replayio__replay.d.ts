@@ -1,10 +1,10 @@
-import '@recordreplay/recordings-cli';
+import '@replayio/replay';
 
-declare module '@recordreplay/recordings-cli/src/utils' {
+declare module '@replayio/replay/src/utils' {
   export function getDirectory(): string;
 }
 
-declare module '@recordreplay/recordings-cli' {
+declare module '@replayio/replay' {
   /**
    * Supported replay browsers
    */

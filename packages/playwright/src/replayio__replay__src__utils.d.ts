@@ -1,3 +1,3 @@
-declare module '@recordreplay/recordings-cli/src/utils' {
+declare module '@replayio/replay/src/utils' {
   export function getDirectory(): string;
 }
