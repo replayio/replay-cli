@@ -1,7 +1,5 @@
-// @ts-check
-const { devices } = require("@replayio/playwright");
+import { devices as replayDevices } from "@replayio/playwright";
 
-/** @type {import('@playwright/test').PlaywrightTestConfig} */
 const config = {
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -9,11 +7,17 @@ const config = {
     trace: "on-first-retry",
     defaultBrowserType: "firefox",
   },
+  webServer: {
+    command: "npm start",
+    port: 3000,
+    timeout: 30 * 1000,
+    reuseExistingServer: !process.env.CI,
+  },
   projects: [
     {
-      name: "firefox",
+      name: "replay-firefox",
       use: {
-        ...devices["Replay Firefox"],
+        ...(replayDevices["Replay Firefox"] as any),
       },
     },
   ],

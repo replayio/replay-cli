@@ -1,6 +1,6 @@
 ### Replay/Playwright Example
 
-This directory contains a single example Playwright test. To run it, make sure that the server is running (`npm start`) and then run `npm test`.
+This directory contains a single example Playwright test, which can be run with `npm test`.
 
 ### Confirming That Your Test Was Recorded
 
@@ -47,6 +47,7 @@ If you got an ID returned from the `upload` command you should be able to view t
 
 ### Todo List
 
+- Talk about automatically uploading things via the GitHub action.
 - Add a playwright/test setup for a simple Next.js App
 - Add Replay's Playwright Test Adapter
 - Add GH Comments which list the new replay recordings
