@@ -1,0 +1,31 @@
+name: Playwright
+description: Performs playwright tests checks
+inputs:
+  working-directory:
+    description: "Relative path to app"
+    default: "."
+  project:
+    description: "Playwright project to use"
+    required: true
+    default: "chromium"
+  apiKey:
+    required: true
+    description: "Replay.io API Key"
+  issue-number:
+    description: "Issue / Pull Request on which to comment results"
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '17'
+    - uses: bahmutov/npm-install@v1
+      with:
+        working-directory: ${{ inputs.working-directory }}
+    - uses: ./.github/actions/replay
+      with:
+        issue-number: ${{ inputs.issue-number }}
+        project: ${{ inputs.project }}
+        apiKey: ${{ inputs.apiKey }}
+        working-directory: ${{ inputs.working-directory }}
