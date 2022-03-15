@@ -1,5 +1,5 @@
 {
-  "name": "@recordreplay/replay",
+  "name": "@replayio/replay",
   "version": "0.0.3-test5",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
