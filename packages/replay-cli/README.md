@@ -4,44 +4,44 @@ CLI tool and node module for managing and uploading [Replay](https://replay.io) 
 
 ## Overview
 
-When using the Replay versions of node, playwright, or puppeteer, recordings which are created are saved to disk, by default in `$HOME/.replay`.  This package is used to manage these recordings and upload them to the record/replay web service so that they can be viewed.
+When using the Replay versions of node, playwright, or puppeteer, recordings which are created are saved to disk, by default in `$HOME/.replay`. This package is used to manage these recordings and upload them to the record/replay web service so that they can be viewed.
 
 ## Installation
 
-`npm i @recordreplay/recordings-cli --global`
+`npm i @replayio/replay-cli --global`
 
 ## Usage
 
 `replay-recordings <command>`
 
-Possible commands are given below.  These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address.  When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
+Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
 
 ### ls
 
-View information about all known recordings.  Prints a JSON array with one descriptor element for each recording.  Recording descriptors have the following required properties:
+View information about all known recordings. Prints a JSON array with one descriptor element for each recording. Recording descriptors have the following required properties:
 
-* `id`: ID used to refer to this recording in other commands.
-* `createTime`: Time when the recording was created.
-* `runtime`: Runtime used to create the recording: either `gecko`, `chromium`, or `node`.
-* `metadata`: Any information the runtime associated with this recording.  For gecko/chromium recordings this is the URI of the first page loaded, and for node recordings this is the original command line arguments.
-* `status`: Status of the recording, see below for possible values.
+- `id`: ID used to refer to this recording in other commands.
+- `createTime`: Time when the recording was created.
+- `runtime`: Runtime used to create the recording: either `gecko`, `chromium`, or `node`.
+- `metadata`: Any information the runtime associated with this recording. For gecko/chromium recordings this is the URI of the first page loaded, and for node recordings this is the original command line arguments.
+- `status`: Status of the recording, see below for possible values.
 
 The possible status values for a recording are as follows:
 
-* `onDisk`: The recording was fully written out to disk.
-* `uploaded`: The recording was fully uploaded to the record/replay web service.
-* `startedWrite`: The recording started being written to disk but wasn't finished.  Either the recording process is still running, or the recording process was killed and didn't shut down normally.
-* `startedUpload`: The recording started being uploaded but didn't finish.
-* `unusable`: The recording was marked as unusable for some reason, such as a stack overflow occurring.
-* `crashed`: The recording process crashed before finishing.
-* `crashUploaded`: The recording process crashed and the crash data was uploaded to the record/replay web service for analysis.
+- `onDisk`: The recording was fully written out to disk.
+- `uploaded`: The recording was fully uploaded to the record/replay web service.
+- `startedWrite`: The recording started being written to disk but wasn't finished. Either the recording process is still running, or the recording process was killed and didn't shut down normally.
+- `startedUpload`: The recording started being uploaded but didn't finish.
+- `unusable`: The recording was marked as unusable for some reason, such as a stack overflow occurring.
+- `crashed`: The recording process crashed before finishing.
+- `crashUploaded`: The recording process crashed and the crash data was uploaded to the record/replay web service for analysis.
 
 Depending on the status the recording descriptor can have some of the following additional properties:
 
-* `path`: If the recording started being written to disk (including before being uploaded), the path to the recording file.
-* `server`: If the recording started being uploaded, the address of the server it was uploaded to.
-* `recordingId`: If the recording started being uploaded, the server-assigned ID for this recording which can be used to view it.
-* `unusableReason`: If the recording is unusable, the reason it was marked unusable.
+- `path`: If the recording started being written to disk (including before being uploaded), the path to the recording file.
+- `server`: If the recording started being uploaded, the address of the server it was uploaded to.
+- `recordingId`: If the recording started being uploaded, the server-assigned ID for this recording which can be used to view it.
+- `unusableReason`: If the recording is unusable, the reason it was marked unusable.
 
 ### upload <id>
 
@@ -82,16 +82,16 @@ This package can be used as a node module to directly access its functionality r
 Installation:
 
 ```
-npm i @recordreplay/recordings-cli
+npm i @replayio/replay-cli
 ```
 
 Usage:
 
 ```
-const interface = require("@recordreplay/recordings-cli");
+const interface = require("@replayio/replay-cli");
 ```
 
-The interface includes the following members.  Options objects can include `directory`, `server`, and `apiKey` properties which behave the same as `--directory`, `--server`, and `--api-key` arguments to the CLI tool, and a `verbose` property which can be set to log the same output as the CLI tool.  Any of these properties or the options object themselves can be omitted to use default values.
+The interface includes the following members. Options objects can include `directory`, `server`, and `apiKey` properties which behave the same as `--directory`, `--server`, and `--api-key` arguments to the CLI tool, and a `verbose` property which can be set to log the same output as the CLI tool. Any of these properties or the options object themselves can be omitted to use default values.
 
 ### listAllRecordings(opts)
 

@@ -9,3 +9,8 @@
 ### Examples
 
 - [Playwright Test](./examples/playwright-test/README.md) Hello World Playwright/test example.
+
+```
+lerna publish
+ler
+```

@@ -1,18 +1,22 @@
 {
   "name": "@replayio/playwright",
-  "version": "0.0.2",
+  "version": "0.0.3-test4",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "index.js",
   "scripts": {
-    "prepublishOnly": "node -e 'require(\"fs\").existsSync(\"./index.js\") || (console.error(\"\\x1b[31mError:\\x1b[37m Wrong Directory. Publish from the dist/ directory instead\\n\"),process.exit(1))'",
     "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./install.js\") ? 1 : 0)' || node ./install.js",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
+  "publishConfig": {
+    "directory": "dist"
+  },
   "license": "BSD-3-Clause",
   "devDependencies": {
     "@types/node": "^17.0.21"
   },
-  "gitHead": "56ed024f4cec0d3cdd0fef374c15988d5afbbf83"
+  "dependencies": {
+    "@replayio/replay-cli": "^0.0.3-test1"
+  }
 }
