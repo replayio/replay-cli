@@ -1,0 +1,53 @@
+name: Replay
+description: Record and upload recordings
+inputs:
+  working-directory:
+    description: "Relative path to app"
+    default: "."
+  command:
+    description: "Command to run tests"
+    default: "npx playwright test"
+  project:
+    description: "Project for replay browser"
+    default: "replay-firefox"
+  issue-number:
+    description: "Pull Request on which to comment results"
+  apiKey:
+    required: true
+    description: "Replay.io API Key"
+runs:
+  using: composite
+  steps:
+    - run: ${{ inputs.command }} --project ${{ inputs.project }} --reporter=line,@replayio/playwright/reporter
+      shell: sh
+      working-directory: ${{ inputs.working-directory }}
+    - run: npm i @replayio/replay
+      if: ${{ always() }}
+      shell: sh
+    - name: 'Upload Recordings'
+      id: 'upload-recordings'
+      uses: actions/github-script@v6
+      if: ${{ always() }}
+      with:
+        result-encoding: json
+        script: |
+          const upload = require('./.github/actions/replay/upload.js');
+          const ids = await upload({ require });
+          return ids;
+      env:
+        RECORD_REPLAY_API_KEY: ${{ inputs.apiKey }}
+    - name: 'Comment PR'
+      uses: actions/github-script@v6
+      if: ${{ always() }}
+      env:
+        ISSUE_NUMBER: ${{ inputs.issue-number }}
+      with:
+        result-encoding: string
+        script: |
+          const comment = require('./.github/actions/replay/comment.js');
+
+          const recordings = ${{ steps.upload-recordings.outputs.result }};
+          const {ISSUE_NUMBER: issue_number} = process.env;
+
+          return await comment({context, github, issue_number, recordings});
+
