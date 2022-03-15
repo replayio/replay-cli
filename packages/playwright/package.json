@@ -21,5 +21,8 @@
   "dependencies": {
     "@replayio/replay": "^0.1.0-alpha.4"
   },
-  "gitHead": "21bdb0982d7fd5e0fbb5767fbccc5262a445079d"
+  "peerDependencies": {
+    "@playwright/test": "1.19.x"
+  },
+  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
 }
