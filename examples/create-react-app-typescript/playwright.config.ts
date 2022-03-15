@@ -12,9 +12,9 @@ const config = {
   projects: [
     {
       name: "firefox",
-      // use: {
-      //   ...devices["Replay Firefox"],
-      // },
+      use: {
+        ...devices["Replay Firefox"],
+      },
     },
   ],
 };
