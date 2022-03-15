@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
     "replay": "bin/replay"
@@ -22,5 +22,6 @@
   "dependencies": {
     "commander": "^7.2.0",
     "ws": "^7.5.0"
-  }
+  },
+  "gitHead": "21bdb0982d7fd5e0fbb5767fbccc5262a445079d"
 }
