@@ -19,5 +19,6 @@
   },
   "dependencies": {
     "@replayio/replay": "^0.1.0-alpha.1"
-  }
+  },
+  "gitHead": "17f635783ea359762f35302785814f05bf1744af"
 }

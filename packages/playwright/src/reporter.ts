@@ -1,6 +1,6 @@
 import type { Reporter, TestCase, TestResult } from "@playwright/test/reporter";
-import { getDirectory } from "@recordreplay/recordings-cli/src/utils";
-import { listAllRecordings } from "@recordreplay/recordings-cli";
+import { getDirectory } from "@replayio/replay/src/utils";
+import { listAllRecordings } from "@replayio/replay";
 import { appendFileSync } from "fs";
 import path from "path";
 
