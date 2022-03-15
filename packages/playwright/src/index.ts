@@ -1,4 +1,4 @@
-import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay-cli";
+import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getPlaywrightBrowserPath(browserName);

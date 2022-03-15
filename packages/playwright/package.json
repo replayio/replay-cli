@@ -14,9 +14,10 @@
   },
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@playwright/test": "^1.20.0",
     "@types/node": "^17.0.21"
   },
   "dependencies": {
-    "@replayio/replay": "^0.0.3-test1"
+    "@replayio/replay": "^0.0.3-test5"
   }
 }
