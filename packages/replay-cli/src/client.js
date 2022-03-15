@@ -4,8 +4,10 @@ const { defer } = require("./utils");
 // Simple protocol client for use in writing standalone applications.
 
 class ProtocolClient {
-  constructor(address, callbacks) {
-    this.socket = new WebSocket(address);
+  constructor(address, callbacks, opts = {}) {
+    this.socket = new WebSocket(address, {
+      agent: opts.agent,
+    });
     this.callbacks = callbacks;
 
     // Internal state.
@@ -41,7 +43,13 @@ class ProtocolClient {
   async sendCommand(method, params, data, sessionId) {
     const id = this.nextMessageId++;
     this.socket.send(
-      JSON.stringify({ id, method, params, binary: data ? true : undefined, sessionId })
+      JSON.stringify({
+        id,
+        method,
+        params,
+        binary: data ? true : undefined,
+        sessionId,
+      })
     );
     if (data) {
       this.socket.send(data);

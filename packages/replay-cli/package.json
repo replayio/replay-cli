@@ -1,9 +1,9 @@
 {
-  "name": "@replayio/replay-cli",
-  "version": "0.0.3-test1",
+  "name": "@recordreplay/replay",
+  "version": "0.11.1",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
-    "replay-recordings": "bin/replay"
+    "replay": "bin/replay"
   },
   "main": "src/main.js",
   "scripts": {
@@ -11,17 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RecordReplay/replay-cli.git"
+    "url": "git+https://github.com/RecordReplay/recordings-cli.git"
   },
   "author": "",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/RecordReplay/replay-cli/issues"
+    "url": "https://github.com/RecordReplay/recordings-cli/issues"
   },
-  "homepage": "https://github.com/RecordReplay/replay-cli#readme",
+  "homepage": "https://github.com/RecordReplay/recordings-cli#readme",
   "dependencies": {
     "commander": "^7.2.0",
     "ws": "^7.5.0"
-  },
-  "types": "./src/main.d.ts"
+  }
 }
