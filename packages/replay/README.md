@@ -12,7 +12,7 @@ When using the Replay versions of node, playwright, or puppeteer, recordings whi
 
 ## Usage
 
-`replay-recordings <command>`
+`replay <command>`
 
 Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
 
@@ -73,7 +73,7 @@ Remove all recordings and on disk recording files.
 
 ### update-browsers
 
-Updates any installed browsers used for recording in automation: [playwright](https://www.npmjs.com/package/@recordreplay/playwright), [puppeteer](https://www.npmjs.com/package/@recordreplay/puppeteer), and [cypress](https://www.npmjs.com/package/@recordreplay/cypress).
+Updates any installed browsers used for recording in automation: [playwright](https://www.npmjs.com/package/@replayio/playwright), [puppeteer](https://www.npmjs.com/package/@recordreplay/puppeteer), and [cypress](https://www.npmjs.com/package/@recordreplay/cypress).
 
 ## Node Module Usage
 
@@ -95,36 +95,36 @@ The interface includes the following members. Options objects can include `direc
 
 ### listAllRecordings(opts)
 
-Equivalent to `replay-recordings ls`, returns the JSON object for the recordings.
+Equivalent to `replay ls`, returns the JSON object for the recordings.
 
 ### uploadRecording(id, opts)
 
-Equivalent to `replay-recordings upload <id>`, returns a promise that resolves with a recording ID if the upload succeeded, or null if uploading failed.
+Equivalent to `replay upload <id>`, returns a promise that resolves with a recording ID if the upload succeeded, or null if uploading failed.
 
 ### processRecording(id, opts)
 
-Equivalent to `replay-recordings process <id>`, returns a promise that resolves with a recording ID if the upload and processing succeeded, or null if either failed.
+Equivalent to `replay process <id>`, returns a promise that resolves with a recording ID if the upload and processing succeeded, or null if either failed.
 
 ### uploadAllRecordings(opts)
 
-Equivalent to `replay-recordings upload-all`, returns a promise that resolves with whether all uploads succeeded.
+Equivalent to `replay upload-all`, returns a promise that resolves with whether all uploads succeeded.
 
 ### viewRecording(id, opts)
 
-Equivalent to `replay-recordings view <id>`, returns a promise that resolves with whether the recording is being viewed.
+Equivalent to `replay view <id>`, returns a promise that resolves with whether the recording is being viewed.
 
 ### viewLatestRecording(opts)
 
-Equivalent to `replay-recordings view-latest`, returns a promise that resolves with whether the latest recording is being viewed.
+Equivalent to `replay view-latest`, returns a promise that resolves with whether the latest recording is being viewed.
 
 ### removeRecording(id, opts)
 
-Equivalent to `replay-recordings rm <id>`, returns whether the recording was removed.
+Equivalent to `replay rm <id>`, returns whether the recording was removed.
 
 ### removeAllRecordings(opts)
 
-Equivalent to `replay-recordings rm-all`.
+Equivalent to `replay rm-all`.
 
 ### updateBrowsers(opts)
 
-Equivalent to `replay-recordings update-browsers`.
+Equivalent to `replay update-browsers`.
