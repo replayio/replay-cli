@@ -15,7 +15,7 @@ If you are using `playwright` (rather than `@replayio/playwright`), you can conf
 
 ```js
 const playwright = require("playwright");
-const { getExecutablePath } = require("@replayio/playwright-config");
+const { getExecutablePath } = require("@replayio/playwright");
 
 (async () => {
   const browser = await playwright.firefox.launch({
@@ -36,12 +36,12 @@ const { getExecutablePath } = require("@replayio/playwright-config");
 
 ## Using with `@playwright/test`
 
-`@replayio/playwright-config` exports a `devices` object with configurations for both `"Replay Firefox"` and `"Replay Chromium"`. These can be added to your `playwright.config.js` to start recording your tests.
+`@replayio/playwright` exports a `devices` object with configurations for both `"Replay Firefox"` and `"Replay Chromium"`. These can be added to your `playwright.config.js` to start recording your tests.
 
 ```js
 // playwright.config.js
 // @ts-check
-const { devices } = require("@replayio/playwright-config");
+const { devices } = require("@replayio/playwright");
 
 /** @type {import('@playwright/test').PlaywrightTestConfig} */
 const config = {

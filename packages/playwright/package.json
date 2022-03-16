@@ -18,6 +18,10 @@
     "@playwright/test": "1.19.x",
     "@types/node": "^17.0.21"
   },
+  "bugs": {
+    "url": "https://github.com/ReplayIO/replay-cli/issues"
+  },
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
     "@replayio/replay": "^0.1.0-alpha.6"
   },

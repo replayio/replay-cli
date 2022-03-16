@@ -18,7 +18,7 @@
   "bugs": {
     "url": "https://github.com/ReplayIO/replay-cli/issues"
   },
-  "homepage": "https://github.com/ReplayIO/replay-cli#readme",
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/replay/README.md",
   "dependencies": {
     "commander": "^7.2.0",
     "ws": "^7.5.0"

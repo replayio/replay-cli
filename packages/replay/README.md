@@ -1,4 +1,4 @@
-# recordings-cli
+# @replayio/replay
 
 CLI tool and node module for managing and uploading [Replay](https://replay.io) recordings.
 
@@ -8,11 +8,13 @@ When using the Replay versions of node, playwright, or puppeteer, recordings whi
 
 ## Installation
 
-`npm i @replayio/replay-cli --global`
+`npm i @replayio/replay --global`
 
 ## Usage
 
-`replay <command>`
+```
+npx @replayio/replay <command>
+```
 
 Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
 
@@ -82,13 +84,13 @@ This package can be used as a node module to directly access its functionality r
 Installation:
 
 ```
-npm i @replayio/replay-cli
+npm i @replayio/replay
 ```
 
 Usage:
 
 ```
-const interface = require("@replayio/replay-cli");
+const interface = require("@replayio/replay");
 ```
 
 The interface includes the following members. Options objects can include `directory`, `server`, and `apiKey` properties which behave the same as `--directory`, `--server`, and `--api-key` arguments to the CLI tool, and a `verbose` property which can be set to log the same output as the CLI tool. Any of these properties or the options object themselves can be omitted to use default values.
