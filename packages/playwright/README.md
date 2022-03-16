@@ -2,6 +2,8 @@
 
 Provides utilities to support using [Replay](https://replay.io) with [Playwright](https://playwright.dev)
 
+Use with [replayio/action-playwright](https://github.com/Replayio/action-playwright) to automatically upload replays of failed tests. [Check out our documentation here.](https://docs.replay.io/docs/recording-playwright-b62474b5aadd49e2b0c44a7580b0617e#4f9d9bb360974bf7942f8edae8dcd742)
+
 Exports
 
 - `getExecutablePath(browserName: string)` - Returns the path to the replay browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
