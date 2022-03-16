@@ -4,7 +4,7 @@ This directory contains a single example Playwright test, which can be run with 
 
 ### Confirming That Your Test Was Recorded
 
-Congratulations! You just recorded your first test with Replay! If you run `npx replay ls` you should see an entry describing the details of the recording you just made. Mine looks like this:
+Congratulations! You just recorded your first test with Replay! If you run `npx @replayio/replay ls` you should see an entry describing the details of the recording you just made. Mine looks like this:
 
 ```
 [
@@ -24,10 +24,10 @@ Congratulations! You just recorded your first test with Replay! If you run `npx 
 
 ### Uploading Your Replay
 
-You can now upload that replay by copying it's id and passing that as an argument to `npx replay upload`, like this:
+You can now upload that replay by copying it's id and passing that as an argument to `npx @replayio/replay upload`, like this:
 
 ```
-npx replay upload 1146850316
+npx @replayio/replay upload 1146850316
 ```
 
 \*Don't forget to set your `RECORD_REPLAY_API_KEY`, which can be created from the settings panel of `app.replay.io`.
