@@ -1,4 +1,4 @@
-# `@replayio/playwright`
+# @replayio/playwright
 
 Provides utilities to support using [Replay](https://replay.io) with [Playwright](https://playwright.dev)
 
