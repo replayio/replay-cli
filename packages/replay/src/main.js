@@ -304,7 +304,7 @@ async function doUploadRecording(
     maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
     return null;
   }
-  const recordingId = await connectionCreateRecording(recording.buildId);
+  const recordingId = await connectionCreateRecording(recording.id, recording.buildId);
   maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
   if (recording.metadata) {
     maybeLog(verbose, `Setting recording metadata for ${recordingId}`);

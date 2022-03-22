@@ -21,4 +21,16 @@ function getDirectory(opts) {
   return (opts && opts.directory) || process.env.RECORD_REPLAY_DIRECTORY || path.join(home, ".replay");
 }
 
-module.exports = { defer, maybeLog, getDirectory };
+function isValidUUID(str) {
+  if (typeof str != "string" || str.length != 36) {
+    return false;
+  }
+  for (let i = 0; i < str.length; i++) {
+    if ("0123456789abcdef-".indexOf(str[i]) == -1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+module.exports = { defer, maybeLog, getDirectory, isValidUUID };
