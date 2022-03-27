@@ -1,5 +1,5 @@
 const ProtocolClient = require("./client");
-const { defer, maybeLog } = require("./utils");
+const { defer, maybeLog, isValidUUID } = require("./utils");
 
 let gClient;
 let gClientReady = defer();
@@ -36,11 +36,15 @@ async function initConnection(server, accessToken, verbose, agent) {
   return gClientReady.promise;
 }
 
-async function connectionCreateRecording(buildId) {
+async function connectionCreateRecording(id, buildId) {
   const { recordingId } = await gClient.sendCommand(
     "Internal.createRecording",
     {
       buildId,
+      // 3/22/2022: Older builds use integers instead of UUIDs for the recording
+      // IDs written to disk. These are not valid to use as recording IDs when
+      // uploading recordings to the backend.
+      recordingId: isValidUUID(id) ? id : undefined,
       // Ensure that if the upload fails, we will not create
       // partial recordings.
       requireFinish: true,
