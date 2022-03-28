@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const ProtocolClient = require("./client");
 const { defer, maybeLog, isValidUUID } = require("./utils");
 
@@ -122,6 +123,35 @@ async function connectionUploadRecording(recordingId, contents) {
   return Promise.all(promises);
 }
 
+async function connectionUploadSourcemap(recordingId, metadata, content) {
+  const hash = "sha256:" + sha256(content);
+  const { token } = await gClient.sendCommand("Resource.token", { hash });
+  let resource = {
+    token,
+    saltedHash: "sha256:" + sha256(token + content),
+  };
+
+  const { exists } = await gClient.sendCommand("Resource.exists", { resource });
+  if (!exists) {
+    ({ resource } = await gClient.sendCommand("Resource.create", { content }));
+  }
+
+  const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } = metadata;
+  const result = await gClient.sendCommand("Recording.addSourceMap", {
+    recordingId,
+    resource,
+    baseURL,
+    targetContentHash,
+    targetURLHash,
+    targetMapURLHash,
+  });
+  return result.id;
+}
+
+function sha256(text) {
+  return crypto.createHash("sha256").update(text).digest("hex");
+}
+
 function closeConnection() {
   if (gClient) {
     gClient.close();
@@ -136,6 +166,7 @@ module.exports = {
   connectionProcessRecording,
   connectionWaitForProcessed,
   connectionUploadRecording,
+  connectionUploadSourcemap,
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,

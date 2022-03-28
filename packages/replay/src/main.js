@@ -6,6 +6,7 @@ const {
   connectionProcessRecording,
   connectionWaitForProcessed,
   connectionUploadRecording,
+  connectionUploadSourcemap,
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,
@@ -80,6 +81,7 @@ function readRecordings(dir, includeHidden) {
           buildId,
           runtime: getBuildRuntime(buildId),
           metadata: {},
+          sourcemaps: [],
 
           // We use an unknown status after the createRecording event because
           // there should always be later events describing what happened to the
@@ -168,6 +170,14 @@ function readRecordings(dir, includeHidden) {
         const recording = recordings.find((r) => r.id == id);
         if (recording) {
           updateStatus(recording, "crashUploaded");
+        }
+        break;
+      }
+      case "sourcemapAdded": {
+        const { recordingId, path, baseURL, targetContentHash, targetURLHash, targetMapURLHash } = obj;
+        const recording = recordings.find((r) => r.id == recordingId);
+        if (recording) {
+          recording.sourcemaps.push({ path, baseURL, targetContentHash, targetURLHash, targetMapURLHash });
         }
         break;
       }
@@ -316,6 +326,14 @@ async function doUploadRecording(
   });
   connectionProcessRecording(recordingId);
   await connectionUploadRecording(recordingId, contents);
+  for (const sourcemap of recording.sourcemaps) {
+    try {
+      const contents = fs.readFileSync(sourcemap.path, "utf8");
+      await connectionUploadSourcemap(recordingId, sourcemap, contents);
+    } catch (e) {
+      maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
+    }
+  }
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
     verbose,
