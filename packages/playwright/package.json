@@ -2,13 +2,14 @@
   "name": "@replayio/playwright",
   "version": "0.1.0",
   "description": "Configuration utilities for using the Replay browsers with playwright",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "prepare": "npm run build",
-    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./install.js\") ? 1 : 0)' || node ./install.js",
+    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 1 : 0)' || node ./bin/replayio-playwright first-run",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": "./bin/replayio-playwright.js",
   "author": "",
   "publishConfig": {
     "directory": "dist"

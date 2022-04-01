@@ -70,6 +70,8 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "bin",
+    "types"
   ]
 }
