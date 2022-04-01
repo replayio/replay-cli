@@ -6,7 +6,7 @@
   "scripts": {
     "prepare": "npm run build",
     "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 1 : 0)' || node ./bin/replayio-playwright first-run",
-    "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": "./bin/replayio-playwright.js",
@@ -29,5 +29,5 @@
   "peerDependencies": {
     "@playwright/test": "1.19.x"
   },
-  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
+  "gitHead": "4cff287bc9f9a49695e5057bc7fd90a1dc7195f4"
 }
