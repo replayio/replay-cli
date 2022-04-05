@@ -4,7 +4,7 @@ const { spawnSync } = require("child_process");
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const { defer, getDirectory } = require("./utils");
+const { defer, getDirectory, maybeLog } = require("./utils");
 
 const EXECUTABLE_PATHS = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
@@ -12,19 +12,25 @@ const EXECUTABLE_PATHS = {
   "linux:firefox": ["firefox", "firefox"],
 };
 
-async function ensurePlaywrightBrowsersInstalled(kind = "all") {
+async function ensurePlaywrightBrowsersInstalled(kind = "all", opts = {}) {
+  maybeLog(opts.verbose, `Installing ${kind === "all" ? "browsers" : kind} for ${process.platform}`);
+  if (kind !== "all" && !getPlatformKey(kind)) {
+    console.log(`${kind} browser for Replay is not supported on ${process.platform}`);
+    return;
+  }
+
   switch (process.platform) {
     case "darwin":
       if (["all", "gecko"].includes(kind)) {
-        await installReplayBrowser("macOS-replay-playwright.tar.xz", "playwright", "firefox", "firefox");
+        await installReplayBrowser("macOS-replay-playwright.tar.xz", "playwright", "firefox", "firefox", opts);
       }
       break;
     case "linux":
       if (["all", "gecko"].includes(kind)) {
-        await installReplayBrowser("linux-replay-playwright.tar.xz", "playwright", "firefox", "firefox");
+        await installReplayBrowser("linux-replay-playwright.tar.xz", "playwright", "firefox", "firefox", opts);
       }
       if (["all", "chromium"].includes(kind)) {
-        await installReplayBrowser("linux-replay-chromium.tar.xz", "playwright", "replay-chromium", "chrome-linux");
+        await installReplayBrowser("linux-replay-chromium.tar.xz", "playwright", "replay-chromium", "chrome-linux", opts);
       }
       break;
   }
@@ -86,21 +92,24 @@ function getPuppeteerBrowserPath(kind) {
 }
 
 // Installs a browser if it isn't already installed.
-async function installReplayBrowser(name, subdir, srcName, dstName) {
+async function installReplayBrowser(name, subdir, srcName, dstName, opts) {
   const replayDir = getDirectory();
   const browserDir = path.join(replayDir, subdir);
 
   if (fs.existsSync(path.join(browserDir, dstName))) {
+    maybeLog(opts.verbose, `Skipping ${dstName}. Already exists in ${browserDir}`);
     return;
   }
 
-  const contents = await downloadReplayFile(name);
+  const contents = await downloadReplayFile(name, opts);
 
   for (const dir of [replayDir, browserDir]) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
   }
+
+  maybeLog(opts.verbose, `Saving ${dstName} to ${browserDir}`);
   fs.writeFileSync(path.join(browserDir, name), contents);
   spawnSync("tar", ["xf", name], { cwd: browserDir });
   fs.unlinkSync(path.join(browserDir, name));
@@ -121,21 +130,16 @@ async function updateReplayBrowser(name, subdir, srcName, dstName, opts) {
     // to see that the current browser is up to date.
     fs.rmSync(dstDir, { force: true, recursive: true });
   } else {
+    maybeLog(opts.verbose, `Browser ${name} is not installed.`);
     return;
   }
 
-  if (opts.verbose) {
-    console.log(`Updating browser ${subdir} ${dstName}...`);
-  }
+  await installReplayBrowser(name, subdir, srcName, dstName, opts);
 
-  await installReplayBrowser(name, subdir, srcName, dstName);
-
-  if (opts.verbose) {
-    console.log(`Updated.`);
-  }
+  maybeLog(opts.verbose, `Updated.`);
 }
 
-async function downloadReplayFile(downloadFile) {
+async function downloadReplayFile(downloadFile, opts) {
   const options = {
     host: "static.replay.io",
     port: 443,
@@ -144,6 +148,7 @@ async function downloadReplayFile(downloadFile) {
 
   for (let i = 0; i < 5; i++) {
     const waiter = defer();
+    maybeLog(opts.verbose, `Downloading ${downloadFile} from replay.io (Attempt ${i + 1} / 5)`);
     const request = https.get(options, response => {
       if (response.statusCode != 200) {
         console.log(`Download received status code ${response.statusCode}, retrying...`);
@@ -164,6 +169,8 @@ async function downloadReplayFile(downloadFile) {
     if (buffers) {
       return Buffer.concat(buffers);
     }
+
+    maybeLog(opts.verbose, `Download of ${downloadFile} complete`);
   }
 
   throw new Error("Download failed, giving up");
