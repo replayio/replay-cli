@@ -21,12 +21,12 @@ async function ensurePlaywrightBrowsersInstalled(kind = "all", opts = {}) {
 
   switch (process.platform) {
     case "darwin":
-      if (["all", "gecko"].includes(kind)) {
+      if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser("macOS-replay-playwright.tar.xz", "playwright", "firefox", "firefox", opts);
       }
       break;
     case "linux":
-      if (["all", "gecko"].includes(kind)) {
+      if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser("linux-replay-playwright.tar.xz", "playwright", "firefox", "firefox", opts);
       }
       if (["all", "chromium"].includes(kind)) {
