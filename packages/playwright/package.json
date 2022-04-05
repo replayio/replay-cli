@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.1.0"
+    "@replayio/replay": "^0.1.1"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
