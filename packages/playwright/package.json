@@ -9,7 +9,9 @@
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "bin": "./bin/replayio-playwright.js",
+  "bin": {
+    "replayio-playwright": "./bin/replayio-playwright.js"
+  },
   "author": "",
   "publishConfig": {
     "directory": "dist"
