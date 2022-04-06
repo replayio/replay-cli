@@ -72,6 +72,7 @@
   "include": [
     "src",
     "bin",
-    "types"
+    "types",
+    "reporter.ts"
   ]
 }
