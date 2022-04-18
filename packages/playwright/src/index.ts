@@ -13,6 +13,10 @@ function getDeviceConfig(browserName: BrowserName) {
     RECORD_ALL_CONTENT: 1,
   };
 
+  // When TEST_WORKER_INDEX is set, this is being run in the context of a
+  // @playwright/test worker so we create a per-worker metadata file that can be
+  // used by the reporter to inject test-specific metadata which will be picked
+  // up by the driver when it creates a new recording
   if (process.env.TEST_WORKER_INDEX) {
     if ("RECORD_REPLAY_METADATA" in env && env.RECORD_REPLAY_METADATA) {
       console.warn(`RECORD_REPLAY_METADATA is set so a per-worker metadata file will not be used`);
