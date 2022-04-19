@@ -8,6 +8,7 @@ Exports
 
 - `getExecutablePath(browserName: string)` - Returns the path to the replay browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
 - `devices` - Object of configurations suitable for using with `@playwright/test`. Currently supports `"Replay Firefox"` and `"Replay Chromium"` configurations. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
+- `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
 
 ## Using standalone
 

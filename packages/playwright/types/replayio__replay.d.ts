@@ -1,9 +1,5 @@
 import '@replayio/replay';
 
-declare module '@replayio/replay/src/utils' {
-  export function getDirectory(): string;
-}
-
 declare module '@replayio/replay' {
   /**
    * Supported replay browsers

@@ -1,13 +1,16 @@
 {
   "name": "@replayio/playwright",
-  "version": "0.1.0-alpha.8",
+  "version": "0.2.0",
   "description": "Configuration utilities for using the Replay browsers with playwright",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "prepare": "npm run build",
-    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./install.js\") ? 1 : 0)' || node ./install.js",
-    "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
+    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 1 : 0)' || node ./bin/replayio-playwright first-run",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "replayio-playwright": "./bin/replayio-playwright.js"
   },
   "author": "",
   "publishConfig": {
@@ -23,10 +26,10 @@
   },
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.1.0-alpha.7"
+    "@replayio/replay": "^0.1.1"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
   },
-  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
+  "gitHead": "4cff287bc9f9a49695e5057bc7fd90a1dc7195f4"
 }

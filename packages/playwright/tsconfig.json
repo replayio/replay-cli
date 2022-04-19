@@ -70,6 +70,9 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "bin",
+    "types",
+    "reporter.ts"
   ]
 }
