@@ -96,9 +96,12 @@ function readRecordings(dir, includeHidden) {
         if (recording) {
           Object.assign(
             recording.metadata,
-            { title: generateDefaultTitle(metadata) },
             metadata
           );
+
+          if (!recording.metadata.title) {
+            recording.metadata.title = generateDefaultTitle(recording.metadata);
+          }
         }
         break;
       }
