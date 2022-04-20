@@ -1,3 +1,6 @@
+import { writeFileSync, appendFileSync, existsSync } from "fs";
+import os from "os";
+import path from "path";
 import type {
   Reporter,
   Test,
@@ -5,13 +8,41 @@ import type {
   Context,
 } from "@jest/reporters";
 import type { AggregatedResult, TestResult } from "@jest/test-result";
-import { getDirectory } from "@replayio/replay/src/utils";
 import { listAllRecordings } from "@replayio/replay";
-import { appendFileSync } from "fs";
-import path from "path";
+import { getDirectory } from "@replayio/replay/src/utils";
+
+import { getMetadataFilePath } from "./index";
 
 class ReplayReporter implements Reporter {
-  onTestFileResult?(_test: Test, testResult: TestResult): Promise<void> | void {
+  baseId = Date.now();
+
+  getTestId(test: Test) {
+    return `${this.baseId}-${test.path}`;
+  }
+
+  onTestStart(test: Test) {
+    console.log("worker id", process.env.JEST_WORKER_ID);
+    const workerIndex = +(process.env.JEST_WORKER_ID || 0);
+    const metadataFilePath = getMetadataFilePath(workerIndex);
+    if (existsSync(metadataFilePath)) {
+      writeFileSync(
+        metadataFilePath,
+        JSON.stringify(
+          {
+            testId: this.getTestId(test),
+          },
+          undefined,
+          2
+        ),
+        {}
+      );
+    }
+  }
+
+  onTestResult(
+    test: Test,
+    testResult: TestResult,
+  ) {
     const [passed, failed] = testResult.testResults.reduce<number[]>(
       (acc, result) => {
         switch (result.status) {
@@ -35,44 +66,45 @@ class ReplayReporter implements Reporter {
 
     const status = allPassed ? "passed" : "failed";
 
-    const last = listAllRecordings().pop();
-    if (last) {
-      const metadata = {
-        id: last.id,
-        kind: "addMetadata",
-        metadata: {
-          title: `[${status.toUpperCase()}] - ${testResult.displayName}`,
-          testStatus: status,
-        },
-        timestamp: Date.now(),
-      };
+    const recs = listAllRecordings().filter(
+      (r) => r.metadata.testId === this.getTestId(test)
+    );
+    if (recs.length > 0) {
+      recs.forEach((rec) => {
+        const metadata = {
+          id: rec.id,
+          kind: "addMetadata",
+          metadata: {
+            title: testResult.displayName,
+            testStatus: status,
+          },
+          timestamp: Date.now(),
+        };
 
-      appendFileSync(
-        path.join(getDirectory(), "recordings.log"),
-        `\n${JSON.stringify(metadata)}\n`
-      );
+        appendFileSync(
+          path.join(getDirectory(), "recordings.log"),
+          `\n${JSON.stringify(metadata)}\n`
+        );
+      });
     }
   }
-  // onTestCaseResult? (
-  //   test: Test,
-  //   testCaseResult: TestCaseResult,
-  // ): Promise<void> | void {
 
-  // }
   onRunStart(
     _results: AggregatedResult,
     _options: ReporterOnStartOptions
-  ): Promise<void> | void {}
-  // onTestStart? (test: Test): Promise<void> | void {
+  ): Promise<void> | void {
+    // prime all the metadata files
+    const maxWorkers = os.cpus().length;
+    for (let i = 0; i < maxWorkers; i++) {
+      writeFileSync(getMetadataFilePath(i), "{}");
+    }
+  }
 
-  // }
-  // onTestFileStart? (test: Test): Promise<void> | void {
-
-  // }
   onRunComplete(
     _contexts: Set<Context>,
     _results: AggregatedResult
   ): Promise<void> | void {}
+
   getLastError() {}
 }
 

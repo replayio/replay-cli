@@ -4,8 +4,9 @@
   "description": "Configuration utilities for using the Replay browsers with jest",
   "main": "index.js",
   "scripts": {
-    "prepare": "npm run build",
-    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./install.js\") ? 1 : 0)' || node ./install.js",
+    "is-source": "node -e 'process.exit(require(\"fs\").existsSync(\"./install.js\") ? 1 : 0)'",
+    "prepare": "npm run is-source || npm run build",
+    "install": "npm run is-source || node ./install.js",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
