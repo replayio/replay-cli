@@ -14,7 +14,16 @@ Exports
 
 If you are using `playwright` (rather than `@replayio/playwright`), you can configure it to use the Replay browser by passing in the `executablePath` to `launch()`.
 
-> **Note:** For `firefox`, you must also pass the `RECORD_ALL_CONTENT` environment variable to start recording. This is not required for `chromium` which records all content by default.
+> **Note:** For `firefox`, you must also pass the `RECORD_ALL_CONTENT` environment variable to start recording. This is not required for `chromium` which records all content by default.`
+
+### Metadata
+
+You can add metadata to your playwright recordings using either the `RECORD_REPLAY_METADATA` or `RECORD_REPLAY_METADATA_FILE` environment variable. If both are set, `RECORD_REPLAY_METADATA_FILE` takes precedence.
+
+> Currently, this metadata is only available locally except for `title`
+
+- `RECORD_REPLAY_METADATA_FILE` - The path to a file containing JSON-formatted metadata
+- `RECORD_REPLAY_METADATA` - JSON-formatted metadata string
 
 ```js
 const playwright = require("playwright");
@@ -26,6 +35,9 @@ const { getExecutablePath } = require("@replayio/playwright");
     executablePath: getExecutablePath("firefox"),
     env: {
       RECORD_ALL_CONTENT: 1,
+      RECORD_REPLAY_METADATA: JSON.stringify({
+        title: "Screenshot of replay.io"
+      })
     },
   });
   const page = await browser.newPage();
