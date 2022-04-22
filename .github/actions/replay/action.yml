@@ -9,7 +9,7 @@ inputs:
     default: "npx playwright test"
   project:
     description: "Project for replay browser"
-    default: "replay-firefox"
+    default: "replay-chromium"
   issue-number:
     description: "Pull Request on which to comment results"
   apiKey:
