@@ -36,11 +36,17 @@ async function ensurePlaywrightBrowsersInstalled(kind = "all", opts = {}) {
   }
 }
 
-async function ensurePuppeteerBrowsersInstalled(kind = "all") {
+async function ensurePuppeteerBrowsersInstalled(kind = "all", opts = {}) {
+  maybeLog(opts.verbose, `Installing ${kind === "all" ? "browsers" : kind} for ${process.platform}`);
+  if (kind !== "all" && !getPlatformKey(kind)) {
+    console.log(`${kind} browser for Replay is not supported on ${process.platform}`);
+    return;
+  }
+
   switch (process.platform) {
     case "linux":
       if (["all", "chromium"].includes(kind)) {
-        await installReplayBrowser("linux-replay-chromium.tar.xz", "puppeteer", "replay-chromium", "chrome-linux");
+        await installReplayBrowser("linux-replay-chromium.tar.xz", "puppeteer", "replay-chromium", "chrome-linux", opts);
       }
       break;
   }
