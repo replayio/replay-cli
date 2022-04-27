@@ -10,7 +10,7 @@ if (cmd === "first-run" && !process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD) {
 }
 
 function commandInstall() {
-  console.log("Installing Replay browsers for playwright");
+  console.log("Installing Replay browsers for puppeteer");
 
   let browser = args[0] || "all";
   install().then(() => {
