@@ -1,7 +1,7 @@
 const VERSION = 1;
 
-const versions = {
-  1: function v1(metadata) {
+const versions: Record<number, (metadata: Record<string, unknown>) => void> = {
+  1: function v1(metadata: Record<string, unknown>) {
     if (!metadata.title) {
       throw new Error("test title is required")
     }
@@ -12,13 +12,13 @@ const versions = {
   }
 };
 
-function sanitize(data) {
+function sanitize(data: Record<string, unknown>) {
   const updated = {...data};
   if (!updated.version) {
     updated.version = VERSION;
   }
 
-  if (versions[updated.version]) {
+  if (typeof updated.version === "number" && versions[updated.version]) {
     versions[updated.version](updated);
   } else {
     throw new Error(`Test metadata version ${updated.version} not supported`);
@@ -27,4 +27,4 @@ function sanitize(data) {
   return updated;
 }
 
-module.exports = sanitize;
+export default sanitize;

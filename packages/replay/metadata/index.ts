@@ -1,7 +1,7 @@
-const test = require("./test");
+import test from "./test";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
-const handlers = {
+const handlers: Record<string, (value: Record<string, unknown>) => Record<string, unknown>> = {
   test
 };
 
@@ -10,8 +10,8 @@ const ALLOWED_KEYS = Object.keys(handlers);
 // Sanitizing arbitrary recording metadata before uploading by removing any
 // non-object values (allowing null) and limiting object values to known keys or
 // userspace keys prefixed by `x-`.
-function sanitize(metadata) {
-  const updated = {};
+function sanitize(metadata: Record<string, unknown>) {
+  const updated: Record<string, object | null> = {};
   Object.keys(metadata).forEach((key) => {
     const value = metadata[key];
     // intentionally allowing `null` with the `typeof` check here
@@ -19,7 +19,7 @@ function sanitize(metadata) {
       if (!value || key.startsWith("x-")) {
         updated[key] = value;
       } else if (ALLOWED_KEYS.includes(key)) {
-        updated[key] = handlers[key](value);
+        updated[key] = handlers[key](value as Record<string, unknown>);
       }
     }
   });
@@ -27,8 +27,8 @@ function sanitize(metadata) {
   return updated;
 }
 
-module.exports = {
+export {
   sanitize,
-  ...handlers
+  test
 };
 
