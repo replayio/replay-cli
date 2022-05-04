@@ -1,6 +1,7 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 const ProtocolClient = require("./client");
 const { defer, maybeLog, isValidUUID } = require("./utils");
+const sanitizeMetadata = require("./metadata");
 
 let gClient;
 let gClientReady = defer();
@@ -55,18 +56,21 @@ async function connectionCreateRecording(id, buildId) {
 }
 
 async function setRecordingMetadata(id, metadata) {
+  const { duration, url, uri, title, operations, ...rest } = metadata;
+
   await gClient.sendCommand("Internal.setRecordingMetadata", {
     recordingData: {
-      duration: metadata.duration || 0,
-      url: metadata.url || "",
-      title: metadata.title || "",
-      operations: metadata.operations || {
+      duration: duration || 0,
+      url: url || uri || "",
+      title: title || "",
+      operations: operations || {
         scriptDomains: [],
       },
       id,
       lastScreenData: "",
       lastScreenMimeType: "",
     },
+    metadata: sanitizeMetadata(rest),
   });
 }
 
@@ -136,7 +140,8 @@ async function connectionUploadSourcemap(recordingId, metadata, content) {
     ({ resource } = await gClient.sendCommand("Resource.create", { content }));
   }
 
-  const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } = metadata;
+  const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } =
+    metadata;
   const result = await gClient.sendCommand("Recording.addSourceMap", {
     recordingId,
     resource,
