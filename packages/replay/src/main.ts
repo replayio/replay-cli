@@ -22,6 +22,7 @@ import {
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
 import { Options, RecordingEntry } from "./types";
+export type { BrowserName } from "./types";
 
 function getRecordingsFile(dir: string) {
   return path.join(dir, "recordings.log");
