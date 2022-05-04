@@ -1,11 +1,16 @@
 const test = require("./test");
 
+// Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
   test
 };
 
 const ALLOWED_KEYS = Object.keys(handlers);
-module.exports = function sanitize(metadata) {
+
+// Sanitizing arbitrary recording metadata before uploading by removing any
+// non-object values (allowing null) and limiting object values to known keys or
+// userspace keys prefixed by `x-`.
+function sanitize(metadata) {
   const updated = {};
   Object.keys(metadata).forEach((key) => {
     const value = metadata[key];
@@ -21,3 +26,9 @@ module.exports = function sanitize(metadata) {
 
   return updated;
 }
+
+module.exports = {
+  sanitize,
+  ...handlers
+};
+

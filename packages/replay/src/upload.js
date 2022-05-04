@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const ProtocolClient = require("./client");
 const { defer, maybeLog, isValidUUID } = require("./utils");
-const sanitizeMetadata = require("./metadata");
+const { sanitize: sanitizeMetadata } = require("../metadata");
 
 let gClient;
 let gClientReady = defer();
@@ -55,10 +55,11 @@ async function connectionCreateRecording(id, buildId) {
   return recordingId;
 }
 
-async function setRecordingMetadata(id, metadata) {
+function buildRecordingMetadata(metadata) {
+  // extract the "standard" metadata and route the `rest` through the sanitizer
   const { duration, url, uri, title, operations, ...rest } = metadata;
 
-  await gClient.sendCommand("Internal.setRecordingMetadata", {
+  return {
     recordingData: {
       duration: duration || 0,
       url: url || uri || "",
@@ -71,7 +72,11 @@ async function setRecordingMetadata(id, metadata) {
       lastScreenMimeType: "",
     },
     metadata: sanitizeMetadata(rest),
-  });
+  };
+}
+
+async function setRecordingMetadata(id, metadata) {
+  await gClient.sendCommand("Internal.setRecordingMetadata", metadata);
 }
 
 function connectionProcessRecording(recordingId) {
@@ -175,4 +180,5 @@ module.exports = {
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,
+  buildRecordingMetadata,
 };
