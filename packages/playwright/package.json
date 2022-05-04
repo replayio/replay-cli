@@ -4,8 +4,9 @@
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "src/index.js",
   "scripts": {
-    "prepare": "npm run build",
-    "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 1 : 0)' || node ./bin/replayio-playwright first-run",
+    "is-build": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 0 : 1)'",
+    "prepare": "npm run is-build || npm run build",
+    "install": "npm run is-build && node ./bin/replayio-playwright first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
