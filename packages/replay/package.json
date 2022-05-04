@@ -8,6 +8,8 @@
   "main": "src/main.js",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
+    "build": "rm -rf dist/ && tsc && cp -R package.json README.md bin dist/ && chmod 755 dist/bin/*",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
