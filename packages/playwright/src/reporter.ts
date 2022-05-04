@@ -7,7 +7,7 @@ import type {
 } from "@playwright/test/reporter";
 import { getDirectory } from "@replayio/replay/src/utils";
 import { listAllRecordings } from "@replayio/replay";
-import makeTestMetadata, {TestMetadata} from "@replayio/replay/src/metadata/test";
+import { test as makeTestMetadata } from "@replayio/replay/metadata";
 import { writeFileSync, appendFileSync, existsSync } from "fs";
 import path from "path";
 
@@ -57,13 +57,16 @@ class ReplayReporter implements Reporter {
           kind: "addMetadata",
           metadata: {
             title: test.title,
-            test: result.status === "skipped" ? null : makeTestMetadata({
-              title: test.title,
-              result: result.status,
-              path: test.titlePath(),
-              run: "playwright-" + this.baseId,
-              file: test.location.file,
-            })
+            test:
+              result.status === "skipped"
+                ? null
+                : makeTestMetadata({
+                    title: test.title,
+                    result: result.status,
+                    path: test.titlePath(),
+                    run: "playwright-" + this.baseId,
+                    file: test.location.file,
+                  }),
           },
           timestamp: Date.now(),
         };

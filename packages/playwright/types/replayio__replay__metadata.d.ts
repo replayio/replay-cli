@@ -1,5 +1,5 @@
-declare module '@replayio/replay/src/metadata/test' {
-  export default function getMetadata(data: Partial<TestMetadata>): TestMetadata;
+declare module '@replayio/replay/metadata' {
+  export function test(data: Partial<TestMetadata>): TestMetadata;
 
   export interface TestMetadata {
     version: 1,
