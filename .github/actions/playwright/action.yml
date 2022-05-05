@@ -23,7 +23,7 @@ runs:
     - uses: bahmutov/npm-install@v1
       with:
         working-directory: ${{ inputs.working-directory }}
-    - uses: replayio/action-playwright@v0.4.1
+    - uses: replayio/action-playwright@v0.4.2
       env:
         DEBUG: "pw:browser"
         RECORD_REPLAY_DEBUG: 1
