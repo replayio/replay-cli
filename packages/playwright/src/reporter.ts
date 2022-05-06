@@ -7,7 +7,7 @@ import type {
 } from "@playwright/test/reporter";
 import { getDirectory } from "@replayio/replay/src/utils";
 import { listAllRecordings } from "@replayio/replay";
-import { test as makeTestMetadata } from "@replayio/replay/metadata";
+import { test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync, appendFileSync, existsSync } from "fs";
 import path from "path";
 
@@ -34,7 +34,9 @@ class ReplayReporter implements Reporter {
         metadataFilePath,
         JSON.stringify(
           {
-            testId: this.getTestId(test),
+            "x-playwright": {
+              id: this.getTestId(test),
+            },
           },
           undefined,
           2
@@ -45,11 +47,20 @@ class ReplayReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    if (!["passed", "failed"].includes(result.status)) return;
+    const status = result.status;
+    if (status !== "passed" && status !== "failed") return;
 
-    const recs = listAllRecordings().filter(
-      (r) => r.metadata.testId === this.getTestId(test)
-    );
+    const recs = listAllRecordings().filter((r) => {
+      if (
+        r.metadata["x-playwright"] &&
+        typeof r.metadata["x-playwright"] === "object"
+      ) {
+        return (r.metadata["x-playwright"] as any).id === this.getTestId(test);
+      }
+
+      return false;
+    });
+
     if (recs.length > 0) {
       recs.forEach((rec) => {
         const metadata = {
@@ -57,16 +68,15 @@ class ReplayReporter implements Reporter {
           kind: "addMetadata",
           metadata: {
             title: test.title,
-            test:
-              result.status === "skipped"
-                ? null
-                : makeTestMetadata({
-                    title: test.title,
-                    result: result.status,
-                    path: test.titlePath(),
-                    run: "playwright-" + this.baseId,
-                    file: test.location.file,
-                  }),
+            ...testMetadata.init({
+              title: test.title,
+              result: status,
+              path: test.titlePath(),
+              run: "playwright-" + this.baseId,
+              // extract the relative path from titlePath() but fall back to the
+              // full path
+              file: test.titlePath()[2] || test.location.file,
+            }),
           },
           timestamp: Date.now(),
         };

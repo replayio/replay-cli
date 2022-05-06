@@ -1,5 +1,12 @@
 declare module '@replayio/replay/metadata' {
-  export function test(data: Partial<TestMetadata>): TestMetadata;
+  export const test: {
+    validate: (data: {test: Partial<TestMetadata>}) => TestMetadataEntry;
+    init:  (data: Partial<TestMetadata>) => TestMetadataEntry;
+  };
+
+  export interface TestMetadataEntry {
+    test: TestMetadata | null
+  }
 
   export interface TestMetadata {
     version: 1,
