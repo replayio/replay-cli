@@ -10,6 +10,7 @@ const {
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,
+  buildRecordingMetadata,
 } = require("./upload");
 const {
   ensurePuppeteerBrowsersInstalled,

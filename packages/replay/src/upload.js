@@ -67,7 +67,6 @@ function buildRecordingMetadata(metadata) {
       operations: operations || {
         scriptDomains: [],
       },
-      id,
       lastScreenData: "",
       lastScreenMimeType: "",
     },
