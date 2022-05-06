@@ -13,17 +13,21 @@ const VERSION = 1;
 
 const versions = {
   1: object({
-    version: defaulted(number(), () => 1),
-    title: string(),
-    result: enums(["passed", "failed", "timedOut"]),
-    path: optional(array(string())),
-    run: optional(string()),
     file: optional(string()),
+    path: optional(array(string())),
+    result: enums(["passed", "failed", "timedOut"]),
+    run: optional(string()),
+    title: string(),
+    version: defaulted(number(), () => 1),
   }),
 };
 
 function validate(metadata) {
-  return init(metadata && metadata.test);
+  if (!metadata || !metadata.test) {
+    throw new Error('Test metadata does not exist');
+  }
+
+  return init(metadata.test);
 }
 
 function init(data) {
