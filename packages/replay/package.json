@@ -21,6 +21,7 @@
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/replay/README.md",
   "dependencies": {
     "commander": "^7.2.0",
+    "superstruct": "^0.15.4",
     "ws": "^7.5.0"
   },
   "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
