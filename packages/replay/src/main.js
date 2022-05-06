@@ -10,6 +10,7 @@ const {
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,
+  buildRecordingMetadata,
 } = require("./upload");
 const {
   ensurePuppeteerBrowsersInstalled,
@@ -317,11 +318,13 @@ async function doUploadRecording(
     maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
     return null;
   }
+  // validate metadata before uploading so invalid data can block the upload
+  const metadata = recording.metadata ? buildRecordingMetadata(recording.metadata, { verbose }) : null;
   const recordingId = await connectionCreateRecording(recording.id, recording.buildId);
   maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
-  if (recording.metadata) {
+  if (metadata) {
     maybeLog(verbose, `Setting recording metadata for ${recordingId}`);
-    await setRecordingMetadata(recordingId, recording.metadata);
+    await setRecordingMetadata(recordingId, metadata);
   }
   addRecordingEvent(dir, "uploadStarted", recording.id, {
     server,
