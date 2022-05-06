@@ -19,8 +19,12 @@ function sanitize(metadata) {
       if (!value || key.startsWith("x-")) {
         updated[key] = value;
       } else if (ALLOWED_KEYS.includes(key)) {
-        updated[key] = handlers[key](value);
+        Object.assign(updated, handlers[key](metadata));
+      } else {
+        console.warn(`Ignoring "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
       }
+    } else {
+      console.warn(`Ignoring "${key}". Expected an object but received ${typeof value}`);
     }
   });
 

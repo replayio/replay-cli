@@ -12,7 +12,7 @@ const versions = {
   }
 };
 
-function sanitize(data) {
+function sanitize({test: data}) {
   const updated = {...data};
   if (!updated.version) {
     updated.version = VERSION;
@@ -24,7 +24,9 @@ function sanitize(data) {
     throw new Error(`Test metadata version ${updated.version} not supported`);
   }
 
-  return updated;
+  return {
+    test: updated
+  };
 }
 
 module.exports = sanitize;
