@@ -55,7 +55,7 @@ async function connectionCreateRecording(id, buildId) {
   return recordingId;
 }
 
-function buildRecordingMetadata(metadata) {
+function buildRecordingMetadata(metadata, opts = {}) {
   // extract the "standard" metadata and route the `rest` through the sanitizer
   const { duration, url, uri, title, operations, ...rest } = metadata;
 
@@ -70,11 +70,12 @@ function buildRecordingMetadata(metadata) {
       lastScreenData: "",
       lastScreenMimeType: "",
     },
-    metadata: sanitizeMetadata(rest),
+    metadata: sanitizeMetadata(rest, opts),
   };
 }
 
 async function setRecordingMetadata(id, metadata) {
+  metadata.recordingData.id = id;
   await gClient.sendCommand("Internal.setRecordingMetadata", metadata);
 }
 

@@ -1,3 +1,4 @@
+const { maybeLog } = require("../src/utils");
 const test = require("./test");
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
@@ -10,7 +11,7 @@ const ALLOWED_KEYS = Object.keys(handlers);
 // Sanitizing arbitrary recording metadata before uploading by removing any
 // non-object values (allowing null) and limiting object values to known keys or
 // userspace keys prefixed by `x-`.
-function sanitize(metadata) {
+function sanitize(metadata, opts = {}) {
   const updated = {};
   Object.keys(metadata).forEach((key) => {
     const value = metadata[key];
@@ -24,10 +25,10 @@ function sanitize(metadata) {
         Object.assign(updated, handlers[key](metadata));
       } else {
         // and warn when dropping all other types
-        console.warn(`Ignoring "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
+        maybeLog(opts.verbose, `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
       }
     } else {
-      console.warn(`Ignoring "${key}". Expected an object but received ${typeof value}`);
+      maybeLog(opts.verbose, `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`);
     }
   });
 
