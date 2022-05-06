@@ -1,32 +1,43 @@
+const {
+  array,
+  create,
+  defaulted,
+  enums,
+  number,
+  object,
+  optional,
+  string,
+} = require("superstruct");
+
 const VERSION = 1;
 
 const versions = {
-  1: function v1(metadata) {
-    if (!metadata.title) {
-      throw new Error("test title is required")
-    }
-  
-    if (!metadata.result) {
-      throw new Error("test result is required")
-    }
-  }
+  1: object({
+    version: defaulted(number(), () => 1),
+    title: string(),
+    result: enums(["passed", "failed", "timedOut"]),
+    path: optional(array(string())),
+    run: optional(string()),
+    file: optional(string()),
+  }),
 };
 
-function sanitize({test: data}) {
-  const updated = {...data};
-  if (!updated.version) {
-    updated.version = VERSION;
-  }
-
-  if (versions[updated.version]) {
-    versions[updated.version](updated);
-  } else {
-    throw new Error(`Test metadata version ${updated.version} not supported`);
-  }
-
-  return {
-    test: updated
-  };
+function validate(metadata) {
+  return init(metadata && metadata.test);
 }
 
-module.exports = sanitize;
+function init(data) {
+  const version = data.version || VERSION;
+  if (versions[version]) {
+    return {
+      test: create(data, versions[version]),
+    };
+  } else {
+    throw new Error(`Test metadata version ${data.version} not supported`);
+  }
+}
+
+module.exports = {
+  validate,
+  init
+};
