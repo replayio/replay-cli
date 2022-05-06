@@ -15,20 +15,21 @@ function sanitize(metadata, opts = {}) {
   const updated = {};
   Object.keys(metadata).forEach((key) => {
     const value = metadata[key];
-    // intentionally allowing `null` with the `typeof` check here
-    if (typeof value === "object") {
-      if (value === null || key.startsWith("x-")) {
-        // passthrough null or userspace types
-        updated[key] = value;
-      } else if (ALLOWED_KEYS.includes(key)) {
-        // validate known types
-        Object.assign(updated, handlers[key](metadata));
-      } else {
-        // and warn when dropping all other types
-        maybeLog(opts.verbose, `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
-      }
-    } else {
+
+    if (typeof value !== "object") {
       maybeLog(opts.verbose, `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`);
+      return;
+    }
+
+    if (value === null || key.startsWith("x-")) {
+      // passthrough null or userspace types
+      updated[key] = value;
+    } else if (ALLOWED_KEYS.includes(key)) {
+      // validate known types
+      Object.assign(updated, handlers[key](metadata));
+    } else {
+      // and warn when dropping all other types
+      maybeLog(opts.verbose, `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
     }
   });
 
