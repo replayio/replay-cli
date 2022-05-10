@@ -110,7 +110,8 @@ class ReplayReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult) {
     const status = result.status;
-    if (status !== "passed" && status !== "failed") return;
+    // skipped tests won't have a reply so nothing to do here
+    if (status === "skipped") return;
 
     const recs = listAllRecordings().filter((r) => {
       if (
