@@ -7,7 +7,8 @@
     "prepare": "npm run build",
     "install": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/install.js\") ? 1 : 0)' || node ./bin/replayio-puppeteer first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit"
   },
   "bin": {
     "replayio-puppeteer": "./bin/replayio-puppeteer.js"
