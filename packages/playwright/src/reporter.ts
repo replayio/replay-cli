@@ -11,10 +11,13 @@ import { test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync, appendFileSync, existsSync } from "fs";
 import path from "path";
 
+const uuid = require("uuid");
+
 import { getMetadataFilePath } from "./index";
 
 class ReplayReporter implements Reporter {
-  baseId = Date.now();
+  baseId = uuid.v4();
+  runTitle?: string;
 
   getTestId(test: TestCase) {
     return `${this.baseId}-${test.titlePath().join("-")}`;
@@ -72,7 +75,10 @@ class ReplayReporter implements Reporter {
               title: test.title,
               result: status,
               path: test.titlePath(),
-              run: "playwright-" + this.baseId,
+              run: {
+                id: this.baseId,
+                title: this.runTitle
+              },
               // extract the relative path from titlePath() but fall back to the
               // full path
               file: test.titlePath()[2] || test.location.file,

@@ -18,6 +18,9 @@ declare module '@replayio/replay/metadata' {
     // the file containing the test ran
     file?: string;
     // a unique identifier for the test run (e.g. the commit + the current time?)
-    run?: string;
+    run?: {
+      id: string;
+      title?: string;
+    };
   }
 }
