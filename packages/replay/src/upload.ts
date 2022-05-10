@@ -2,7 +2,7 @@ import crypto from "crypto";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
-import { RecordingMetadata, SourceMapsEntry } from "./types";
+import { Options, RecordingMetadata, SourceMapsEntry } from "./types";
 
 let gClient: ProtocolClient | undefined;
 let gClientReady = defer<boolean>();
@@ -63,7 +63,7 @@ async function connectionCreateRecording(id: string, buildId: string) {
   return recordingId;
 }
 
-function buildRecordingMetadata(metadata: Record<string, unknown>): RecordingMetadata {
+function buildRecordingMetadata(metadata: Record<string, unknown>, opts: Options = {}) {
   // extract the "standard" metadata and route the `rest` through the sanitizer
   const { duration, url, uri, title, operations, ...rest } = metadata;
 

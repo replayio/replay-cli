@@ -339,7 +339,7 @@ async function doUploadRecording(
   }
   // validate metadata before uploading so invalid data can block the upload
   const metadata = recording.metadata
-    ? buildRecordingMetadata(recording.metadata)
+    ? buildRecordingMetadata(recording.metadata, { verbose } )
     : null;
   const recordingId = await connectionCreateRecording(
     recording.id,

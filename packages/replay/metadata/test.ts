@@ -1,30 +1,54 @@
+import { Struct } from "superstruct";
+
+const {
+  array,
+  create,
+  defaulted,
+  enums,
+  number,
+  object,
+  optional,
+  string,
+  define
+} = require("superstruct");
+const isUuid = require("is-uuid");
+
 const VERSION = 1;
 
-const versions: Record<number, (metadata: Record<string, unknown>) => void> = {
-  1: function v1(metadata: Record<string, unknown>) {
-    if (!metadata.title) {
-      throw new Error("test title is required")
-    }
-  
-    if (!metadata.result) {
-      throw new Error("test result is required")
-    }
-  }
+const versions: Record<number, Struct> = {
+  1: object({
+    file: optional(string()),
+    path: optional(array(string())),
+    result: enums(["passed", "failed", "timedOut"]),
+    run: optional(object({
+      id: define('uuid', (v: any) => isUuid.v4(v)),
+      title: optional(string())
+    })),
+    title: string(),
+    version: defaulted(number(), () => 1),
+  }),
 };
 
-function sanitize(data: Record<string, unknown>) {
-  const updated = {...data};
-  if (!updated.version) {
-    updated.version = VERSION;
+function validate(metadata: {test: Record<string, unknown>}) {
+  if (!metadata || !metadata.test) {
+    throw new Error('Test metadata does not exist');
   }
 
-  if (typeof updated.version === "number" && versions[updated.version]) {
-    versions[updated.version](updated);
-  } else {
-    throw new Error(`Test metadata version ${updated.version} not supported`);
-  }
-
-  return updated;
+  return init(metadata.test);
 }
 
-export default sanitize;
+function init(data: Record<string, unknown>) {
+  const version = typeof data.version === "number" ? data.version : VERSION;
+  if (versions[version]) {
+    return {
+      test: create(data, versions[version]),
+    };
+  } else {
+    throw new Error(`Test metadata version ${data.version} not supported`);
+  }
+}
+
+export {
+  validate,
+  init
+};
