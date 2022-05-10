@@ -7,7 +7,9 @@ const {
   object,
   optional,
   string,
+  define
 } = require("superstruct");
+const isUuid = require("is-uuid");
 
 const VERSION = 1;
 
@@ -16,7 +18,10 @@ const versions = {
     file: optional(string()),
     path: optional(array(string())),
     result: enums(["passed", "failed", "timedOut"]),
-    run: optional(string()),
+    run: optional(object({
+      id: define('uuid', (v) => isUuid.v4(v)),
+      title: optional(string())
+    })),
     title: string(),
     version: defaulted(number(), () => 1),
   }),
