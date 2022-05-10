@@ -18,12 +18,9 @@ function getDeviceConfig(browserName: BrowserName) {
   // used by the reporter to inject test-specific metadata which will be picked
   // up by the driver when it creates a new recording
   if (process.env.TEST_WORKER_INDEX) {
-    if ("RECORD_REPLAY_METADATA" in env && env.RECORD_REPLAY_METADATA) {
-      console.warn(`RECORD_REPLAY_METADATA is set so a per-worker metadata file will not be used`);
-    } else {
-      env.RECORD_REPLAY_METADATA = undefined;
-      env.RECORD_REPLAY_METADATA_FILE = getMetadataFilePath(+process.env.TEST_WORKER_INDEX);
-    }
+    const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
+    env.RECORD_REPLAY_METADATA = undefined;
+    env.RECORD_REPLAY_METADATA_FILE = getMetadataFilePath(workerIndex);
   }
 
   return {
