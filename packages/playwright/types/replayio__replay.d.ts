@@ -23,7 +23,7 @@ declare module '@replayio/replay' {
    * not already installed
    * @param browserName BrowserName | "all"
    */
-  export function ensurePlaywrightBrowsersInstalled(browserName: BrowserName | "all"): Promise<void>;
+  export function ensurePlaywrightBrowsersInstalled(browserName: BrowserName | "all", opts?: {verbose?: boolean}): Promise<void>;
 
   /**
    * Installs the Replay-enabled puppeteer browsers for the current platform is

@@ -30,5 +30,5 @@ declare module '@replayio/replay' {
    * not already installed
    * @param browserName BrowserName | "all"
    */
-  export function ensurePuppeteerBrowsersInstalled(browserName: BrowserName | "all"): Promise<void>;
+  export function ensurePuppeteerBrowsersInstalled(browserName: BrowserName | "all", opts?: {verbose?: boolean}): Promise<void>;
 }
