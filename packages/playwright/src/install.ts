@@ -11,7 +11,7 @@ function isValidBrowser(
 
 async function install(browser: string) {
   if (isValidBrowser(browser)) {
-    await ensurePlaywrightBrowsersInstalled(browser);
+    await ensurePlaywrightBrowsersInstalled(browser, {verbose: true});
   } else {
     console.error("Browser", browser, "is not supported");
   }
