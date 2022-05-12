@@ -1,12 +1,18 @@
-const crypto = require("crypto");
-const ProtocolClient = require("./client");
-const { defer, maybeLog, isValidUUID } = require("./utils");
-const { sanitize: sanitizeMetadata } = require("../metadata");
+import crypto from "crypto";
+import ProtocolClient from "./client";
+import { defer, maybeLog, isValidUUID } from "./utils";
+import { sanitize as sanitizeMetadata } from "../metadata";
+import { Options, RecordingMetadata, SourceMapsEntry } from "./types";
 
-let gClient;
-let gClientReady = defer();
+let gClient: ProtocolClient | undefined;
+let gClientReady = defer<boolean>();
 
-async function initConnection(server, accessToken, verbose, agent) {
+async function initConnection(
+  server: string,
+  accessToken?: string,
+  verbose?: boolean,
+  agent?: any
+) {
   if (!gClient) {
     let { resolve } = gClientReady;
     gClient = new ProtocolClient(
@@ -14,7 +20,7 @@ async function initConnection(server, accessToken, verbose, agent) {
       {
         async onOpen() {
           try {
-            await gClient.setAccessToken(accessToken);
+            await gClient!.setAccessToken(accessToken);
             resolve(true);
           } catch (err) {
             maybeLog(verbose, `Error authenticating with server: ${err}`);
@@ -38,8 +44,10 @@ async function initConnection(server, accessToken, verbose, agent) {
   return gClientReady.promise;
 }
 
-async function connectionCreateRecording(id, buildId) {
-  const { recordingId } = await gClient.sendCommand(
+async function connectionCreateRecording(id: string, buildId: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
+  const { recordingId } = await gClient.sendCommand<{ recordingId: string }>(
     "Internal.createRecording",
     {
       buildId,
@@ -55,38 +63,49 @@ async function connectionCreateRecording(id, buildId) {
   return recordingId;
 }
 
-function buildRecordingMetadata(metadata, opts = {}) {
+function buildRecordingMetadata(metadata: Record<string, unknown>, opts: Options = {}) {
   // extract the "standard" metadata and route the `rest` through the sanitizer
   const { duration, url, uri, title, operations, ...rest } = metadata;
 
+  const metadataUrl = url || uri;
+
   return {
     recordingData: {
-      duration: duration || 0,
-      url: url || uri || "",
-      title: title || "",
-      operations: operations || {
+      duration: typeof duration === "number" ? duration : 0,
+      url: typeof metadataUrl === "string" ? metadataUrl : "",
+      title: typeof title === "string" ? title : "",
+      operations: operations && typeof operations === "object" ? operations : {
         scriptDomains: [],
       },
       lastScreenData: "",
       lastScreenMimeType: "",
     },
-    metadata: sanitizeMetadata(rest, opts),
+    metadata: sanitizeMetadata(rest),
   };
 }
 
-async function setRecordingMetadata(id, metadata) {
+async function setRecordingMetadata(id: string, metadata: RecordingMetadata) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
   metadata.recordingData.id = id;
   await gClient.sendCommand("Internal.setRecordingMetadata", metadata);
 }
 
-function connectionProcessRecording(recordingId) {
+function connectionProcessRecording(recordingId: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
   gClient.sendCommand("Recording.processRecording", { recordingId });
 }
 
-async function connectionWaitForProcessed(recordingId) {
-  const { sessionId } = await gClient.sendCommand("Recording.createSession", {
-    recordingId,
-  });
+async function connectionWaitForProcessed(recordingId: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
+  const { sessionId } = await gClient.sendCommand<{ sessionId: string }>(
+    "Recording.createSession",
+    {
+      recordingId,
+    }
+  );
   const waiter = defer();
 
   gClient.setEventListener("Recording.sessionError", ({ message }) =>
@@ -103,14 +122,18 @@ async function connectionWaitForProcessed(recordingId) {
   return error;
 }
 
-async function connectionReportCrash(data) {
+async function connectionReportCrash(data: any) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
   await gClient.sendCommand("Internal.reportCrash", { data });
 }
 
 // Granularity for splitting up a recording into chunks for uploading.
 const ChunkGranularity = 1024 * 1024;
 
-async function connectionUploadRecording(recordingId, contents) {
+async function connectionUploadRecording(recordingId: string, contents: Buffer) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
   const promises = [];
   for (let i = 0; i < contents.length; i += ChunkGranularity) {
     const buf = contents.subarray(i, i + ChunkGranularity);
@@ -132,22 +155,24 @@ async function connectionUploadRecording(recordingId, contents) {
   return Promise.all(promises);
 }
 
-async function connectionUploadSourcemap(recordingId, metadata, content) {
+async function connectionUploadSourcemap(recordingId: string, metadata: SourceMapsEntry, content: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
   const hash = "sha256:" + sha256(content);
-  const { token } = await gClient.sendCommand("Resource.token", { hash });
+  const { token } = await gClient.sendCommand<{token: string}>("Resource.token", { hash });
   let resource = {
     token,
     saltedHash: "sha256:" + sha256(token + content),
   };
 
-  const { exists } = await gClient.sendCommand("Resource.exists", { resource });
+  const { exists } = await gClient.sendCommand<{exists: boolean}>("Resource.exists", { resource });
   if (!exists) {
     ({ resource } = await gClient.sendCommand("Resource.create", { content }));
   }
 
   const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } =
     metadata;
-  const result = await gClient.sendCommand("Recording.addSourceMap", {
+  const result = await gClient.sendCommand<{id: string}>("Recording.addSourceMap", {
     recordingId,
     resource,
     baseURL,
@@ -158,7 +183,7 @@ async function connectionUploadSourcemap(recordingId, metadata, content) {
   return result.id;
 }
 
-function sha256(text) {
+function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
 }
 
@@ -170,7 +195,7 @@ function closeConnection() {
   }
 }
 
-module.exports = {
+export {
   initConnection,
   connectionCreateRecording,
   connectionProcessRecording,

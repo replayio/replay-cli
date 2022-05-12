@@ -1,32 +1,39 @@
-const WebSocket = require("ws");
-const { defer } = require("./utils");
+import WebSocket from "ws";
+import { Options } from "./types";
+import { defer } from "./utils";
 
 // Simple protocol client for use in writing standalone applications.
 
+interface Callbacks {
+  onOpen: (socket: WebSocket) => void;
+  onClose: (socket: WebSocket) => void;
+  onError: (socket: WebSocket) => void;
+}
+
 class ProtocolClient {
-  constructor(address, callbacks, opts = {}) {
+  socket: WebSocket;
+  callbacks: Callbacks;
+  pendingMessages = new Map();
+  eventListeners = new Map();
+  nextMessageId = 1;
+
+  constructor(address: string, callbacks: Callbacks, opts: Options = {}) {
     this.socket = new WebSocket(address, {
       agent: opts.agent,
     });
     this.callbacks = callbacks;
 
-    // Internal state.
-    this.pendingMessages = new Map();
-    this.nextMessageId = 1;
-
     this.socket.on("open", callbacks.onOpen);
     this.socket.on("close", callbacks.onClose);
     this.socket.on("error", callbacks.onError);
     this.socket.on("message", (message) => this.onMessage(message));
-
-    this.eventListeners = new Map();
   }
 
   close() {
     this.socket.close();
   }
 
-  async setAccessToken(accessToken) {
+  async setAccessToken(accessToken?: string) {
     accessToken = accessToken || process.env.RECORD_REPLAY_API_KEY;
 
     if (!accessToken) {
@@ -40,7 +47,10 @@ class ProtocolClient {
     });
   }
 
-  async sendCommand(method, params, data, sessionId) {
+  async sendCommand<
+    T = unknown,
+    P extends object = Record<string, unknown>
+  >(method: string, params: P, data?: any, sessionId?: string) {
     const id = this.nextMessageId++;
     this.socket.send(
       JSON.stringify({
@@ -54,17 +64,17 @@ class ProtocolClient {
     if (data) {
       this.socket.send(data);
     }
-    const waiter = defer();
+    const waiter = defer<T>();
     this.pendingMessages.set(id, waiter);
     return waiter.promise;
   }
 
-  setEventListener(method, callback) {
+  setEventListener(method: string, callback: (params: any) => void) {
     this.eventListeners.set(method, callback);
   }
 
-  onMessage(contents) {
-    const msg = JSON.parse(contents);
+  onMessage(contents: WebSocket.RawData) {
+    const msg = JSON.parse(String(contents));
     if (msg.id) {
       const { resolve, reject } = this.pendingMessages.get(msg.id);
       this.pendingMessages.delete(msg.id);
@@ -81,4 +91,4 @@ class ProtocolClient {
   }
 }
 
-module.exports = ProtocolClient;
+export default ProtocolClient;

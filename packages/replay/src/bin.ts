@@ -1,5 +1,5 @@
-const { program } = require("commander");
-const {
+import { program } from "commander";
+import {
   listAllRecordings,
   uploadRecording,
   processRecording,
@@ -9,7 +9,8 @@ const {
   removeRecording,
   removeAllRecordings,
   updateBrowsers,
-} = require("./main");
+} from "./main";
+import { CommandLineOptions } from "./types";
 
 program
   .command("ls")
@@ -139,48 +140,48 @@ program
     process.exit(1);
   });
 
-function commandListAllRecordings(opts) {
+function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
   const recordings = listAllRecordings({ ...opts, verbose: true });
   console.log(JSON.stringify(recordings, null, 2));
   process.exit(0);
 }
 
-async function commandUploadRecording(id, opts) {
+async function commandUploadRecording(id: string, opts: CommandLineOptions) {
   const recordingId = await uploadRecording(id, { ...opts, verbose: true });
   process.exit(recordingId ? 0 : 1);
 }
 
-async function commandProcessRecording(id, opts) {
+async function commandProcessRecording(id: string, opts: CommandLineOptions) {
   const recordingId = await processRecording(id, { ...opts, verbose: true });
   process.exit(recordingId ? 0 : 1);
 }
 
-async function commandUploadAllRecordings(opts) {
+async function commandUploadAllRecordings(opts: CommandLineOptions) {
   const uploadedAll = await uploadAllRecordings({ ...opts, verbose: true });
   process.exit(uploadedAll ? 0 : 1);
 }
 
-async function commandViewRecording(id, opts) {
+async function commandViewRecording(id: string, opts: CommandLineOptions) {
   const viewed = await viewRecording(id, { ...opts, verbose: true });
   process.exit(viewed ? 0 : 1);
 }
 
-async function commandViewLatestRecording(opts) {
+async function commandViewLatestRecording(opts: CommandLineOptions) {
   const viewed = await viewLatestRecording({ ...opts, verbose: true });
   process.exit(viewed ? 0 : 1);
 }
 
-function commandRemoveRecording(id, opts) {
+function commandRemoveRecording(id: string, opts: Pick<CommandLineOptions, "directory">) {
   const removed = removeRecording(id, { ...opts, verbose: true });
   process.exit(removed ? 0 : 1);
 }
 
-function commandRemoveAllRecordings(opts) {
+function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
   removeAllRecordings({ ...opts, verbose: true });
   process.exit(0);
 }
 
-async function commandUpdateBrowsers(opts) {
+async function commandUpdateBrowsers(opts: Pick<CommandLineOptions, "directory">) {
   await updateBrowsers({ ...opts, verbose: true });
   process.exit(0);
 }

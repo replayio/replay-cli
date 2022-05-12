@@ -3,11 +3,17 @@
   "version": "0.2.0",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
-    "replay": "bin/replay"
+    "replay": "bin/replay.js"
   },
   "main": "src/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:source": "npm run if:exists -- src/main.ts",
+    "if:dist": "npm run if:exists -- src/main.js",
+    "prepare": "npm run if:dist || npm run build",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -25,5 +31,12 @@
     "superstruct": "^0.15.4",
     "ws": "^7.5.0"
   },
-  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02",
+  "devDependencies": {
+    "@types/ws": "^8.5.3",
+    "typescript": "^4.6.4"
+  }
 }

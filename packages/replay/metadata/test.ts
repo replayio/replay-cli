@@ -1,3 +1,4 @@
+import type { Struct } from "superstruct";
 const {
   array,
   create,
@@ -11,15 +12,17 @@ const {
 } = require("superstruct");
 const isUuid = require("is-uuid");
 
+import { UnstructuredMetadata } from "./types";
+
 const VERSION = 1;
 
-const versions = {
+const versions: Record<number, Struct> = {
   1: object({
     file: optional(string()),
     path: optional(array(string())),
     result: enums(["passed", "failed", "timedOut"]),
     run: optional(object({
-      id: define('uuid', (v) => isUuid.v4(v)),
+      id: define('uuid', (v: any) => isUuid.v4(v)),
       title: optional(string())
     })),
     title: string(),
@@ -27,7 +30,7 @@ const versions = {
   }),
 };
 
-function validate(metadata) {
+function validate(metadata: {test: UnstructuredMetadata}) {
   if (!metadata || !metadata.test) {
     throw new Error('Test metadata does not exist');
   }
@@ -35,8 +38,8 @@ function validate(metadata) {
   return init(metadata.test);
 }
 
-function init(data) {
-  const version = data.version || VERSION;
+function init(data: UnstructuredMetadata) {
+  const version = typeof data.version === "number" ? data.version : VERSION;
   if (versions[version]) {
     return {
       test: create(data, versions[version]),
@@ -46,7 +49,7 @@ function init(data) {
   }
 }
 
-module.exports = {
+export {
   validate,
   init
 };
