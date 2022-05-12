@@ -20,7 +20,7 @@ async function initConnection(
       {
         async onOpen() {
           try {
-            await gClient?.setAccessToken(accessToken);
+            await gClient!.setAccessToken(accessToken);
             resolve(true);
           } catch (err) {
             maybeLog(verbose, `Error authenticating with server: ${err}`);

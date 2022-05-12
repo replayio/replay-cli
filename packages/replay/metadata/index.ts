@@ -1,6 +1,8 @@
 import { Options } from "../src/types";
 import { maybeLog } from "../src/utils";
+
 import * as test from "./test";
+import { UnstructuredMetadata } from "./types";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
@@ -11,18 +13,14 @@ type AllowedKey = keyof typeof handlers;
 const ALLOWED_KEYS = Object.keys(handlers);
 
 function isAllowedKey(key: string): key is AllowedKey {
-  if (ALLOWED_KEYS.includes(key)) {
-    return true;
-  }
-
-  return false;
+  return ALLOWED_KEYS.includes(key);
 }
 
 // Sanitizing arbitrary recording metadata before uploading by removing any
 // non-object values (allowing null) and limiting object values to known keys or
 // userspace keys prefixed by `x-`.
-function sanitize(metadata: Record<string, unknown>, opts: Options = {}) {
-  const updated: Record<string, unknown> = {};
+function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
+  const updated: UnstructuredMetadata = {};
   Object.keys(metadata).forEach((key) => {
     const value = metadata[key];
 
