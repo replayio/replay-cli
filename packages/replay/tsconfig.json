@@ -71,6 +71,7 @@
   },
   "include": [
     "src",
+    "bin",
     "metadata",
     "types",
   ]

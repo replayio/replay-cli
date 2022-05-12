@@ -3,13 +3,15 @@
   "version": "0.2.0",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
-    "replay": "bin/replay"
+    "replay": "bin/replay.js"
   },
   "main": "src/main.js",
   "scripts": {
-    "build": "rm -rf dist/ && tsc && cp -R package.json README.md bin dist/ && chmod 755 dist/bin/*",
-    "is-build": "node -e 'process.exit(require(\"fs\").existsSync(\"./src/main.js\") ? 0 : 1)'",
-    "prepare": "npm run is-build || npm run build",
+    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:source": "npm run if:exists -- src/main.ts",
+    "if:dist": "npm run if:exists -- src/main.js",
+    "prepare": "npm run if:dist || npm run build",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit"
   },
