@@ -2,11 +2,13 @@ import { Options } from "../src/types";
 import { maybeLog } from "../src/utils";
 
 import * as test from "./test";
+import * as source from "./source";
 import { UnstructuredMetadata } from "./types";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
-  test: test.validate
+  test: test.validate,
+  source: source.validate,
 };
 
 type AllowedKey = keyof typeof handlers;
@@ -25,7 +27,10 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
     const value = metadata[key];
 
     if (typeof value !== "object") {
-      maybeLog(opts.verbose, `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`);
+      maybeLog(
+        opts.verbose,
+        `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
+      );
       return;
     }
 
@@ -37,14 +42,14 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
       Object.assign(updated, handlers[key](metadata as any));
     } else {
       // and warn when dropping all other types
-      maybeLog(opts.verbose, `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`);
+      maybeLog(
+        opts.verbose,
+        `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
+      );
     }
   });
 
   return updated;
 }
 
-export {
-  sanitize,
-  test
-};
+export { sanitize, test };
