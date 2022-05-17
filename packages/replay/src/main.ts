@@ -581,12 +581,12 @@ function removeAllRecordings(opts = {}) {
   }
 }
 
-function addRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
+function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
   add(recordingId, metadata);
 }
 
 export {
-  addRecordingMetadata,
+  addLocalRecordingMetadata,
   listAllRecordings,
   uploadRecording,
   processRecording,
