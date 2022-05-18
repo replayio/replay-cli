@@ -22,6 +22,7 @@ import {
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
 import { Options, RecordingEntry } from "./types";
+import { add } from "../metadata";
 export type { BrowserName } from "./types";
 
 function getRecordingsFile(dir: string) {
@@ -580,7 +581,12 @@ function removeAllRecordings(opts = {}) {
   }
 }
 
+function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
+  add(recordingId, metadata);
+}
+
 export {
+  addLocalRecordingMetadata,
   listAllRecordings,
   uploadRecording,
   processRecording,

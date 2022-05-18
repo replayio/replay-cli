@@ -1,16 +1,13 @@
 import type {
   FullConfig,
   Reporter,
-  Suite,
   TestCase,
   TestResult,
 } from "@playwright/test/reporter";
-import { getDirectory } from "@replayio/replay/src/utils";
 import { listAllRecordings } from "@replayio/replay";
-import { test as testMetadata } from "@replayio/replay/metadata";
-import { writeFileSync, appendFileSync, existsSync } from "fs";
+import { add, test as testMetadata } from "@replayio/replay/metadata";
+import { writeFileSync, existsSync } from "fs";
 import path from "path";
-
 const uuid = require("uuid");
 
 import { getMetadataFilePath } from "./index";
@@ -31,7 +28,7 @@ class ReplayReporter implements Reporter {
 
   parseConfig(config: FullConfig) {
     let cfg: ReplayReporterConfig = {};
-    config.reporter.forEach(r => {
+    config.reporter.forEach((r) => {
       // the reporter is imported from the root reporter.js which imports this
       // file so we compare the base directory to see if this is our config
       if (r[0].startsWith(path.resolve(__dirname, ".."))) {
@@ -39,7 +36,10 @@ class ReplayReporter implements Reporter {
           if (typeof r[1] === "object") {
             cfg = r[1];
           } else {
-            console.warn("Expected an object for @replayio/playwright/reporter configuration but received", typeof r[1]);
+            console.warn(
+              "Expected an object for @replayio/playwright/reporter configuration but received",
+              typeof r[1]
+            );
           }
         }
       }
@@ -56,11 +56,20 @@ class ReplayReporter implements Reporter {
     // reporter-specific environment configuration is to prefix with PLAYWRIGHT_
     // so we use that as the first priority, RECORD_REPLAY_METADATA second, and
     // the config value last.
-    if (process.env.PLAYWRIGHT_REPLAY_METADATA && process.env.RECORD_REPLAY_METADATA) {
-      console.warn("Cannot set metadata via both RECORD_REPLAY_METADATA and PLAYWRIGHT_REPLAY_METADATA. Using PLAYWRIGHT_REPLAY_METADATA.");
+    if (
+      process.env.PLAYWRIGHT_REPLAY_METADATA &&
+      process.env.RECORD_REPLAY_METADATA
+    ) {
+      console.warn(
+        "Cannot set metadata via both RECORD_REPLAY_METADATA and PLAYWRIGHT_REPLAY_METADATA. Using PLAYWRIGHT_REPLAY_METADATA."
+      );
     }
 
-    const baseMetadata = process.env.PLAYWRIGHT_REPLAY_METADATA || process.env.RECORD_REPLAY_METADATA || cfg.metadata || null;
+    const baseMetadata =
+      process.env.PLAYWRIGHT_REPLAY_METADATA ||
+      process.env.RECORD_REPLAY_METADATA ||
+      cfg.metadata ||
+      null;
     if (baseMetadata) {
       // Since we support either a string in an environment variable or an
       // object in the cfg, we need to parse out the string value. Technically,
@@ -125,33 +134,23 @@ class ReplayReporter implements Reporter {
     });
 
     if (recs.length > 0) {
-      recs.forEach((rec) => {
-        const metadata = {
-          id: rec.id,
-          kind: "addMetadata",
-          metadata: {
+      recs.forEach((rec) =>
+        add(rec.id, {
+          title: test.title,
+          ...testMetadata.init({
             title: test.title,
-            ...testMetadata.init({
-              title: test.title,
-              result: status,
-              path: test.titlePath(),
-              run: {
-                id: this.baseId,
-                title: this.runTitle
-              },
-              // extract the relative path from titlePath() but fall back to the
-              // full path
-              file: test.titlePath()[2] || test.location.file,
-            }),
-          },
-          timestamp: Date.now(),
-        };
-
-        appendFileSync(
-          path.join(getDirectory(), "recordings.log"),
-          `\n${JSON.stringify(metadata)}\n`
-        );
-      });
+            result: status,
+            path: test.titlePath(),
+            run: {
+              id: this.baseId,
+              title: this.runTitle,
+            },
+            // extract the relative path from titlePath() but fall back to the
+            // full path
+            file: test.titlePath()[2] || test.location.file,
+          }),
+        })
+      );
     }
   }
 }

@@ -1,5 +1,8 @@
+import { appendFileSync } from "fs";
+import path from "path";
+
 import { Options } from "../src/types";
-import { maybeLog } from "../src/utils";
+import { getDirectory, maybeLog } from "../src/utils";
 
 import * as test from "./test";
 import * as source from "./source";
@@ -52,4 +55,30 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
   return updated;
 }
 
-export { sanitize, test };
+/**
+ * Adds unstructured metadata to the local recordings database.
+ *
+ * New metadata will be merged with existing data. If the same key is used by
+ * multiple entries, the most recent entry's value will be used.
+ *
+ * Metadata is not validated until the recording is uploaded so arbitrary keys
+ * may be used here to manage recordings before upload.
+ *
+ * @param recordingId UUID of the recording
+ * @param metadata Recording metadata
+ */
+function add(recordingId: string, metadata: Record<string, unknown>) {
+  const entry = {
+    id: recordingId,
+    kind: "addMetadata",
+    metadata,
+    timestamp: Date.now(),
+  };
+
+  appendFileSync(
+    path.join(getDirectory(), "recordings.log"),
+    `\n${JSON.stringify(entry)}\n`
+  );
+}
+
+export { add, sanitize, source, test };
