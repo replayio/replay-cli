@@ -1,0 +1,52 @@
+{
+  "name": "@replayio/sourcemap-upload",
+  "version": "1.0.0",
+  "description": "A utility library for uploading sourcemaps to Replay for use while replaying recordings.",
+  "engines": {
+    "node": ">=10.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "prepare": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "lib"
+  ],
+  "main": "./lib/index.js",
+  "exports": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
+  "author": "Logan Smyth <logan@replay.io>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/sourcemap-upload/README.md",
+  "devDependencies": {
+    "eslint": "^7.25.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "prettier": "^2.2.1",
+    "@types/glob": "^7.1.3",
+    "@types/node-fetch": "^2.5.10",
+    "@types/debug": "^4.1.5",
+    "@types/node": "^14.14.41",
+    "@types/string.prototype.matchall": "^4.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.22.0",
+    "@typescript-eslint/parser": "^4.22.0",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "commander": "^7.2.0",
+    "debug": "^4.3.1",
+    "glob": "^7.1.6",
+    "node-fetch": "^2.6.1",
+    "string.prototype.matchall": "^4.0.5"
+  }
+}
