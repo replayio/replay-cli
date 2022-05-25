@@ -1,4 +1,4 @@
-# @recordreplay/sourcemap-upload
+# @replayio/sourcemap-upload
 
 Provides an NPM library allows uploading sourcemaps to Replay's servers so
 that they can be used when viewing recordings.

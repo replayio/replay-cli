@@ -1,4 +1,4 @@
-# @recordreplay/sourcemap-upload-webpack-plugin
+# @replayio/sourcemap-upload-webpack-plugin
 
 Wraps Replay's [sourcemap-upload][1] module in a Webpack plugin so that it
 will execute automatically when the Webpack build has completed.
@@ -20,4 +20,4 @@ export interface PluginOptions extends UploadOptions {
 }
 ```
 
-[1]: https://github.com/recordreplay/sourcemap-upload
+[1]: ../sourcemap-upload
