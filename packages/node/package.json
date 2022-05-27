@@ -8,6 +8,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/replayio/replay-cli.git"
@@ -17,5 +20,6 @@
   "bugs": {
     "url": "https://github.com/replayio/replay-cli/issues"
   },
-  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/node/README.md"
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/node/README.md",
+  "gitHead": "1f66765d6ce66d3676c247110e21a78b2594314b"
 }

@@ -15,6 +15,9 @@
     "prepare": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "index.js",
     "lib"
@@ -48,5 +51,6 @@
   },
   "peerDependencies": {
     "webpack": "^4.0.0 || ^5.0.0"
-  }
+  },
+  "gitHead": "1f66765d6ce66d3676c247110e21a78b2594314b"
 }
