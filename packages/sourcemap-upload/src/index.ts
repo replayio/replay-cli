@@ -210,7 +210,7 @@ type PutOptions = {
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
-  return fetch("http://graphql-api.ryan.replay.local/v1/sourcemap-upload", {
+  return fetch("https://api.replay.io/v1/sourcemap-upload", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
