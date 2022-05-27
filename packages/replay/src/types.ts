@@ -22,6 +22,16 @@ export interface NodeOptions {
 
 export type Options = CommandLineOptions & NodeOptions;
 
+export interface SourcemapUploadOptions {
+  group: string;
+  dryRun?: boolean;
+  extensions?: Array<string>;
+  ignore?: Array<string>;
+  quiet?: boolean;
+  verbose?: boolean;
+  root?: string;
+}
+
 /**
  * Supported replay browsers
  */

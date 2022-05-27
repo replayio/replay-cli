@@ -1,3 +1,4 @@
+import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
 import {
   listAllRecordings,
@@ -10,7 +11,7 @@ import {
   removeAllRecordings,
   updateBrowsers,
 } from "./main";
-import { CommandLineOptions } from "./types";
+import { CommandLineOptions, SourcemapUploadOptions } from "./types";
 
 program
   .command("ls")
@@ -134,11 +135,51 @@ program
   .action(commandUpdateBrowsers);
 
 program
+  .command("upload-sourcemaps")
+  .requiredOption(
+    "-g, --group <name>",
+    "The name to group this sourcemap into, e.g. A commit SHA or release version."
+  )
+  .option(
+    "--api-key <key>",
+    "Authentication API Key"
+  )
+  .option(
+    "--dry-run",
+    "Perform all of the usual CLI logic, but the final sourcemap upload."
+  )
+  .option(
+    "-x, --extensions <exts>",
+    "A comma-separated list of extensions to process. Defaults to '.js,.map'.",
+    collectExtensions
+  )
+  .option(
+    "-i, --ignore <pattern>",
+    "Ignore files that match this pattern",
+    collectIgnorePatterns
+  )
+  .option("-q, --quiet", "Silence all stdout logging.")
+  .option("-v, --verbose", "Output extra data to stdout when processing files.")
+  .option(
+    "--root <dirname>",
+    "The base directory to use when computing relative paths"
+  )
+  .arguments("<paths...>")
+  .action((filepaths, opts) => commandUploadSourcemaps(filepaths, opts));
+
+program
   .parseAsync()
   .catch((err) => {
     console.log(err);
     process.exit(1);
   });
+
+function collectExtensions(value: string) {
+  return value.split(",");
+}
+function collectIgnorePatterns(value: string, previous: Array<string> = []) {
+  return previous.concat([value]);
+}
 
 function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
   const recordings = listAllRecordings({ ...opts, verbose: true });
@@ -184,4 +225,33 @@ function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory">)
 async function commandUpdateBrowsers(opts: Pick<CommandLineOptions, "directory">) {
   await updateBrowsers({ ...opts, verbose: true });
   process.exit(0);
+}
+
+async function commandUploadSourcemaps(
+  filepaths: Array<string>,
+  cliOpts: SourcemapUploadOptions & Pick<CommandLineOptions, "apiKey">
+): Promise<void> {
+  const { quiet, verbose, apiKey, ...uploadOpts } = cliOpts;
+
+  let log: LogCallback | undefined;
+  if (!quiet) {
+    if (verbose) {
+      log = (_level, message) => {
+        console.log(message);
+      };
+    } else {
+      log = (level, message) => {
+        if (level === "normal") {
+          console.log(message);
+        }
+      };
+    }
+  }
+
+  await uploadSourceMaps({
+    filepaths,
+    key: apiKey,
+    ...uploadOpts,
+    log,
+  });
 }
