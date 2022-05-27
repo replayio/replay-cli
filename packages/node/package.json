@@ -1,6 +1,6 @@
 {
   "name": "@replayio/node",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CLI tool for creating recordings using the replay version of node",
   "bin": {
     "replay-node": "bin/replay-node"
