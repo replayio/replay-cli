@@ -18,6 +18,11 @@ const versions: Record<number, Struct> = {
       title: optional(string()),
       url: optional(string())
     }),
+    trigger: optional(object({
+      user: optional(string()),
+      name: string(),
+      workflow: optional(string()),
+    })),
     merge: optional(object({
       id: string(),
       title: string(),
