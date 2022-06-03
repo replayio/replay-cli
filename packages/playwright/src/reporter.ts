@@ -21,6 +21,7 @@ class ReplayReporter implements Reporter {
   baseId = uuid.v4();
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
+  metadataFile?: string;
 
   getTestId(test: TestCase) {
     return `${this.baseId}-${test.titlePath().join("-")}`;
@@ -88,6 +89,16 @@ class ReplayReporter implements Reporter {
     }
   }
 
+  getMetadataFilePath(workerIndex: number) {
+    if (!this.metadataFile) {
+      // cache the metadata file path for the first run for a test because it
+      // might change if fails and is assigned to a new worker on retry
+      this.metadataFile = getMetadataFilePath(workerIndex);
+    }
+
+    return this.metadataFile;
+  }
+
   onBegin(config: FullConfig) {
     // prime all the metadata files
     for (let i = 0; i < config.workers; i++) {
@@ -98,7 +109,7 @@ class ReplayReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    const metadataFilePath = getMetadataFilePath(testResult.workerIndex);
+    const metadataFilePath = this.getMetadataFilePath(testResult.workerIndex);
     if (existsSync(metadataFilePath)) {
       writeFileSync(
         metadataFilePath,
