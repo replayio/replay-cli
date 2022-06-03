@@ -6,7 +6,7 @@ import type {
 } from "@playwright/test/reporter";
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
-import { writeFileSync, existsSync } from "fs";
+import { writeFileSync } from "fs";
 import path from "path";
 const uuid = require("uuid");
 
@@ -89,32 +89,26 @@ class ReplayReporter implements Reporter {
   }
 
   onBegin(config: FullConfig) {
-    // prime all the metadata files
-    for (let i = 0; i < config.workers; i++) {
-      writeFileSync(getMetadataFilePath(i), "{}");
-    }
-
     this.parseConfig(config);
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
     const metadataFilePath = getMetadataFilePath(testResult.workerIndex);
-    if (existsSync(metadataFilePath)) {
-      writeFileSync(
-        metadataFilePath,
-        JSON.stringify(
-          {
-            ...(this.baseMetadata || {}),
-            "x-playwright": {
-              id: this.getTestId(test),
-            },
+
+    writeFileSync(
+      metadataFilePath,
+      JSON.stringify(
+        {
+          ...(this.baseMetadata || {}),
+          "x-playwright": {
+            id: this.getTestId(test),
           },
-          undefined,
-          2
-        ),
-        {}
-      );
-    }
+        },
+        undefined,
+        2
+      ),
+      {}
+    );
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
