@@ -2,6 +2,7 @@ import { devices as replayDevices } from "@replayio/playwright";
 
 const config = {
   forbidOnly: !!process.env.CI,
+  retries: 2,
   use: {
     trace: "on-first-retry",
     defaultBrowserType: "chromium",
