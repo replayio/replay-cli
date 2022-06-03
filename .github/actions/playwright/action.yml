@@ -20,8 +20,9 @@ runs:
     - uses: actions/setup-node@v2
       with:
         node-version: "17"
-    - run: npm run bootstrap
-      shell: sh
+    - uses: bahmutov/npm-install@v1
+      with:
+        working-directory: ${{ inputs.working-directory }}
     - uses: replayio/action-playwright@main
       with:
         issue-number: ${{ inputs.issue-number }}
