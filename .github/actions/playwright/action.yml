@@ -13,7 +13,6 @@ inputs:
     description: "Replay.io API Key"
   issue-number:
     description: "Issue / Pull Request on which to comment results"
-runs-on: self-hosted
 runs:
   using: composite
   steps:
