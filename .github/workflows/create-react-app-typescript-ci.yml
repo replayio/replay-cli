@@ -7,7 +7,7 @@ on:
 jobs:
   playwright-tests:
     name: Playwright tests
-    runs-on: self-hosted
+    runs-on: [linux, self-hosted]
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/playwright
