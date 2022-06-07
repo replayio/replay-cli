@@ -23,6 +23,8 @@ runs:
     - uses: bahmutov/npm-install@v1
       with:
         working-directory: ${{ inputs.working-directory }}
+    - run: npm run bootstrap
+      shell: sh
     - uses: replayio/action-playwright@main
       with:
         issue-number: ${{ inputs.issue-number }}
