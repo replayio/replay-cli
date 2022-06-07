@@ -23,7 +23,7 @@ const versions: Record<number, Struct> = {
     result: enums(["passed", "failed", "timedOut"]),
     run: optional(object({
       id: define('uuid', (v: any) => isUuid.v4(v)),
-      title: optional(string())
+      title: optional(string()),
     })),
     title: string(),
     version: defaulted(number(), () => 1),
