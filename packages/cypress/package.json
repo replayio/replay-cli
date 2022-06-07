@@ -1,0 +1,25 @@
+{
+  "name": "@replayio/cypress",
+  "version": "0.1.0",
+  "description": "Plugin to record your Cypress tests with Replay",
+  "main": "src/index.js",
+  "scripts": {
+    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:dist": "npm run if:exists -- src/index.js",
+    "prepare": "npm run if:dist || npm run build",
+    "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "@types/node": "^16.11.39",
+    "cypress": "^10.0.3"
+  },
+  "dependencies": {
+    "@replayio/replay": "^0.4.1",
+    "@types/mocha": "^9.1.1",
+    "mocha": "^10.0.0"
+  }
+}
