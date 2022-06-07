@@ -21,6 +21,9 @@ runs:
       with:
         node-version: "17"
     - uses: bahmutov/npm-install@v1
+    - run: npm run bootstap
+      shell: sh
+    - uses: bahmutov/npm-install@v1
       with:
         working-directory: ${{ inputs.working-directory }}
     - uses: replayio/action-playwright@main
