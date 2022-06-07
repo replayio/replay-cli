@@ -22,6 +22,7 @@ const versions: Record<number, Struct> = {
       user: optional(string()),
       name: string(),
       workflow: optional(string()),
+      url: optional(string()),
     })),
     merge: optional(object({
       id: string(),
