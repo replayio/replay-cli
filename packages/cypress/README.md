@@ -23,14 +23,15 @@ Replay can be configured to upload `"all"`, `"none"`, or only `"failed"` recordi
 ## Usage
 
 ```js
-// cypress/plugin/index.ts
-import cypressReplay from "@recordreplay/cypress-replay";
+// cypress.config.js
+import { defineConfig } from "cypress";
+import cypressReplay from "@replayio/cypress";
 
-export default (on, config) => {
-	// Additional configuration
-
-	cypressReplay(on, config);
-
-	return config;
-}
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      cypressREplay(on, config);
+    }
+  }
+});
 ```

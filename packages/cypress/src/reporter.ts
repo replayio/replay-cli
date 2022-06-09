@@ -74,8 +74,6 @@ class ReplayReporter extends mocha.reporters.Base {
   onTestBegin(test: mocha.Test) {
     const metadataFilePath = getMetadataFilePath();
 
-    console.log(">> onTestBegin", this.getTestId(test));
-
     writeFileSync(
       metadataFilePath,
       JSON.stringify(
@@ -94,7 +92,6 @@ class ReplayReporter extends mocha.reporters.Base {
 
   onTestEnd(test: mocha.Test) {
     const status = test.state;
-    console.log(">> onTestEnd", this.getTestId(test), status);
 
     if (!status) return;
 
