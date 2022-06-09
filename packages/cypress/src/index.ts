@@ -6,7 +6,6 @@ import { getDirectory } from "@replayio/replay/src/utils";
 import ReplayReporter from "./reporter";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  console.log("!!!!!", getMetadataFilePath());
   const reporter = new ReplayReporter(getMetadataFilePath());
   on("before:browser:launch", (browser) => reporter.onBegin(browser.family));
   on("before:spec", (spec) => reporter.onTestBegin(spec));
@@ -16,7 +15,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   if (chromiumPath) {
     Object.assign(config, {
       browsers: config.browsers.concat({
-        name: "Replay",
+        name: "Replay Chromium",
         channel: "stable",
         family: "chromium",
         displayName: "Replay",
@@ -33,7 +32,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   if (firefoxPath) {
     Object.assign(config, {
       browsers: config.browsers.concat({
-        name: "Replay",
+        name: "Replay Firefox",
         channel: "stable",
         family: "firefox",
         displayName: "Replay",

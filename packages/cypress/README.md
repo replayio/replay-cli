@@ -32,5 +32,5 @@ module.exports = defineConfig({
 RECORD_ALL_CONTENT=1 \
 RECORD_REPLAY_METADATA_FILE=$(mktemp) \
 CYPRESS_NO_COMMAND_LOG=1 \
-npx cypress run --browser Replay
+npx cypress run --browser "Replay Firefox"
 ```
