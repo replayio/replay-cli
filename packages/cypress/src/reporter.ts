@@ -1,27 +1,24 @@
+/// <reference types="cypress" />
+
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync } from "fs";
-import mocha from "mocha";
 
 const uuid = require("uuid");
 
-import { getMetadataFilePath } from "./index";
-
-class ReplayReporter extends mocha.reporters.Base {
+class ReplayReporter {
+  browser?: string;
   baseId = uuid.v4();
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
+  metadataFilePath: string;
 
-  constructor(runner: Mocha.Runner, options?: Mocha.MochaOptions) {
-    super(runner, options);
-
-    runner.on(mocha.Runner.constants.EVENT_RUN_BEGIN, () => this.onBegin());
-    runner.on(mocha.Runner.constants.EVENT_TEST_BEGIN, suite => this.onTestBegin(suite));
-    runner.on(mocha.Runner.constants.EVENT_TEST_END, suite => this.onTestEnd(suite));
+  constructor(metadataFilePath: string) {
+    this.metadataFilePath = metadataFilePath;
   }
 
-  getTestId(test: mocha.Test) {
-    return `${this.baseId}-${test.titlePath().join("-")}`;
+  getTestId(spec: Cypress.Spec) {
+    return `${this.baseId}-${spec.relative}`;
   }
 
   parseConfig() {
@@ -67,20 +64,19 @@ class ReplayReporter extends mocha.reporters.Base {
     }
   }
 
-  onBegin() {
+  onBegin(browser: string) {
+    this.browser = browser;
     this.parseConfig();
   }
 
-  onTestBegin(test: mocha.Test) {
-    const metadataFilePath = getMetadataFilePath();
-
+  onTestBegin(spec: Cypress.Spec) {
     writeFileSync(
-      metadataFilePath,
+      this.metadataFilePath,
       JSON.stringify(
         {
           ...(this.baseMetadata || {}),
           "x-cypress": {
-            id: this.getTestId(test),
+            id: this.getTestId(spec),
           },
         },
         undefined,
@@ -90,8 +86,11 @@ class ReplayReporter extends mocha.reporters.Base {
     );
   }
 
-  onTestEnd(test: mocha.Test) {
-    const status = test.state;
+  onTestEnd(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+    const status = result.tests.reduce<string>(
+      (acc, t) => (acc === "failed" || !t.state ? acc : t.state),
+      "passed"
+    );
 
     if (!status) return;
 
@@ -100,7 +99,7 @@ class ReplayReporter extends mocha.reporters.Base {
         r.metadata["x-cypress"] &&
         typeof r.metadata["x-cypress"] === "object"
       ) {
-        return (r.metadata["x-cypress"] as any).id === this.getTestId(test);
+        return (r.metadata["x-cypress"] as any).id === this.getTestId(spec);
       }
 
       return false;
@@ -109,16 +108,18 @@ class ReplayReporter extends mocha.reporters.Base {
     if (recs.length > 0) {
       recs.forEach((rec) =>
         add(rec.id, {
-          title: test.title,
+          title: spec.relative,
           ...testMetadata.init({
-            title: test.title,
+            title: spec.relative,
             result: status,
-            path: test.titlePath(),
+            path: ["", this.browser || "", spec.relative, spec.specType].filter(
+              (s) => typeof s === "string"
+            ),
             run: {
               id: this.baseId,
               title: this.runTitle,
             },
-            file: test.file,
+            file: spec.relative,
           }),
         })
       );
