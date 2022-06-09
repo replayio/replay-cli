@@ -1,32 +1,10 @@
 /// <reference types="cypress" />
 
 import path from "path";
-import {
-  listAllRecordings,
-  uploadRecording,
-  getPlaywrightBrowserPath,
-} from "@replayio/replay";
+import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  const upload = config.env.replay?.upload || "failed";
-
-  on("after:spec", async (spec, results) => {
-    if (
-      upload === "all" ||
-      (upload === "failed" && results.stats.failures > 0)
-    ) {
-      const recordings = listAllRecordings();
-      if (recordings.length > 0) {
-        const recording = recordings[recordings.length - 1];
-        if (recording && typeof recording.id === "number") {
-          console.log("Uploading recording of", spec.relative);
-          await uploadRecording(recording.id, { verbose: true });
-        }
-      }
-    }
-  });
-
   const chromiumPath = getPlaywrightBrowserPath("chromium");
   if (chromiumPath) {
     Object.assign(config, {
@@ -62,7 +40,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   }
 
   Object.assign(config, {
-    reporter: '@replayio/cypress/reporter',
+    reporter: "@replayio/cypress/reporter",
   } as Cypress.ConfigOptions);
 
   return config;
