@@ -19,5 +19,9 @@
   },
   "dependencies": {
     "@replayio/replay": "^0.4.1"
+  },
+  "publishConfig": {
+    "directory": "dist",
+    "access": "public"
   }
 }
