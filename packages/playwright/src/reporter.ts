@@ -18,7 +18,7 @@ interface ReplayReporterConfig {
 }
 
 class ReplayReporter implements Reporter {
-  baseId = uuid.v4();
+  baseId = uuid.validate(process.env.RECORD_REPLAY_TEST_RUN_ID || "") ? process.env.RECORD_REPLAY_TEST_RUN_ID : uuid.v4();
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
 
@@ -47,7 +47,7 @@ class ReplayReporter implements Reporter {
 
     // always favor environment variables over config so the config can be
     // overwritten at runtime
-    this.runTitle = process.env.PLAYWRIGHT_REPLAY_RUN_TITLE || cfg.runTitle;
+    this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE || cfg.runTitle;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
     // We suppress it for the browser process so we can use

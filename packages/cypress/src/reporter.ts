@@ -8,7 +8,7 @@ const uuid = require("uuid");
 
 class ReplayReporter {
   browser?: string;
-  baseId = uuid.v4();
+  baseId = uuid.validate(process.env.RECORD_REPLAY_TEST_RUN_ID || "") ? process.env.RECORD_REPLAY_TEST_RUN_ID : uuid.v4();
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
   metadataFilePath: string;
@@ -24,15 +24,14 @@ class ReplayReporter {
   parseConfig() {
     // always favor environment variables over config so the config can be
     // overwritten at runtime
-    this.runTitle = process.env.CYPRESS_REPLAY_RUN_TITLE;
+    this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
     // We suppress it for the browser process so we can use
     // RECORD_REPLAY_METADATA_FILE but can still use the metadata here which
-    // runs in the test runner process. However, playwright's convention for
-    // reporter-specific environment configuration is to prefix with PLAYWRIGHT_
-    // so we use that as the first priority, RECORD_REPLAY_METADATA second, and
-    // the config value last.
+    // runs in the test runner process. However, cypress's convention for
+    // reporter-specific environment configuration is to prefix with CYPRESS_
+    // so we use that as the first priority and RECORD_REPLAY_METADATA last.
     if (
       process.env.CYPRESS_REPLAY_METADATA &&
       process.env.RECORD_REPLAY_METADATA
@@ -47,19 +46,10 @@ class ReplayReporter {
       process.env.RECORD_REPLAY_METADATA ||
       null;
     if (baseMetadata) {
-      // Since we support either a string in an environment variable or an
-      // object in the cfg, we need to parse out the string value. Technically,
-      // you could use a string in the config file too but that'd be unexpected.
-      // Nonetheless, it'll be handled correctly here if you're into that sort
-      // of thing.
-      if (typeof baseMetadata === "string") {
-        try {
-          this.baseMetadata = JSON.parse(baseMetadata);
-        } catch {
-          console.warn("Failed to parse Replay metadata");
-        }
-      } else {
-        this.baseMetadata = baseMetadata;
+      try {
+        this.baseMetadata = JSON.parse(baseMetadata);
+      } catch {
+        console.warn("Failed to parse Replay metadata");
       }
     }
   }
