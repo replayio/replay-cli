@@ -1,6 +1,6 @@
 {
   "name": "@replayio/cypress",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "src/index.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "cypress": "^10.0.3"
   },
   "dependencies": {
-    "@replayio/replay": "^0.4.1"
+    "@replayio/replay": "^0.4.3"
   },
   "publishConfig": {
     "directory": "dist",
