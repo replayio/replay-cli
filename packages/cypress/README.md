@@ -37,3 +37,7 @@ RECORD_REPLAY_METADATA_FILE=$(mktemp) \
 CYPRESS_NO_COMMAND_LOG=1 \
 npx cypress run --browser "Replay Firefox"
 ```
+
+## Parallel runs on CI
+
+If you have a large test suite, you might choose to split your test suite up and run them in parallel across multiple machines but still treat them as a single suite. By default, `@replayio/cypress` will generate a UUID for the suite and store it in the recording metadata under `test.run.id` but in this case each machine will have its own id. In order to link these independently ran tests together, you can generate your own UUID and set it in the `RECORD_REPLAY_TEST_RUN_ID` environment variable and it will be used instead of generating a value.
