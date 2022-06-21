@@ -7,9 +7,13 @@
     "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
     "if:dist": "npm run if:exists -- src/index.js",
     "prepare": "npm run if:dist || npm run build",
+    "install": "npm run if:source || node ./bin/replayio-cypress first-run",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit"
+  },
+  "bin": {
+    "replayio-cypress": "./bin/replayio-cypress.js"
   },
   "author": "",
   "license": "BSD-3-Clause",

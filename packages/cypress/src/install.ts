@@ -1,3 +1,20 @@
-import { ensurePuppeteerBrowsersInstalled } from "@replayio/replay";
+import {
+  BrowserName,
+  ensurePlaywrightBrowsersInstalled,
+} from "@replayio/replay";
 
-(async () => await ensurePuppeteerBrowsersInstalled("all"))();
+function isValidBrowser(
+  browserName: string
+): browserName is BrowserName | "all" {
+  return ["chromium", "firefox", "all"].includes(browserName);
+}
+
+async function install(browser: string) {
+  if (isValidBrowser(browser)) {
+    await ensurePlaywrightBrowsersInstalled(browser, {verbose: true});
+  } else {
+    console.error("Browser", browser, "is not supported");
+  }
+}
+
+export default install;
