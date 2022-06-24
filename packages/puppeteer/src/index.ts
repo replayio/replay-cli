@@ -11,6 +11,14 @@ function getDeviceConfig() {
     RECORD_ALL_CONTENT: 1,
   };
 
+  if (process.env.RECORD_REPLAY_NO_RECORD) {
+    env.RECORD_ALL_CONTENT = "";
+    if (browserName === "chromium") {
+      // Setting an invalid path for chromium will disable recording
+      env.RECORD_REPLAY_DRIVER = __filename;
+    }
+  }
+
   return {
     launchOptions: {
       executablePath,
