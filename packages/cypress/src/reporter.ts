@@ -82,7 +82,7 @@ class ReplayReporter {
       "passed"
     );
 
-    if (!status) return;
+    if (!["passed", "failed"].includes(status)) return;
 
     const recs = listAllRecordings().filter((r) => {
       if (
