@@ -13,6 +13,14 @@ function getDeviceConfig(browserName: BrowserName) {
     RECORD_ALL_CONTENT: 1,
   };
 
+  if (process.env.RECORD_REPLAY_NO_RECORD) {
+    env.RECORD_ALL_CONTENT = "";
+    if (browserName === "chromium") {
+      // Setting an invalid path for chromium will disable recording
+      env.RECORD_REPLAY_DRIVER = __filename;
+    }
+  }
+
   // When TEST_WORKER_INDEX is set, this is being run in the context of a
   // @playwright/test worker so we create a per-worker metadata file that can be
   // used by the reporter to inject test-specific metadata which will be picked
