@@ -4,9 +4,6 @@ import path from "path";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
-  if (!executablePath) {
-    console.warn(`${browserName} is not supported on this platform`);
-  }
 
   const env: Record<string, any> = {
     ...process.env,
@@ -33,7 +30,13 @@ function getDeviceConfig(browserName: BrowserName) {
 
   return {
     launchOptions: {
-      executablePath,
+      get executablePath() {
+        if (!executablePath) {
+          throw new Error(`${browserName} is not supported on this platform`);
+        }
+
+        return executablePath;
+      },
       env,
     },
     defaultBrowserType: browserName,
