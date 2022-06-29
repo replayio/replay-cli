@@ -348,7 +348,7 @@ async function doUploadRecording(
   );
   maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
   if (metadata) {
-    maybeLog(verbose, `Setting recording metadata for ${recordingId}`);
+    maybeLog(verbose, `Setting recording metadata for ${recordingId}: ${metadata}`);
     await setRecordingMetadata(recordingId, metadata);
   }
   addRecordingEvent(dir, "uploadStarted", recording.id, {
