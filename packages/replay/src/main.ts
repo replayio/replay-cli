@@ -215,7 +215,10 @@ function readRecordings(dir: string, includeHidden = false) {
   );
 }
 
-function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"]) {
+function updateStatus(
+  recording: RecordingEntry,
+  status: RecordingEntry["status"]
+) {
   // Once a recording enters an unusable or crashed status, don't change it
   // except to mark crashes as uploaded.
   if (
@@ -340,7 +343,7 @@ async function doUploadRecording(
   }
   // validate metadata before uploading so invalid data can block the upload
   const metadata = recording.metadata
-    ? buildRecordingMetadata(recording.metadata, { verbose } )
+    ? buildRecordingMetadata(recording.metadata, { verbose })
     : null;
   const recordingId = await connectionCreateRecording(
     recording.id,
@@ -348,7 +351,14 @@ async function doUploadRecording(
   );
   maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
   if (metadata) {
-    maybeLog(verbose, `Setting recording metadata for ${recordingId}: ${metadata}`);
+    maybeLog(
+      verbose,
+      `Setting recording metadata for ${recordingId}: ${JSON.stringify(
+        metadata,
+        null,
+        2
+      )}`
+    );
     await setRecordingMetadata(recordingId, metadata);
   }
   addRecordingEvent(dir, "uploadStarted", recording.id, {
@@ -581,7 +591,10 @@ function removeAllRecordings(opts = {}) {
   }
 }
 
-function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
+function addLocalRecordingMetadata(
+  recordingId: string,
+  metadata: Record<string, unknown>
+) {
   add(recordingId, metadata);
 }
 
