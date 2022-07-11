@@ -1,10 +1,15 @@
-## Replay CLI
+# Replay CLI
 
-### Packages
+The Replay CLI provides packages for interacting with Replay to record, manage, and upload replays, as well as upload sourcemaps.
 
-- [CLI](./packages/replay/README.md) Replay CLI responsible for viewing + uploading recordings
-- [Playwright](./packages/playwright/README.md) Playwright plugin responsible for downloading Replay browsers and deciding which tests should be recorded and uploaded.
+To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) to download and install.
 
-### Examples
+## Packages
 
-- [Create React App & Typescript](./examples/create-react-app-typescript/README.md) A minimal CRA template using Replay and Playwright for testing.
+- [`/replay`](./packages/replay/README.md) CLI for viewing + uploading recordings
+- [`/cypress`](./packages/cypress/README.md) Beta Plugin for recording and capturing metadata for Cypress tests.
+- [`/playwright`](./packages/playwright/README.md) Beta Plugin for recording and capturing metadata for Playwright tests.
+- [`/puppeteer`](./packages/puppeteer/README.md) Experimental Plugin for recording Puppeteer tests.
+- [`/node`](./packages/node/README.md) Experimental CLI for recording Node.
+- [`/sourcemap-upload`](./packages/sourcemap-upload/README.md) CLI for uploading sourcemaps to Replay servers to use when viewing replays.
+- [`/sourcemap-upload-webpack-plugin`](./packages/sourcemap-upload-webpack-plugin/README.md) Webpack plugin for `sourcemap-upload`
