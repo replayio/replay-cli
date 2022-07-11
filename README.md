@@ -1,9 +1,10 @@
-## Replay CLI
+# Replay CLI
 
 The Replay CLI provides packages for interacting with Replay to record, manage, and upload replays, as well as upload sourcemaps.
 
 To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) to download and install.
-### Packages
+
+## Packages
 
 - [`/replay`](./packages/replay/README.md) CLI for viewing + uploading recordings
 - [`/cypress`](./packages/cypress/README.md) Beta Plugin for recording and capturing metadata for Cypress tests.

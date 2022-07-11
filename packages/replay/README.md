@@ -1,10 +1,12 @@
 # @replayio/replay
 
-CLI tool and node module for managing and uploading [Replay](https://replay.io) recordings.
+CLI tool and Node module for managing and uploading [Replay](https://replay.io) recordings and installing Replay Browsers.
 
 ## Overview
 
-When using the Replay versions of node, playwright, or puppeteer, recordings which are created are saved to disk, by default in `$HOME/.replay`. This package is used to manage these recordings and upload them to the record/replay web service so that they can be viewed.
+When using the Replay plugins to record automated tests or the Replay version of Node, recordings which are created are saved to disk, by default in `$HOME/.replay`. This package is used to manage these recordings and upload them to the record/replay web service so that they can be viewed.
+
+**Check out the ["Recording Automated Tests Guide"](https://docs.replay.io/docs/recording-automated-tests-5bf7d91b65cd46deab1867b07bd12bdf) to get started with recording Cypress or Playwright tests.**
 
 ## Installation
 
@@ -12,7 +14,7 @@ When using the Replay versions of node, playwright, or puppeteer, recordings whi
 
 ## Usage
 
-```
+```bash
 npx @replayio/replay <command>
 ```
 
@@ -45,11 +47,11 @@ Depending on the status the recording descriptor can have some of the following 
 - `recordingId`: If the recording started being uploaded, the server-assigned ID for this recording which can be used to view it.
 - `unusableReason`: If the recording is unusable, the reason it was marked unusable.
 
-### upload <id>
+### upload `<id>`
 
 Upload the recording with the given ID to the web service.
 
-### process <id>
+### process `<id>`
 
 Upload a recording, and then process it to ensure it can be replayed successfully.
 
@@ -57,7 +59,7 @@ Upload a recording, and then process it to ensure it can be replayed successfull
 
 Upload all recordings to the web service which can be uploaded.
 
-### view <id>
+### view `<id>`
 
 View the the given recording in the system's default browser, uploading it first if necessary.
 
@@ -65,7 +67,7 @@ View the the given recording in the system's default browser, uploading it first
 
 View the most recently created recording in the system's default browser, uploading it first if necessary.
 
-### rm <id>
+### rm `<id>`
 
 Remove the recording with the given ID and any on disk file for it.
 
@@ -108,13 +110,13 @@ This package can be used as a node module to directly access its functionality r
 
 Installation:
 
-```
+```bash
 npm i @replayio/replay
 ```
 
 Usage:
 
-```
+```js
 const interface = require("@replayio/replay");
 ```
 
