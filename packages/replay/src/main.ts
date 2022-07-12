@@ -249,14 +249,13 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   return filteredRecordings.map(listRecording);
 }
 
-function uploadSkipReason(recording: RecordingEntry) {
+function uploadSkipReason(recording: RecordingEntry, includeInProgress: boolean = false) {
+  const finishedStatus = ["onDisk", "crashed"];
+  const inProgressStatus = ["startedWrite", "startedUpload"];
+
   // Status values where there is something worth uploading.
-  const canUploadStatus = [
-    "onDisk",
-    "startedWrite",
-    "startedUpload",
-    "crashed",
-  ];
+  const canUploadStatus = includeInProgress ? [...finishedStatus, ...inProgressStatus] : finishedStatus;
+  
   if (!canUploadStatus.includes(recording.status)) {
     return `wrong recording status ${recording.status}`;
   }
