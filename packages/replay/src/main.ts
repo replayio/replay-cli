@@ -21,7 +21,7 @@ import {
 } from "./install";
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
-import { ListOptions, Options, RecordingEntry } from "./types";
+import { ListOptions, Options, RecordingEntry, UploadOptions } from "./types";
 import { add } from "../metadata";
 export type { BrowserName } from "./types";
 
@@ -318,14 +318,15 @@ async function doUploadRecording(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: any
+  agent?: any,
+  includeInProgress?: boolean,
 ) {
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
   if (recording.status == "uploaded" && recording.recordingId) {
     maybeLog(verbose, `Already uploaded: ${recording.recordingId}`);
     return recording.recordingId;
   }
-  const reason = uploadSkipReason(recording);
+  const reason = uploadSkipReason(recording, includeInProgress);
   if (reason) {
     maybeLog(verbose, `Upload failed: ${reason}`);
     return null;
@@ -389,11 +390,12 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: Options = {}) {
+async function uploadRecording(id: string, opts: Options & UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
   const recording = recordings.find((r) => r.id == id);
+  
   if (!recording) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return null;
@@ -404,7 +406,8 @@ async function uploadRecording(id: string, opts: Options = {}) {
     recording,
     opts.verbose,
     opts.apiKey,
-    opts.agent
+    opts.agent,
+    opts.includeInProgress
   );
 }
 
@@ -442,13 +445,14 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options = {}) {
+async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
+
   let uploadedAll = true;
   for (const recording of recordings) {
-    if (!uploadSkipReason(recording)) {
+    if (!uploadSkipReason(recording, opts.includeInProgress)) {
       if (
         !(await doUploadRecording(
           dir,
@@ -456,7 +460,8 @@ async function uploadAllRecordings(opts: Options = {}) {
           recording,
           opts.verbose,
           opts.apiKey,
-          opts.agent
+          opts.agent,
+          opts.includeInProgress
         ))
       ) {
         uploadedAll = false;
