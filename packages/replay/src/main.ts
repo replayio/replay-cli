@@ -21,7 +21,7 @@ import {
 } from "./install";
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
-import { Options, RecordingEntry } from "./types";
+import { ListOptions, Options, RecordingEntry } from "./types";
 import { add } from "../metadata";
 export type { BrowserName } from "./types";
 
@@ -237,10 +237,16 @@ function listRecording(recording: RecordingEntry) {
   return { ...recording, buildId: undefined, crashData: undefined };
 }
 
-function listAllRecordings(opts = {}) {
+function listAllRecordings(opts: Options & ListOptions = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  return recordings.map(listRecording);
+
+  if (opts.all) {
+    return recordings.map(listRecording);
+  }
+
+  const filteredRecordings = recordings.filter(recording => ["onDisk", "crashed"].includes(recording.status));
+  return filteredRecordings.map(listRecording);
 }
 
 function uploadSkipReason(recording: RecordingEntry) {
