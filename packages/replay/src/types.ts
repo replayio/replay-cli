@@ -32,6 +32,10 @@ export interface SourcemapUploadOptions {
   root?: string;
 }
 
+export interface ListOptions {
+  all?: boolean; 
+}
+
 /**
  * Supported replay browsers
  */

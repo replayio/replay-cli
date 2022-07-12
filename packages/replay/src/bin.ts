@@ -20,6 +20,7 @@ program
     "--directory <dir>",
     "Alternate recording directory."
   )
+  .option('-a, --all', 'Include all recordings')
   .action(commandListAllRecordings);
 
 program
