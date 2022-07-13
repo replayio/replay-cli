@@ -72,6 +72,7 @@ program
     "--api-key <key>",
     "Authentication API Key"
   )
+  .option('--include-in-progress', 'Upload all recordings, including ones with an in progress status')
   .action(commandUploadAllRecordings);
 
 program

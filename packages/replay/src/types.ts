@@ -35,6 +35,9 @@ export interface SourcemapUploadOptions {
 export interface ListOptions {
   all?: boolean; 
 }
+export interface UploadOptions {
+  includeInProgress?: boolean;
+}
 
 /**
  * Supported replay browsers
