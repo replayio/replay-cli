@@ -249,7 +249,7 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   return filteredRecordings.map(listRecording);
 }
 
-function uploadSkipReason(recording: RecordingEntry, includeInProgress: boolean = false) {
+function uploadSkipReason(recording: RecordingEntry, includeInProgress: boolean = true) {
   const finishedStatus = ["onDisk", "crashed"];
   const inProgressStatus = ["startedWrite", "startedUpload"];
 
@@ -319,7 +319,7 @@ async function doUploadRecording(
   verbose?: boolean,
   apiKey?: string,
   agent?: any,
-  includeInProgress?: boolean,
+  includeInProgress?: boolean
 ) {
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
   if (recording.status == "uploaded" && recording.recordingId) {
@@ -390,7 +390,7 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: Options & UploadOptions = {}) {
+async function uploadRecording(id: string, opts: Options = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
@@ -406,8 +406,7 @@ async function uploadRecording(id: string, opts: Options & UploadOptions = {}) {
     recording,
     opts.verbose,
     opts.apiKey,
-    opts.agent,
-    opts.includeInProgress
+    opts.agent
   );
 }
 
@@ -452,7 +451,7 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
 
   let uploadedAll = true;
   for (const recording of recordings) {
-    if (!uploadSkipReason(recording, opts.includeInProgress)) {
+    if (!uploadSkipReason(recording, !!opts.includeInProgress)) {
       if (
         !(await doUploadRecording(
           dir,
@@ -461,7 +460,7 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
           opts.verbose,
           opts.apiKey,
           opts.agent,
-          opts.includeInProgress
+          !!opts.includeInProgress
         ))
       ) {
         uploadedAll = false;

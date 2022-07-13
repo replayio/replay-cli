@@ -20,6 +20,7 @@ program
     "--directory <dir>",
     "Alternate recording directory."
   )
+  .option('-a, --all', 'Include all recordings')
   .action(commandListAllRecordings);
 
 program
@@ -37,7 +38,6 @@ program
     "--api-key <key>",
     "Authentication API Key"
   )
-  .option('--include-in-progress', 'Upload all recordings, including ones with an in progress status')
   .action(commandUploadRecording);
 
 program
