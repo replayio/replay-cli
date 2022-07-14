@@ -11,6 +11,7 @@ import {
   closeConnection,
   setRecordingMetadata,
   buildRecordingMetadata,
+  connectionUploadOriginalSource,
 } from "./upload";
 import {
   ensurePuppeteerBrowsersInstalled,
@@ -179,6 +180,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "sourcemapAdded": {
         const {
+          id,
           recordingId,
           path,
           baseURL,
@@ -188,13 +190,29 @@ function readRecordings(dir: string, includeHidden = false) {
         } = obj;
         const recording = recordings.find((r) => r.id == recordingId);
         if (recording) {
-          recording.sourcemaps!.push({
+          recording.sourcemaps.push({
+            id,
             path,
             baseURL,
             targetContentHash,
             targetURLHash,
             targetMapURLHash,
+            originalSources: [],
           });
+        }
+        break;
+      }
+      case "originalSourceAdded": {
+        const { recordingId, path, parentId, parentOffset } = obj;
+        const recording = recordings.find(r => r.id === recordingId);
+        if (recording) {
+          const sourcemap = recording.sourcemaps.find(s => s.id === parentId);
+          if (sourcemap) {
+            sourcemap.originalSources.push({
+              path,
+              parentOffset,
+            });
+          }
         }
         break;
       }
@@ -373,10 +391,14 @@ async function doUploadRecording(
   });
   connectionProcessRecording(recordingId);
   await connectionUploadRecording(recordingId, contents);
-  for (const sourcemap of recording.sourcemaps!) {
+  for (const sourcemap of recording.sourcemaps) {
     try {
       const contents = fs.readFileSync(sourcemap.path, "utf8");
-      await connectionUploadSourcemap(recordingId, sourcemap, contents);
+      const sourcemapId = await connectionUploadSourcemap(recordingId, sourcemap, contents);
+      for (const originalSource of sourcemap.originalSources) {
+        const contents = fs.readFileSync(originalSource.path, "utf8");
+        await connectionUploadOriginalSource(recordingId, sourcemapId, originalSource, contents);
+      }
     } catch (e) {
       maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
     }
