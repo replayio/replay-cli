@@ -84,7 +84,7 @@ class ReplayReporter {
 
     if (!["passed", "failed"].includes(status)) return;
 
-    const recs = listAllRecordings().filter((r) => {
+    const recs = listAllRecordings({all: true}).filter((r) => {
       if (
         r.metadata["x-cypress"] &&
         typeof r.metadata["x-cypress"] === "object"

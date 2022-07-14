@@ -116,7 +116,7 @@ class ReplayReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const recs = listAllRecordings().filter((r) => {
+    const recs = listAllRecordings({ all: true }).filter((r) => {
       if (
         r.metadata["x-playwright"] &&
         typeof r.metadata["x-playwright"] === "object"
