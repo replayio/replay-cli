@@ -1,0 +1,4 @@
+node_modules
+**/dist/
+**/lib/index.d.ts
+**/lib/index.js
