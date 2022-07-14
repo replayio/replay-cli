@@ -5,7 +5,7 @@ WORKDIR /usr/build
 
 build:
   COPY . .
-  RUN npm ci && npm run bootstrap
+  RUN npm install
 
 lint:
   FROM +build
