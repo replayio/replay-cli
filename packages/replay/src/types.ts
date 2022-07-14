@@ -33,7 +33,7 @@ export interface SourcemapUploadOptions {
 }
 
 export interface ListOptions {
-  all?: boolean; 
+  all?: boolean;
 }
 export interface UploadOptions {
   includeInProgress?: boolean;
@@ -81,7 +81,15 @@ export interface RecordingEntry {
   metadata: Record<string, unknown>;
   sourcemaps: SourceMapEntry[];
   buildId?: string;
-  status: "onDisk" | "unknown" | "uploaded" | "crashed" | "startedWrite" | "startedUpload" | "crashUploaded" | "unusable";
+  status:
+    | "onDisk"
+    | "unknown"
+    | "uploaded"
+    | "crashed"
+    | "startedWrite"
+    | "startedUpload"
+    | "crashUploaded"
+    | "unusable";
   path?: string;
   server?: string;
   recordingId?: string;

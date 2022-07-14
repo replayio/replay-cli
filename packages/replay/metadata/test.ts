@@ -8,7 +8,7 @@ const {
   object,
   optional,
   string,
-  define
+  define,
 } = require("superstruct");
 const isUuid = require("is-uuid");
 
@@ -21,18 +21,20 @@ const versions: Record<number, Struct> = {
     file: optional(string()),
     path: optional(array(string())),
     result: enums(["passed", "failed", "timedOut"]),
-    run: optional(object({
-      id: define('uuid', (v: any) => isUuid.v4(v)),
-      title: optional(string()),
-    })),
+    run: optional(
+      object({
+        id: define("uuid", (v: any) => isUuid.v4(v)),
+        title: optional(string()),
+      })
+    ),
     title: string(),
     version: defaulted(number(), () => 1),
   }),
 };
 
-function validate(metadata: {test: UnstructuredMetadata}) {
+function validate(metadata: { test: UnstructuredMetadata }) {
   if (!metadata || !metadata.test) {
-    throw new Error('Test metadata does not exist');
+    throw new Error("Test metadata does not exist");
   }
 
   return init(metadata.test);
@@ -49,7 +51,4 @@ function init(data: UnstructuredMetadata) {
   }
 }
 
-export {
-  validate,
-  init
-};
+export { validate, init };

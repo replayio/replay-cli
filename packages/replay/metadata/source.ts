@@ -1,10 +1,5 @@
 import type { Struct } from "superstruct";
-const {
-  create,
-  object,
-  optional,
-  string,
-} = require("superstruct");
+const { create, object, optional, string } = require("superstruct");
 
 import { UnstructuredMetadata } from "./types";
 
@@ -16,27 +11,31 @@ const versions: Record<number, Struct> = {
     commit: object({
       id: string(),
       title: optional(string()),
-      url: optional(string())
-    }),
-    trigger: optional(object({
-      user: optional(string()),
-      name: string(),
-      workflow: optional(string()),
       url: optional(string()),
-    })),
-    merge: optional(object({
-      id: string(),
-      title: string(),
-      url: optional(string())
-    })),
+    }),
+    trigger: optional(
+      object({
+        user: optional(string()),
+        name: string(),
+        workflow: optional(string()),
+        url: optional(string()),
+      })
+    ),
+    merge: optional(
+      object({
+        id: string(),
+        title: string(),
+        url: optional(string()),
+      })
+    ),
     provider: optional(string()),
     repository: optional(string()),
   }),
 };
 
-function validate(metadata: {source: UnstructuredMetadata}) {
+function validate(metadata: { source: UnstructuredMetadata }) {
   if (!metadata || !metadata.source) {
-    throw new Error('Source metadata does not exist');
+    throw new Error("Source metadata does not exist");
   }
 
   return init(metadata.source);
@@ -53,7 +52,4 @@ function init(data: UnstructuredMetadata) {
   }
 }
 
-export {
-  validate,
-  init
-};
+export { validate, init };

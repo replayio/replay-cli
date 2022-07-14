@@ -2,7 +2,7 @@ name: Create React App Typescript Tests
 on:
   pull_request:
     paths:
-      - 'examples/create-react-app-typescript/**'
+      - "examples/create-react-app-typescript/**"
 
 jobs:
   playwright-tests:

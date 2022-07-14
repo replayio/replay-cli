@@ -7,8 +7,8 @@ import ReplayReporter from "./reporter";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
   const reporter = new ReplayReporter(getMetadataFilePath());
-  on("before:browser:launch", (browser) => reporter.onBegin(browser.family));
-  on("before:spec", (spec) => reporter.onTestBegin(spec));
+  on("before:browser:launch", browser => reporter.onBegin(browser.family));
+  on("before:spec", spec => reporter.onTestBegin(spec));
   on("after:spec", (spec, result) => reporter.onTestEnd(spec, result));
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");

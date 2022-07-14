@@ -1,15 +1,15 @@
-function comment({github, context, issue_number, recordings}) {
+function comment({ github, context, issue_number, recordings }) {
   const {
-    repo: {owner, repo},
+    repo: { owner, repo },
   } = context;
 
   if (!issue_number) {
-    console.log('No issue number');
+    console.log("No issue number");
     return;
   }
 
   if (!recordings || recordings.length === 0) {
-    console.log('No recordings created');
+    console.log("No recordings created");
     return;
   }
 
@@ -20,10 +20,8 @@ function comment({github, context, issue_number, recordings}) {
     body: `### Failed Tests
 
 ${recordings
-  .map(
-    ({id, title}) => `[${title || id}](https://app.replay.io/recording/${id})`
-  )
-  .join('\n')}`,
+  .map(({ id, title }) => `[${title || id}](https://app.replay.io/recording/${id})`)
+  .join("\n")}`,
   });
 }
 

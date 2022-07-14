@@ -1,9 +1,4 @@
-import type {
-  FullConfig,
-  Reporter,
-  TestCase,
-  TestResult,
-} from "@playwright/test/reporter";
+import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync } from "fs";
@@ -18,7 +13,9 @@ interface ReplayReporterConfig {
 }
 
 class ReplayReporter implements Reporter {
-  baseId = uuid.validate(process.env.RECORD_REPLAY_TEST_RUN_ID || "") ? process.env.RECORD_REPLAY_TEST_RUN_ID : uuid.v4();
+  baseId = uuid.validate(process.env.RECORD_REPLAY_TEST_RUN_ID || "")
+    ? process.env.RECORD_REPLAY_TEST_RUN_ID
+    : uuid.v4();
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
 
@@ -28,7 +25,7 @@ class ReplayReporter implements Reporter {
 
   parseConfig(config: FullConfig) {
     let cfg: ReplayReporterConfig = {};
-    config.reporter.forEach((r) => {
+    config.reporter.forEach(r => {
       // the reporter is imported from the root reporter.js which imports this
       // file so we compare the base directory to see if this is our config
       if (r[0].startsWith(path.resolve(__dirname, ".."))) {
@@ -56,10 +53,7 @@ class ReplayReporter implements Reporter {
     // reporter-specific environment configuration is to prefix with PLAYWRIGHT_
     // so we use that as the first priority, RECORD_REPLAY_METADATA second, and
     // the config value last.
-    if (
-      process.env.PLAYWRIGHT_REPLAY_METADATA &&
-      process.env.RECORD_REPLAY_METADATA
-    ) {
+    if (process.env.PLAYWRIGHT_REPLAY_METADATA && process.env.RECORD_REPLAY_METADATA) {
       console.warn(
         "Cannot set metadata via both RECORD_REPLAY_METADATA and PLAYWRIGHT_REPLAY_METADATA. Using PLAYWRIGHT_REPLAY_METADATA."
       );
@@ -116,11 +110,8 @@ class ReplayReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const recs = listAllRecordings({ all: true }).filter((r) => {
-      if (
-        r.metadata["x-playwright"] &&
-        typeof r.metadata["x-playwright"] === "object"
-      ) {
+    const recs = listAllRecordings({ all: true }).filter(r => {
+      if (r.metadata["x-playwright"] && typeof r.metadata["x-playwright"] === "object") {
         return (r.metadata["x-playwright"] as any).id === this.getTestId(test);
       }
 
@@ -128,7 +119,7 @@ class ReplayReporter implements Reporter {
     });
 
     if (recs.length > 0) {
-      recs.forEach((rec) =>
+      recs.forEach(rec =>
         add(rec.id, {
           title: test.title,
           ...testMetadata.init({

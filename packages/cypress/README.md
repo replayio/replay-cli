@@ -24,17 +24,17 @@ module.exports = defineConfig({
       // browsers and hooks into Cypress lifecycle methods to capture test
       // metadata and results
       cypressReplay(on, config);
-    }
-  }
+    },
+  },
 });
 ```
 
 ## Runtime Configuration
 
-* Use the `--browser` flag to select a Replay Browser to record
-* If using the Firefox version of Replay, you must set the `RECORD_ALL_CONTENT` environment variable to enable recording.
-* To enable capturing metadata for the tests, you must set `RECORD_REPLAY_METADATA_FILE` to an accessible file path.
-* To hide the Cypress sidebar and only show your application, set `CYPRESS_NO_COMMAND_LOG`.
+- Use the `--browser` flag to select a Replay Browser to record
+- If using the Firefox version of Replay, you must set the `RECORD_ALL_CONTENT` environment variable to enable recording.
+- To enable capturing metadata for the tests, you must set `RECORD_REPLAY_METADATA_FILE` to an accessible file path.
+- To hide the Cypress sidebar and only show your application, set `CYPRESS_NO_COMMAND_LOG`.
 
 ```bash
 RECORD_ALL_CONTENT=1 \

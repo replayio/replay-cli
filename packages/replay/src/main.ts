@@ -97,7 +97,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "addMetadata": {
         const { id, metadata } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           Object.assign(recording.metadata, metadata);
 
@@ -109,7 +109,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "writeStarted": {
         const { id, path } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "startedWrite");
           recording.path = path;
@@ -118,7 +118,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "writeFinished": {
         const { id } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "onDisk");
         }
@@ -126,7 +126,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "uploadStarted": {
         const { id, server, recordingId } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "startedUpload");
           recording.server = server;
@@ -136,7 +136,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "uploadFinished": {
         const { id } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "uploaded");
         }
@@ -144,7 +144,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "recordingUnusable": {
         const { id, reason } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "unusable");
           recording.unusableReason = reason;
@@ -153,7 +153,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "crashed": {
         const { id } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "crashed");
         }
@@ -161,7 +161,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "crashData": {
         const { id, data } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           if (!recording.crashData) {
             recording.crashData = [];
@@ -172,7 +172,7 @@ function readRecordings(dir: string, includeHidden = false) {
       }
       case "crashUploaded": {
         const { id } = obj;
-        const recording = recordings.find((r) => r.id == id);
+        const recording = recordings.find(r => r.id == id);
         if (recording) {
           updateStatus(recording, "crashUploaded");
         }
@@ -188,7 +188,7 @@ function readRecordings(dir: string, includeHidden = false) {
           targetURLHash,
           targetMapURLHash,
         } = obj;
-        const recording = recordings.find((r) => r.id == recordingId);
+        const recording = recordings.find(r => r.id == recordingId);
         if (recording) {
           recording.sourcemaps.push({
             id,
@@ -228,15 +228,10 @@ function readRecordings(dir: string, includeHidden = false) {
   // most callers. Note that we're unable to avoid generating these entries in
   // the first place because the recordings log is append-only and we don't know
   // when a recording process starts if it will ever do anything interesting.
-  return recordings.filter(
-    (r) => !(r.unusableReason || "").includes("No interesting content")
-  );
+  return recordings.filter(r => !(r.unusableReason || "").includes("No interesting content"));
 }
 
-function updateStatus(
-  recording: RecordingEntry,
-  status: RecordingEntry["status"]
-) {
+function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"]) {
   // Once a recording enters an unusable or crashed status, don't change it
   // except to mark crashes as uploaded.
   if (
@@ -263,7 +258,9 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
     return recordings.map(listRecording);
   }
 
-  const filteredRecordings = recordings.filter(recording => ["onDisk", "crashed"].includes(recording.status));
+  const filteredRecordings = recordings.filter(recording =>
+    ["onDisk", "crashed"].includes(recording.status)
+  );
   return filteredRecordings.map(listRecording);
 }
 
@@ -272,8 +269,10 @@ function uploadSkipReason(recording: RecordingEntry, includeInProgress: boolean 
   const inProgressStatus = ["startedWrite", "startedUpload"];
 
   // Status values where there is something worth uploading.
-  const canUploadStatus = includeInProgress ? [...finishedStatus, ...inProgressStatus] : finishedStatus;
-  
+  const canUploadStatus = includeInProgress
+    ? [...finishedStatus, ...inProgressStatus]
+    : finishedStatus;
+
   if (!canUploadStatus.includes(recording.status)) {
     return `wrong recording status ${recording.status}`;
   }
@@ -284,11 +283,7 @@ function uploadSkipReason(recording: RecordingEntry, includeInProgress: boolean 
 }
 
 function getServer(opts: Options) {
-  return (
-    opts.server ||
-    process.env.RECORD_REPLAY_SERVER ||
-    "wss://dispatch.replay.io"
-  );
+  return opts.server || process.env.RECORD_REPLAY_SERVER || "wss://dispatch.replay.io";
 }
 
 function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
@@ -314,14 +309,11 @@ async function doUploadCrash(
 ) {
   maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
   if (!(await initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(
-      verbose,
-      `Crash data upload failed: can't connect to server ${server}`
-    );
+    maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
   await Promise.all(
-    (recording.crashData || []).map(async (data) => {
+    (recording.crashData || []).map(async data => {
       await connectionReportCrash(data);
     })
   );
@@ -369,19 +361,12 @@ async function doUploadRecording(
   const metadata = recording.metadata
     ? buildRecordingMetadata(recording.metadata, { verbose })
     : null;
-  const recordingId = await connectionCreateRecording(
-    recording.id,
-    recording.buildId!
-  );
+  const recordingId = await connectionCreateRecording(recording.id, recording.buildId!);
   maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
   if (metadata) {
     maybeLog(
       verbose,
-      `Setting recording metadata for ${recordingId}: ${JSON.stringify(
-        metadata,
-        null,
-        2
-      )}`
+      `Setting recording metadata for ${recordingId}: ${JSON.stringify(metadata, null, 2)}`
     );
     await setRecordingMetadata(recordingId, metadata);
   }
@@ -416,20 +401,13 @@ async function uploadRecording(id: string, opts: Options = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  const recording = recordings.find((r) => r.id == id);
-  
+  const recording = recordings.find(r => r.id == id);
+
   if (!recording) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return null;
   }
-  return doUploadRecording(
-    dir,
-    server,
-    recording,
-    opts.verbose,
-    opts.apiKey,
-    opts.agent
-  );
+  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent);
 }
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
@@ -520,23 +498,13 @@ async function doViewRecording(
     recordingId = recording.recordingId;
     server = recording.server!;
   } else {
-    recordingId = await doUploadRecording(
-      dir,
-      server,
-      recording,
-      verbose,
-      apiKey,
-      agent
-    );
+    recordingId = await doUploadRecording(dir, server, recording, verbose, apiKey, agent);
     if (!recordingId) {
       return false;
     }
   }
-  const dispatch =
-    server != "wss://dispatch.replay.io" ? `&dispatch=${server}` : "";
-  spawn(openExecutable(), [
-    `https://app.replay.io?id=${recordingId}${dispatch}`,
-  ]);
+  const dispatch = server != "wss://dispatch.replay.io" ? `&dispatch=${server}` : "";
+  spawn(openExecutable(), [`https://app.replay.io?id=${recordingId}${dispatch}`]);
   return true;
 }
 
@@ -544,19 +512,12 @@ async function viewRecording(id: string, opts: Options = {}) {
   let server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  const recording = recordings.find((r) => r.id == id);
+  const recording = recordings.find(r => r.id == id);
   if (!recording) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  return doViewRecording(
-    dir,
-    server,
-    recording,
-    opts.verbose,
-    opts.apiKey,
-    opts.agent
-  );
+  return doViewRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent);
 }
 
 async function viewLatestRecording(opts: Options = {}) {
@@ -588,14 +549,14 @@ function maybeRemoveRecordingFile(recording: RecordingEntry) {
 function removeRecording(id: string, opts: Options = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  const recording = recordings.find((r) => r.id == id);
+  const recording = recordings.find(r => r.id == id);
   if (!recording) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
   maybeRemoveRecordingFile(recording);
 
-  const lines = readRecordingFile(dir).filter((line) => {
+  const lines = readRecordingFile(dir).filter(line => {
     try {
       const obj = JSON.parse(line);
       if (obj.id == id) {
@@ -622,10 +583,7 @@ function removeAllRecordings(opts = {}) {
   }
 }
 
-function addLocalRecordingMetadata(
-  recordingId: string,
-  metadata: Record<string, unknown>
-) {
+function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
   add(recordingId, metadata);
 }
 
