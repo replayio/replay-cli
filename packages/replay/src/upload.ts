@@ -2,7 +2,7 @@ import crypto from "crypto";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
-import { Options, RecordingMetadata, SourceMapsEntry } from "./types";
+import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 
 let gClient: ProtocolClient | undefined;
 let gClientReady = defer<boolean>();
@@ -155,20 +155,10 @@ async function connectionUploadRecording(recordingId: string, contents: Buffer) 
   return Promise.all(promises);
 }
 
-async function connectionUploadSourcemap(recordingId: string, metadata: SourceMapsEntry, content: string) {
+async function connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
-  const hash = "sha256:" + sha256(content);
-  const { token } = await gClient.sendCommand<{token: string}>("Resource.token", { hash });
-  let resource = {
-    token,
-    saltedHash: "sha256:" + sha256(token + content),
-  };
-
-  const { exists } = await gClient.sendCommand<{exists: boolean}>("Resource.exists", { resource });
-  if (!exists) {
-    ({ resource } = await gClient.sendCommand("Resource.create", { content }));
-  }
+  const resource = await createResource(content);
 
   const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } =
     metadata;
@@ -183,8 +173,40 @@ async function connectionUploadSourcemap(recordingId: string, metadata: SourceMa
   return result.id;
 }
 
+async function connectionUploadOriginalSource(recordingId: string, parentId: string, metadata: OriginalSourceEntry, content: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
+  const resource = await createResource(content);
+
+  const { parentOffset } = metadata;
+  await gClient.sendCommand("Recording.addOriginalSource", {
+    recordingId,
+    resource,
+    parentId,
+    parentOffset,
+  });
+}
+
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+async function createResource(content: string) {
+  if (!gClient) throw new Error("Protocol client is not initialized");
+
+  const hash = "sha256:" + sha256(content);
+  const { token } = await gClient.sendCommand<{token: string}>("Resource.token", { hash });
+  let resource = {
+    token,
+    saltedHash: "sha256:" + sha256(token + content),
+  };
+
+  const { exists } = await gClient.sendCommand<{exists: boolean}>("Resource.exists", { resource });
+  if (!exists) {
+    ({ resource } = await gClient.sendCommand("Resource.create", { content }));
+  }
+
+  return resource;
 }
 
 function closeConnection() {
@@ -202,6 +224,7 @@ export {
   connectionWaitForProcessed,
   connectionUploadRecording,
   connectionUploadSourcemap,
+  connectionUploadOriginalSource,
   connectionReportCrash,
   closeConnection,
   setRecordingMetadata,
