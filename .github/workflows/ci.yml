@@ -8,6 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: npm install
-        run: npm ci
+        run: npm install && npm run bootstrap
       - name: lint
         run: npm run lint
