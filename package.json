@@ -14,9 +14,6 @@
   },
   "author": "",
   "license": "ISC",
-  "workspaces": [
-    "packages/*"
-  ],
   "devDependencies": {
     "lerna": "^4.0.0",
     "prettier": "^2.7.1"
