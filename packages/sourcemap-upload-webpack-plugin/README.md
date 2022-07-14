@@ -16,7 +16,7 @@ export interface PluginOptions extends UploadOptions {
   // Normally failure to upload the sourcemaps will result
   // in a build error. If you'd like to simply warn instead
   // of failing in this case, you can set this to true.
-  warnOnFailure?: boolean,
+  warnOnFailure?: boolean;
 }
 ```
 

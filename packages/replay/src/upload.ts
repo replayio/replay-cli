@@ -74,9 +74,12 @@ function buildRecordingMetadata(metadata: Record<string, unknown>, opts: Options
       duration: typeof duration === "number" ? duration : 0,
       url: typeof metadataUrl === "string" ? metadataUrl : "",
       title: typeof title === "string" ? title : "",
-      operations: operations && typeof operations === "object" ? operations : {
-        scriptDomains: [],
-      },
+      operations:
+        operations && typeof operations === "object"
+          ? operations
+          : {
+              scriptDomains: [],
+            },
       lastScreenData: "",
       lastScreenMimeType: "",
     },
@@ -149,20 +152,21 @@ async function connectionUploadRecording(recordingId: string, contents: Buffer) 
   // been sent all of the recording data, and can save the recording.
   // This means if someone presses Ctrl+C, the server doesn't save a
   // partial recording.
-  promises.push(
-    gClient.sendCommand("Internal.finishRecording", { recordingId })
-  );
+  promises.push(gClient.sendCommand("Internal.finishRecording", { recordingId }));
   return Promise.all(promises);
 }
 
-async function connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {
+async function connectionUploadSourcemap(
+  recordingId: string,
+  metadata: SourceMapEntry,
+  content: string
+) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
   const resource = await createResource(content);
 
-  const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } =
-    metadata;
-  const result = await gClient.sendCommand<{id: string}>("Recording.addSourceMap", {
+  const { baseURL, targetContentHash, targetURLHash, targetMapURLHash } = metadata;
+  const result = await gClient.sendCommand<{ id: string }>("Recording.addSourceMap", {
     recordingId,
     resource,
     baseURL,
@@ -173,7 +177,12 @@ async function connectionUploadSourcemap(recordingId: string, metadata: SourceMa
   return result.id;
 }
 
-async function connectionUploadOriginalSource(recordingId: string, parentId: string, metadata: OriginalSourceEntry, content: string) {
+async function connectionUploadOriginalSource(
+  recordingId: string,
+  parentId: string,
+  metadata: OriginalSourceEntry,
+  content: string
+) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
   const resource = await createResource(content);
@@ -195,13 +204,15 @@ async function createResource(content: string) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
   const hash = "sha256:" + sha256(content);
-  const { token } = await gClient.sendCommand<{token: string}>("Resource.token", { hash });
+  const { token } = await gClient.sendCommand<{ token: string }>("Resource.token", { hash });
   let resource = {
     token,
     saltedHash: "sha256:" + sha256(token + content),
   };
 
-  const { exists } = await gClient.sendCommand<{exists: boolean}>("Resource.exists", { resource });
+  const { exists } = await gClient.sendCommand<{ exists: boolean }>("Resource.exists", {
+    resource,
+  });
   if (!exists) {
     ({ resource } = await gClient.sendCommand("Resource.create", { content }));
   }

@@ -42,20 +42,20 @@ export default config;
 
 ### Runtime Configuration
 
-* Use the `--project` flag to select a project and specified Replay Browser to record.
-* To capture and report metadata, use `--reporter=@replayio/playwright/reporter,line`
+- Use the `--project` flag to select a project and specified Replay Browser to record.
+- To capture and report metadata, use `--reporter=@replayio/playwright/reporter,line`
 
 ```bash
 npx playwright test
---project replay-firefox 
+--project replay-firefox
 --reporter=@replayio/playwright/reporter,line
 ```
 
 ### Exports
 
-* `devices` - Object of configurations suitable for using with `@playwright/test`. Currently supports `"Replay Firefox"` and `"Replay Chromium"` configurations. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
-* `getExecutablePath(browserName: string)` - Returns the path to the Replay Browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
-* `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
+- `devices` - Object of configurations suitable for using with `@playwright/test`. Currently supports `"Replay Firefox"` and `"Replay Chromium"` configurations. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
+- `getExecutablePath(browserName: string)` - Returns the path to the Replay Browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
+- `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
 
 ## Parallel runs on CI
 

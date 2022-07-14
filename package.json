@@ -9,7 +9,8 @@
   "scripts": {
     "bootstrap": "lerna bootstrap",
     "test": "npm run typecheck",
-    "typecheck": "lerna exec npm run typecheck"
+    "typecheck": "lerna exec npm run typecheck",
+    "lint": "prettier --check ."
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +18,7 @@
     "packages/*"
   ],
   "devDependencies": {
-    "lerna": "^4.0.0"
+    "lerna": "^4.0.0",
+    "prettier": "^2.7.1"
   }
 }

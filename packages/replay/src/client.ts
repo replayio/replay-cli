@@ -26,7 +26,7 @@ class ProtocolClient {
     this.socket.on("open", callbacks.onOpen);
     this.socket.on("close", callbacks.onClose);
     this.socket.on("error", callbacks.onError);
-    this.socket.on("message", (message) => this.onMessage(message));
+    this.socket.on("message", message => this.onMessage(message));
   }
 
   close() {
@@ -47,10 +47,12 @@ class ProtocolClient {
     });
   }
 
-  async sendCommand<
-    T = unknown,
-    P extends object = Record<string, unknown>
-  >(method: string, params: P, data?: any, sessionId?: string) {
+  async sendCommand<T = unknown, P extends object = Record<string, unknown>>(
+    method: string,
+    params: P,
+    data?: any,
+    sessionId?: string
+  ) {
     const id = this.nextMessageId++;
     this.socket.send(
       JSON.stringify({
