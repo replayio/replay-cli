@@ -16,5 +16,5 @@ test:
   RUN npm test
 
 ci:
-  BUILD +link
+  BUILD +lint
   BUILD +test
