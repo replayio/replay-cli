@@ -12,7 +12,7 @@
     "if:dist": "npm run if:exists -- src/main.js",
     "prepare": "npm run if:dist || npm run build",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
-    "test": "jest",
+    "test": "jest --ci",
     "typecheck": "tsc --noEmit"
   },
   "repository": {

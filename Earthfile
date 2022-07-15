@@ -10,3 +10,11 @@ build:
 lint:
   FROM +build
   RUN npm run lint
+
+test:
+  FROM +build
+  RUN npm test
+
+ci:
+  BUILD +link
+  BUILD +test
