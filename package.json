@@ -8,7 +8,7 @@
   },
   "scripts": {
     "bootstrap": "lerna bootstrap",
-    "test": "npm run typecheck && npm run test:unit",
+    "test": "npm run test:unit",
     "test:unit": "lerna exec npm run test",
     "typecheck": "lerna exec npm run typecheck",
     "lint": "prettier --check ."
