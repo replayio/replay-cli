@@ -22,8 +22,15 @@ import {
 } from "./install";
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
-import { ListOptions, Options, RecordingEntry, UploadOptions } from "./types";
+import {
+  ListOptions,
+  Options,
+  ExternalRecordingEntry,
+  RecordingEntry,
+  UploadOptions,
+} from "./types";
 import { add } from "../metadata";
+import { generateDefaultTitle } from "./generateDefaultTitle";
 export type { BrowserName } from "./types";
 
 function getRecordingsFile(dir: string) {
@@ -49,22 +56,6 @@ function getBuildRuntime(buildId: string) {
   return match ? match[1] : "unknown";
 }
 
-function generateDefaultTitle(metadata: Record<string, unknown>) {
-  let host = metadata.uri;
-  if (host && typeof host === "string") {
-    try {
-      const url = new URL(host);
-      host = url.host;
-    } finally {
-      return `Replay of ${host}`;
-    }
-  }
-
-  if (Array.isArray(metadata.argv) && typeof metadata.argv[0] === "string") {
-    return `Replay of ${path.basename(metadata.argv[0])}`;
-  }
-}
-
 function readRecordings(dir: string, includeHidden = false) {
   const recordings: RecordingEntry[] = [];
   const lines = readRecordingFile(dir);
@@ -82,7 +73,7 @@ function readRecordings(dir: string, includeHidden = false) {
         const { id, timestamp, buildId } = obj;
         recordings.push({
           id,
-          createTime: new Date(timestamp).toString(),
+          createTime: new Date(timestamp),
           buildId,
           runtime: getBuildRuntime(buildId),
           metadata: {},
@@ -245,9 +236,10 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
 }
 
 // Convert a recording into a format for listing.
-function listRecording(recording: RecordingEntry) {
+function listRecording(recording: RecordingEntry): ExternalRecordingEntry {
   // Remove properties we only use internally.
-  return { ...recording, buildId: undefined, crashData: undefined };
+  const { buildId, crashData, ...recordingWithoutInternalProperties } = recording;
+  return recordingWithoutInternalProperties;
 }
 
 function listAllRecordings(opts: Options & ListOptions = {}) {

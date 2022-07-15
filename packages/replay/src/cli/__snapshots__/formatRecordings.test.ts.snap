@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`formatRecordings formats one basic recording 1`] = `
+"ID  Status  Title  Created At
+1   onDisk         2020-01-01T00:00:00.000Z"
+`;
+
+exports[`formatRecordings sorts recording by createTime, most recent recording first 1`] = `
+"ID  Status  Title           Created At
+2   onDisk  Replay of test  2020-01-02T00:00:00.000Z
+1   onDisk  Replay of test  2020-01-01T00:00:00.000Z"
+`;

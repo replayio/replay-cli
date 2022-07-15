@@ -10,7 +10,7 @@
     "prepare": "npm run if:dist || npm run build",
     "install": "npm run if:source || node ./bin/replayio-puppeteer first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
   "bin": {

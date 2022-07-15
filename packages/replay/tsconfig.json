@@ -69,5 +69,6 @@
     // Use ECMA-standard behavior for class properties.
     "useDefineForClassFields": true
   },
-  "include": ["src", "bin", "metadata", "types"]
+  "include": ["src", "bin", "metadata", "types"],
+  "exclude": ["**/*.test.ts"]
 }
