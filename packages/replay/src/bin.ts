@@ -1,6 +1,6 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
-import { formatAllRecordings } from "./cli/formatRecordings";
+import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";
 import {
   listAllRecordings,
   uploadRecording,
@@ -14,11 +14,13 @@ import {
 } from "./main";
 import { CommandLineOptions, SourcemapUploadOptions } from "./types";
 
+// TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
   .command("ls")
   .description("List information about all recordings.")
   .option("--directory <dir>", "Alternate recording directory.")
   .option("-a, --all", "Include all recordings")
+  .option("--json", "Output in JSON format")
   .action(commandListAllRecordings);
 
 program
@@ -115,9 +117,13 @@ function collectIgnorePatterns(value: string, previous: Array<string> = []) {
   return previous.concat([value]);
 }
 
-function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
+function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory" | "json">) {
   const recordings = listAllRecordings({ ...opts, verbose: true });
-  console.log(formatAllRecordings(recordings));
+  if (opts.json) {
+    console.log(formatAllRecordingsJson(recordings));
+  } else {
+    console.log(formatAllRecordingsHumanReadable(recordings));
+  }
   process.exit(0);
 }
 
