@@ -13,6 +13,11 @@ export interface CommandLineOptions {
    * Authentication API Key
    */
   apiKey?: string;
+
+  /**
+   * JSON output
+   */
+  json?: boolean;
 }
 
 export interface NodeOptions {
