@@ -157,3 +157,7 @@ Equivalent to `replay rm-all`.
 ### updateBrowsers(opts)
 
 Equivalent to `replay update-browsers`.
+
+## Contributing
+
+Contributing guide can be found [here](contributing.md).
