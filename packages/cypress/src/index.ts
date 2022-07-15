@@ -26,6 +26,8 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         isHeadless: false,
       }),
     });
+
+    return config;
   }
 
   const firefoxPath = getPlaywrightBrowserPath("firefox");
@@ -43,9 +45,13 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         isHeadless: false,
       }),
     });
+
+    return config;
   }
 
-  return config;
+  throw new Error(
+    `No Replay browser found. Checked in ${chromiumPath} for Replay Chromium   and ${firefoxPath} for Replay Firefox`
+  );
 };
 
 export function getMetadataFilePath(workerIndex = 0) {
