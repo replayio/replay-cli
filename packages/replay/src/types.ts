@@ -76,7 +76,7 @@ export interface SourceMapEntry {
 
 export interface RecordingEntry {
   id: string;
-  createTime: string;
+  createTime: Date;
   runtime: string;
   metadata: Record<string, unknown>;
   sourcemaps: SourceMapEntry[];
@@ -96,3 +96,5 @@ export interface RecordingEntry {
   crashData?: any[];
   unusableReason?: string;
 }
+
+export type ExternalRecordingEntry = Omit<RecordingEntry, "buildId" | "crashData">;

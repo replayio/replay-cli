@@ -1,5 +1,6 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
+import { formatAllRecordings } from "./cli/formatRecordings";
 import {
   listAllRecordings,
   uploadRecording,
@@ -116,7 +117,7 @@ function collectIgnorePatterns(value: string, previous: Array<string> = []) {
 
 function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
   const recordings = listAllRecordings({ ...opts, verbose: true });
-  console.log(JSON.stringify(recordings, null, 2));
+  console.log(formatAllRecordings(recordings));
   process.exit(0);
 }
 
