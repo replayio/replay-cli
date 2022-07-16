@@ -10,7 +10,16 @@ lerna-debug.log*
 # Dependency directories
 node_modules/
 **/node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
 .git/
 
 **/dist/
+
+Earthfile

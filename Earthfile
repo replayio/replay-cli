@@ -4,16 +4,17 @@ FROM node:lts-alpine
 WORKDIR /usr/build
 
 build:
+  RUN corepack enable
   COPY . .
-  RUN npm install && npm run bootstrap
+  RUN yarn install --frozen-lockfile
 
 lint:
   FROM +build
-  RUN npm run lint
+  RUN yarn lint
 
 test:
   FROM +build
-  RUN npm test
+  RUN yarn test:unit
 
 ci:
   BUILD +lint

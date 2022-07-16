@@ -13,3 +13,20 @@ To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) 
 - [`/node`](./packages/node/README.md) Experimental CLI for recording Node.
 - [`/sourcemap-upload`](./packages/sourcemap-upload/README.md) CLI for uploading sourcemaps to Replay servers to use when viewing replays.
 - [`/sourcemap-upload-webpack-plugin`](./packages/sourcemap-upload-webpack-plugin/README.md) Webpack plugin for `sourcemap-upload`
+
+## Developing
+
+### Build
+
+Prerequisites:
+
+- Node.js >=16.10
+
+Steps:
+
+1. `corepack enable`
+2. `yarn install`
+
+### Test
+
+`yarn unit:test`

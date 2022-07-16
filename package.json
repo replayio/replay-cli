@@ -7,10 +7,8 @@
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "test": "npm run test:unit",
-    "test:unit": "lerna exec npm run test",
-    "typecheck": "lerna exec npm run typecheck",
+    "test:unit": "yarn workspaces foreach run test",
+    "typecheck": "yarn workspaces foreach run typecheck",
     "lint": "prettier --check ."
   },
   "author": "",
@@ -18,5 +16,9 @@
   "devDependencies": {
     "lerna": "^4.0.0",
     "prettier": "^2.7.1"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "packageManager": "yarn@3.2.1"
 }
