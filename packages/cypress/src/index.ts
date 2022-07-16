@@ -46,9 +46,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   }
 
   if (!firefoxPath && !chromiumPath) {
-    throw new Error(
-      `No Replay browser found. Checked in ${chromiumPath} for Replay Chromium and ${firefoxPath} for Replay Firefox`
-    );
+    throw new Error("No Replay browser found");
   }
 
   return config;
