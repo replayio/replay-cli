@@ -45,6 +45,10 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     });
   }
 
+  if (!firefoxPath && !chromiumPath) {
+    throw new Error("No Replay browser found");
+  }
+
   return config;
 };
 
