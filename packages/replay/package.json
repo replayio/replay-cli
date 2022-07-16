@@ -2,9 +2,7 @@
   "name": "@replayio/replay",
   "version": "0.6.1",
   "description": "CLI tool for uploading and managing recordings",
-  "bin": {
-    "replay": "bin/replay.js"
-  },
+  "bin": "bin/replay.js",
   "main": "src/main.js",
   "scripts": {
     "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
