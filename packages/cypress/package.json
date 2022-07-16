@@ -19,10 +19,12 @@
   "author": "",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@types/jest": "^28.1.5",
     "@types/node": "^16.11.39",
     "cypress": "^10.0.3",
     "jest": "^28.1.3",
-    "ts-jest": "^28.0.6"
+    "ts-jest": "^28.0.6",
+    "typescript": "^4.6.4"
   },
   "dependencies": {
     "@replayio/replay": "^0.6.1",
