@@ -12,38 +12,39 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   on("after:spec", (spec, result) => reporter.onTestEnd(spec, result));
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");
+  let browsers = config.browsers || [];
   if (chromiumPath) {
-    Object.assign(config, {
-      browsers: config.browsers.concat({
-        name: "Replay Chromium",
-        channel: "stable",
-        family: "chromium",
-        displayName: "Replay",
-        version: "91.0",
-        path: chromiumPath,
-        majorVersion: 91,
-        isHeaded: true,
-        isHeadless: false,
-      }),
+    browsers = browsers.concat({
+      name: "Replay Chromium",
+      channel: "stable",
+      family: "chromium",
+      displayName: "Replay",
+      version: "91.0",
+      path: chromiumPath,
+      majorVersion: 91,
+      isHeaded: true,
+      isHeadless: false,
     });
   }
 
   const firefoxPath = getPlaywrightBrowserPath("firefox");
   if (firefoxPath) {
-    Object.assign(config, {
-      browsers: config.browsers.concat({
-        name: "Replay Firefox",
-        channel: "stable",
-        family: "firefox",
-        displayName: "Replay",
-        version: "91.0",
-        path: firefoxPath,
-        majorVersion: 91,
-        isHeaded: true,
-        isHeadless: false,
-      }),
+    browsers = browsers.concat({
+      name: "Replay Firefox",
+      channel: "stable",
+      family: "firefox",
+      displayName: "Replay",
+      version: "91.0",
+      path: firefoxPath,
+      majorVersion: 91,
+      isHeaded: true,
+      isHeadless: false,
     });
   }
+
+  Object.assign(config, {
+    browsers,
+  });
 
   return config;
 };
@@ -55,4 +56,18 @@ export function getMetadataFilePath(workerIndex = 0) {
   );
 }
 
-export default plugin;
+type ConfigOrPromise = Cypress.PluginConfigOptions | Promise<Cypress.PluginConfigOptions>;
+
+function isPromise(config: ConfigOrPromise): config is Promise<Cypress.PluginConfigOptions> {
+  return typeof config === "object" && "then" in config && typeof config.then === "function";
+}
+
+const replay = (on: Cypress.PluginEvents, config: ConfigOrPromise) => {
+  if (isPromise(config)) {
+    return config.then(config => plugin(on, config));
+  }
+
+  return plugin(on, config);
+};
+
+export default replay;
