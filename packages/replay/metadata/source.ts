@@ -1,7 +1,7 @@
 import type { Struct } from "superstruct";
-import { envString } from "./env";
 const { create, object, optional, defaulted } = require("superstruct");
 
+import { envString } from "./env";
 import { UnstructuredMetadata } from "./types";
 
 const defaultObject = (objStruct: any) => optional(defaulted(object(objStruct), {}));
@@ -33,7 +33,8 @@ const versions: Record<number, Struct> = {
         envString(
           "RECORD_REPLAY_METADATA_SOURCE_TRIGGER_USER",
           "GITHUB_ACTOR",
-          "BUILDKITE_UNBLOCKER",
+          "BUILDKITE_BUILD_CREATOR",
+          "BUILDKITE_BUILD_AUTHOR",
           "CIRCLE_USERNAME",
           "CIRCLE_PR_USERNAME"
         )
@@ -42,7 +43,7 @@ const versions: Record<number, Struct> = {
       workflow: optional(
         envString(
           "RECORD_REPLAY_METADATA_SOURCE_TRIGGER_WORKFLOW",
-          "GITHUB_WORKFLOW",
+          "GITHUB_RUN_ID",
           "BUILDKITE_BUILD_NUMBER",
           "CIRCLE_BUILD_NUM"
         )
@@ -58,15 +59,13 @@ const versions: Record<number, Struct> = {
         )
       ),
     }),
-    merge: optional(
-      object({
-        id: envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_ID", "BUILDKITE_PULL_REQUEST", env =>
-          process.env.CIRCLE_PULL_REQUEST?.split("/").pop()
-        ),
-        title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE")),
-        url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_URL")),
-      })
-    ),
+    merge: defaultObject({
+      id: envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_ID", "BUILDKITE_PULL_REQUEST", env =>
+        process.env.CIRCLE_PULL_REQUEST?.split("/").pop()
+      ),
+      title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE")),
+      url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_URL")),
+    }),
     provider: optional(
       envString(
         "RECORD_REPLAY_METADATA_SOURCE_PROVIDER",
