@@ -60,8 +60,10 @@ const versions: Record<number, Struct> = {
       ),
     }),
     merge: defaultObject({
-      id: envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_ID", "BUILDKITE_PULL_REQUEST", env =>
-        process.env.CIRCLE_PULL_REQUEST?.split("/").pop()
+      id: optional(
+        envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_ID", "BUILDKITE_PULL_REQUEST", env =>
+          process.env.CIRCLE_PULL_REQUEST?.split("/").pop()
+        )
       ),
       title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE")),
       url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_URL")),
