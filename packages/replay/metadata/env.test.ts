@@ -22,7 +22,7 @@ describe("firstEnvValueOf", () => {
       const resolver = firstEnvValueOf("KEY_1", "KEY_2");
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("key 1");
     });
 
     it("ignores empty strings", () => {
@@ -34,7 +34,7 @@ describe("firstEnvValueOf", () => {
       const resolver = firstEnvValueOf("KEY_1", "KEY_2");
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("key 2");
     });
 
     it("ignores undefined keys", () => {
@@ -46,7 +46,7 @@ describe("firstEnvValueOf", () => {
       const resolver = firstEnvValueOf("KEY_1", "KEY_2");
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("key 2");
     });
 
     it("returns undefined when no keys match", () => {
@@ -58,7 +58,7 @@ describe("firstEnvValueOf", () => {
       const resolver = firstEnvValueOf("KEY_3");
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe(undefined);
     });
   });
 
@@ -77,7 +77,7 @@ describe("firstEnvValueOf", () => {
       );
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("value 1");
     });
 
     it("ignores empty strings", () => {
@@ -94,7 +94,7 @@ describe("firstEnvValueOf", () => {
       );
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("value 2");
     });
 
     it("ignores undefined keys", () => {
@@ -111,7 +111,7 @@ describe("firstEnvValueOf", () => {
       );
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe("value 2");
     });
 
     it("returns undefined when no keys match", () => {
@@ -126,7 +126,7 @@ describe("firstEnvValueOf", () => {
       );
       const result = resolver();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toBe(undefined);
     });
   });
 });
