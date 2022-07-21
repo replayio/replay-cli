@@ -12,12 +12,11 @@ export function formatAllRecordingsHumanReadable(recordings: ExternalRecordingEn
     return b.createTime.getTime() - a.createTime.getTime();
   });
   const formattedRecordings = recordings.map(recording => {
-    return [
-      recording.id,
-      recording.status,
-      generateDefaultTitle(recording.metadata) || "",
-      recording.createTime.toISOString(),
-    ];
+    const title =
+      typeof recording.metadata?.title === "string"
+        ? recording.metadata.title
+        : generateDefaultTitle(recording.metadata);
+    return [recording.id, recording.status, title || "", recording.createTime.toISOString()];
   });
 
   const tableBody: Array<Array<string>> = [
