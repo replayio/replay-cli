@@ -245,7 +245,7 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   }
 
   const filteredRecordings = recordings.filter(recording =>
-    ["onDisk", "crashed"].includes(recording.status)
+    ["onDisk", "startedWrite", "crashed"].includes(recording.status)
   );
   return filteredRecordings.map(listRecording);
 }
