@@ -23,7 +23,7 @@ async function uploadFailedRecordings({ require }) {
   });
 
   return cli
-    .listAllRecordings({ all: true })
+    .listAllRecordings()
     .filter(r => r.status === "uploaded")
     .map(r => ({ id: r.recordingId, title: r.metadata.title }));
 }
