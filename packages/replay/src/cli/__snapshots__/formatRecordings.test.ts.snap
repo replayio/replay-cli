@@ -11,6 +11,11 @@ exports[`formatAllRecordingsHumanReadable sorts recording by createTime, most re
 1   onDisk  Replay of test  2020-01-01T00:00:00.000Z"
 `;
 
+exports[`formatAllRecordingsHumanReadable uses the metadata title when it exists 1`] = `
+"ID  Status  Title             Created At
+1   onDisk  A Node Recording  2020-01-01T00:00:00.000Z"
+`;
+
 exports[`formatAllReordingsJson matches snapshot 1`] = `
 "[
   {

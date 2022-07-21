@@ -17,6 +17,23 @@ describe("formatAllRecordingsHumanReadable", () => {
     expect(result).toMatchSnapshot();
   });
 
+  it("uses the metadata title when it exists", () => {
+    const recordings: ExternalRecordingEntry[] = [
+      {
+        id: "1",
+        createTime: new Date("2020-01-01"),
+        runtime: "node",
+        metadata: {
+          title: "A Node Recording",
+        },
+        status: "onDisk",
+        sourcemaps: [],
+      },
+    ];
+    const result = formatAllRecordingsHumanReadable(recordings);
+    expect(result).toMatchSnapshot();
+  });
+
   it("sorts recording by createTime, most recent recording first", () => {
     const recordings: ExternalRecordingEntry[] = [
       {
