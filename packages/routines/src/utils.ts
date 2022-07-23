@@ -1,6 +1,6 @@
 // FIXME common up with packages/replay/src/utils.ts
 
-export function assert(v: any, why: string = "") {
+export function assert(v: any, why = "") {
   if (!v) {
     throw new Error(`Assertion failed: ${why}`);
   }
@@ -17,5 +17,5 @@ export function defer<T = unknown>() {
 }
 
 export function log(str: string) {
-  console.log(new Date, str);
+  console.log(new Date(), str);
 }

@@ -27,7 +27,7 @@ function getLoadedMessages(messages: Message[]) {
   messages = messages.filter(msg => msg.stack?.length);
 
   if (messages.length > MaxLoadedMessages) {
-    messages.sort((a, b) => messagePriority(a) > messagePriority(b) ? -1 : 1);
+    messages.sort((a, b) => (messagePriority(a) > messagePriority(b) ? -1 : 1));
     messages.length = MaxLoadedMessages;
   }
 
@@ -50,9 +50,13 @@ export async function loadConsoleMessages(client: ProtocolClient, sessionId: str
 
   const loadMessages = getLoadedMessages(allMessages);
 
-  await Promise.all(loadMessages.map(msg => ensurePauseLoaded(client, sessionId, msg.pauseId, msg.data).catch(e => {
-    console.error("Error loading pause", msg.pauseId, msg.point, e);
-  })));
+  await Promise.all(
+    loadMessages.map(msg =>
+      ensurePauseLoaded(client, sessionId, msg.pauseId, msg.data).catch(e => {
+        console.error("Error loading pause", msg.pauseId, msg.point, e);
+      })
+    )
+  );
 
   console.log("LoadMessagesFinished");
 }

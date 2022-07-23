@@ -16,14 +16,23 @@ export async function ensureProcessed(client: ProtocolClient, sessionId: string)
   let hasProcessedData = false;
 
   client.setEventListener("Storage.newData", ({ source, data }) => {
-    if (source.name == ProcessedDataSource.name && source.version == ProcessedDataSource.version && data.success) {
+    if (
+      source.name == ProcessedDataSource.name &&
+      source.version == ProcessedDataSource.version &&
+      data.success
+    ) {
       hasProcessedData = true;
     }
   });
 
   try {
     // @ts-ignore
-    const { finished } = await client.sendCommand("Storage.getData", { source: ProcessedDataSource }, sessionId);
+    const { finished } = await client.sendCommand(
+      // @ts-ignore
+      "Storage.getData",
+      { source: ProcessedDataSource },
+      sessionId
+    );
     if (finished && hasProcessedData) {
       console.log("AlreadyProcessed");
       return;
@@ -43,8 +52,12 @@ export async function ensureProcessed(client: ProtocolClient, sessionId: string)
     sessionId
   );
 
-  // @ts-ignore
-  await client.sendCommand("Storage.addData", { source: ProcessedDataSource, data: { success: true } }, sessionId);
+  await client.sendCommand(
+    // @ts-ignore
+    "Storage.addData",
+    { source: ProcessedDataSource, data: { success: true } },
+    sessionId
+  );
 
   // @ts-ignore
   await client.sendCommand("Storage.finishData", { source: ProcessedDataSource }, sessionId);

@@ -7,7 +7,10 @@
   },
   "scripts": {
     "build": "rm -rf dist/ && tsc && chmod 755 dist/main.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "echo \"Error: no test specified\""
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,11 @@
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/routines/README.md",
   "dependencies": {
     "@replayio/protocol": "^0.31.0",
+    "@typescript-eslint/eslint-plugin": "^5.30.7",
+    "eslint": "^7.25.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "prettier": "^2.2.1",
     "ws": "^7.5.0"
   },
   "devDependencies": {

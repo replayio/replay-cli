@@ -14,7 +14,11 @@ import {
 
 const gLoadedSources: Map<string, Promise<void>> = new Map();
 
-async function ensureLocationLoaded(client: ProtocolClient, sessionId: string, mappedLocation: Location[]) {
+async function ensureLocationLoaded(
+  client: ProtocolClient,
+  sessionId: string,
+  mappedLocation: Location[]
+) {
   // If there are multiple locations then the generated location will be first. Load the last element
   // so that we prefer original locations.
   const { sourceId } = mappedLocation[mappedLocation.length - 1];
@@ -59,11 +63,21 @@ class ConstructedPauseData {
 // Maximum number of frames to load for a pause.
 const MaxFrames = 10;
 
-export async function ensurePauseLoaded(client: ProtocolClient, sessionId: string, pauseId: string, initialData: PauseData) {
+export async function ensurePauseLoaded(
+  client: ProtocolClient,
+  sessionId: string,
+  pauseId: string,
+  initialData: PauseData
+) {
   const data = new ConstructedPauseData();
   data.addPauseData(initialData);
 
-  const { frames, data: framesData } = await client.sendCommand("Pause.getAllFrames", {}, sessionId, pauseId);
+  const { frames, data: framesData } = await client.sendCommand(
+    "Pause.getAllFrames",
+    {},
+    sessionId,
+    pauseId
+  );
   data.addPauseData(framesData);
 
   await client.sendCommand("DOM.repaintGraphics", {}, sessionId, pauseId);
@@ -76,7 +90,12 @@ export async function ensurePauseLoaded(client: ProtocolClient, sessionId: strin
       const scopeChain = frame.originalScopeChain || frame.scopeChain;
       for (const scopeId of scopeChain) {
         if (!data.scopes.has(scopeId)) {
-          const { data: scopeData } = await client.sendCommand("Pause.getScope", { scope: scopeId }, sessionId, pauseId);
+          const { data: scopeData } = await client.sendCommand(
+            "Pause.getScope",
+            { scope: scopeId },
+            sessionId,
+            pauseId
+          );
           data.addPauseData(scopeData);
         }
         const scope = data.scopes.get(scopeId);
@@ -85,7 +104,12 @@ export async function ensurePauseLoaded(client: ProtocolClient, sessionId: strin
           // including the window object.
           const object = data.objects.get(scope.object);
           if (!object || !object.preview || object.preview.overflow) {
-            const { data: objectData } = await client.sendCommand("Pause.getObjectPreview", { object: scope.object }, sessionId, pauseId);
+            const { data: objectData } = await client.sendCommand(
+              "Pause.getObjectPreview",
+              { object: scope.object },
+              sessionId,
+              pauseId
+            );
             data.addPauseData(objectData);
           }
         }

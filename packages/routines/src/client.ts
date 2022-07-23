@@ -2,11 +2,7 @@
 
 import WebSocket from "ws";
 import { defer } from "./utils";
-import {
-  CommandMethods,
-  CommandParams,
-  CommandResult,
-} from "@replayio/protocol";
+import { CommandMethods, CommandParams, CommandResult } from "@replayio/protocol";
 
 // Simple protocol client for use in writing standalone applications.
 

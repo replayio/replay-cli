@@ -3,7 +3,7 @@
 import ProtocolClient from "./client";
 import { ensureProcessed } from "./process";
 import { loadConsoleMessages } from "./consoleMessages";
-import { assert, defer, log } from "./utils";
+import { defer, log } from "./utils";
 
 const Usage = `
 Usage: replay-routine [options]
@@ -22,7 +22,7 @@ function showUsage(error?: string): never {
 }
 
 let gRecordingId: string | undefined;
-let gServer: string = "wss://dispatch.replay.io";
+let gServer = "wss://dispatch.replay.io";
 let gAPIKey: string | undefined;
 
 for (let i = 2; i < process.argv.length; i++) {
@@ -51,27 +51,24 @@ for (let i = 2; i < process.argv.length; i++) {
 async function initConnection(server: string, accessToken?: string) {
   const clientReady = defer<boolean>();
 
-  const client = new ProtocolClient(
-    server,
-    {
-      async onOpen() {
-        try {
-          await client.setAccessToken(accessToken);
-          clientReady.resolve(true);
-        } catch (err) {
-          log(`Error authenticating with server: ${err}`);
-          clientReady.resolve(false);
-        }
-      },
-      onClose() {
+  const client = new ProtocolClient(server, {
+    async onOpen() {
+      try {
+        await client.setAccessToken(accessToken);
+        clientReady.resolve(true);
+      } catch (err) {
+        log(`Error authenticating with server: ${err}`);
         clientReady.resolve(false);
-      },
-      onError(e) {
-        log(`Error connecting to server: ${e}`);
-        clientReady.resolve(false);
-      },
-    }
-  );
+      }
+    },
+    onClose() {
+      clientReady.resolve(false);
+    },
+    onError(e) {
+      log(`Error connecting to server: ${e}`);
+      clientReady.resolve(false);
+    },
+  });
 
   const connected = await clientReady.promise;
   return connected ? client : null;
@@ -96,7 +93,7 @@ async function main() {
   client.setEventListener("Session.unprocessedRegions", () => {});
 
   const hasLoadingRegions = defer<void>();
-  client.setEventListener("Session.loadedRegions", ({ loaded, loading, indexed }) => {
+  client.setEventListener("Session.loadedRegions", () => {
     hasLoadingRegions.resolve();
   });
 
@@ -113,10 +110,7 @@ async function main() {
 
   await hasLoadingRegions.promise;
 
-  await Promise.all([
-    ensureProcessed(client, sessionId),
-    loadConsoleMessages(client, sessionId),
-  ]);
+  await Promise.all([ensureProcessed(client, sessionId), loadConsoleMessages(client, sessionId)]);
 
   console.log("Finished routines, exiting...");
   process.exit(0);
