@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/routines/README.md",
   "dependencies": {
+    "@replayio/protocol": "^0.31.0",
     "ws": "^7.5.0"
   },
   "devDependencies": {

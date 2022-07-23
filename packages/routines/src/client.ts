@@ -2,6 +2,11 @@
 
 import WebSocket from "ws";
 import { defer } from "./utils";
+import {
+  CommandMethods,
+  CommandParams,
+  CommandResult,
+} from "@replayio/protocol";
 
 // Simple protocol client for use in writing standalone applications.
 
@@ -46,27 +51,24 @@ class ProtocolClient {
     });
   }
 
-  async sendCommand<T = unknown, P extends object = Record<string, unknown>>(
-    method: string,
-    params: P,
-    data?: any,
-    sessionId?: string
-  ) {
+  async sendCommand<M extends CommandMethods>(
+    method: M,
+    params: CommandParams<M>,
+    sessionId?: string,
+    pauseId?: string
+  ): Promise<CommandResult<M>> {
     const id = this.nextMessageId++;
     this.socket.send(
       JSON.stringify({
         id,
         method,
         params,
-        binary: data ? true : undefined,
         sessionId,
+        pauseId,
       })
     );
-    if (data) {
-      this.socket.send(data);
-    }
-    const waiter = defer<T>();
-    this.pendingMessages.set(id, waiter);
+    const waiter = defer<CommandResult<M>>();
+    this.pendingMessages.set(id, { method, stack: Error().stack, waiter });
     return waiter.promise;
   }
 
@@ -77,12 +79,12 @@ class ProtocolClient {
   onMessage(contents: WebSocket.RawData) {
     const msg = JSON.parse(String(contents));
     if (msg.id) {
-      const { resolve, reject } = this.pendingMessages.get(msg.id);
+      const { method, stack, waiter } = this.pendingMessages.get(msg.id);
       this.pendingMessages.delete(msg.id);
       if (msg.result) {
-        resolve(msg.result);
+        waiter.resolve(msg.result);
       } else {
-        reject(`Channel error: ${JSON.stringify(msg)}`);
+        waiter.reject(`Error in message ${method}: ${JSON.stringify(msg)} Stack ${stack}`);
       }
     } else if (this.eventListeners.has(msg.method)) {
       this.eventListeners.get(msg.method)(msg.params);
