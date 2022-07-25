@@ -1,4 +1,5 @@
 import type { Struct } from "superstruct";
+import { envString, firstEnvValueOf } from "./env";
 const {
   array,
   create,
@@ -18,16 +19,25 @@ const VERSION = 1;
 
 const versions: Record<number, Struct> = {
   1: object({
-    file: optional(string()),
+    file: optional(envString("RECORD_REPLAY_METADATA_TEST_FILE")),
     path: optional(array(string())),
-    result: enums(["passed", "failed", "timedOut"]),
-    run: optional(
-      object({
-        id: define("uuid", (v: any) => isUuid.v4(v)),
-        title: optional(string()),
-      })
+    result: defaulted(
+      enums(["passed", "failed", "timedOut"]),
+      firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
-    title: string(),
+    run: optional(
+      defaulted(
+        object({
+          id: defaulted(
+            define("uuid", (v: any) => isUuid.v4(v)),
+            firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
+          ),
+          title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),
+        }),
+        {}
+      )
+    ),
+    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
     version: defaulted(number(), () => 1),
   }),
 };
@@ -40,7 +50,7 @@ function validate(metadata: { test: UnstructuredMetadata }) {
   return init(metadata.test);
 }
 
-function init(data: UnstructuredMetadata) {
+function init(data: UnstructuredMetadata = {}) {
   const version = typeof data.version === "number" ? data.version : VERSION;
   if (versions[version]) {
     return {
