@@ -13,6 +13,5 @@ jobs:
       - uses: ./.github/actions/playwright
         with:
           project: "replay-chromium"
-          issue-number: ${{ github.event.pull_request.number }}
-          apiKey: ${{ secrets.RECORD_REPLAY_API_KEY }}
+          api-key: ${{ secrets.RECORD_REPLAY_API_KEY }}
           working-directory: examples/create-react-app-typescript
