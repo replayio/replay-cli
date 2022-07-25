@@ -37,7 +37,11 @@ export interface SourcemapUploadOptions {
   root?: string;
 }
 
-export interface ListOptions {
+export interface FilterOptions {
+  filter?: string;
+}
+
+export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
 

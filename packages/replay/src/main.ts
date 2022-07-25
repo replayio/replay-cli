@@ -22,9 +22,16 @@ import {
 } from "./install";
 import { getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
-import { ExternalRecordingEntry, ListOptions, Options, RecordingEntry } from "./types";
+import {
+  ExternalRecordingEntry,
+  FilterOptions,
+  ListOptions,
+  Options,
+  RecordingEntry,
+} from "./types";
 import { add } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
+import jsonata from "jsonata";
 export type { BrowserName } from "./types";
 
 function getRecordingsFile(dir: string) {
@@ -229,6 +236,15 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
   recording.status = status;
 }
 
+function filterRecordings(recordings: RecordingEntry[], filter?: string) {
+  if (filter) {
+    const exp = jsonata(`$filter($, ${filter})[]`);
+    recordings = exp.evaluate(recordings) || [];
+  }
+
+  return recordings;
+}
+
 // Convert a recording into a format for listing.
 function listRecording(recording: RecordingEntry): ExternalRecordingEntry {
   // Remove properties we only use internally.
@@ -241,13 +257,13 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   const recordings = readRecordings(dir);
 
   if (opts.all) {
-    return recordings.map(listRecording);
+    return filterRecordings(recordings, opts.filter).map(listRecording);
   }
 
-  const filteredRecordings = recordings.filter(recording =>
+  const uploadableRecordings = recordings.filter(recording =>
     ["onDisk", "startedWrite", "crashed"].includes(recording.status)
   );
-  return filteredRecordings.map(listRecording);
+  return filterRecordings(uploadableRecordings, opts.filter).map(listRecording);
 }
 
 function uploadSkipReason(recording: RecordingEntry) {
@@ -423,11 +439,12 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options = {}) {
+async function uploadAllRecordings(opts: Options & FilterOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
+  const recordings = filterRecordings(readRecordings(dir), opts.filter);
   let uploadedAll = true;
+
   for (const recording of recordings) {
     if (!uploadSkipReason(recording)) {
       if (
