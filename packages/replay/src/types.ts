@@ -37,6 +37,13 @@ export interface SourcemapUploadOptions {
   root?: string;
 }
 
+export interface MetadataOptions {
+  init?: string;
+  keys?: string[];
+  warn?: boolean;
+  verbose?: boolean;
+}
+
 export interface FilterOptions {
   filter?: string;
 }

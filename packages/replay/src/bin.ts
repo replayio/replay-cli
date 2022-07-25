@@ -1,7 +1,5 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
-import { source, test } from "../metadata";
-import { UnstructuredMetadata } from "../metadata/types";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";
 import {
   listAllRecordings,
@@ -13,8 +11,14 @@ import {
   removeRecording,
   removeAllRecordings,
   updateBrowsers,
+  updateMetadata,
 } from "./main";
-import { CommandLineOptions, FilterOptions, SourcemapUploadOptions } from "./types";
+import {
+  CommandLineOptions,
+  FilterOptions,
+  MetadataOptions,
+  SourcemapUploadOptions,
+} from "./types";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -111,11 +115,10 @@ program
 
 program
   .command("metadata")
-  .command("init")
+  .option("--init [metadata]")
   .option("--keys <keys...>", "Metadata keys to initialize")
-  .option("--pretty", "Pretty-print the JSON output")
   .option("--warn", "Warn on initialization error")
-  .arguments("[metadata]")
+  .option("--filter <filter string>", "String to filter recordings")
   .action(commandMetadata);
 
 program.parseAsync().catch(err => {
@@ -211,50 +214,6 @@ async function commandUploadSourcemaps(
   });
 }
 
-function commandMetadata(
-  metadata: string,
-  { pretty, warn, keys = [] }: { pretty?: boolean; keys?: string[]; warn?: boolean }
-) {
-  try {
-    let md: any = {};
-    if (metadata) {
-      md = JSON.parse(metadata);
-    }
-
-    const data = keys.reduce((acc, v) => {
-      try {
-        switch (v) {
-          case "source":
-            return {
-              ...acc,
-              ...source.init(md.source || {}),
-            };
-          case "test": {
-            return {
-              ...acc,
-              ...test.init(md.test || {}),
-            };
-          }
-        }
-
-        return acc;
-      } catch (e) {
-        if (!warn) {
-          console.error("Unable to initialize metadata field", v);
-          console.error(e);
-
-          process.exit(1);
-        }
-
-        console.warn("Unable to initialize metadata field", v);
-        console.warn(String(e));
-
-        return acc;
-      }
-    }, md);
-
-    console.log(JSON.stringify(data, undefined, pretty ? 2 : undefined));
-  } catch (e) {
-    console.error("Failed to parse metadata", e);
-  }
+function commandMetadata(opts: MetadataOptions & FilterOptions) {
+  updateMetadata({ ...opts, verbose: true });
 }
