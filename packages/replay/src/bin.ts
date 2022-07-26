@@ -12,7 +12,7 @@ import {
   removeAllRecordings,
   updateBrowsers,
 } from "./main";
-import { CommandLineOptions, SourcemapUploadOptions } from "./types";
+import { CommandLineOptions, FilterOptions, SourcemapUploadOptions } from "./types";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -21,6 +21,7 @@ program
   .option("--directory <dir>", "Alternate recording directory.")
   .option("-a, --all", "Include all recordings")
   .option("--json", "Output in JSON format")
+  .option("--filter <filter string>", "String to filter recordings")
   .action(commandListAllRecordings);
 
 program
@@ -45,6 +46,7 @@ program
   .option("--directory <dir>", "Alternate recording directory.")
   .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
+  .option("--filter <filter string>", "String to filter recordings")
   .option(
     "--include-in-progress",
     "Upload all recordings, including ones with an in progress status"
@@ -117,7 +119,9 @@ function collectIgnorePatterns(value: string, previous: Array<string> = []) {
   return previous.concat([value]);
 }
 
-function commandListAllRecordings(opts: Pick<CommandLineOptions, "directory" | "json">) {
+function commandListAllRecordings(
+  opts: Pick<CommandLineOptions, "directory" | "json"> & FilterOptions
+) {
   const recordings = listAllRecordings({ ...opts, verbose: true });
   if (opts.json) {
     console.log(formatAllRecordingsJson(recordings));
@@ -137,7 +141,7 @@ async function commandProcessRecording(id: string, opts: CommandLineOptions) {
   process.exit(recordingId ? 0 : 1);
 }
 
-async function commandUploadAllRecordings(opts: CommandLineOptions) {
+async function commandUploadAllRecordings(opts: CommandLineOptions & FilterOptions) {
   const uploadedAll = await uploadAllRecordings({ ...opts, verbose: true });
   process.exit(uploadedAll ? 0 : 1);
 }
