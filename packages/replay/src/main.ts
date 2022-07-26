@@ -622,14 +622,13 @@ function updateMetadata({
 
     const sanitized = sanitize(data);
 
-    console.group("Metadata:");
-    console.log(JSON.stringify(sanitized, undefined, 2));
-    console.groupEnd();
+    maybeLog(verbose, "Metadata:");
+    maybeLog(verbose, JSON.stringify(sanitized, undefined, 2));
 
     const recordings = filterRecordings(listAllRecordings(), filter);
 
     recordings.forEach(r => {
-      if (verbose) console.log("Setting metadata for", r.id);
+      maybeLog(verbose, `Setting metadata for ${r.id}`);
       add(r.id, sanitized);
     });
   } catch (e) {
