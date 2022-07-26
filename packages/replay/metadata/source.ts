@@ -1,4 +1,4 @@
-import type { Struct } from "superstruct";
+import { number, Struct } from "superstruct";
 const { create, object, optional, defaulted } = require("superstruct");
 
 import { envString } from "./env";
@@ -89,6 +89,7 @@ const versions: Record<number, Struct> = {
         "CIRCLE_PROJECT_REPONAME"
       )
     ),
+    version: defaulted(number(), () => 1),
   }),
 };
 

@@ -26,10 +26,11 @@ import {
   ExternalRecordingEntry,
   FilterOptions,
   ListOptions,
+  MetadataOptions,
   Options,
   RecordingEntry,
 } from "./types";
-import { add } from "../metadata";
+import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
 export type { BrowserName } from "./types";
@@ -574,6 +575,70 @@ function addLocalRecordingMetadata(recordingId: string, metadata: Record<string,
   add(recordingId, metadata);
 }
 
+function updateMetadata({
+  init: metadata,
+  keys = [],
+  filter,
+  verbose,
+  warn,
+}: MetadataOptions & FilterOptions) {
+  try {
+    let md: any = {};
+    if (metadata) {
+      md = JSON.parse(metadata);
+    }
+
+    const data = keys.reduce((acc, v) => {
+      try {
+        switch (v) {
+          case "source":
+            return {
+              ...acc,
+              ...sourceMetadata.init(md.source || {}),
+            };
+          case "test": {
+            return {
+              ...acc,
+              ...testMetadata.init(md.test || {}),
+            };
+          }
+        }
+
+        return acc;
+      } catch (e) {
+        if (!warn) {
+          console.error("Unable to initialize metadata field", v);
+          console.error(e);
+
+          process.exit(1);
+        }
+
+        console.warn("Unable to initialize metadata field", v);
+        console.warn(String(e));
+
+        return acc;
+      }
+    }, md);
+
+    const sanitized = sanitize(data);
+
+    maybeLog(verbose, "Metadata:");
+    maybeLog(verbose, JSON.stringify(sanitized, undefined, 2));
+
+    const recordings = filterRecordings(listAllRecordings(), filter);
+
+    recordings.forEach(r => {
+      maybeLog(verbose, `Setting metadata for ${r.id}`);
+      add(r.id, sanitized);
+    });
+  } catch (e) {
+    console.error("Failed to set recording metadata");
+    console.error(e);
+
+    process.exit(1);
+  }
+}
+
 export {
   addLocalRecordingMetadata,
   listAllRecordings,
@@ -585,6 +650,7 @@ export {
   removeRecording,
   removeAllRecordings,
   updateBrowsers,
+  updateMetadata,
   // These methods aren't documented or available via the CLI, and are used by other
   // replay NPM packages.
   ensurePlaywrightBrowsersInstalled,

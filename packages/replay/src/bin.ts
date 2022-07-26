@@ -11,8 +11,14 @@ import {
   removeRecording,
   removeAllRecordings,
   updateBrowsers,
+  updateMetadata,
 } from "./main";
-import { CommandLineOptions, FilterOptions, SourcemapUploadOptions } from "./types";
+import {
+  CommandLineOptions,
+  FilterOptions,
+  MetadataOptions,
+  SourcemapUploadOptions,
+} from "./types";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -107,6 +113,14 @@ program
   .arguments("<paths...>")
   .action((filepaths, opts) => commandUploadSourcemaps(filepaths, opts));
 
+program
+  .command("metadata")
+  .option("--init [metadata]")
+  .option("--keys <keys...>", "Metadata keys to initialize")
+  .option("--warn", "Warn on initialization error")
+  .option("--filter <filter string>", "String to filter recordings")
+  .action(commandMetadata);
+
 program.parseAsync().catch(err => {
   console.log(err);
   process.exit(1);
@@ -198,4 +212,8 @@ async function commandUploadSourcemaps(
     ...uploadOpts,
     log,
   });
+}
+
+function commandMetadata(opts: MetadataOptions & FilterOptions) {
+  updateMetadata({ ...opts, verbose: true });
 }
