@@ -50,7 +50,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   assert(
     (Array.isArray(opts.extensions) &&
       opts.extensions.every((ext) => typeof ext === "string")) ||
-      opts.extensions === undefined,
+    opts.extensions === undefined,
     "'extensions' must be an array of strings or undefined"
   );
   assert(
@@ -68,7 +68,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   assert(
     (Array.isArray(opts.ignore) &&
       opts.ignore.every((pattern) => typeof pattern === "string")) ||
-      opts.ignore === undefined,
+    opts.ignore === undefined,
     "'ignore' must be an array of strings or undefined"
   );
   assert(
@@ -197,8 +197,7 @@ async function processSourceMaps(opts: NormalizedOptions) {
   debug("Done");
   log(
     "normal",
-    `Done! Uploaded ${mapsToUpload.length} sourcemaps${
-      dryRun ? " (DRY RUN)" : ""
+    `Done! Uploaded ${mapsToUpload.length} sourcemaps${dryRun ? " (DRY RUN)" : ""
     }`
   );
 }
@@ -210,7 +209,7 @@ type PutOptions = {
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
-  return fetch("https://api.replay.io/v1/sourcemap-upload", {
+  return fetch("ttp://graphql-api.mbudayr.replay.local/v1/sourcemap-upload", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -249,8 +248,8 @@ async function uploadSourcemapToAPI(
   try {
     response = await sendUploadPUTWithRetries({ groupName, apiKey, map });
   } catch (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    err: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  err: any
   ) {
     debug("Failure uploading sourcemap %s, got %O", map.absPath, err);
     throw new Error(`Unexpected error uploading sourcemap: ${err}`);
