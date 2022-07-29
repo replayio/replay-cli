@@ -128,7 +128,7 @@ replay metadata --init '{"x-build": {"id": 1234}}' --keys source --warn
 
 The CLI command `replay metadata [opts]` has the following options:
 
-- `--init <metadata>`: Initializes the metadata object from the provided JSON-formatted `metadata` stsring
+- `--init <metadata>`: Initializes the metadata object from the provided JSON-formatted `metadata` string
 - `--keys <space separated metadata key names>`: Initializes known metadata keys by retrieving values from environment variables.
 - `--warn`: Warn instead of exit with an error when metadata cannot be initialized
 - `--filter`: Filter the recordings to which the metadata is applied using a [JSONata-compatible filter function](https://docs.jsonata.org/higher-order-functions#filter)
