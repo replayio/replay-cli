@@ -22,7 +22,15 @@ Possible commands are given below. These may be used with the `--directory <dir>
 
 ### ls
 
-View information about all known recordings. Prints a JSON array with one descriptor element for each recording. Recording descriptors have the following required properties:
+View information about all known recordings.
+
+Options:
+
+- `--all`: Include `uploaded`, `crashUploaded` and `unusable` recordings in the output.
+- `--filter`: Filter the recordings to upload using a [JSONata-compatible filter function](https://docs.jsonata.org/higher-order-functions#filter). If used with `--all`, the filter is applied after including all status values.
+- `--json`: Prints a JSON array with one descriptor element for each recording.
+
+Recording descriptors have the following required properties:
 
 - `id`: ID used to refer to this recording in other commands.
 - `createTime`: Time when the recording was created.
@@ -58,6 +66,10 @@ Upload a recording, and then process it to ensure it can be replayed successfull
 ### upload-all
 
 Upload all recordings to the web service which can be uploaded.
+
+Options:
+
+- `--filter`: Filter the recordings to upload using a [JSONata-compatible filter function](https://docs.jsonata.org/higher-order-functions#filter)
 
 ### view `<id>`
 
@@ -103,6 +115,23 @@ The CLI command `replay upload-sourcemaps [opts] <paths...>` has the following o
   Defaults to `".js,.map"`.
 
 To programmatically upload from a node script, use [`@replayio/sourcemap-upload`](https://www.npmjs.com/package/@replayio/sourcemap-upload).
+
+### metadata
+
+Sets metadata on local recordings. With no options, this command will add the provided `metadata` to each local recording.
+
+```
+# Sets the provided x-build metadata and attempts to generate the source
+# metadata from relevant environment variables
+replay metadata --init '{"x-build": {"id": 1234}}' --keys source --warn
+```
+
+The CLI command `replay metadata [opts]` has the following options:
+
+- `--init <metadata>`: Initializes the metadata object from the provided JSON-formatted `metadata` string
+- `--keys <space separated metadata key names>`: Initializes known metadata keys by retrieving values from environment variables.
+- `--warn`: Warn instead of exit with an error when metadata cannot be initialized
+- `--filter`: Filter the recordings to which the metadata is applied using a [JSONata-compatible filter function](https://docs.jsonata.org/higher-order-functions#filter)
 
 ## Node Module Usage
 
