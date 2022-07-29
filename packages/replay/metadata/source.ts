@@ -86,7 +86,10 @@ const versions: Record<number, Struct> = {
         "RECORD_REPLAY_METADATA_SOURCE_REPOSITORY",
         "GITHUB_REPOSITORY",
         env => env.BUILDKITE_REPO?.match(/.*:(.*)\.git/)?.[1],
-        "CIRCLE_PROJECT_REPONAME"
+        env =>
+          env.CIRCLE_PROJECT_USERNAME && env.CIRCLE_PROJECT_REPONAME
+            ? `${env.CIRCLE_PROJECT_USERNAME}/${env.CIRCLE_PROJECT_REPONAME}`
+            : ""
       )
     ),
     version: defaulted(number(), () => 1),
