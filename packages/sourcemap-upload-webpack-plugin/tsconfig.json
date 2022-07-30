@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    // Target Node > 10 since that is still in use in Google Firestore and
+    // some clients use 10.x everywhere to be consistent with it.
+    "target": "es2018",
+    "lib": ["es2018", "dom"],
+    "module": "commonjs",
+    "declaration": true,
+
+    // Strict Type-Checking Options
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+
+    "outDir": "./lib/",
+    "rootDir": "./src/"
+  },
+  "include": ["src/**/*.ts"]
+}

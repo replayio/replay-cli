@@ -1,68 +1,64 @@
 # @replayio/playwright
 
-Provides utilities to support using [Replay](https://replay.io) with [Playwright](https://playwright.dev)
+Plugin to record your [Playwright](https://playwright.dev) tests with [Replay](https://replay.io).
 
-Use with [replayio/action-playwright](https://github.com/Replayio/action-playwright) to automatically upload replays of failed tests. [Check out our documentation here.](https://docs.replay.io/docs/recording-playwright-b62474b5aadd49e2b0c44a7580b0617e#4f9d9bb360974bf7942f8edae8dcd742)
+**Check out the ["Recording Automated Tests Guide"](https://docs.replay.io/docs/recording-automated-tests-5bf7d91b65cd46deab1867b07bd12bdf) to get started.**
 
-Exports
+Use with [action-playwright](https://github.com/Replayio/action-playwright) to automatically upload replays of failed tests.
 
-- `getExecutablePath(browserName: string)` - Returns the path to the replay browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
-- `devices` - Object of configurations suitable for using with `@playwright/test`. Currently supports `"Replay Firefox"` and `"Replay Chromium"` configurations. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
-- `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
+## Installation
 
-## Using standalone
+`npm i @replayio/playwright`
 
-If you are using `playwright` (rather than `@replayio/playwright`), you can configure it to use the Replay browser by passing in the `executablePath` to `launch()`.
-
-> **Note:** For `firefox`, you must also pass the `RECORD_ALL_CONTENT` environment variable to start recording. This is not required for `chromium` which records all content by default.
+## Configuration
 
 ```js
-const playwright = require("playwright");
-const { getExecutablePath } = require("@replayio/playwright");
+import { PlaywrightTestConfig, devices } from "@playwright/test";
+import { devices as replayDevices } from "@replayio/playwright";
 
-(async () => {
-  const browser = await playwright.firefox.launch({
-    headless: false,
-    executablePath: getExecutablePath("firefox"),
-    env: {
-      RECORD_ALL_CONTENT: 1,
-    },
-  });
-  const page = await browser.newPage();
-  await page.goto("https://replay.io");
-  await page.screenshot({ path: "replay.png" });
 
-  await page.close();
-  await browser.close();
-})();
-```
-
-## Using with `@playwright/test`
-
-`@replayio/playwright` exports a `devices` object with configurations for both `"Replay Firefox"` and `"Replay Chromium"`. These can be added to your `playwright.config.js` to start recording your tests.
-
-```js
-// playwright.config.js
-// @ts-check
-const { devices } = require("@replayio/playwright");
-
-/** @type {import('@playwright/test').PlaywrightTestConfig} */
-const config = {
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  use: {
-    trace: "on-first-retry",
-    defaultBrowserType: "firefox",
-  },
+const config: PlaywrightTestConfig = {
   projects: [
     {
+      name: "replay-firefox",
+      use: { ...replayDevices["Replay Firefox"] as any },
+    },
+    {
+      name: "replay-chromium",
+      use: { ...replayDevices["Replay Chromium"] as any },
+    },
+    {
       name: "firefox",
-      use: {
-        ...devices["Replay Firefox"],
-      },
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chromium"] },
     },
   ],
 };
-
-module.exports = config;
+export default config;
 ```
+
+### Runtime Configuration
+
+- Use the `--project` flag to select a project and specified Replay Browser to record.
+- To capture and report metadata, use `--reporter=@replayio/playwright/reporter,line`
+
+```bash
+npx playwright test
+--project replay-firefox
+--reporter=@replayio/playwright/reporter,line
+```
+
+### Exports
+
+- `devices` - Object of configurations suitable for using with `@playwright/test`. Currently supports `"Replay Firefox"` and `"Replay Chromium"` configurations. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
+- `getExecutablePath(browserName: string)` - Returns the path to the Replay Browser for the given `browserName`: either `"chromium"` or `"firefox"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
+- `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
+
+## Parallel runs on CI
+
+If you have a large test suite, you might choose to split your test suite up and run them in parallel across multiple machines but still treat them as a single suite. By default, `@replayio/playwright` will generate a UUID for the suite and store it in the recording metadata under `test.run.id` but in this case each machine will have its own id.
+
+In order to link these independently ran tests together, you can generate your own UUID and set it in the `RECORD_REPLAY_TEST_RUN_ID` environment variable and it will be used instead of generating a value.

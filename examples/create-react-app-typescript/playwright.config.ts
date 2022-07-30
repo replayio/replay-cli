@@ -4,7 +4,7 @@ const config = {
   forbidOnly: !!process.env.CI,
   use: {
     trace: "on-first-retry",
-    defaultBrowserType: "firefox",
+    defaultBrowserType: "chromium",
   },
   webServer: {
     command: "npm start",
@@ -17,6 +17,12 @@ const config = {
       name: "replay-firefox",
       use: {
         ...(replayDevices["Replay Firefox"] as any),
+      },
+    },
+    {
+      name: "replay-chromium",
+      use: {
+        ...(replayDevices["Replay Chromium"] as any),
       },
     },
   ],

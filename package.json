@@ -8,14 +8,15 @@
   },
   "scripts": {
     "bootstrap": "lerna bootstrap",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:unit",
+    "test:unit": "lerna exec npm run test",
+    "typecheck": "lerna exec npm run typecheck",
+    "lint": "prettier --check ."
   },
   "author": "",
   "license": "ISC",
-  "workspaces": [
-    "packages/*"
-  ],
   "devDependencies": {
-    "lerna": "^4.0.0"
+    "lerna": "^4.0.0",
+    "prettier": "^2.7.1"
   }
 }

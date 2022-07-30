@@ -4,31 +4,39 @@ import path from "path";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
-  if (!executablePath) {
-    console.warn(`${browserName} is not supported on this platform`);
-  }
 
   const env: Record<string, any> = {
     ...process.env,
     RECORD_ALL_CONTENT: 1,
   };
 
+  if (process.env.RECORD_REPLAY_NO_RECORD) {
+    env.RECORD_ALL_CONTENT = "";
+    if (browserName === "chromium") {
+      // Setting an invalid path for chromium will disable recording
+      env.RECORD_REPLAY_DRIVER = __filename;
+    }
+  }
+
   // When TEST_WORKER_INDEX is set, this is being run in the context of a
   // @playwright/test worker so we create a per-worker metadata file that can be
   // used by the reporter to inject test-specific metadata which will be picked
   // up by the driver when it creates a new recording
   if (process.env.TEST_WORKER_INDEX) {
-    if ("RECORD_REPLAY_METADATA" in env && env.RECORD_REPLAY_METADATA) {
-      console.warn(`RECORD_REPLAY_METADATA is set so a per-worker metadata file will not be used`);
-    } else {
-      env.RECORD_REPLAY_METADATA = undefined;
-      env.RECORD_REPLAY_METADATA_FILE = getMetadataFilePath(+process.env.TEST_WORKER_INDEX);
-    }
+    const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
+    env.RECORD_REPLAY_METADATA = undefined;
+    env.RECORD_REPLAY_METADATA_FILE = getMetadataFilePath(workerIndex);
   }
 
   return {
     launchOptions: {
-      executablePath,
+      get executablePath() {
+        if (!executablePath) {
+          throw new Error(`${browserName} is not supported on this platform`);
+        }
+
+        return executablePath;
+      },
       env,
     },
     defaultBrowserType: browserName,

@@ -1,0 +1,35 @@
+{
+  "name": "@replayio/puppeteer",
+  "version": "0.1.18",
+  "description": "Configuration utilities for using the Replay browsers with puppeteer",
+  "main": "src/index.js",
+  "scripts": {
+    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:source": "npm run if:exists -- src/index.ts",
+    "if:dist": "npm run if:exists -- src/index.js",
+    "prepare": "npm run if:dist || npm run build",
+    "install": "npm run if:source || node ./bin/replayio-puppeteer first-run",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "test": "echo \"Error: no test specified\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "bin": {
+    "replayio-puppeteer": "./bin/replayio-puppeteer.js"
+  },
+  "author": "",
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "@types/node": "^17.0.21"
+  },
+  "bugs": {
+    "url": "https://github.com/ReplayIO/replay-cli/issues"
+  },
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/puppeteer/README.md",
+  "dependencies": {
+    "@replayio/replay": "^0.9.2"
+  },
+  "gitHead": "4cff287bc9f9a49695e5057bc7fd90a1dc7195f4"
+}

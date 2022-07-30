@@ -1,0 +1,26 @@
+{
+  "name": "@replayio/node",
+  "version": "0.2.2",
+  "description": "CLI tool for creating recordings using the replay version of node",
+  "bin": {
+    "replay-node": "bin/replay-node"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\"",
+    "typecheck": "echo \"Error: no typecheck specified\""
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/node/README.md",
+  "gitHead": "1f66765d6ce66d3676c247110e21a78b2594314b"
+}

@@ -1,13 +1,19 @@
 {
   "name": "@replayio/replay",
-  "version": "0.1.1",
+  "version": "0.9.2",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
-    "replay": "bin/replay"
+    "replay": "bin/replay.js"
   },
   "main": "src/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:source": "npm run if:exists -- src/main.ts",
+    "if:dist": "npm run if:exists -- src/main.js",
+    "prepare": "npm run if:dist || npm run build",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "test": "jest --ci",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -20,8 +26,24 @@
   },
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/replay/README.md",
   "dependencies": {
+    "@replayio/sourcemap-upload": "^1.0.2",
     "commander": "^7.2.0",
+    "is-uuid": "^1.0.2",
+    "jsonata": "^1.8.6",
+    "superstruct": "^0.15.4",
+    "text-table": "^0.2.0",
     "ws": "^7.5.0"
   },
-  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02"
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02",
+  "devDependencies": {
+    "@types/jest": "^28.1.5",
+    "@types/text-table": "^0.2.2",
+    "@types/ws": "^8.5.3",
+    "jest": "^28.1.3",
+    "ts-jest": "^28.0.6",
+    "typescript": "^4.6.4"
+  }
 }

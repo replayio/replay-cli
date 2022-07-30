@@ -2,7 +2,7 @@ name: Create React App Typescript Tests
 on:
   pull_request:
     paths:
-      - 'examples/create-react-app-typescript/**'
+      - "examples/create-react-app-typescript/**"
 
 jobs:
   playwright-tests:
@@ -12,7 +12,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/playwright
         with:
-          project: "replay-firefox"
-          issue-number: ${{ github.event.pull_request.number }}
-          apiKey: ${{ secrets.RECORD_REPLAY_API_KEY }}
+          project: "replay-chromium"
+          api-key: ${{ secrets.RECORD_REPLAY_API_KEY }}
           working-directory: examples/create-react-app-typescript
