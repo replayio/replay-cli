@@ -7,6 +7,4 @@ export function getMetadataFilePath(workerIndex = 0) {
   return path.join(getDirectory(), `JEST_METADATA_${workerIndex}`);
 }
 
-export {
-  ReplayReporter
-};
+export { ReplayReporter };
