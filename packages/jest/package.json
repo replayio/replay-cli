@@ -12,6 +12,9 @@
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
+  "bin": {
+    "replayio-jest": "./bin/replayio-jest.js"
+  },
   "author": "",
   "publishConfig": {
     "directory": "dist"

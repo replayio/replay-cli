@@ -1,7 +1,7 @@
 import { writeFileSync } from "fs";
 import path from "path";
 import type { Reporter, Test, ReporterOnStartOptions, Context, Config } from "@jest/reporters";
-import type { AggregatedResult, TestResult } from "@jest/test-result";
+import type { AggregatedResult, TestCaseResult, TestResult } from "@jest/test-result";
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 const uuid = require("uuid");
@@ -69,6 +69,7 @@ class ReplayReporter implements Reporter {
         {
           "x-jest": {
             id: this.getTestId(test),
+            title: test.path,
           },
         },
         undefined,
@@ -80,34 +81,26 @@ class ReplayReporter implements Reporter {
     process.env.RECORD_REPLAY_METADATA_FILE = metadataFilePath;
   }
 
-  onTestResult(test: Test, testResult: TestResult) {
-    if (testResult.numPassingTests === 0 && testResult.numFailingTests === 0) return;
-
-    const total = testResult.testResults.length;
-    const allPassed = testResult.numPassingTests === total;
-
-    const status = allPassed ? "passed" : "failed";
+  onTestCaseResult(test: Test, testCaseResult: TestCaseResult) {
+    if (!["passed", "failed"].includes(testCaseResult.status)) return;
 
     const relativePath = path.relative(test.context.config.cwd, test.path);
-    const title =
-      testResult.testResults.length === 1 ? testResult.testResults[0].title : relativePath;
+    const title = testCaseResult.title;
 
-    const recs = listAllRecordings().filter(r => {
-      if (r.metadata["x-jest"] && typeof r.metadata["x-jest"] === "object") {
-        return (r.metadata["x-jest"] as any).id === this.getTestId(test);
-      }
-
-      return false;
+    const recs = listAllRecordings({
+      filter: `function ($v) {
+        $v.metadata.\`x-jest\`.id = "${this.getTestId(test)}" and $not($exists($v.metadata.test))
+      }`,
     });
 
     if (recs.length > 0) {
-      recs.forEach(rec =>
-        add(rec.id, {
+      recs.forEach(r => {
+        add(r.id, {
           title,
           ...this.baseMetadata,
           ...testMetadata.init({
             title,
-            result: status,
+            result: testCaseResult.status,
             path: ["", "jest", relativePath, title],
             run: {
               id: this.runId,
@@ -115,8 +108,8 @@ class ReplayReporter implements Reporter {
             },
             file: relativePath,
           }),
-        })
-      );
+        });
+      });
     }
   }
 
