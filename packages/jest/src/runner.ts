@@ -1,15 +1,15 @@
 import type { JestEnvironment } from "@jest/environment";
-import type { Test, TestCaseResult, TestFileEvent, TestResult } from "@jest/test-result";
+import type { TestFileEvent, TestResult } from "@jest/test-result";
 import type { Circus, Config } from "@jest/types";
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync } from "fs";
 import type Runtime from "jest-runtime";
-import path, { basename } from "path";
+import path from "path";
+
 import { getMetadataFilePath } from ".";
 
 const uuid = require("uuid");
-
 const runner = require("jest-circus/runner");
 
 const ReplayRunner = async (
@@ -20,6 +20,7 @@ const ReplayRunner = async (
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
+  const relativePath = path.relative(config.cwd, testPath);
   const runId = uuid.validate(
     process.env.RECORD_REPLAY_METADTA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID || ""
   )
@@ -35,7 +36,7 @@ const ReplayRunner = async (
       name.unshift(current.name);
       current = current.parent;
     }
-    return `${runId}-${name.join("-")}`;
+    return `${runId}-${relativePath}-${name.join("-")}`;
   }
 
   function getCurrentWorkerMetadataPath() {
@@ -43,9 +44,9 @@ const ReplayRunner = async (
     return getMetadataFilePath(workerIndex);
   }
 
-  function setupMetadataFile() {
-    console.log(">>>>", getCurrentWorkerMetadataPath());
-    process.env.RECORD_REPLAY_METADATA_FILE = getCurrentWorkerMetadataPath();
+  function setupMetadataFile(env: NodeJS.ProcessEnv) {
+    process.env.RECORD_REPLAY_METADATA_FILE = env.RECORD_REPLAY_METADATA_FILE =
+      getCurrentWorkerMetadataPath();
   }
 
   function handleTestStart(test: Circus.TestEntry) {
@@ -67,7 +68,6 @@ const ReplayRunner = async (
   }
 
   function handleResult(test: Circus.TestEntry, passed: boolean) {
-    const relativePath = testPath; // path.relative(test.context.config.cwd, test.path);
     const title = test.name;
 
     const recs = listAllRecordings({
@@ -113,6 +113,15 @@ const ReplayRunner = async (
     return replayHandler;
   };
 
+  // This code runs within a worker but we need to configure the metadata file
+  // from the parent process. Injecting the env variable via the environment
+  // seems to do the trick but an alternative would be to use a custom reporter
+  // which also runs within the parent process.
+  setupMetadataFile(environment.global.process.env);
+
+  // JestEnvironment can either be node, jsdom, or a custom environment. Since
+  // we can't know which the consumer is using, we proxy it to inject our custom
+  // event handler in order to gain access to test_fn_* handlers.
   environment = new Proxy(environment, {
     get(target, p) {
       if (p === "handleTestEvent") {
@@ -123,7 +132,6 @@ const ReplayRunner = async (
     },
   });
 
-  setupMetadataFile();
   return runner(globalConfig, config, environment, runtime, testPath, sendMessageToJest);
 };
 
