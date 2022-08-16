@@ -74,10 +74,13 @@ class ReplayReporter {
   }
 
   onTestEnd(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
-    const status = result.tests.reduce<string>(
-      (acc, t) => (acc === "failed" || !t.state ? acc : t.state),
-      "passed"
-    );
+    const status = result.tests.reduce<string>((acc, t) => {
+      if (acc === "failed" || t.state === "failed") {
+        return "failed";
+      }
+
+      return "passed";
+    }, "passed");
 
     if (!["passed", "failed"].includes(status)) return;
 
