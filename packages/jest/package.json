@@ -17,7 +17,8 @@
   },
   "author": "",
   "publishConfig": {
-    "directory": "dist"
+    "directory": "dist",
+    "access": "public"
   },
   "license": "BSD-3-Clause",
   "bugs": {
