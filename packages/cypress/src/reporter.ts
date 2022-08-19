@@ -19,8 +19,10 @@ class ReplayReporter {
     this.metadataFilePath = metadataFilePath;
   }
 
-  getTestId(spec: Cypress.Spec) {
-    return `${this.baseId}-${spec.relative}`;
+  getTestId(_spec: Cypress.Spec) {
+    // Currently, cypress tests cannot run concurrently on the same machine so
+    // we don't need to qualify the metadata with the file.
+    return this.baseId;
   }
 
   parseConfig() {
@@ -84,12 +86,10 @@ class ReplayReporter {
 
     if (!["passed", "failed"].includes(status)) return;
 
-    const recs = listAllRecordings().filter(r => {
-      if (r.metadata["x-cypress"] && typeof r.metadata["x-cypress"] === "object") {
-        return (r.metadata["x-cypress"] as any).id === this.getTestId(spec);
-      }
-
-      return false;
+    const recs = listAllRecordings({
+      filter: `function($v) { $v.metadata.\`x-cypress\`.id = "${this.getTestId(
+        spec
+      )}" and $not($exists($v.metadata.test)) }`,
     });
 
     if (recs.length > 0) {
