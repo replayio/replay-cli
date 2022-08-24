@@ -32,10 +32,10 @@
   "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
     "@replayio/replay": "^0.9.3",
+    "@replayio/test-utils": "^0.1.0",
     "uuid": "^8.3.2"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
-  },
-  "gitHead": "4cff287bc9f9a49695e5057bc7fd90a1dc7195f4"
+  }
 }

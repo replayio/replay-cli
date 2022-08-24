@@ -1,34 +1,34 @@
 {
-  "name": "@replayio/cypress",
-  "version": "0.2.15",
-  "description": "Plugin to record your Cypress tests with Replay",
+  "name": "@replayio/test-utils",
+  "version": "0.1.0",
+  "description": "Utilities for recording tests with replay.io",
   "main": "src/index.js",
   "scripts": {
     "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
-    "if:dist": "npm run if:exists -- src/index.js",
     "if:source": "npm run if:exists -- src/index.ts",
+    "if:dist": "npm run if:exists -- src/index.js",
     "prepare": "npm run if:dist || npm run build",
-    "install": "npm run if:source || node ./bin/replayio-cypress first-run",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
-  "bin": {
-    "replayio-cypress": "./bin/replayio-cypress.js"
-  },
-  "author": "",
-  "license": "BSD-3-Clause",
-  "devDependencies": {
-    "@types/node": "^16.11.39",
-    "cypress": "^10.0.3"
-  },
-  "dependencies": {
-    "@replayio/replay": "^0.9.3",
-    "@replayio/test-utils": "^0.1.0",
-    "uuid": "^8.3.2"
-  },
   "publishConfig": {
     "directory": "dist",
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/replayio/replay-cli#readme",
+  "dependencies": {
+    "@replayio/replay": "^0.9.3",
+    "node-fetch": "^2.6.7",
+    "uuid": "^8.3.2"
   }
 }
