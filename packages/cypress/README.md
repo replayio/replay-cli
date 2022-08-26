@@ -24,6 +24,7 @@ module.exports = defineConfig({
       // browsers and hooks into Cypress lifecycle methods to capture test
       // metadata and results
       cypressReplay(on, config);
+      return config;
     },
   },
 });
