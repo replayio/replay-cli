@@ -21,9 +21,7 @@ function maybeLog(verbose: boolean | undefined, str: string) {
 function getDirectory(opts?: Pick<CommandLineOptions, "directory">) {
   const home = process.env.HOME || process.env.USERPROFILE;
   return (
-    (opts && opts.directory) ||
-    process.env.RECORD_REPLAY_DIRECTORY ||
-    path.join(home!, ".replay")
+    (opts && opts.directory) || process.env.RECORD_REPLAY_DIRECTORY || path.join(home!, ".replay")
   );
 }
 

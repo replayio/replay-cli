@@ -26,7 +26,7 @@ function isAllowedKey(key: string): key is AllowedKey {
 // userspace keys prefixed by `x-`.
 function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
   const updated: UnstructuredMetadata = {};
-  Object.keys(metadata).forEach((key) => {
+  Object.keys(metadata).forEach(key => {
     const value = metadata[key];
 
     if (typeof value !== "object") {
@@ -75,10 +75,7 @@ function add(recordingId: string, metadata: Record<string, unknown>) {
     timestamp: Date.now(),
   };
 
-  appendFileSync(
-    path.join(getDirectory(), "recordings.log"),
-    `\n${JSON.stringify(entry)}\n`
-  );
+  appendFileSync(path.join(getDirectory(), "recordings.log"), `\n${JSON.stringify(entry)}\n`);
 }
 
 export { add, sanitize, source, test };

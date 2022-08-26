@@ -1,34 +1,20 @@
-import type {
-  FullConfig,
-  Reporter,
-  TestCase,
-  TestResult,
-} from "@playwright/test/reporter";
-import { listAllRecordings } from "@replayio/replay";
-import { add, test as testMetadata } from "@replayio/replay/metadata";
-import { writeFileSync } from "fs";
+import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
 import path from "path";
-const uuid = require("uuid");
+
+import { ReplayReporter, ReplayReporterConfig } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./index";
 
-interface ReplayReporterConfig {
-  runTitle?: string;
-  metadata?: Record<string, any> | string;
-}
-
-class ReplayReporter implements Reporter {
-  baseId = uuid.validate(process.env.RECORD_REPLAY_TEST_RUN_ID || "") ? process.env.RECORD_REPLAY_TEST_RUN_ID : uuid.v4();
-  baseMetadata: Record<string, any> | null = null;
-  runTitle?: string;
+class ReplayPlaywrightReporter implements Reporter {
+  reporter = new ReplayReporter();
 
   getTestId(test: TestCase) {
-    return `${this.baseId}-${test.titlePath().join("-")}`;
+    return test.titlePath().join("-");
   }
 
   parseConfig(config: FullConfig) {
     let cfg: ReplayReporterConfig = {};
-    config.reporter.forEach((r) => {
+    config.reporter.forEach(r => {
       // the reporter is imported from the root reporter.js which imports this
       // file so we compare the base directory to see if this is our config
       if (r[0].startsWith(path.resolve(__dirname, ".."))) {
@@ -45,70 +31,15 @@ class ReplayReporter implements Reporter {
       }
     });
 
-    // always favor environment variables over config so the config can be
-    // overwritten at runtime
-    this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE || cfg.runTitle;
-
-    // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
-    // We suppress it for the browser process so we can use
-    // RECORD_REPLAY_METADATA_FILE but can still use the metadata here which
-    // runs in the test runner process. However, playwright's convention for
-    // reporter-specific environment configuration is to prefix with PLAYWRIGHT_
-    // so we use that as the first priority, RECORD_REPLAY_METADATA second, and
-    // the config value last.
-    if (
-      process.env.PLAYWRIGHT_REPLAY_METADATA &&
-      process.env.RECORD_REPLAY_METADATA
-    ) {
-      console.warn(
-        "Cannot set metadata via both RECORD_REPLAY_METADATA and PLAYWRIGHT_REPLAY_METADATA. Using PLAYWRIGHT_REPLAY_METADATA."
-      );
-    }
-
-    const baseMetadata =
-      process.env.PLAYWRIGHT_REPLAY_METADATA ||
-      process.env.RECORD_REPLAY_METADATA ||
-      cfg.metadata ||
-      null;
-    if (baseMetadata) {
-      // Since we support either a string in an environment variable or an
-      // object in the cfg, we need to parse out the string value. Technically,
-      // you could use a string in the config file too but that'd be unexpected.
-      // Nonetheless, it'll be handled correctly here if you're into that sort
-      // of thing.
-      if (typeof baseMetadata === "string") {
-        try {
-          this.baseMetadata = JSON.parse(baseMetadata);
-        } catch {
-          console.warn("Failed to parse Replay metadata");
-        }
-      } else {
-        this.baseMetadata = baseMetadata;
-      }
-    }
+    return cfg;
   }
 
   onBegin(config: FullConfig) {
-    this.parseConfig(config);
+    this.reporter.onTestSuiteBegin(this.parseConfig(config), "PLAYWRIGHT_REPLAY_METADATA");
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    const metadataFilePath = getMetadataFilePath(testResult.workerIndex);
-
-    writeFileSync(
-      metadataFilePath,
-      JSON.stringify(
-        {
-          ...(this.baseMetadata || {}),
-          "x-playwright": {
-            id: this.getTestId(test),
-          },
-        },
-        undefined,
-        2
-      ),
-      {}
-    );
+    this.reporter.onTestBegin(this.getTestId(test), getMetadataFilePath(testResult.workerIndex));
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -116,37 +47,14 @@ class ReplayReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const recs = listAllRecordings({ all: true }).filter((r) => {
-      if (
-        r.metadata["x-playwright"] &&
-        typeof r.metadata["x-playwright"] === "object"
-      ) {
-        return (r.metadata["x-playwright"] as any).id === this.getTestId(test);
-      }
-
-      return false;
+    this.reporter.onTestEnd({
+      id: this.getTestId(test),
+      title: test.title,
+      path: test.titlePath(),
+      result: status,
+      relativePath: test.titlePath()[2] || test.location.file,
     });
-
-    if (recs.length > 0) {
-      recs.forEach((rec) =>
-        add(rec.id, {
-          title: test.title,
-          ...testMetadata.init({
-            title: test.title,
-            result: status,
-            path: test.titlePath(),
-            run: {
-              id: this.baseId,
-              title: this.runTitle,
-            },
-            // extract the relative path from titlePath() but fall back to the
-            // full path
-            file: test.titlePath()[2] || test.location.file,
-          }),
-        })
-      );
-    }
   }
 }
 
-export default ReplayReporter;
+export default ReplayPlaywrightReporter;

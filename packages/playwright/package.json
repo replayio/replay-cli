@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "0.2.15",
+  "version": "0.2.23",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "src/index.js",
   "scripts": {
@@ -10,32 +10,36 @@
     "prepare": "npm run if:dist || npm run build",
     "install": "npm run if:source || node ./bin/replayio-playwright first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
   "bin": {
     "replayio-playwright": "./bin/replayio-playwright.js"
   },
-  "author": "",
   "publishConfig": {
     "directory": "dist"
   },
-  "license": "BSD-3-Clause",
   "devDependencies": {
     "@playwright/test": "1.19.x",
     "@types/node": "^17.0.21",
     "@types/uuid": "^8.3.4"
   },
-  "bugs": {
-    "url": "https://github.com/ReplayIO/replay-cli/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
   },
-  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.5.0",
+    "@replayio/replay": "^0.9.3",
+    "@replayio/test-utils": "^0.1.0",
     "uuid": "^8.3.2"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
-  },
-  "gitHead": "4cff287bc9f9a49695e5057bc7fd90a1dc7195f4"
+  }
 }

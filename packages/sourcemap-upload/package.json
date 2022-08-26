@@ -1,6 +1,6 @@
 {
   "name": "@replayio/sourcemap-upload",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A utility library for uploading sourcemaps to Replay for use while replaying recordings.",
   "engines": {
     "node": ">=10.13"
@@ -10,7 +10,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\"",
+    "typecheck": "tsc --noEmit"
   },
   "publishConfig": {
     "access": "public"
@@ -30,7 +31,7 @@
   "bugs": {
     "url": "https://github.com/replayio/replay-cli/issues"
   },
-  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/sourcemap-upload/README.md",
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/sourcemap-upload/README.md",
   "devDependencies": {
     "@types/debug": "^4.1.5",
     "@types/glob": "^7.1.3",

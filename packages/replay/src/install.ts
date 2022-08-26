@@ -26,9 +26,7 @@ async function ensurePlaywrightBrowsersInstalled(
     `Installing ${kind === "all" ? "browsers" : kind} for ${process.platform}`
   );
   if (kind !== "all" && !getPlatformKey(kind)) {
-    console.log(
-      `${kind} browser for Replay is not supported on ${process.platform}`
-    );
+    console.log(`${kind} browser for Replay is not supported on ${process.platform}`);
     return;
   }
 
@@ -80,9 +78,7 @@ async function ensurePuppeteerBrowsersInstalled(
     `Installing ${kind === "all" ? "browsers" : kind} for ${process.platform}`
   );
   if (kind !== "all" && !getPlatformKey(kind)) {
-    console.log(
-      `${kind} browser for Replay is not supported on ${process.platform}`
-    );
+    console.log(`${kind} browser for Replay is not supported on ${process.platform}`);
     return;
   }
 
@@ -188,10 +184,7 @@ async function installReplayBrowser(
   const browserDir = path.join(replayDir, subdir);
 
   if (fs.existsSync(path.join(browserDir, dstName))) {
-    maybeLog(
-      opts.verbose,
-      `Skipping ${dstName}. Already exists in ${browserDir}`
-    );
+    maybeLog(opts.verbose, `Skipping ${dstName}. Already exists in ${browserDir}`);
     return;
   }
 
@@ -209,10 +202,7 @@ async function installReplayBrowser(
   fs.unlinkSync(path.join(browserDir, name));
 
   if (srcName != dstName) {
-    fs.renameSync(
-      path.join(browserDir, srcName),
-      path.join(browserDir, dstName)
-    );
+    fs.renameSync(path.join(browserDir, srcName), path.join(browserDir, dstName));
   }
 }
 
@@ -251,24 +241,19 @@ async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
 
   for (let i = 0; i < 5; i++) {
     const waiter = defer<Buffer[] | null>();
-    maybeLog(
-      opts.verbose,
-      `Downloading ${downloadFile} from replay.io (Attempt ${i + 1} / 5)`
-    );
-    const request = https.get(options, (response) => {
+    maybeLog(opts.verbose, `Downloading ${downloadFile} from replay.io (Attempt ${i + 1} / 5)`);
+    const request = https.get(options, response => {
       if (response.statusCode != 200) {
-        console.log(
-          `Download received status code ${response.statusCode}, retrying...`
-        );
+        console.log(`Download received status code ${response.statusCode}, retrying...`);
         request.destroy();
         waiter.resolve(null);
         return;
       }
       const buffers: Buffer[] = [];
-      response.on("data", (data) => buffers.push(data));
+      response.on("data", data => buffers.push(data));
       response.on("end", () => waiter.resolve(buffers));
     });
-    request.on("error", (err) => {
+    request.on("error", err => {
       console.log(`Download error ${err}, retrying...`);
       request.destroy();
       waiter.resolve(null);

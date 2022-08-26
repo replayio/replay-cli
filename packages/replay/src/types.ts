@@ -13,6 +13,11 @@ export interface CommandLineOptions {
    * Authentication API Key
    */
   apiKey?: string;
+
+  /**
+   * JSON output
+   */
+  json?: boolean;
 }
 
 export interface NodeOptions {
@@ -32,11 +37,19 @@ export interface SourcemapUploadOptions {
   root?: string;
 }
 
-export interface ListOptions {
-  all?: boolean; 
+export interface MetadataOptions {
+  init?: string;
+  keys?: string[];
+  warn?: boolean;
+  verbose?: boolean;
 }
-export interface UploadOptions {
-  includeInProgress?: boolean;
+
+export interface FilterOptions {
+  filter?: string;
+}
+
+export interface ListOptions extends FilterOptions {
+  all?: boolean;
 }
 
 /**
@@ -59,25 +72,42 @@ export interface RecordingMetadata {
   metadata: Record<string, unknown>;
 }
 
-export interface SourceMapsEntry {
+export interface OriginalSourceEntry {
+  path: string;
+  parentOffset: number;
+}
+
+export interface SourceMapEntry {
+  id: string;
   path: string;
   baseURL: string;
   targetContentHash?: string;
   targetURLHash?: string;
   targetMapURLHash: string;
+  originalSources: OriginalSourceEntry[];
 }
 
 export interface RecordingEntry {
   id: string;
-  createTime: string;
+  createTime: Date;
   runtime: string;
   metadata: Record<string, unknown>;
-  sourcemaps?: SourceMapsEntry[];
+  sourcemaps: SourceMapEntry[];
   buildId?: string;
-  status: "onDisk" | "unknown" | "uploaded" | "crashed" | "startedWrite" | "startedUpload" | "crashUploaded" | "unusable";
+  status:
+    | "onDisk"
+    | "unknown"
+    | "uploaded"
+    | "crashed"
+    | "startedWrite"
+    | "startedUpload"
+    | "crashUploaded"
+    | "unusable";
   path?: string;
   server?: string;
   recordingId?: string;
   crashData?: any[];
   unusableReason?: string;
 }
+
+export type ExternalRecordingEntry = Omit<RecordingEntry, "buildId" | "crashData">;
