@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli#readme",
   "dependencies": {
-    "@replayio/replay": "^0.9.3",
+    "@replayio/replay": "^0.9.4",
     "node-fetch": "^2.6.7",
     "uuid": "^8.3.2"
   }
