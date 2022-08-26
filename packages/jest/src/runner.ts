@@ -1,15 +1,12 @@
 import type { JestEnvironment } from "@jest/environment";
 import type { TestFileEvent, TestResult } from "@jest/test-result";
 import type { Circus, Config } from "@jest/types";
-import { listAllRecordings } from "@replayio/replay";
-import { add, test as testMetadata } from "@replayio/replay/metadata";
-import { writeFileSync } from "fs";
+import { ReplayReporter } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
 
 import { getMetadataFilePath } from ".";
 
-const uuid = require("uuid");
 const runner = require("jest-circus/runner");
 
 const ReplayRunner = async (
@@ -21,13 +18,8 @@ const ReplayRunner = async (
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
   const relativePath = path.relative(config.cwd, testPath);
-  const runId = uuid.validate(
-    process.env.RECORD_REPLAY_METADTA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID || ""
-  )
-    ? process.env.RECORD_REPLAY_TEST_RUN_ID
-    : uuid.v4();
-  const runTitle = process.env.RECORD_REPLAY_METADTA_TEST_RUN_TITLE || "";
-  let baseMetadata: Record<string, any> | null = null;
+  const reporter = new ReplayReporter();
+  reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getTestId(test: Circus.TestEntry) {
     let name = [];
@@ -36,7 +28,7 @@ const ReplayRunner = async (
       name.unshift(current.name);
       current = current.parent;
     }
-    return `${runId}-${relativePath}-${name.join("-")}`;
+    return `${relativePath}-${name.join("-")}`;
   }
 
   function getCurrentWorkerMetadataPath() {
@@ -50,51 +42,20 @@ const ReplayRunner = async (
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    const metadataFilePath = getCurrentWorkerMetadataPath();
-
-    writeFileSync(
-      metadataFilePath,
-      JSON.stringify(
-        {
-          "x-jest": {
-            id: getTestId(test),
-          },
-        },
-        undefined,
-        2
-      ),
-      {}
-    );
+    reporter.onTestBegin(getTestId(test), getCurrentWorkerMetadataPath());
   }
 
   function handleResult(test: Circus.TestEntry, passed: boolean) {
     const title = test.name;
-
-    const recs = listAllRecordings({
-      filter: `function ($v) {
-        $v.metadata.\`x-jest\`.id = "${getTestId(test)}" and $not($exists($v.metadata.test))
-      }`,
+    reporter.onTestEnd({
+      id: getTestId(test),
+      title,
+      result: passed ? "passed" : "failed",
+      path: ["", "jest", relativePath, title],
+      relativePath,
     });
-
-    if (recs.length > 0) {
-      recs.forEach(r => {
-        add(r.id, {
-          title,
-          ...baseMetadata,
-          ...testMetadata.init({
-            title,
-            result: passed ? "passed" : "failed",
-            path: ["", "jest", relativePath, title],
-            run: {
-              id: runId,
-              title: runTitle,
-            },
-            file: relativePath,
-          }),
-        });
-      });
-    }
   }
+
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {
     const replayHandler: Circus.EventHandler = (event, state) => {
       switch (event.name) {

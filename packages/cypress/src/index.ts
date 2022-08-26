@@ -3,13 +3,34 @@
 import path from "path";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
-import ReplayReporter from "./reporter";
+import { ReplayReporter, Test } from "@replayio/test-utils";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  const reporter = new ReplayReporter(getMetadataFilePath());
-  on("before:browser:launch", browser => reporter.onBegin(browser.family));
-  on("before:spec", spec => reporter.onTestBegin(spec));
-  on("after:spec", (spec, result) => reporter.onTestEnd(spec, result));
+  const reporter = new ReplayReporter();
+  let selectedBrowser: "chromium" | "firefox";
+  on("before:browser:launch", browser => {
+    selectedBrowser = browser.family;
+    reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
+  });
+  on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
+  on("after:spec", (spec, result) => {
+    const status = result.tests.reduce<Test["result"]>((acc, t) => {
+      if (acc === "failed" || t.state === "failed") {
+        return "failed";
+      }
+
+      return "passed";
+    }, "passed");
+
+    if (!["passed", "failed"].includes(status)) return;
+
+    reporter.onTestEnd({
+      title: spec.relative,
+      path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
+      result: status,
+      relativePath: spec.relative,
+    });
+  });
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");
   if (chromiumPath) {
