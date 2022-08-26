@@ -15,16 +15,20 @@
   "bin": {
     "replayio-jest": "./bin/replayio-jest.js"
   },
-  "author": "",
   "publishConfig": {
     "directory": "dist",
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
+  "author": "",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/ReplayIO/replay-cli/issues"
+    "url": "https://github.com/replayio/replay-cli/issues"
   },
-  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/jest/README.md",
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/jest/README.md",
   "devDependencies": {
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",

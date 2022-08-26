@@ -16,20 +16,24 @@
   "bin": {
     "replayio-playwright": "./bin/replayio-playwright.js"
   },
-  "author": "",
   "publishConfig": {
     "directory": "dist"
   },
-  "license": "BSD-3-Clause",
   "devDependencies": {
     "@playwright/test": "1.19.x",
     "@types/node": "^17.0.21",
     "@types/uuid": "^8.3.4"
   },
-  "bugs": {
-    "url": "https://github.com/ReplayIO/replay-cli/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
   },
-  "homepage": "https://github.com/Replayio/replay-cli/blob/main/packages/playwright/README.md",
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
     "@replayio/replay": "^0.9.3",
     "@replayio/test-utils": "^0.1.0",

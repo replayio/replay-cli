@@ -16,8 +16,16 @@
   "bin": {
     "replayio-cypress": "./bin/replayio-cypress.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
   "author": "",
   "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/cypress/README.md",
   "devDependencies": {
     "@types/node": "^16.11.39",
     "cypress": "^10.0.3"
