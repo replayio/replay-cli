@@ -155,6 +155,7 @@ class ReplayReporter {
         duration: Date.now() - startTime,
         recorded: !!recordingId,
         runtime: parseRuntime(runtime),
+        runner: this.runner?.name,
       });
     }
   }
