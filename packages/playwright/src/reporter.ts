@@ -6,7 +6,7 @@ import { ReplayReporter, ReplayReporterConfig } from "@replayio/test-utils";
 import { getMetadataFilePath } from "./index";
 
 class ReplayPlaywrightReporter implements Reporter {
-  reporter = new ReplayReporter();
+  reporter?: ReplayReporter;
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
@@ -35,11 +35,12 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin(config: FullConfig) {
+    this.reporter = new ReplayReporter({ name: "playwright", version: config.version });
     this.reporter.onTestSuiteBegin(this.parseConfig(config), "PLAYWRIGHT_REPLAY_METADATA");
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter.onTestBegin(this.getTestId(test), getMetadataFilePath(testResult.workerIndex));
+    this.reporter?.onTestBegin(this.getTestId(test), getMetadataFilePath(testResult.workerIndex));
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -47,7 +48,7 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    this.reporter.onTestEnd({
+    this.reporter?.onTestEnd({
       id: this.getTestId(test),
       title: test.title,
       path: test.titlePath(),

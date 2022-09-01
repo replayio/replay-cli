@@ -6,7 +6,7 @@ import { getDirectory } from "@replayio/replay/src/utils";
 import { ReplayReporter, Test } from "@replayio/test-utils";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  const reporter = new ReplayReporter();
+  const reporter = new ReplayReporter({ name: "cypress", version: config.version });
   let selectedBrowser: "chromium" | "firefox";
   on("before:browser:launch", browser => {
     selectedBrowser = browser.family;

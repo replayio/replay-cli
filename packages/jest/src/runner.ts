@@ -17,8 +17,13 @@ const ReplayRunner = async (
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
+  let version: string | undefined;
+  try {
+    version = require(require.resolve("jest/package.json"))?.version;
+  } catch {}
+
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter();
+  const reporter = new ReplayReporter({ name: "jest", version });
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getTestId(test: Circus.TestEntry) {

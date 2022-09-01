@@ -20,6 +20,11 @@ export interface Test {
   relativePath: string;
 }
 
+export interface TestRunner {
+  name?: string;
+  version?: string;
+}
+
 export function getMetadataFilePath(workerIndex = 0) {
   return path.join(getDirectory(), `REPLAY_TEST_METADATA_${workerIndex}`);
 }
@@ -37,6 +42,11 @@ class ReplayReporter {
   baseMetadata: Record<string, any> | null = null;
   runTitle?: string;
   startTimes: Record<string, number> = {};
+  runner?: TestRunner;
+
+  constructor(runner?: TestRunner) {
+    this.runner = runner;
+  }
 
   getTestId(testId?: string) {
     if (!testId) {
@@ -127,6 +137,7 @@ class ReplayReporter {
             title: test.title,
             result: test.result,
             path: test.path,
+            runner: this.runner,
             run: {
               id: this.baseId,
               title: this.runTitle,
