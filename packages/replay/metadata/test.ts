@@ -25,6 +25,14 @@ const versions: Record<number, Struct> = {
       enums(["passed", "failed", "timedOut"]),
       firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
+    runner: optional(
+      defaulted(
+        object({
+          name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
+          version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
+        })
+      )
+    ),
     run: optional(
       defaulted(
         object({

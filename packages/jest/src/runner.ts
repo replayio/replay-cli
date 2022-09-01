@@ -9,6 +9,8 @@ import { getMetadataFilePath } from ".";
 
 const runner = require("jest-circus/runner");
 
+let version: string | undefined;
+
 const ReplayRunner = async (
   globalConfig: Config.GlobalConfig,
   config: Config.ProjectConfig,
@@ -17,8 +19,16 @@ const ReplayRunner = async (
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
+  if (!version) {
+    try {
+      version = require(require.resolve("jest/package.json", {
+        paths: [globalConfig.rootDir],
+      }))?.version;
+    } catch {}
+  }
+
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter();
+  const reporter = new ReplayReporter({ name: "jest", version });
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getTestId(test: Circus.TestEntry) {
