@@ -1,3 +1,4 @@
+import os from "os";
 import fetch from "node-fetch";
 
 function shouldReportTestMetrics() {
@@ -14,6 +15,7 @@ async function pingTestMetrics(
     duration: number;
     recorded: boolean;
     runtime?: string;
+    runner?: string;
   }
 ) {
   if (!shouldReportTestMetrics()) return;
@@ -34,6 +36,7 @@ async function pingTestMetrics(
         recordingId,
         test: {
           ...test,
+          platform: os.platform,
           runId,
         },
       }),
