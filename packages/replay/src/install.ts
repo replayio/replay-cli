@@ -11,7 +11,20 @@ const EXECUTABLE_PATHS = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
-};
+} as const;
+
+function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key: K): string {
+  switch (key) {
+    case "darwin:firefox":
+      return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "macOS-replay-playwright.tar.xz";
+    case "linux:chromium":
+      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz";
+    case "linux:firefox":
+      return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "linux-replay-playwright.tar.xz";
+  }
+
+  throw new Error("Unexpected platform");
+}
 
 /**
  * Installs the Replay-enabled playwright browsers for the current platform is
@@ -34,7 +47,7 @@ async function ensurePlaywrightBrowsersInstalled(
     case "darwin":
       if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser(
-          "macOS-replay-playwright.tar.xz",
+          getBrowserDownloadFileName("darwin:firefox"),
           "playwright",
           "firefox",
           "firefox",
@@ -45,7 +58,7 @@ async function ensurePlaywrightBrowsersInstalled(
     case "linux":
       if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser(
-          "linux-replay-playwright.tar.xz",
+          getBrowserDownloadFileName("linux:firefox"),
           "playwright",
           "firefox",
           "firefox",
@@ -54,7 +67,7 @@ async function ensurePlaywrightBrowsersInstalled(
       }
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
-          "linux-replay-chromium.tar.xz",
+          getBrowserDownloadFileName("linux:chromium"),
           "playwright",
           "replay-chromium",
           "chrome-linux",
@@ -101,7 +114,7 @@ async function updateBrowsers(opts: Options = {}) {
   switch (process.platform) {
     case "darwin":
       await updateReplayBrowser(
-        "macOS-replay-playwright.tar.xz",
+        getBrowserDownloadFileName("darwin:firefox"),
         "playwright",
         "firefox",
         "firefox",
@@ -110,21 +123,21 @@ async function updateBrowsers(opts: Options = {}) {
       break;
     case "linux":
       await updateReplayBrowser(
-        "linux-replay-playwright.tar.xz",
+        getBrowserDownloadFileName("linux:firefox"),
         "playwright",
         "firefox",
         "firefox",
         opts
       );
       await updateReplayBrowser(
-        "linux-replay-chromium.tar.xz",
+        getBrowserDownloadFileName("linux:chromium"),
         "playwright",
         "replay-chromium",
         "chrome-linux",
         opts
       );
       await updateReplayBrowser(
-        "linux-replay-chromium.tar.xz",
+        getBrowserDownloadFileName("linux:chromium"),
         "puppeteer",
         "replay-chromium",
         "chrome-linux",
