@@ -20,12 +20,7 @@ async function pingTestMetrics(
 ) {
   if (!shouldReportTestMetrics()) return;
 
-  const webhookUrl = process.env.RECORD_REPLAY_WEBHOOK_URL;
-
-  if (!webhookUrl) {
-    console.log("RECORD_REPLAY_WEBHOOK_URL is undefined. Skipping test metrics");
-    return;
-  }
+  const webhookUrl = process.env.RECORD_REPLAY_WEBHOOK_URL || "https://webhooks.replay.io";
 
   try {
     return await fetch(`${webhookUrl}/api/metrics`, {
