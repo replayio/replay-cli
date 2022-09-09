@@ -15,6 +15,10 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     return {
       ...launchOptions,
       env: {
+        RECORD_REPLAY_DRIVER:
+          process.env.RECORD_REPLAY_NO_RECORD && selectedBrowser === "chromium"
+            ? __filename
+            : undefined,
         RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
         RECORD_REPLAY_METADATA_FILE: getMetadataFilePath(),
       },
