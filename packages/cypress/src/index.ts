@@ -13,7 +13,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
 
     const [major, minor] = config.version.split(".");
-    if (major && Number.parseInt(major) >= 10 && minor && Number.parseInt(minor) >= 8) {
+    if (major && Number.parseInt(major) >= 10 && minor && Number.parseInt(minor) >= 9) {
       return {
         ...launchOptions,
         env: {
