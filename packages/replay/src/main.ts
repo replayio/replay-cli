@@ -296,6 +296,16 @@ function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
   writeRecordingFile(dir, lines);
 }
 
+function shouldProcessRecording(recording: RecordingEntry) {
+  // only pre-process test replays for failed tests
+  if (recording.metadata.test && typeof recording.metadata.test === "object") {
+    const test: Record<string, any> = recording.metadata.test;
+    return test.result === "failed";
+  }
+
+  return true;
+}
+
 async function doUploadCrash(
   dir: string,
   server: string,
@@ -370,7 +380,9 @@ async function doUploadRecording(
     server,
     recordingId,
   });
-  connectionProcessRecording(recordingId);
+  if (shouldProcessRecording(recording)) {
+    connectionProcessRecording(recordingId);
+  }
   await connectionUploadRecording(recordingId, contents);
   for (const sourcemap of recording.sourcemaps) {
     try {
