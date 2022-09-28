@@ -28,6 +28,7 @@
   "dependencies": {
     "@replayio/sourcemap-upload": "^1.0.3",
     "commander": "^7.2.0",
+    "debug": "^4.3.4",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
     "superstruct": "^0.15.4",

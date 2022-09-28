@@ -1,11 +1,14 @@
 // Manage installation of browsers for other NPM packages.
 
 import { spawnSync } from "child_process";
+import dbg from "debug";
 import fs from "fs";
 import https from "https";
 import path from "path";
 import { BrowserName, Options, Runner, NodeOptions } from "./types";
 import { defer, getDirectory, maybeLog } from "./utils";
+
+const debug = dbg("replay:cli:install");
 
 const EXECUTABLE_PATHS = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
@@ -201,6 +204,8 @@ async function installReplayBrowser(
     return;
   }
 
+  debug("Installing %s from %s to %s", name, srcName, path.join(browserDir, name));
+
   const contents = await downloadReplayFile(name, opts);
 
   for (const dir of [replayDir, browserDir]) {
@@ -232,6 +237,7 @@ async function updateReplayBrowser(
   const dstDir = path.join(browserDir, dstName);
 
   if (fs.existsSync(dstDir)) {
+    debug("Removing %s from %s before updating", name, dstDir);
     // Remove the browser so installReplayBrowser will reinstall it. We don't have a way
     // to see that the current browser is up to date.
     fs.rmSync(dstDir, { force: true, recursive: true });
@@ -255,6 +261,7 @@ async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
   for (let i = 0; i < 5; i++) {
     const waiter = defer<Buffer[] | null>();
     maybeLog(opts.verbose, `Downloading ${downloadFile} from replay.io (Attempt ${i + 1} / 5)`);
+    debug("Downloading %o", options);
     const request = https.get(options, response => {
       if (response.statusCode != 200) {
         console.log(`Download received status code ${response.statusCode}, retrying...`);

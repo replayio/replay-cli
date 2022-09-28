@@ -1,6 +1,9 @@
+import dbg from "debug";
 import WebSocket from "ws";
 import { Options } from "./types";
 import { defer } from "./utils";
+
+const debug = dbg("replay:protocol");
 
 // Simple protocol client for use in writing standalone applications.
 
@@ -18,6 +21,7 @@ class ProtocolClient {
   nextMessageId = 1;
 
   constructor(address: string, callbacks: Callbacks, opts: Options = {}) {
+    debug("Creating WebSocket for %s with %o", address, { agent: opts.agent });
     this.socket = new WebSocket(address, {
       agent: opts.agent,
     });
@@ -54,6 +58,7 @@ class ProtocolClient {
     sessionId?: string
   ) {
     const id = this.nextMessageId++;
+    debug("Sending command %s: %o", method, { id, params, sessionId });
     this.socket.send(
       JSON.stringify({
         id,
@@ -77,6 +82,7 @@ class ProtocolClient {
 
   onMessage(contents: WebSocket.RawData) {
     const msg = JSON.parse(String(contents));
+    debug("Received message %o", msg);
     if (msg.id) {
       const { resolve, reject } = this.pendingMessages.get(msg.id);
       this.pendingMessages.delete(msg.id);
