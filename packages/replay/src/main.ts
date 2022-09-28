@@ -1,3 +1,4 @@
+import dbg from "debug";
 import fs from "fs";
 import path from "path";
 import {
@@ -34,6 +35,8 @@ import { add, sanitize, source as sourceMetadata, test as testMetadata } from ".
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
 export type { BrowserName } from "./types";
+
+const debug = dbg("replay:cli");
 
 function getRecordingsFile(dir: string) {
   return path.join(dir, "recordings.log");
@@ -284,21 +287,22 @@ function getServer(opts: Options) {
 }
 
 function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
+  const event = {
+    kind,
+    id,
+    timestamp: Date.now(),
+    ...tags,
+  };
+  debug("Writing event to recording log %o", event);
   const lines = readRecordingFile(dir);
-  lines.push(
-    JSON.stringify({
-      kind,
-      id,
-      timestamp: Date.now(),
-      ...tags,
-    })
-  );
+  lines.push(JSON.stringify(event));
   writeRecordingFile(dir, lines);
 }
 
 function shouldProcessRecording(recording: RecordingEntry) {
   // only pre-process test replays for failed tests
   if (recording.metadata.test && typeof recording.metadata.test === "object") {
+    debug("Skipping processing recording %s", recording.id);
     const test: Record<string, any> = recording.metadata.test;
     return test.result === "failed";
   }
@@ -337,6 +341,7 @@ async function doUploadRecording(
   apiKey?: string,
   agent?: any
 ) {
+  debug("Uploading %s from %s to %s", recording.id, dir, server);
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
   if (recording.status == "uploaded" && recording.recordingId) {
     maybeLog(verbose, `Already uploaded: ${recording.recordingId}`);
@@ -348,10 +353,12 @@ async function doUploadRecording(
     return null;
   }
   if (recording.status == "crashed") {
+    debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
     maybeLog(verbose, `Upload failed: crashed while recording`);
     return null;
   }
+  debug("Uploading recording %o", recording);
   let contents;
   try {
     contents = fs.readFileSync(recording.path!);
@@ -368,12 +375,8 @@ async function doUploadRecording(
     ? buildRecordingMetadata(recording.metadata, { verbose })
     : null;
   const recordingId = await connectionCreateRecording(recording.id, recording.buildId!);
-  maybeLog(verbose, `Created remote recording ${recordingId}, uploading...`);
+  debug(`Created remote recording ${recordingId}`);
   if (metadata) {
-    maybeLog(
-      verbose,
-      `Setting recording metadata for ${recordingId}: ${JSON.stringify(metadata, null, 2)}`
-    );
     await setRecordingMetadata(recordingId, metadata);
   }
   addRecordingEvent(dir, "uploadStarted", recording.id, {
@@ -415,6 +418,7 @@ async function uploadRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return null;
   }
+
   return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent);
 }
 

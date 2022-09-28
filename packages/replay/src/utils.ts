@@ -1,6 +1,9 @@
+import dbg from "debug";
 import path from "path";
 
 import { CommandLineOptions } from "./types";
+
+const debug = dbg("replay:cli");
 
 function defer<T = unknown>() {
   let resolve: (value: T) => void = () => {};
@@ -13,6 +16,7 @@ function defer<T = unknown>() {
 }
 
 function maybeLog(verbose: boolean | undefined, str: string) {
+  debug(str);
   if (verbose) {
     console.log(str);
   }
