@@ -8,9 +8,24 @@ import { ReplayReporter, Test } from "@replayio/test-utils";
 const plugin: Cypress.PluginConfig = (on, config) => {
   const reporter = new ReplayReporter({ name: "cypress", version: config.version });
   let selectedBrowser: "chromium" | "firefox";
-  on("before:browser:launch", browser => {
+  on("before:browser:launch", (browser, launchOptions) => {
     selectedBrowser = browser.family;
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
+
+    const [major, minor] = config.version.split(".");
+    if (major && Number.parseInt(major) >= 10 && minor && Number.parseInt(minor) >= 9) {
+      return {
+        ...launchOptions,
+        env: {
+          RECORD_REPLAY_DRIVER:
+            process.env.RECORD_REPLAY_NO_RECORD && selectedBrowser === "chromium"
+              ? __filename
+              : undefined,
+          RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
+          RECORD_REPLAY_METADATA_FILE: getMetadataFilePath(),
+        },
+      };
+    }
   });
   on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
   on("after:spec", (spec, result) => {
