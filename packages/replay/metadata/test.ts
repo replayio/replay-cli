@@ -1,6 +1,5 @@
-import type { Struct } from "superstruct";
 import { envString, firstEnvValueOf } from "./env";
-const {
+import {
   array,
   create,
   defaulted,
@@ -10,14 +9,15 @@ const {
   optional,
   string,
   define,
-} = require("superstruct");
+  Struct,
+} from "superstruct";
 const isUuid = require("is-uuid");
 
 import { UnstructuredMetadata } from "./types";
 
 const VERSION = 1;
 
-const versions: Record<number, Struct> = {
+const versions: Record<number, Struct<any, any>> = {
   1: object({
     file: optional(envString("RECORD_REPLAY_METADATA_TEST_FILE")),
     path: optional(array(string())),
@@ -25,12 +25,33 @@ const versions: Record<number, Struct> = {
       enums(["passed", "failed", "timedOut"]),
       firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
+    steps: optional(
+      array(
+        object({
+          title: optional(string()),
+          location: optional(
+            object({
+              file: string(),
+              line: number(),
+              column: number(),
+            })
+          ),
+          error: optional(
+            object({
+              message: optional(string()),
+              lines: optional(array(string())),
+            })
+          ),
+        })
+      )
+    ),
     runner: optional(
       defaulted(
         object({
           name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
           version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
-        })
+        }),
+        {}
       )
     ),
     run: optional(

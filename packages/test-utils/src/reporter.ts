@@ -12,12 +12,26 @@ export interface ReplayReporterConfig {
   metadata?: Record<string, any> | string;
 }
 
+export interface Step {
+  title?: string;
+  location?: {
+    file: string;
+    line: number;
+    column: number;
+  };
+  error?: {
+    message: string;
+    lines: string[];
+  };
+}
+
 export interface Test {
   id?: string;
   title: string;
   path: string[];
   result: "passed" | "failed" | "timedOut";
   relativePath: string;
+  steps?: Step[];
 }
 
 export interface TestRunner {
@@ -143,6 +157,7 @@ class ReplayReporter {
               title: this.runTitle,
             },
             file: test.relativePath,
+            steps: test.steps,
           }),
         })
       );
