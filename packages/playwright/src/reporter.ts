@@ -1,9 +1,21 @@
-import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
+import type {
+  FullConfig,
+  Reporter,
+  TestCase,
+  TestResult,
+  TestStep,
+} from "@playwright/test/reporter";
 import path from "path";
 
-import { ReplayReporter, ReplayReporterConfig } from "@replayio/test-utils";
+import { ReplayReporter, ReplayReporterConfig, removeAnsiCodes } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./index";
+
+function extractErrorMessage(errorStep?: TestStep) {
+  const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
+  const stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
+  return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
+}
 
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
@@ -48,13 +60,28 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    this.reporter?.onTestEnd({
-      id: this.getTestId(test),
-      title: test.title,
-      path: test.titlePath(),
-      result: status,
-      relativePath: test.titlePath()[2] || test.location.file,
-    });
+    const errorStep = result.steps.find(step => step.error?.message);
+    const errorMessage = extractErrorMessage(errorStep);
+
+    this.reporter?.onTestEnd(
+      [
+        {
+          id: this.getTestId(test),
+          title: test.title,
+          path: test.titlePath(),
+          result: status,
+          relativePath: test.titlePath()[2] || test.location.file,
+          error: errorMessage
+            ? {
+                message: errorMessage,
+                line: errorStep?.location?.line,
+                column: errorStep?.location?.column,
+              }
+            : undefined,
+        },
+      ],
+      test.title
+    );
   }
 }
 
