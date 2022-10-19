@@ -19,7 +19,6 @@ function extractErrorMessage(errorStep?: TestStep) {
 
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
-  rootDir?: string;
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
@@ -48,7 +47,6 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin(config: FullConfig) {
-    this.rootDir = config.rootDir;
     this.reporter = new ReplayReporter({ name: "playwright", version: config.version });
     this.reporter.onTestSuiteBegin(this.parseConfig(config), "PLAYWRIGHT_REPLAY_METADATA");
   }

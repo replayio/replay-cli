@@ -12,19 +12,6 @@ export interface ReplayReporterConfig {
   metadata?: Record<string, any> | string;
 }
 
-export interface Step {
-  title?: string;
-  location?: {
-    file: string;
-    line: number;
-    column: number;
-  };
-  error?: {
-    message: string;
-    lines: string[];
-  };
-}
-
 export interface Test {
   id?: string;
   title: string;
