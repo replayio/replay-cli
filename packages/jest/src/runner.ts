@@ -1,7 +1,7 @@
 import type { JestEnvironment } from "@jest/environment";
 import type { TestFileEvent, TestResult } from "@jest/test-result";
 import type { Circus, Config } from "@jest/types";
-import { ReplayReporter } from "@replayio/test-utils";
+import { ReplayReporter, removeAnsiCodes } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
 
@@ -10,6 +10,14 @@ import { getMetadataFilePath } from ".";
 const runner = require("jest-circus/runner");
 
 let version: string | undefined;
+
+type MatcherResult = {
+  actual: any;
+  expected: any;
+  message: string;
+  name: string;
+  pass: boolean;
+};
 
 const ReplayRunner = async (
   globalConfig: Config.GlobalConfig,
@@ -55,15 +63,31 @@ const ReplayRunner = async (
     reporter.onTestBegin(getTestId(test), getCurrentWorkerMetadataPath());
   }
 
+  function getErrorMessage(errors: any[]) {
+    const error: { matcherResult: MatcherResult } | null = errors
+      .flat()
+      .find(e => e && e.matcherResult);
+
+    return removeAnsiCodes(error?.matcherResult.message);
+  }
+
   function handleResult(test: Circus.TestEntry, passed: boolean) {
     const title = test.name;
-    reporter.onTestEnd({
-      id: getTestId(test),
-      title,
-      result: passed ? "passed" : "failed",
-      path: ["", "jest", relativePath, title],
-      relativePath,
-    });
+    const errorMessage = getErrorMessage(test.errors);
+    reporter.onTestEnd([
+      {
+        id: getTestId(test),
+        title,
+        result: passed ? "passed" : "failed",
+        path: ["", "jest", relativePath, title],
+        relativePath,
+        error: errorMessage
+          ? {
+              message: errorMessage,
+            }
+          : undefined,
+      },
+    ]);
   }
 
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {

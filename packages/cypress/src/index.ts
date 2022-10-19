@@ -29,22 +29,23 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
   on("after:spec", (spec, result) => {
-    const status = result.tests.reduce<Test["result"]>((acc, t) => {
-      if (acc === "failed" || t.state === "failed") {
-        return "failed";
-      }
-
-      return "passed";
-    }, "passed");
-
-    if (!["passed", "failed"].includes(status)) return;
-
-    reporter.onTestEnd({
-      title: spec.relative,
-      path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
-      result: status,
-      relativePath: spec.relative,
+    const tests = result.tests.map<Test>(t => {
+      return {
+        title: t.title.pop() || spec.relative,
+        path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
+        result: t.state == "failed" ? "failed" : "passed",
+        relativePath: spec.relative,
+        error: t.displayError
+          ? {
+              // we don't get line/column from cypress yet but we may be able to
+              // derive it later once we're tracking the steps
+              message: t.displayError.substring(0, t.displayError.indexOf("\n")),
+            }
+          : undefined,
+      };
     });
+
+    reporter.onTestEnd(tests, spec.relative);
   });
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");

@@ -31,7 +31,11 @@ export interface Test {
   path: string[];
   result: "passed" | "failed" | "timedOut";
   relativePath: string;
-  steps?: Step[];
+  error?: {
+    message: string;
+    line?: number;
+    column?: number;
+  };
 }
 
 export interface TestRunner {
@@ -132,12 +136,20 @@ class ReplayReporter {
     );
   }
 
-  onTestEnd(test: Test) {
+  onTestEnd(tests: Test[], replayTitle?: string) {
     const recs = listAllRecordings({
-      filter: `function($v) { $v.metadata.\`x-replay-test\`.id = "${this.getTestId(
-        test.id
-      )}" and $not($exists($v.metadata.test)) }`,
+      filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ["${tests
+        .map(test => this.getTestId(test.id))
+        .join('", "')}"] and $not($exists($v.metadata.test)) }`,
     });
+
+    const test = tests[0];
+    const results = tests.map(t => t.result);
+    const result = results.includes("failed")
+      ? "failed"
+      : results.includes("timedOut")
+      ? "timedOut"
+      : "passed";
 
     let recordingId: string | undefined;
     let runtime: string | undefined;
@@ -146,10 +158,10 @@ class ReplayReporter {
       runtime = recs[0].runtime;
       recs.forEach(rec =>
         add(rec.id, {
-          title: test.title,
+          title: replayTitle || test.title,
           ...testMetadata.init({
-            title: test.title,
-            result: test.result,
+            title: replayTitle || test.title,
+            result,
             path: test.path,
             runner: this.runner,
             run: {
@@ -157,7 +169,7 @@ class ReplayReporter {
               title: this.runTitle,
             },
             file: test.relativePath,
-            steps: test.steps,
+            tests: tests,
           }),
         })
       );

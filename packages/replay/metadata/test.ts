@@ -25,21 +25,22 @@ const versions: Record<number, Struct<any, any>> = {
       enums(["passed", "failed", "timedOut"]),
       firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
-    steps: optional(
+    tests: optional(
       array(
         object({
-          title: optional(string()),
-          location: optional(
-            object({
-              file: string(),
-              line: number(),
-              column: number(),
-            })
+          id: optional(string()),
+          title: string(),
+          path: optional(array(string())),
+          relativePath: optional(string()),
+          result: defaulted(
+            enums(["passed", "failed", "timedOut"]),
+            firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
           ),
           error: optional(
             object({
-              message: optional(string()),
-              lines: optional(array(string())),
+              message: string(),
+              line: optional(number()),
+              column: optional(number()),
             })
           ),
         })

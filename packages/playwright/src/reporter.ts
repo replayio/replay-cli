@@ -1,22 +1,20 @@
-import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
+import type {
+  FullConfig,
+  Reporter,
+  TestCase,
+  TestResult,
+  TestStep,
+} from "@playwright/test/reporter";
 import path from "path";
 
-import { ReplayReporter, ReplayReporterConfig } from "@replayio/test-utils";
+import { ReplayReporter, ReplayReporterConfig, removeAnsiCodes } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./index";
-import { readFileSync } from "fs";
-import { Step } from "@replayio/test-utils/src/reporter";
-const removeAnsiCodes =
-  /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
-const fileCache = new Map<string, string[]>();
-function readLines(fileName: string) {
-  if (!fileCache.has(fileName)) {
-    const lines = readFileSync(fileName).toString().split("\n");
-    fileCache.set(fileName, lines);
-  }
-
-  return fileCache.get(fileName)!;
+function extractErrorMessage(errorStep?: TestStep) {
+  const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
+  const stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
+  return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
 }
 
 class ReplayPlaywrightReporter implements Reporter {
@@ -64,36 +62,28 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const steps = result.steps.map<Step>(step => {
-      const lines = step.location ? readLines(step.location.file) : undefined;
-      return {
-        title: step.title,
-        location: step.location
-          ? {
-              ...step.location,
-              // we don't need or want the user's full path so shortening to the
-              // path relative to the project root directory
-              file: path.relative(this.rootDir!, step.location.file),
-            }
-          : undefined,
-        error:
-          step.error?.message && lines
+    const errorStep = result.steps.find(step => step.error?.message);
+    const errorMessage = extractErrorMessage(errorStep);
+
+    this.reporter?.onTestEnd(
+      [
+        {
+          id: this.getTestId(test),
+          title: test.title,
+          path: test.titlePath(),
+          result: status,
+          relativePath: test.titlePath()[2] || test.location.file,
+          error: errorMessage
             ? {
-                message: step.error.message.replace(removeAnsiCodes, ""),
-                lines: lines.slice(Math.max(0, step.location!.line - 3), step.location!.line + 3),
+                message: errorMessage,
+                line: errorStep?.location?.line,
+                column: errorStep?.location?.column,
               }
             : undefined,
-      };
-    });
-
-    this.reporter?.onTestEnd({
-      id: this.getTestId(test),
-      title: test.title,
-      path: test.titlePath(),
-      result: status,
-      relativePath: test.titlePath()[2] || test.location.file,
-      steps,
-    });
+        },
+      ],
+      test.title
+    );
   }
 }
 
