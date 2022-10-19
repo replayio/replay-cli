@@ -32,10 +32,7 @@ const versions: Record<number, Struct<any, any>> = {
           title: string(),
           path: optional(array(string())),
           relativePath: optional(string()),
-          result: defaulted(
-            enums(["passed", "failed", "timedOut"]),
-            firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
-          ),
+          result: enums(["passed", "failed", "timedOut"]),
           error: optional(
             object({
               message: string(),
