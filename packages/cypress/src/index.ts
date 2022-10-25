@@ -4,8 +4,27 @@ import path from "path";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
 import { ReplayReporter, Test } from "@replayio/test-utils";
+import { TASK_NAME } from "./constants";
+import type { StepEvent } from "./support";
+
+function groupStepsByTest(steps: StepEvent[]) {
+  // The steps can come in out of order but are sortable by timestamp
+  const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  const stepsByTest = sortedSteps.reduce<Record<string, StepEvent[]>>((acc, v) => {
+    const key = JSON.stringify(v.test);
+    const testSteps = (acc[key] = acc[key] || []);
+    testSteps.push(v);
+
+    return acc;
+  }, {});
+
+  return stepsByTest;
+}
 
 const plugin: Cypress.PluginConfig = (on, config) => {
+  let steps: StepEvent[] = [];
+
   const reporter = new ReplayReporter({ name: "cypress", version: config.version });
   let selectedBrowser: "chromium" | "firefox";
   on("before:browser:launch", (browser, launchOptions) => {
@@ -29,9 +48,11 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
   on("after:spec", (spec, result) => {
+    const stepsByTest = groupStepsByTest(steps);
+
     const tests = result.tests.map<Test>(t => {
       return {
-        title: t.title.pop() || spec.relative,
+        title: t.title[t.title.length - 1] || spec.relative,
         path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
         result: t.state == "failed" ? "failed" : "passed",
         relativePath: spec.relative,
@@ -42,10 +63,21 @@ const plugin: Cypress.PluginConfig = (on, config) => {
               message: t.displayError.substring(0, t.displayError.indexOf("\n")),
             }
           : undefined,
+        steps: stepsByTest[JSON.stringify(t.title)],
       };
     });
 
     reporter.onTestEnd(tests, spec.relative);
+  });
+
+  on("task", {
+    [TASK_NAME]: value => {
+      if (!value || typeof value !== "object") return;
+
+      steps.push(value);
+
+      return true;
+    },
   });
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");
