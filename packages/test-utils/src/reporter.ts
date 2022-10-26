@@ -125,9 +125,9 @@ class ReplayReporter {
 
   onTestEnd(tests: Test[], replayTitle?: string) {
     const recs = listAllRecordings({
-      filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ["${tests
-        .map(test => this.getTestId(test.id))
-        .join('", "')}"] and $not($exists($v.metadata.test)) }`,
+      filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
+        tests.map(test => this.getTestId(test.id))
+      )} and $not($exists($v.metadata.test)) }`,
     });
 
     const test = tests[0];
