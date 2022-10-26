@@ -13,6 +13,8 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
   const reporter = new ReplayReporter({ name: "cypress", version: config.version });
   let selectedBrowser: "chromium" | "firefox";
+  let startTime: number | undefined;
+
   on("before:browser:launch", (browser, launchOptions) => {
     selectedBrowser = browser.family;
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
@@ -32,9 +34,12 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       };
     }
   });
-  on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
+  on("before:spec", () => {
+    startTime = Date.now();
+    reporter.onTestBegin(undefined, getMetadataFilePath());
+  });
   on("after:spec", (spec, result) => {
-    const testsWithSteps = groupStepsByTest(steps);
+    const testsWithSteps = groupStepsByTest(steps, startTime!);
 
     const tests = result.tests.map<Test>(t => {
       const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;

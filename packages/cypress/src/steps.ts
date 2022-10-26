@@ -37,7 +37,7 @@ function assertMatchingStep(
   }
 }
 
-function groupStepsByTest(steps: StepEvent[]): Test[] {
+function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   if (steps.length === 0) {
     return [];
   }
@@ -47,7 +47,6 @@ function groupStepsByTest(steps: StepEvent[]): Test[] {
 
   const tests: Test[] = [];
   const stepStack: { event: StepEvent; step: TestStep }[] = [];
-  const firstTimestamp = toTime(sortedSteps[0].timestamp);
 
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
