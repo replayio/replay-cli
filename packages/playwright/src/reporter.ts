@@ -81,7 +81,7 @@ class ReplayPlaywrightReporter implements Reporter {
               }
             : undefined,
           steps: result.steps.map(s => {
-            const stepErrorMessage = extractErrorMessage(errorStep);
+            const stepErrorMessage = extractErrorMessage(s);
             return {
               name: s.title,
               args: [s.data],
