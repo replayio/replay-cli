@@ -41,6 +41,8 @@ const versions: Record<number, Struct<any, any>> = {
               column: optional(number()),
             })
           ),
+          relativeStartTime: optional(number()),
+          duration: optional(number()),
           steps: optional(array(any())),
         })
       )
