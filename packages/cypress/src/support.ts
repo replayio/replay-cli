@@ -1,33 +1,43 @@
+import type { TestError } from "@replayio/test-utils";
+
 import { TASK_NAME } from "./constants";
 
 export interface StepEvent {
-  event: string;
+  event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end";
   test: string[];
-  spec: string;
+  file: string;
   timestamp: string;
-  name?: string;
+  command?: CommandLike;
+  error?: TestError;
+}
+
+interface CommandLike {
+  id: string;
+  name: string;
   args: any[];
 }
 
-const makeEvent = (event: string, cmd?: { name: string; args: string[] }) => ({
+const makeEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError): StepEvent => ({
   event,
   test: Cypress.currentTest.titlePath,
-  spec: Cypress.spec.relative,
+  file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
-  ...(cmd
+  command: cmd,
+  ...(error
     ? {
-        name: cmd.name,
-        args: cmd.args,
+        error,
       }
     : null),
 });
 
-const handleCypressEvent = (event: string, cmd?: { name: string; args: string[] }) => {
+const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError) => {
   if (cmd?.args[0] === TASK_NAME) return;
 
-  const arg = makeEvent(event, cmd);
+  const arg = makeEvent(event, cmd, error);
 
-  Promise.resolve()
+  // cy.task(TASK_NAME, arg, { log: false });
+
+  return Promise.resolve()
     .then(() => {
       // Adapted from https://github.com/archfz/cypress-terminal-report
       // @ts-ignore
@@ -40,16 +50,44 @@ const handleCypressEvent = (event: string, cmd?: { name: string; args: string[] 
           /* noop */
         });
     })
-    .catch(console.error);
-
-  return cmd;
+    .catch(console.error)
+    .then(() => cmd);
 };
 
+function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
+  return {
+    name: cmd.get("name"),
+    id: cmd.get("id"),
+    args: cmd.get("args"),
+  };
+}
+
 export default function register() {
+  let lastCommand: Cypress.CommandQueue | undefined;
+
   Cypress.on("command:enqueued", cmd => handleCypressEvent("step:enqueue", cmd));
-  Cypress.on("command:start", cmd => handleCypressEvent("step:start", cmd.toJSON() as any));
-  Cypress.on("command:end", cmd => handleCypressEvent("step:end", cmd.toJSON() as any));
-  beforeEach(() => handleCypressEvent("test:start"));
+  Cypress.on("command:start", cmd => {
+    lastCommand = cmd;
+    return handleCypressEvent("step:start", toCommandJSON(cmd));
+  });
+  Cypress.on("command:end", cmd => handleCypressEvent("step:end", toCommandJSON(cmd)));
+  Cypress.on("log:changed", log => {
+    if (lastCommand && log?.err?.message) {
+      handleCypressEvent("step:end", toCommandJSON(lastCommand), {
+        message: log.err.message,
+        line: log.err.codeFrame?.line,
+        column: log.err.codeFrame?.column,
+      });
+
+      // clear the last command on error since we might see multiple log updates
+      // but they're not relevant for our purposes once we've captured the error
+      lastCommand = undefined;
+    }
+  });
+  beforeEach(() => {
+    lastCommand = undefined;
+    handleCypressEvent("test:start");
+  });
   afterEach(() => handleCypressEvent("test:end"));
 }
 

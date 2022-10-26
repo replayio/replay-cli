@@ -6,21 +6,7 @@ import { getDirectory } from "@replayio/replay/src/utils";
 import { ReplayReporter, Test } from "@replayio/test-utils";
 import { TASK_NAME } from "./constants";
 import type { StepEvent } from "./support";
-
-function groupStepsByTest(steps: StepEvent[]) {
-  // The steps can come in out of order but are sortable by timestamp
-  const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-
-  const stepsByTest = sortedSteps.reduce<Record<string, StepEvent[]>>((acc, v) => {
-    const key = JSON.stringify(v.test);
-    const testSteps = (acc[key] = acc[key] || []);
-    testSteps.push(v);
-
-    return acc;
-  }, {});
-
-  return stepsByTest;
-}
+import { groupStepsByTest } from "./steps";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
   let steps: StepEvent[] = [];
@@ -48,22 +34,27 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
   on("after:spec", (spec, result) => {
-    const stepsByTest = groupStepsByTest(steps);
+    const testsWithSteps = groupStepsByTest(steps);
 
     const tests = result.tests.map<Test>(t => {
+      const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
+
+      const stepError = foundTest?.steps?.find(s => s.error)?.error;
+      const resultError = t.displayError
+        ? {
+            // we don't get line/column from cypress yet but we may be able to
+            // derive it later once we're tracking the steps
+            message: t.displayError.substring(0, t.displayError.indexOf("\n")),
+          }
+        : undefined;
+
       return {
         title: t.title[t.title.length - 1] || spec.relative,
+        relativePath: spec.relative,
+        ...foundTest,
         path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
         result: t.state == "failed" ? "failed" : "passed",
-        relativePath: spec.relative,
-        error: t.displayError
-          ? {
-              // we don't get line/column from cypress yet but we may be able to
-              // derive it later once we're tracking the steps
-              message: t.displayError.substring(0, t.displayError.indexOf("\n")),
-            }
-          : undefined,
-        steps: stepsByTest[JSON.stringify(t.title)],
+        error: stepError || resultError,
       };
     });
 
