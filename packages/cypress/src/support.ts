@@ -35,8 +35,6 @@ const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike, error?
 
   const arg = makeEvent(event, cmd, error);
 
-  // cy.task(TASK_NAME, arg, { log: false });
-
   return Promise.resolve()
     .then(() => {
       // Adapted from https://github.com/archfz/cypress-terminal-report
