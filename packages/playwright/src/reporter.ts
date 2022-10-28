@@ -93,7 +93,7 @@ class ReplayPlaywrightReporter implements Reporter {
                   }
                 : undefined,
               relativeStartTime: this.startTime
-                ? s.startTime.getTime() - this.startTime
+                ? Math.max(0, s.startTime.getTime() - this.startTime)
                 : undefined,
               duration: s.duration,
             };
