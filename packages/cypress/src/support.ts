@@ -61,6 +61,9 @@ function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
 }
 
 export default function register() {
+  // Cypress doesn't send a command:end event when an error occurs so we capture
+  // the last command ran here and then associate the error to it and emit our
+  // step:end event in this case
   let lastCommand: Cypress.CommandQueue | undefined;
 
   Cypress.on("command:enqueued", cmd => handleCypressEvent("step:enqueue", cmd));
@@ -87,8 +90,4 @@ export default function register() {
     handleCypressEvent("test:start");
   });
   afterEach(() => handleCypressEvent("test:end"));
-}
-
-if (!process.env.RECORD_REPLAY_CYPRESS_SKIP_REGISTER) {
-  register();
 }
