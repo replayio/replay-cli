@@ -13,7 +13,8 @@ import { getMetadataFilePath } from "./index";
 
 function extractErrorMessage(errorStep?: TestStep) {
   const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
-  const stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
+  let stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
+  stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
   return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
 }
 
@@ -84,7 +85,6 @@ class ReplayPlaywrightReporter implements Reporter {
             const stepErrorMessage = extractErrorMessage(s);
             return {
               name: s.title,
-              args: [s.data],
               error: stepErrorMessage
                 ? {
                     message: stepErrorMessage,
