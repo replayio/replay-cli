@@ -12,7 +12,7 @@ Use with [action-cypress](https://github.com/replayio/action-cypress) to automat
 
 ## Configuration
 
-The Replay adapter for cypress requires two updates: one to your `cypress.config.js` and one to your support file in `cypress/e2e/support.js`.  
+The Replay adapter for cypress requires two updates: one to your `cypress.config.js` and one to your support file in `cypress/e2e/support.js`.
 
 ```js
 // cypress.config.js
