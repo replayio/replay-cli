@@ -12,17 +12,30 @@ export interface ReplayReporterConfig {
   metadata?: Record<string, any> | string;
 }
 
+export interface TestError {
+  message: string;
+  line?: number;
+  column?: number;
+}
+
+export interface TestStep {
+  name: string;
+  args?: any[];
+  error?: TestError;
+  relativeStartTime?: number;
+  duration?: number;
+}
+
 export interface Test {
   id?: string;
   title: string;
   path: string[];
   result: "passed" | "failed" | "timedOut";
   relativePath: string;
-  error?: {
-    message: string;
-    line?: number;
-    column?: number;
-  };
+  error?: TestError;
+  steps?: TestStep[];
+  relativeStartTime?: number;
+  duration?: number;
 }
 
 export interface TestRunner {

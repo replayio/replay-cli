@@ -4,10 +4,17 @@ import path from "path";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
 import { ReplayReporter, Test } from "@replayio/test-utils";
+import { TASK_NAME } from "./constants";
+import type { StepEvent } from "./support";
+import { groupStepsByTest } from "./steps";
 
 const plugin: Cypress.PluginConfig = (on, config) => {
+  let steps: StepEvent[] = [];
+
   const reporter = new ReplayReporter({ name: "cypress", version: config.version });
   let selectedBrowser: "chromium" | "firefox";
+  let startTime: number | undefined;
+
   on("before:browser:launch", (browser, launchOptions) => {
     selectedBrowser = browser.family;
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
@@ -27,25 +34,53 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       };
     }
   });
-  on("before:spec", () => reporter.onTestBegin(undefined, getMetadataFilePath()));
+  on("before:spec", () => {
+    startTime = Date.now();
+    reporter.onTestBegin(undefined, getMetadataFilePath());
+  });
   on("after:spec", (spec, result) => {
+    const testsWithSteps = groupStepsByTest(steps, startTime!);
+
     const tests = result.tests.map<Test>(t => {
+      const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
+
+      const stepError = foundTest?.steps?.find(s => s.error)?.error;
+      const resultError = t.displayError
+        ? {
+            // typically, we won't use this because we'll have a step error that
+            // originated the message but keeping as a fallback
+            message: t.displayError.substring(0, t.displayError.indexOf("\n")),
+          }
+        : undefined;
+
       return {
-        title: t.title.pop() || spec.relative,
+        title: t.title[t.title.length - 1] || spec.relative,
+        relativePath: spec.relative,
+        // If we found the test from the steps array (we should), merge it in
+        // and overwrite the default title and relativePath values. It won't
+        // have the correct path or result so those are added and we bubble up
+        // the first error found in a step falling back to reported test error
+        // if it exists.
+        ...foundTest,
         path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
         result: t.state == "failed" ? "failed" : "passed",
-        relativePath: spec.relative,
-        error: t.displayError
-          ? {
-              // we don't get line/column from cypress yet but we may be able to
-              // derive it later once we're tracking the steps
-              message: t.displayError.substring(0, t.displayError.indexOf("\n")),
-            }
-          : undefined,
+        error: stepError || resultError,
       };
     });
 
     reporter.onTestEnd(tests, spec.relative);
+  });
+
+  on("task", {
+    // Events are sent to the plugin by the support adapter which runs in the
+    // browser context and has access to `Cypress` and `cy` methods.
+    [TASK_NAME]: value => {
+      if (!value || typeof value !== "object") return;
+
+      steps.push(value);
+
+      return true;
+    },
   });
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");

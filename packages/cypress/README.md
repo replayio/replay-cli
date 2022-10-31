@@ -12,6 +12,8 @@ Use with [action-cypress](https://github.com/replayio/action-cypress) to automat
 
 ## Configuration
 
+The Replay adapter for cypress requires two updates: one to your `cypress.config.js` and one to your support file in `cypress/e2e/support.js`.
+
 ```js
 // cypress.config.js
 import { defineConfig } from "cypress";
@@ -30,6 +32,12 @@ module.exports = defineConfig({
 });
 ```
 
+```js
+// cypress/e2e/support.js
+
+import "@replayio/cypress/support";
+```
+
 ## Runtime Configuration
 
 - Use the `--browser` flag to select a Replay Browser to record
@@ -40,7 +48,6 @@ module.exports = defineConfig({
 ```bash
 RECORD_ALL_CONTENT=1 \
 RECORD_REPLAY_METADATA_FILE=$(mktemp) \
-CYPRESS_NO_COMMAND_LOG=1 \
 npx cypress run --browser "Replay Firefox"
 ```
 
