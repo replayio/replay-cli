@@ -60,6 +60,18 @@ function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
   };
 }
 
+function addAnnotation(event: string) {
+  const titlePath = JSON.stringify(Cypress.currentTest.titlePath);
+  cy.window({ log: false }).then(win => {
+    win.eval(`
+      window.top.__RECORD_REPLAY_ANNOTATION_HOOK__ && window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify({
+        event: "${event}",
+        titlePath: ${titlePath},
+      }))
+    `);
+  });
+}
+
 export default function register() {
   // Cypress doesn't send a command:end event when an error occurs so we capture
   // the last command ran here and then associate the error to it and emit our
@@ -87,7 +99,9 @@ export default function register() {
   });
   beforeEach(() => {
     lastCommand = undefined;
+
     handleCypressEvent("test:start");
+    addAnnotation("test:start");
   });
   afterEach(() => handleCypressEvent("test:end"));
 }
