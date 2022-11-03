@@ -2,12 +2,21 @@ import type { TestError } from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 
+type BigBadAny = any;
+type LogLike = BigBadAny | { consoleProps: ConsoleProps };
+export type ConsoleProps = {
+  Command: "assert";
+  Message: string;
+  actual: string;
+  expected: string;
+}
+
 export interface StepEvent {
-  event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end";
+  event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end" | "log:added" | "log:changed";
   test: string[];
   file: string;
   timestamp: string;
-  command?: CommandLike;
+  command?: CommandLike | LogLike;
   error?: TestError;
 }
 
@@ -17,24 +26,24 @@ interface CommandLike {
   args: any[];
 }
 
-const makeEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError): StepEvent => ({
+const makeEvent = (event: StepEvent["event"], cmd?: CommandLike | LogLike): StepEvent => ({
   event,
   test: Cypress.currentTest.titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: cmd,
-  ...(error
+  ...(cmd?.err
     ? {
-        error,
+        error: cmd.err,
       }
     : null),
 });
 
-const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError) => {
-  if (cmd?.args[0] === TASK_NAME) return;
-
-  const arg = makeEvent(event, cmd, error);
-
+const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike | LogLike, error?: TestError) => {
+  if (cmd?.args?.[0] === TASK_NAME) return;
+  
+  const arg = makeEvent(event, cmd)
+  
   return Promise.resolve()
     .then(() => {
       // Adapted from https://github.com/archfz/cypress-terminal-report
@@ -73,35 +82,28 @@ function addAnnotation(event: string) {
 }
 
 export default function register() {
-  // Cypress doesn't send a command:end event when an error occurs so we capture
-  // the last command ran here and then associate the error to it and emit our
-  // step:end event in this case
-  let lastCommand: Cypress.CommandQueue | undefined;
-
   Cypress.on("command:enqueued", cmd => handleCypressEvent("step:enqueue", cmd));
   Cypress.on("command:start", cmd => {
-    lastCommand = cmd;
     return handleCypressEvent("step:start", toCommandJSON(cmd));
   });
   Cypress.on("command:end", cmd => handleCypressEvent("step:end", toCommandJSON(cmd)));
+  Cypress.on("log:added", log => {
+    // We only care about asserts
+    if (log.name === "assert") {
+      handleCypressEvent("step:start", {...log});
+    }
+  });
   Cypress.on("log:changed", log => {
-    if (lastCommand && log?.err?.message) {
-      handleCypressEvent("step:end", toCommandJSON(lastCommand), {
-        message: log.err.message,
-        line: log.err.codeFrame?.line,
-        column: log.err.codeFrame?.column,
-      });
-
-      // clear the last command on error since we might see multiple log updates
-      // but they're not relevant for our purposes once we've captured the error
-      lastCommand = undefined;
+    // We only care about asserts
+    if (log.name !== "assert" || !["passed", "failed"].includes(log.state)) {
+      handleCypressEvent("step:end", {...log})
     }
   });
   beforeEach(() => {
-    lastCommand = undefined;
-
     handleCypressEvent("test:start");
     addAnnotation("test:start");
   });
-  afterEach(() => handleCypressEvent("test:end"));
+  afterEach(() => {
+    handleCypressEvent("test:end")
+  });
 }

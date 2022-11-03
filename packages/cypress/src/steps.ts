@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 import { Test, TestStep } from "@replayio/test-utils";
-import type { StepEvent } from "./support";
+import type { ConsoleProps, StepEvent } from "./support";
 
 function toTime(timestamp: string) {
   return new Date(timestamp).getTime();
@@ -10,6 +10,10 @@ function toTime(timestamp: string) {
 function toRelativeTime(timestamp: string, startTime: number) {
   return toTime(timestamp) - startTime;
 }
+
+const makeAssertProps = (consoleProps: ConsoleProps) => ({
+    message: consoleProps.Message
+})
 
 function assertCurrentTest(
   currentTest: Test | undefined,
@@ -47,6 +51,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
 
   const tests: Test[] = [];
   const stepStack: { event: StepEvent; step: TestStep }[] = [];
+  const assertStack: { event: StepEvent; step: TestStep }[] = [];
 
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
@@ -77,12 +82,18 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
           args: step.command!.args,
           relativeStartTime:
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
+          ...(step.command.consoleProps ? { assertProps: makeAssertProps(step.command.consoleProps) } : null )
         };
         currentTest.steps!.push(testStep);
-        stepStack.push({ event: step, step: testStep });
+
+        if (step.command.id.slice(0,3) === "cmd") {
+          stepStack.push({ event: step, step: testStep });
+        } else {
+          assertStack.push({ event: step, step: testStep });
+        }
         break;
       case "step:end":
-        const lastStep = stepStack.pop();
+        const lastStep = step.command.id.slice(0,3) === "cmd" ? stepStack.pop() : assertStack.pop();
         assertCurrentTest(currentTest, step);
         assertMatchingStep(step, lastStep?.event);
 
