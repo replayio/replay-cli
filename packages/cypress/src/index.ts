@@ -44,8 +44,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     const tests = result.tests.map<Test>(t => {
       const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
 
-      const stepError = foundTest?.steps?.find(s => s.error)?.error;
-      const resultError = t.displayError
+      const error = t.displayError
         ? {
             // typically, we won't use this because we'll have a step error that
             // originated the message but keeping as a fallback
@@ -64,7 +63,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         ...foundTest,
         path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
         result: t.state == "failed" ? "failed" : "passed",
-        error: stepError || resultError,
+        error,
       };
     });
 

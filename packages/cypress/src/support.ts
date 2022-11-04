@@ -73,33 +73,46 @@ function addAnnotation(event: string) {
 }
 
 export default function register() {
-  // Cypress doesn't send a command:end event when an error occurs so we capture
-  // the last command ran here and then associate the error to it and emit our
-  // step:end event in this case
-  let lastCommand: Cypress.CommandQueue | undefined;
+  // let lastCommand: Cypress.CommandQueue | undefined;
 
   Cypress.on("command:enqueued", cmd => handleCypressEvent("step:enqueue", cmd));
   Cypress.on("command:start", cmd => {
-    lastCommand = cmd;
     return handleCypressEvent("step:start", toCommandJSON(cmd));
   });
   Cypress.on("command:end", cmd => handleCypressEvent("step:end", toCommandJSON(cmd)));
+  Cypress.on("log:added", log => {
+    // We only care about asserts
+    if (log.name === "assert") {
+      const cmd = {
+        name: log.name,
+        id: log.id,
+        args: [log.consoleProps.Message],
+      };
+      handleCypressEvent("step:start", cmd);
+    }
+  });
   Cypress.on("log:changed", log => {
-    if (lastCommand && log?.err?.message) {
-      handleCypressEvent("step:end", toCommandJSON(lastCommand), {
-        message: log.err.message,
-        line: log.err.codeFrame?.line,
-        column: log.err.codeFrame?.column,
-      });
+    // We only care about asserts
+    if (log.name === "assert" && ["passed", "failed"].includes(log.state)) {
+      const cmd = {
+        name: log.name,
+        id: log.id,
+        args: [log.consoleProps.Message],
+      };
 
-      // clear the last command on error since we might see multiple log updates
-      // but they're not relevant for our purposes once we've captured the error
-      lastCommand = undefined;
+      const error = log.err
+        ? {
+            name: log.err.name,
+            message: log.err.message,
+            line: log.err.codeFrame?.line,
+            column: log.err.codeFrame?.column,
+          }
+        : undefined;
+
+      handleCypressEvent("step:end", cmd, error);
     }
   });
   beforeEach(() => {
-    lastCommand = undefined;
-
     handleCypressEvent("test:start");
     addAnnotation("test:start");
   });
