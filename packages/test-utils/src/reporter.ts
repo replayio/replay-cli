@@ -14,11 +14,13 @@ export interface ReplayReporterConfig {
 
 export interface TestError {
   message: string;
+  name?: string;
   line?: number;
   column?: number;
 }
 
 export interface TestStep {
+  id: string;
   name: string;
   args?: any[];
   error?: TestError;

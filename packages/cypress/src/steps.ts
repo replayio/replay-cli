@@ -47,6 +47,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
 
   const tests: Test[] = [];
   const stepStack: { event: StepEvent; step: TestStep }[] = [];
+  const assertStack: { event: StepEvent; step: TestStep }[] = [];
 
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
@@ -73,16 +74,26 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
       case "step:start":
         assertCurrentTest(currentTest, step);
         const testStep = {
+          id: step.command!.id,
           name: step.command!.name,
           args: step.command!.args,
           relativeStartTime:
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
         };
         currentTest.steps!.push(testStep);
-        stepStack.push({ event: step, step: testStep });
+
+        if (testStep.name === "assert") {
+          assertStack.push({ event: step, step: testStep });
+        } else {
+          stepStack.push({ event: step, step: testStep });
+        }
         break;
       case "step:end":
-        const lastStep = stepStack.pop();
+        // It's not guaranteed that asserts are pushed/popped in order, so we use a find here instead.
+        const lastStep =
+          step.command!.name === "assert"
+            ? assertStack.find(a => a.step.id === step.command!.id)
+            : stepStack.pop();
         assertCurrentTest(currentTest, step);
         assertMatchingStep(step, lastStep?.event);
 
