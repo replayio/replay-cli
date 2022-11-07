@@ -4,10 +4,9 @@
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "src/index.js",
   "scripts": {
-    "if:exists": "node -e 'process.exit(require(\"fs\").existsSync(process.argv[1]) ? 0 : 1)'",
+    "if:exists": "node -e 'require(\"fs\").existsSync(process.argv[1]) ? require(\"child_process\").spawnSync(process.argv[2], process.argv.slice(3), {stdio: \"inherit\"}) : 0'",
     "if:source": "npm run if:exists -- src/index.ts",
-    "if:dist": "npm run if:exists -- src/index.js",
-    "prepare": "npm run if:dist || npm run build",
+    "prepare": "npm run if:source -- npm run build",
     "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
