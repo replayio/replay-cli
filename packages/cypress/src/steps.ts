@@ -11,7 +11,13 @@ function toRelativeTime(timestamp: string, startTime: number) {
   return toTime(timestamp) - startTime;
 }
 
-function assertCurrentTest(
+function assertCurrentTest(currentTest: Test | undefined): asserts currentTest is Test {
+  if (!currentTest) {
+    throw new Error("currentTest does not exist");
+  }
+}
+
+function assertCurrentTestMatch(
   currentTest: Test | undefined,
   step: StepEvent
 ): asserts currentTest is Test {
@@ -68,11 +74,11 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         tests.push(currentTest);
         break;
       case "step:enqueue":
-        assertCurrentTest(currentTest, step);
+        assertCurrentTestMatch(currentTest, step);
         // ignore for now ...
         break;
       case "step:start":
-        assertCurrentTest(currentTest, step);
+        assertCurrentTestMatch(currentTest, step);
         const testStep = {
           id: step.command!.id,
           name: step.command!.name,
@@ -89,15 +95,20 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         }
         break;
       case "step:end":
-        // It's not guaranteed that asserts are pushed/popped in order, so we use a find here instead.
-        const lastStep =
-          step.command!.name === "assert"
-            ? assertStack.find(a => a.step.id === step.command!.id)
-            : stepStack.pop();
-        assertCurrentTest(currentTest, step);
+        assertCurrentTest(currentTest);
+        const isAssert = step.command!.name === "assert";
+        let lastStep;
+        if (isAssert) {
+          // It's not guaranteed that asserts are pushed/popped in order, so we use a find here instead.
+          lastStep = assertStack.find(a => a.step.id === step.command!.id);
+        } else {
+          lastStep = stepStack.pop();
+          assertCurrentTestMatch(currentTest, step);
+        }
+
         assertMatchingStep(step, lastStep?.event);
 
-        const currentTestStep = lastStep.step!;
+        const currentTestStep = lastStep!.step!;
         currentTestStep!.duration =
           toRelativeTime(step.timestamp, firstTimestamp) -
           currentTestStep!.relativeStartTime! -
@@ -108,7 +119,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         }
         break;
       case "test:end":
-        assertCurrentTest(currentTest, step);
+        assertCurrentTestMatch(currentTest, step);
 
         currentTest.duration =
           toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
