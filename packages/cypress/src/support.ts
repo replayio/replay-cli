@@ -13,6 +13,7 @@ export interface StepEvent {
 
 interface CommandLike {
   id: string;
+  groupId?: string;
   name: string;
   args: any[];
 }
@@ -52,10 +53,17 @@ const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike, error?
     .then(() => cmd);
 };
 
+const idMap: Record<string, string> = {};
+let gReplayIndex = 1;
+const getReplayId = (cypressId: string) => {
+  return (idMap[cypressId] = idMap[cypressId] || String(gReplayIndex++));
+};
+
 function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
   return {
     name: cmd.get("name"),
-    id: cmd.get("id"),
+    id: getReplayId(cmd.get("id")),
+    groupId: getReplayId(cmd.get("chainerId")),
     args: cmd.get("args"),
   };
 }
@@ -85,7 +93,8 @@ export default function register() {
     if (log.name === "assert") {
       const cmd = {
         name: log.name,
-        id: log.id,
+        id: getReplayId(log.id),
+        groupId: log.chainerId && getReplayId(log.chainerId),
         args: [log.consoleProps.Message],
       };
       handleCypressEvent("step:start", cmd);
@@ -96,7 +105,7 @@ export default function register() {
     if (log.name === "assert" && ["passed", "failed"].includes(log.state)) {
       const cmd = {
         name: log.name,
-        id: log.id,
+        id: getReplayId(log.id),
         args: [log.consoleProps.Message],
       };
 
@@ -113,6 +122,7 @@ export default function register() {
     }
   });
   beforeEach(() => {
+    gReplayIndex = 1;
     handleCypressEvent("test:start");
     addAnnotation("test:start");
   });

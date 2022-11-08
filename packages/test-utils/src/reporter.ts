@@ -21,6 +21,7 @@ export interface TestError {
 
 export interface TestStep {
   id: string;
+  parentId?: string;
   name: string;
   args?: any[];
   error?: TestError;

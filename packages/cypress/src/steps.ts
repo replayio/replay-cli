@@ -55,6 +55,10 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   const stepStack: { event: StepEvent; step: TestStep }[] = [];
   const assertStack: { event: StepEvent; step: TestStep }[] = [];
 
+  // steps are grouped by `chainerId` and then assigned a parent here by
+  // tracking the most recent groupId
+  let activeGroup: { groupId: string; parentId: string } | undefined;
+
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
 
@@ -62,6 +66,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
 
     switch (step.event) {
       case "test:start":
+        activeGroup = undefined;
         currentTest = {
           title: step.test[step.test.length - 1] || step.file,
           path: [],
@@ -79,8 +84,17 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         break;
       case "step:start":
         assertCurrentTestMatch(currentTest, step);
+        let parentId: string | undefined;
+
+        if (activeGroup && activeGroup.groupId === step.command?.groupId) {
+          parentId = activeGroup.parentId;
+        } else if (step.command?.groupId) {
+          activeGroup = { groupId: step.command.groupId, parentId: step.command.id };
+        }
+
         const testStep = {
           id: step.command!.id,
+          parentId,
           name: step.command!.name,
           args: step.command!.args,
           relativeStartTime:

@@ -30,6 +30,7 @@ const versions: Record<number, Struct<any, any>> = {
       array(
         object({
           id: optional(string()),
+          parentId: optional(string()),
           title: string(),
           path: optional(array(string())),
           relativePath: optional(string()),
