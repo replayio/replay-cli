@@ -54,13 +54,13 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
       return {
         title: t.title[t.title.length - 1] || spec.relative,
-        relativePath: spec.relative,
         // If we found the test from the steps array (we should), merge it in
         // and overwrite the default title and relativePath values. It won't
         // have the correct path or result so those are added and we bubble up
         // the first error found in a step falling back to reported test error
         // if it exists.
         ...foundTest,
+        relativePath: spec.relative,
         path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
         result: t.state == "failed" ? "failed" : "passed",
         error,
