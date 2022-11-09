@@ -62,7 +62,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
 
-    let currentTest = tests.at(tests.length - 1);
+    let currentTest: Test | undefined = tests[tests.length - 1];
 
     switch (step.event) {
       case "test:start":
