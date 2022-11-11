@@ -20,7 +20,7 @@ interface CommandLike {
 
 const makeEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError): StepEvent => ({
   event,
-  test: Cypress.currentTest.titlePath,
+  test: getCurrentTest().titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: cmd,
@@ -68,8 +68,37 @@ function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
   };
 }
 
+interface MochaTest {
+  title: string;
+  parent: MochaTest;
+}
+
+let lastTest: MochaTest | undefined;
+function getCurrentTest(): { title: string; titlePath: string[] } {
+  if (Cypress.currentTest) {
+    return Cypress.currentTest;
+  }
+
+  // Cypress < 8 logic
+  const mochaRunner = (Cypress as any).mocha?.getRunner();
+
+  if (!mochaRunner) {
+    throw new Error(`Cypress version ${Cypress.version || "(unknown)"} is not supported`);
+  }
+
+  let currentTest: MochaTest = (lastTest = mochaRunner.test || lastTest);
+  const titlePath = [];
+  const title = currentTest?.title;
+  while (currentTest?.title) {
+    titlePath.unshift(currentTest.title);
+    currentTest = currentTest.parent;
+  }
+
+  return { title, titlePath };
+}
+
 function addAnnotation(event: string) {
-  const titlePath = JSON.stringify(Cypress.currentTest.titlePath);
+  const titlePath = JSON.stringify(getCurrentTest().titlePath);
   cy.window({ log: false }).then(win => {
     win.eval(`
       window.top.__RECORD_REPLAY_ANNOTATION_HOOK__ && window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify({
