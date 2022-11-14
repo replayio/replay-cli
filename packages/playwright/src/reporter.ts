@@ -10,6 +10,7 @@ import path from "path";
 import { ReplayReporter, ReplayReporterConfig, removeAnsiCodes } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./index";
+import { readFileSync } from "fs";
 
 function extractErrorMessage(errorStep?: TestStep) {
   const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
@@ -18,16 +19,21 @@ function extractErrorMessage(errorStep?: TestStep) {
   return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
 }
 
+interface ReplayPlaywrightConfig extends ReplayReporterConfig {
+  captureTestFile?: boolean;
+}
+
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
   startTime?: number;
+  captureTestFile = true;
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
   }
 
   parseConfig(config: FullConfig) {
-    let cfg: ReplayReporterConfig = {};
+    let cfg: ReplayPlaywrightConfig = {};
     config.reporter.forEach(r => {
       // the reporter is imported from the root reporter.js which imports this
       // file so we compare the base directory to see if this is our config
@@ -49,8 +55,13 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin(config: FullConfig) {
+    const cfg = this.parseConfig(config);
     this.reporter = new ReplayReporter({ name: "playwright", version: config.version });
-    this.reporter.onTestSuiteBegin(this.parseConfig(config), "PLAYWRIGHT_REPLAY_METADATA");
+    this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
+
+    if (cfg.captureTestFile === false) {
+      this.captureTestFile = false;
+    }
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
@@ -66,6 +77,24 @@ class ReplayPlaywrightReporter implements Reporter {
     const errorStep = result.steps.find(step => step.error?.message);
     const errorMessage = extractErrorMessage(errorStep);
 
+    const relativePath = test.titlePath()[2] || test.location.file;
+    let playwrightMetadata: Record<string, any> | undefined;
+
+    if (this.captureTestFile) {
+      try {
+        playwrightMetadata = {
+          "x-replay-playwight": {
+            sources: {
+              [relativePath]: readFileSync(relativePath, "utf8").toString(),
+            },
+          },
+        };
+      } catch (e) {
+        console.warn("Failed to read playwright test source from " + test.location.file);
+        console.warn(e);
+      }
+    }
+
     this.reporter?.onTestEnd(
       [
         {
@@ -73,7 +102,7 @@ class ReplayPlaywrightReporter implements Reporter {
           title: test.title,
           path: test.titlePath(),
           result: status,
-          relativePath: test.titlePath()[2] || test.location.file,
+          relativePath,
           error: errorMessage
             ? {
                 message: errorMessage,
@@ -101,7 +130,8 @@ class ReplayPlaywrightReporter implements Reporter {
           }),
         },
       ],
-      test.title
+      test.title,
+      playwrightMetadata
     );
   }
 }
