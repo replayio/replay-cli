@@ -139,7 +139,7 @@ class ReplayReporter {
     );
   }
 
-  onTestEnd(tests: Test[], replayTitle?: string) {
+  onTestEnd(tests: Test[], replayTitle?: string, extraMetadata?: Record<string, unknown>) {
     const recs = listAllRecordings({
       filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
         tests.map(test => this.getTestId(test.id))
@@ -162,6 +162,7 @@ class ReplayReporter {
       recs.forEach(rec =>
         add(rec.id, {
           title: replayTitle || test.title,
+          ...extraMetadata,
           ...testMetadata.init({
             title: replayTitle || test.title,
             result,
