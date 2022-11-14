@@ -39,7 +39,13 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     reporter.onTestBegin(undefined, getMetadataFilePath());
   });
   on("after:spec", (spec, result) => {
-    const testsWithSteps = groupStepsByTest(steps, startTime!);
+    let testsWithSteps: Test[] = [];
+    try {
+      testsWithSteps = groupStepsByTest(steps, startTime!);
+    } catch (e) {
+      console.warn("Failed to build test step metadata for this replay.");
+      console.warn(e);
+    }
 
     const tests = result.tests.map<Test>(t => {
       const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
