@@ -83,7 +83,7 @@ class ReplayPlaywrightReporter implements Reporter {
     if (this.captureTestFile) {
       try {
         playwrightMetadata = {
-          "x-replay-playwight": {
+          "x-replay-playwright": {
             sources: {
               [relativePath]: readFileSync(relativePath, "utf8").toString(),
             },
