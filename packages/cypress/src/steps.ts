@@ -3,6 +3,11 @@
 import { Test, TestStep } from "@replayio/test-utils";
 import type { StepEvent } from "./support";
 
+interface StepStackItem {
+  event: StepEvent;
+  step: TestStep;
+}
+
 function toTime(timestamp: string) {
   return new Date(timestamp).getTime();
 }
@@ -52,8 +57,8 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   const tests: Test[] = [];
-  const stepStack: { event: StepEvent; step: TestStep }[] = [];
-  const assertStack: { event: StepEvent; step: TestStep }[] = [];
+  const stepStack: StepStackItem[] = [];
+  const assertStack: StepStackItem[] = [];
 
   // steps are grouped by `chainerId` and then assigned a parent here by
   // tracking the most recent groupId
@@ -111,10 +116,15 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
       case "step:end":
         assertCurrentTest(currentTest);
         const isAssert = step.command!.name === "assert";
-        let lastStep;
+        let lastStep: StepStackItem | undefined;
         if (isAssert) {
           // It's not guaranteed that asserts are pushed/popped in order, so we use a find here instead.
           lastStep = assertStack.find(a => a.step.id === step.command!.id);
+
+          // asserts can change the args if the message changes
+          if (lastStep && step.command) {
+            lastStep.step.args = step.command.args;
+          }
         } else {
           lastStep = stepStack.pop();
           assertCurrentTestMatch(currentTest, step);
@@ -123,13 +133,13 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         assertMatchingStep(step, lastStep?.event);
 
         const currentTestStep = lastStep!.step!;
-        currentTestStep!.duration =
+        currentTestStep.duration =
           toRelativeTime(step.timestamp, firstTimestamp) -
-          currentTestStep!.relativeStartTime! -
+          currentTestStep.relativeStartTime! -
           currentTest.relativeStartTime!;
 
         if (step.error) {
-          currentTestStep!.error = step.error;
+          currentTestStep.error = step.error;
         }
         break;
       case "test:end":
