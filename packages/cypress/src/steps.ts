@@ -1,6 +1,7 @@
 /// <reference types="cypress" />
 
 import { Test, TestStep } from "@replayio/test-utils";
+import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
 
 interface StepStackItem {
@@ -26,7 +27,10 @@ function assertCurrentTestMatch(
   currentTest: Test | undefined,
   step: StepEvent
 ): asserts currentTest is Test {
-  if (!currentTest || currentTest.title !== step.test[step.test.length - 1]) {
+  if (
+    !currentTest ||
+    (step.test[0] !== AFTER_EACH_HOOK && currentTest.title !== step.test[step.test.length - 1])
+  ) {
     throw new Error("test:start event not received for " + step.test.join(" > "));
   }
 }
@@ -58,7 +62,6 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
 
   const tests: Test[] = [];
   const stepStack: StepStackItem[] = [];
-  const assertStack: StepStackItem[] = [];
 
   // steps are grouped by `chainerId` and then assigned a parent here by
   // tracking the most recent groupId
@@ -106,37 +109,35 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
         };
         currentTest.steps!.push(testStep);
-
-        if (testStep.name === "assert") {
-          assertStack.push({ event: step, step: testStep });
-        } else {
-          stepStack.push({ event: step, step: testStep });
-        }
+        stepStack.push({ event: step, step: testStep });
         break;
       case "step:end":
         assertCurrentTest(currentTest);
         const isAssert = step.command!.name === "assert";
-        let lastStep: StepStackItem | undefined;
-        if (isAssert) {
-          // It's not guaranteed that asserts are pushed/popped in order, so we use a find here instead.
-          lastStep = assertStack.find(a => a.step.id === step.command!.id);
+        const lastStep: StepStackItem | undefined = stepStack.find(
+          a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
+        );
 
-          // asserts can change the args if the message changes
-          if (lastStep && step.command) {
-            lastStep.step.args = step.command.args;
-          }
-        } else {
-          lastStep = stepStack.pop();
-          assertCurrentTestMatch(currentTest, step);
+        // TODO [ryanjduffy]: Skipping handling after each events for now
+        if (step.test[0] === AFTER_EACH_HOOK) {
+          continue;
         }
 
+        assertCurrentTestMatch(currentTest, step);
         assertMatchingStep(step, lastStep?.event);
 
-        const currentTestStep = lastStep!.step!;
-        currentTestStep.duration =
-          toRelativeTime(step.timestamp, firstTimestamp) -
-          currentTestStep.relativeStartTime! -
-          currentTest.relativeStartTime!;
+        // asserts can change the args if the message changes
+        if (isAssert && step.command) {
+          lastStep.step.args = step.command.args;
+        }
+
+        const currentTestStep = lastStep.step!;
+        const relativeEndTime =
+          toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
+        currentTestStep.duration = Math.max(
+          0,
+          relativeEndTime - currentTestStep.relativeStartTime!
+        );
 
         if (step.error) {
           currentTestStep.error = step.error;
