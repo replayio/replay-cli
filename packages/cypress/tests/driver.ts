@@ -52,21 +52,20 @@ driver(
     switch (type) {
       case "spec:start":
         events["before:spec"]?.forEach(f => {
-          if (typeof f === "function") {
-            // monkey-patch the "current time" from the spec:start msg into
-            // Date.now() and restore it after the fact
-            DateNow = Date.now;
-            Date.now = () => value.startTime;
-            f(value.spec);
-            Date.now = DateNow;
-          }
+          if (typeof f !== "function") return;
+
+          // monkey-patch the "current time" from the spec:start msg into
+          // Date.now() and restore it after the fact
+          DateNow = Date.now;
+          Date.now = () => value.startTime;
+          f(value.spec);
+          Date.now = DateNow;
         });
         break;
       case "spec:end":
         events["after:spec"]?.forEach(f => {
-          if (typeof f === "function") {
-            f(value.spec, value.result);
-          }
+          if (typeof f !== "function") return;
+          f(value.spec, value.result);
         });
         break;
       case "task":
