@@ -53,6 +53,8 @@ driver(
       case "spec:start":
         events["before:spec"]?.forEach(f => {
           if (typeof f === "function") {
+            // monkey-patch the "current time" from the spec:start msg into
+            // Date.now() and restore it after the fact
             DateNow = Date.now;
             Date.now = () => value.startTime;
             f(value.spec);
