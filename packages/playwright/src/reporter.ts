@@ -7,7 +7,12 @@ import type {
 } from "@playwright/test/reporter";
 import path from "path";
 
-import { ReplayReporter, ReplayReporterConfig, removeAnsiCodes } from "@replayio/test-utils";
+import {
+  ReplayReporter,
+  ReplayReporterConfig,
+  removeAnsiCodes,
+  TestStep as ReplayTestStep,
+} from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./index";
 import { readFileSync } from "fs";
@@ -17,6 +22,17 @@ function extractErrorMessage(errorStep?: TestStep) {
   let stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
   stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
   return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
+}
+
+function mapTestStepCategory(step: TestStep): ReplayTestStep["category"] {
+  switch (step.category) {
+    case "expect":
+      return "assertion";
+    case "step":
+      return "command";
+    default:
+      return "other";
+  }
 }
 
 interface ReplayPlaywrightConfig extends ReplayReporterConfig {
@@ -126,6 +142,8 @@ class ReplayPlaywrightReporter implements Reporter {
                 ? Math.max(0, s.startTime.getTime() - this.startTime)
                 : undefined,
               duration: s.duration,
+              hook: s.category === "hook" ? "beforeEach" : undefined,
+              category: mapTestStepCategory(s),
             };
           }),
         },

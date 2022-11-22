@@ -1,4 +1,4 @@
-import type { TestError } from "@replayio/test-utils";
+import type { TestError, TestStep } from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 
@@ -13,6 +13,8 @@ export interface StepEvent {
   test: string[];
   file: string;
   timestamp: string;
+  category?: TestStep["category"];
+  hook?: TestStep["hook"];
   command?: CommandLike;
   error?: TestError;
 }
@@ -24,12 +26,19 @@ interface CommandLike {
   args: any[];
 }
 
-const makeEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError): StepEvent => ({
+const makeEvent = (
+  event: StepEvent["event"],
+  category?: TestStep["category"],
+  cmd?: CommandLike,
+  error?: TestError
+): StepEvent => ({
   event,
   test: getCurrentTest().titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: cmd,
+  category,
+  hook: getCurrentTestHook(),
   ...(error
     ? {
         error,
@@ -37,10 +46,15 @@ const makeEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestErr
     : null),
 });
 
-const handleCypressEvent = (event: StepEvent["event"], cmd?: CommandLike, error?: TestError) => {
+const handleCypressEvent = (
+  event: StepEvent["event"],
+  category?: TestStep["category"],
+  cmd?: CommandLike,
+  error?: TestError
+) => {
   if (cmd?.args[0] === TASK_NAME) return;
 
-  const arg = makeEvent(event, cmd, error);
+  const arg = makeEvent(event, category, cmd, error);
 
   return Promise.resolve()
     .then(() => {
@@ -64,6 +78,22 @@ let gReplayIndex = 1;
 
 const getReplayId = (cypressId: string) => {
   return (idMap[cypressId] = idMap[cypressId] || String(gReplayIndex++));
+};
+
+const getCurrentTestHook = (): TestStep["hook"] => {
+  try {
+    const { type, hookName } = (Cypress as any).mocha.getRunner().currentRunnable;
+    if (type === "hook") {
+      switch (hookName) {
+        case "before each":
+          return "beforeEach";
+        case "after each":
+          return "afterEach";
+      }
+    }
+  } catch {
+    return;
+  }
 };
 
 function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
@@ -122,7 +152,7 @@ export default function register() {
   Cypress.on("command:enqueued", cmd => {
     const id = getReplayId(cmd.id);
     addAnnotation("step:enqueue", { commandVariable: "cmd", id });
-    handleCypressEvent("step:enqueue", Object.assign({}, cmd, { id }));
+    handleCypressEvent("step:enqueue", "other", Object.assign({}, cmd, { id }));
   });
   Cypress.on("command:start", cmd => {
     const next = cmd.get("next");
@@ -131,11 +161,11 @@ export default function register() {
     }
 
     addAnnotation("step:start", { commandVariable: "cmd", id: cmd.get("id") });
-    return handleCypressEvent("step:start", toCommandJSON(cmd));
+    return handleCypressEvent("step:start", "command", toCommandJSON(cmd));
   });
   Cypress.on("command:end", cmd => {
     addAnnotation("step:end", { commandVariable: "cmd", id: cmd.get("id") });
-    handleCypressEvent("step:end", toCommandJSON(cmd));
+    handleCypressEvent("step:end", "command", toCommandJSON(cmd));
   });
   Cypress.on("log:added", log => {
     // We only care about asserts
@@ -150,13 +180,14 @@ export default function register() {
       id: replayId,
       groupId: log.chainerId && getReplayId(log.chainerId),
       args: [log.consoleProps.Message],
+      category: "assertion",
     };
     addAnnotation("step:start", {
       commandVariable: nextAssertion ? "nextAssertion" : undefined,
       logVariable: "log",
       id: cmd.id,
     });
-    handleCypressEvent("step:start", cmd);
+    handleCypressEvent("step:start", "assertion", cmd);
 
     const logChanged = (changedLog: any) => {
       if (changedLog.id !== log.id || !["passed", "failed"].includes(changedLog.state)) return;
@@ -182,7 +213,7 @@ export default function register() {
         logVariable: "changedLog",
         id: changedCmd.id,
       });
-      handleCypressEvent("step:end", changedCmd, error);
+      handleCypressEvent("step:end", "assertion", changedCmd, error);
 
       Cypress.off("logchanged", logChanged);
     };

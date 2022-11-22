@@ -107,6 +107,8 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
           args: step.command!.args,
           relativeStartTime:
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
+          category: step.category,
+          hook: step.hook,
         };
         currentTest.steps!.push(testStep);
         stepStack.push({ event: step, step: testStep });
