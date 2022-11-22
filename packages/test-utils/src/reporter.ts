@@ -27,6 +27,8 @@ export interface TestStep {
   error?: TestError;
   relativeStartTime?: number;
   duration?: number;
+  hook?: "beforeEach" | "afterEach";
+  category: "command" | "assertion" | "other";
 }
 
 export interface Test {
