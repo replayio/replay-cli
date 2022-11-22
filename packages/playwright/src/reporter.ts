@@ -29,9 +29,21 @@ function mapTestStepCategory(step: TestStep): ReplayTestStep["category"] {
     case "expect":
       return "assertion";
     case "step":
+    case "pw:api":
       return "command";
     default:
       return "other";
+  }
+}
+
+function mapTestStepHook(step: TestStep): ReplayTestStep["hook"] {
+  if (step.category !== "hook") return;
+
+  switch (step.title) {
+    case "Before Hooks":
+      return "beforeEach";
+    case "After Hooks":
+      return "afterEach";
   }
 }
 
@@ -142,7 +154,7 @@ class ReplayPlaywrightReporter implements Reporter {
                 ? Math.max(0, s.startTime.getTime() - this.startTime)
                 : undefined,
               duration: s.duration,
-              hook: s.category === "hook" ? "beforeEach" : undefined,
+              hook: mapTestStepHook(s),
               category: mapTestStepCategory(s),
             };
           }),
