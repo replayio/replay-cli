@@ -41,5 +41,6 @@
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
-  }
+  },
+  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b"
 }

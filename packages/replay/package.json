@@ -37,7 +37,7 @@
   "publishConfig": {
     "directory": "dist"
   },
-  "gitHead": "d4ad875fcb35aa5766b11f9cf54d809f84113b02",
+  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b",
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/jest": "^28.1.5",
