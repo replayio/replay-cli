@@ -164,7 +164,15 @@ export default function register() {
     return handleCypressEvent("step:start", "command", toCommandJSON(cmd));
   });
   Cypress.on("command:end", cmd => {
-    addAnnotation("step:end", { commandVariable: "cmd", id: cmd.get("id") });
+    const log = cmd
+      .get("logs")
+      .find((l: any) => l.get("name") === cmd.get("name"))
+      ?.toJSON();
+    addAnnotation("step:end", {
+      commandVariable: "cmd",
+      logVariable: log ? "log" : undefined,
+      id: cmd.get("id"),
+    });
     handleCypressEvent("step:end", "command", toCommandJSON(cmd));
   });
   Cypress.on("log:added", log => {
