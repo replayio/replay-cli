@@ -34,7 +34,7 @@ const makeEvent = (
   error?: TestError
 ): StepEvent => ({
   event,
-  test: getCurrentTest().titlePath,
+  test: currentTest.titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: cmd,
@@ -145,7 +145,7 @@ function addAnnotation(
   const payload = JSON.stringify({
     ...data,
     event,
-    titlePath: getCurrentTest().titlePath,
+    titlePath: currentTest.titlePath,
   });
 
   window.top &&
