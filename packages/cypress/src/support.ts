@@ -27,13 +27,14 @@ interface CommandLike {
 }
 
 const makeEvent = (
+  currentTest: typeof Cypress.currentTest,
   event: StepEvent["event"],
   category?: TestStep["category"],
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
   event,
-  test: getCurrentTest().titlePath,
+  test: currentTest.titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: cmd,
@@ -47,6 +48,7 @@ const makeEvent = (
 });
 
 const handleCypressEvent = (
+  currentTest: typeof Cypress.currentTest,
   event: StepEvent["event"],
   category?: TestStep["category"],
   cmd?: CommandLike,
@@ -54,7 +56,7 @@ const handleCypressEvent = (
 ) => {
   if (cmd?.args[0] === TASK_NAME) return;
 
-  const arg = makeEvent(event, category, cmd, error);
+  const arg = makeEvent(currentTest, event, category, cmd, error);
 
   return Promise.resolve()
     .then(() => {
@@ -111,6 +113,7 @@ interface MochaTest {
 }
 
 let lastTest: MochaTest | undefined;
+
 function getCurrentTest(): { title: string; titlePath: string[] } {
   if (Cypress.currentTest) {
     return Cypress.currentTest;
@@ -134,11 +137,15 @@ function getCurrentTest(): { title: string; titlePath: string[] } {
   return { title, titlePath };
 }
 
-function addAnnotation(event: string, data?: Record<string, any>) {
+function addAnnotation(
+  currentTest: typeof Cypress.currentTest,
+  event: string,
+  data?: Record<string, any>
+) {
   const payload = JSON.stringify({
     ...data,
     event,
-    titlePath: getCurrentTest().titlePath,
+    titlePath: currentTest.titlePath,
   });
 
   window.top &&
@@ -148,11 +155,12 @@ function addAnnotation(event: string, data?: Record<string, any>) {
 
 export default function register() {
   let nextAssertion: Cypress.CommandQueue | undefined;
+  let currentTest: typeof Cypress.currentTest | undefined;
 
   Cypress.on("command:enqueued", cmd => {
     const id = getReplayId(cmd.id);
-    addAnnotation("step:enqueue", { commandVariable: "cmd", id });
-    handleCypressEvent("step:enqueue", "other", Object.assign({}, cmd, { id }));
+    addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
+    handleCypressEvent(currentTest!, "step:enqueue", "other", Object.assign({}, cmd, { id }));
   });
   Cypress.on("command:start", cmd => {
     const next = cmd.get("next");
@@ -160,20 +168,23 @@ export default function register() {
       nextAssertion = next;
     }
 
-    addAnnotation("step:start", { commandVariable: "cmd", id: cmd.get("id") });
-    return handleCypressEvent("step:start", "command", toCommandJSON(cmd));
+    addAnnotation(currentTest!, "step:start", {
+      commandVariable: "cmd",
+      id: getReplayId(cmd.get("id")),
+    });
+    return handleCypressEvent(currentTest!, "step:start", "command", toCommandJSON(cmd));
   });
   Cypress.on("command:end", cmd => {
     const log = cmd
       .get("logs")
       .find((l: any) => l.get("name") === cmd.get("name"))
       ?.toJSON();
-    addAnnotation("step:end", {
+    addAnnotation(currentTest!, "step:end", {
       commandVariable: "cmd",
       logVariable: log ? "log" : undefined,
-      id: cmd.get("id"),
+      id: getReplayId(cmd.get("id")),
     });
-    handleCypressEvent("step:end", "command", toCommandJSON(cmd));
+    handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
   });
   Cypress.on("log:added", log => {
     // We only care about asserts
@@ -190,12 +201,12 @@ export default function register() {
       args: [log.consoleProps.Message],
       category: "assertion",
     };
-    addAnnotation("step:start", {
+    addAnnotation(currentTest!, "step:start", {
       commandVariable: nextAssertion ? "nextAssertion" : undefined,
       logVariable: "log",
       id: cmd.id,
     });
-    handleCypressEvent("step:start", "assertion", cmd);
+    handleCypressEvent(currentTest!, "step:start", "assertion", cmd);
 
     const logChanged = (changedLog: any) => {
       if (changedLog.id !== log.id || !["passed", "failed"].includes(changedLog.state)) return;
@@ -216,12 +227,12 @@ export default function register() {
           }
         : undefined;
 
-      addAnnotation("step:end", {
+      addAnnotation(currentTest!, "step:end", {
         commandVariable: nextAssertion ? "nextAssertion" : undefined,
         logVariable: "changedLog",
         id: changedCmd.id,
       });
-      handleCypressEvent("step:end", "assertion", changedCmd, error);
+      handleCypressEvent(currentTest!, "step:end", "assertion", changedCmd, error);
 
       Cypress.off("logchanged", logChanged);
     };
@@ -229,11 +240,12 @@ export default function register() {
     Cypress.on("log:changed", logChanged);
   });
   beforeEach(() => {
-    handleCypressEvent("test:start");
-    addAnnotation("test:start");
+    currentTest = getCurrentTest();
+    handleCypressEvent(currentTest!, "test:start");
+    addAnnotation(currentTest!, "test:start");
   });
   afterEach(() => {
-    handleCypressEvent("test:end");
-    addAnnotation("test:end");
+    handleCypressEvent(currentTest!, "test:end");
+    addAnnotation(currentTest!, "test:end");
   });
 }
