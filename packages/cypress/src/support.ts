@@ -193,6 +193,8 @@ export default function register() {
         url: log.url,
         id: getReplayId(log.id),
       });
+
+      return;
     } else if (log.name !== "assert") {
       return;
     }
