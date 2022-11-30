@@ -187,8 +187,13 @@ export default function register() {
     handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
   });
   Cypress.on("log:added", log => {
-    // We only care about asserts
-    if (log.name !== "assert") {
+    if (log.name === "new url") {
+      addAnnotation(currentTest!, "event:navigation", {
+        logVariable: "log",
+        url: log.url,
+        id: getReplayId(log.id),
+      });
+    } else if (log.name !== "assert") {
       return;
     }
 
