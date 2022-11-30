@@ -158,6 +158,10 @@ export default function register() {
   let currentTest: typeof Cypress.currentTest | undefined;
 
   Cypress.on("command:enqueued", cmd => {
+    // in cypress open, beforeEach isn't called so fetch the current test here
+    // as a fallback
+    currentTest = currentTest || getCurrentTest();
+
     const id = getReplayId(cmd.id);
     addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
     handleCypressEvent(currentTest!, "step:enqueue", "other", Object.assign({}, cmd, { id }));
@@ -248,11 +252,15 @@ export default function register() {
   });
   beforeEach(() => {
     currentTest = getCurrentTest();
-    handleCypressEvent(currentTest!, "test:start");
-    addAnnotation(currentTest!, "test:start");
+    if (currentTest) {
+      handleCypressEvent(currentTest!, "test:start");
+      addAnnotation(currentTest!, "test:start");
+    }
   });
   afterEach(() => {
-    handleCypressEvent(currentTest!, "test:end");
-    addAnnotation(currentTest!, "test:end");
+    if (currentTest) {
+      handleCypressEvent(currentTest!, "test:end");
+      addAnnotation(currentTest!, "test:end");
+    }
   });
 }
