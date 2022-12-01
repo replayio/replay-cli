@@ -1,6 +1,7 @@
 /// <reference types="cypress" />
 
 import path from "path";
+import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
 import { ReplayReporter, Test } from "@replayio/test-utils";
@@ -19,8 +20,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     selectedBrowser = browser.family;
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
 
-    const [major, minor] = config.version?.split(".") || [];
-    if (major && Number.parseInt(major) >= 10 && minor && Number.parseInt(minor) >= 9) {
+    if (config.version && semver.gte(config.version, "10.9.0")) {
       return {
         ...launchOptions,
         env: {
