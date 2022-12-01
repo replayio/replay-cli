@@ -47,6 +47,11 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       console.warn(e);
     }
 
+    if (!result.tests) {
+      // If the browser crashes, no tests are run and tests will be null
+      return;
+    }
+
     const tests = result.tests.map<Test>(t => {
       const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
 
