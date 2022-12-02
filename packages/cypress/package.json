@@ -28,11 +28,13 @@
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/cypress/README.md",
   "devDependencies": {
     "@types/node": "^16.11.39",
+    "@types/semver": "^7.3.13",
     "cypress": "^10.0.3"
   },
   "dependencies": {
     "@replayio/replay": "^0.10.5",
     "@replayio/test-utils": "^0.3.3",
+    "semver": "^7.3.8",
     "uuid": "^8.3.2"
   },
   "publishConfig": {
