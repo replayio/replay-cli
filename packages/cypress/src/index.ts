@@ -9,10 +9,16 @@ import { TASK_NAME } from "./constants";
 import type { StepEvent } from "./support";
 import { groupStepsByTest } from "./steps";
 
+const pluginVersion = require("../package.json").version;
+
 const plugin: Cypress.PluginConfig = (on, config) => {
   let steps: StepEvent[] = [];
 
-  const reporter = new ReplayReporter({ name: "cypress", version: config.version });
+  const reporter = new ReplayReporter({
+    name: "cypress",
+    version: config.version,
+    plugin: pluginVersion,
+  });
   let selectedBrowser: "chromium" | "firefox";
   let startTime: number | undefined;
 

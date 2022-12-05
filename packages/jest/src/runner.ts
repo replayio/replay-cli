@@ -8,6 +8,7 @@ import path from "path";
 import { getMetadataFilePath } from ".";
 
 const runner = require("jest-circus/runner");
+const pluginVersion = require("../package.json").version;
 
 let version: string | undefined;
 
@@ -36,7 +37,7 @@ const ReplayRunner = async (
   }
 
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter({ name: "jest", version });
+  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion });
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getTestId(test: Circus.TestEntry) {
