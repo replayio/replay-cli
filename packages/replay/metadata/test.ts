@@ -53,6 +53,7 @@ const versions: Record<number, Struct<any, any>> = {
         object({
           name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
           version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
+          plugin: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_PLUGIN")),
         }),
         {}
       )

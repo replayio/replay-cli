@@ -17,6 +17,8 @@ import {
 import { getMetadataFilePath } from "./index";
 import { readFileSync } from "fs";
 
+const pluginVersion = require("../package.json").version;
+
 function extractErrorMessage(errorStep?: TestStep) {
   const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
   let stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
@@ -84,7 +86,11 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin(config: FullConfig) {
     const cfg = this.parseConfig(config);
-    this.reporter = new ReplayReporter({ name: "playwright", version: config.version });
+    this.reporter = new ReplayReporter({
+      name: "playwright",
+      version: config.version,
+      plugin: pluginVersion,
+    });
     this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
 
     if (cfg.captureTestFile === false) {

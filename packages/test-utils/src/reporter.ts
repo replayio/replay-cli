@@ -46,6 +46,7 @@ export interface Test {
 export interface TestRunner {
   name?: string;
   version?: string;
+  plugin?: string;
 }
 
 export function getMetadataFilePath(workerIndex = 0) {
