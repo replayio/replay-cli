@@ -26,6 +26,11 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     selectedBrowser = browser.family;
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
 
+    // Cypress around 10.9 launches the browser before `before:spec` is called
+    // causing us to fail to create the metadata file and link the replay to the
+    // current test
+    reporter.onTestBegin(undefined, getMetadataFilePath());
+
     if (config.version && semver.gte(config.version, "10.9.0")) {
       return {
         ...launchOptions,
