@@ -23,18 +23,6 @@ function assertCurrentTest(currentTest: Test | undefined): asserts currentTest i
   }
 }
 
-function assertCurrentTestMatch(
-  currentTest: Test | undefined,
-  step: StepEvent
-): asserts currentTest is Test {
-  if (
-    !currentTest ||
-    (step.test[0] !== AFTER_EACH_HOOK && currentTest.title !== step.test[step.test.length - 1])
-  ) {
-    throw new Error("test:start event not received for " + step.test.join(" > "));
-  }
-}
-
 function assertMatchingStep(
   currentStep: StepEvent | undefined,
   previousStep: StepEvent | undefined
@@ -60,38 +48,41 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   // The steps can come in out of order but are sortable by timestamp
   const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
-  const tests: Test[] = [];
+  const tests: Test[] = sortedSteps
+    .filter(a => a.event === "test:start")
+    .map(step => ({
+      title: step.test[step.test.length - 1] || step.file,
+      path: [],
+      result: "passed",
+      relativePath: step.file,
+      relativeStartTime: toRelativeTime(step.timestamp, firstTimestamp),
+      steps: [],
+    }));
+
   const stepStack: StepStackItem[] = [];
 
   // steps are grouped by `chainerId` and then assigned a parent here by
   // tracking the most recent groupId
   let activeGroup: { groupId: string; parentId: string } | undefined;
+  let currentTest: Test | undefined;
 
   for (let i = 0; i < sortedSteps.length; i++) {
     const step = sortedSteps[i];
 
-    let currentTest: Test | undefined = tests[tests.length - 1];
+    let testForStep: Test | undefined = tests.find(
+      t => t.title === step.test[step.test.length - 1]
+    );
+    if (currentTest !== testForStep) {
+      activeGroup = undefined;
+    }
+    currentTest = testForStep;
+    assertCurrentTest(currentTest);
 
     switch (step.event) {
-      case "test:start":
-        activeGroup = undefined;
-        currentTest = {
-          title: step.test[step.test.length - 1] || step.file,
-          path: [],
-          result: "passed",
-          relativePath: step.file,
-          relativeStartTime: toRelativeTime(step.timestamp, firstTimestamp),
-          steps: [],
-        };
-
-        tests.push(currentTest);
-        break;
       case "step:enqueue":
-        assertCurrentTestMatch(currentTest, step);
         // ignore for now ...
         break;
       case "step:start":
-        assertCurrentTestMatch(currentTest, step);
         let parentId: string | undefined;
 
         if (activeGroup && activeGroup.groupId === step.command?.groupId) {
@@ -125,7 +116,6 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
           continue;
         }
 
-        assertCurrentTestMatch(currentTest, step);
         assertMatchingStep(step, lastStep?.event);
 
         // asserts can change the args if the message changes
@@ -146,8 +136,6 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         }
         break;
       case "test:end":
-        assertCurrentTestMatch(currentTest, step);
-
         currentTest.duration =
           toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
         break;
