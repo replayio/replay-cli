@@ -32,7 +32,7 @@ class CypressReporter {
 
     if (!result.tests) {
       // If the browser crashes, no tests are run and tests will be null
-      return;
+      return [];
     }
 
     const tests = result.tests.map<Test>(t => {
