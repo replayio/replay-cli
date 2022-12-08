@@ -40,6 +40,16 @@ function assertMatchingStep(
   }
 }
 
+function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
+  const lastArg = step.command?.args?.[step.command.args.length - 1];
+
+  return (
+    (lastArg != null && typeof lastArg === "object" && lastArg.log === false) ||
+    skippedSteps.includes(step.command?.id as any) ||
+    skippedSteps.includes(step.command?.groupId as any)
+  );
+}
+
 function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
   if (steps.length === 0) {
     return [];
@@ -60,6 +70,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
     }));
 
   const stepStack: StepStackItem[] = [];
+  const skippedStepIds: string[] = [];
 
   // steps are grouped by `chainerId` and then assigned a parent here by
   // tracking the most recent groupId
@@ -84,6 +95,17 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         break;
       case "step:start":
         let parentId: string | undefined;
+
+        if (shouldSkipStep(step, skippedStepIds)) {
+          if (step.command?.id) {
+            skippedStepIds.push(step.command.id);
+          }
+
+          if (step.command?.groupId) {
+            skippedStepIds.push(step.command.groupId);
+          }
+          break;
+        }
 
         if (activeGroup && activeGroup.groupId === step.command?.groupId) {
           parentId = activeGroup.parentId;
@@ -110,6 +132,11 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         const lastStep: StepStackItem | undefined = stepStack.find(
           a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
         );
+
+        if (!lastStep && skippedStepIds.includes(step.command?.id as any)) {
+          // ignore step:ends for skipped steps
+          break;
+        }
 
         // TODO [ryanjduffy]: Skipping handling after each events for now
         if (step.test[0] === AFTER_EACH_HOOK) {
