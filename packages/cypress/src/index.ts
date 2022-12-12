@@ -104,37 +104,40 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     },
   });
 
+  // make sure we have a config object with the keys we need to mutate
+  config = config || {};
+  config.env = config.env || {};
+  config.browsers = config.browsers || [];
+
+  config.env.NO_COMMAND_LOG = process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
+
   const chromiumPath = getPlaywrightBrowserPath("chromium");
   if (chromiumPath) {
-    Object.assign(config, {
-      browsers: config.browsers.concat({
-        name: "Replay Chromium",
-        channel: "stable",
-        family: "chromium",
-        displayName: "Replay",
-        version: "91.0",
-        path: chromiumPath,
-        majorVersion: 91,
-        isHeaded: true,
-        isHeadless: false,
-      }),
+    config.browsers = config.browsers.concat({
+      name: "Replay Chromium",
+      channel: "stable",
+      family: "chromium",
+      displayName: "Replay",
+      version: "91.0",
+      path: chromiumPath,
+      majorVersion: 91,
+      isHeaded: true,
+      isHeadless: false,
     });
   }
 
   const firefoxPath = getPlaywrightBrowserPath("firefox");
   if (firefoxPath) {
-    Object.assign(config, {
-      browsers: config.browsers.concat({
-        name: "Replay Firefox",
-        channel: "stable",
-        family: "firefox",
-        displayName: "Replay",
-        version: "91.0",
-        path: firefoxPath,
-        majorVersion: 91,
-        isHeaded: true,
-        isHeadless: false,
-      }),
+    config.browsers = config.browsers.concat({
+      name: "Replay Firefox",
+      channel: "stable",
+      family: "firefox",
+      displayName: "Replay",
+      version: "91.0",
+      path: firefoxPath,
+      majorVersion: 91,
+      isHeaded: true,
+      isHeadless: false,
     });
   }
 
