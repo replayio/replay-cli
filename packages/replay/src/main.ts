@@ -359,13 +359,6 @@ async function doUploadRecording(
     return null;
   }
   debug("Uploading recording %o", recording);
-  let contents;
-  try {
-    contents = fs.readFileSync(recording.path!);
-  } catch (e) {
-    maybeLog(verbose, `Upload failed: can't read recording from disk: ${e}`);
-    return null;
-  }
   if (!(await initConnection(server, apiKey, verbose, agent))) {
     maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
     return null;
@@ -386,7 +379,7 @@ async function doUploadRecording(
   if (shouldProcessRecording(recording)) {
     connectionProcessRecording(recordingId);
   }
-  await connectionUploadRecording(recordingId, contents);
+  await connectionUploadRecording(recordingId, recording.path!);
   for (const sourcemap of recording.sourcemaps) {
     try {
       const contents = fs.readFileSync(sourcemap.path, "utf8");
