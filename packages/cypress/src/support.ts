@@ -99,6 +99,8 @@ const getCurrentTestHook = (): TestStep["hook"] => {
 };
 
 function getCypressId(cmd: Cypress.CommandQueue): string {
+  // Cypress 8 doesn't include an `id` on the command so we fall back to
+  // userInvocationStack as a means to uniquely identify a command
   return cmd.get("id") || cmd.get("userInvocationStack");
 }
 
