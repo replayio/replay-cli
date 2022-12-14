@@ -104,6 +104,7 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
+    const duration = Date.now() - this.startTime!;
     const status = result.status;
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
@@ -137,6 +138,8 @@ class ReplayPlaywrightReporter implements Reporter {
           path: test.titlePath(),
           result: status,
           relativePath,
+          relativeStartTime: 0,
+          duration,
           error: errorMessage
             ? {
                 message: errorMessage,
