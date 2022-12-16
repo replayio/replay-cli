@@ -170,7 +170,12 @@ export default function register() {
 
     const id = getReplayId(cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString());
     addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
-    handleCypressEvent(currentTest!, "step:enqueue", "other", Object.assign({}, cmd, { id }));
+    handleCypressEvent(currentTest!, "step:enqueue", "other", {
+      id,
+      groupId: getReplayId(cmd.chainerId),
+      name: cmd.name,
+      args: cmd.args,
+    });
   });
   Cypress.on("command:start", cmd => {
     const next = cmd.get("next");
