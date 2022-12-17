@@ -22,8 +22,6 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     version: config.version,
     plugin: pluginVersion,
   });
-  let selectedBrowser: "chromium" | "firefox";
-  let startTime: number | undefined;
   cypressReporter = new CypressReporter();
 
   on("before:browser:launch", (browser, launchOptions) => {
