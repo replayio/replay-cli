@@ -1,4 +1,4 @@
-import { writeFileSync, appendFileSync } from "fs";
+import { writeFileSync, appendFileSync, mkdirSync } from "fs";
 import path from "path";
 
 function getFixtureFile() {
@@ -8,6 +8,7 @@ function getFixtureFile() {
 export function initFixtureFile() {
   if (process.env.REPLAY_UPDATE_FIXTURE) {
     try {
+      mkdirSync(path.dirname(getFixtureFile()));
       writeFileSync(getFixtureFile(), "");
     } catch (e) {
       console.error(e);
