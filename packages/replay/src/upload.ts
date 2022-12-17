@@ -1,8 +1,12 @@
+import fs from "fs";
 import crypto from "crypto";
+import dbg from "debug";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
+
+const debug = dbg("replay:cli:upload");
 
 let gClient: ProtocolClient | undefined;
 let gClientReady = defer<boolean>();
@@ -134,20 +138,58 @@ async function connectionReportCrash(data: any) {
 // Granularity for splitting up a recording into chunks for uploading.
 const ChunkGranularity = 1024 * 1024;
 
-async function connectionUploadRecording(recordingId: string, contents: Buffer) {
+async function connectionUploadRecording(recordingId: string, path: string) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
+  const endWaiter = defer();
   const promises = [];
-  for (let i = 0; i < contents.length; i += ChunkGranularity) {
-    const buf = contents.subarray(i, i + ChunkGranularity);
+  const file = fs.createReadStream(path);
+
+  let buffer: Buffer | undefined;
+  let offset = 0;
+
+  debug("Replay file size: %d bytes", fs.statSync(path).size);
+
+  const send = (b: Buffer) => {
+    const length = b.length;
+    debug("Sending %d bytes at offset %d", length, offset);
+
     promises.push(
-      gClient.sendCommand(
-        "Internal.addRecordingData",
-        { recordingId, offset: i, length: buf.length },
-        buf
-      )
+      gClient?.sendCommand("Internal.addRecordingData", { recordingId, offset, length }, b)
     );
-  }
+
+    offset += length;
+  };
+
+  file.on("data", chunk => {
+    const cb = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
+    buffer = buffer ? Buffer.concat([buffer, cb]) : cb;
+
+    if (buffer.length >= ChunkGranularity) {
+      const data = buffer.subarray(0, ChunkGranularity);
+      buffer = buffer.subarray(ChunkGranularity);
+      send(data);
+    }
+  });
+
+  file.on("end", () => {
+    if (buffer?.length) {
+      send(buffer);
+    }
+    endWaiter.resolve(true);
+  });
+
+  file.on("error", e => {
+    console.error(`Failed to read replay ${recordingId} from disk`);
+    console.error(e);
+
+    throw e;
+  });
+
+  await endWaiter.promise;
+
+  debug("Uploaded %d bytes", offset);
+
   // Explicitly mark the recording complete so the server knows that it has
   // been sent all of the recording data, and can save the recording.
   // This means if someone presses Ctrl+C, the server doesn't save a

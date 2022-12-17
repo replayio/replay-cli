@@ -98,10 +98,16 @@ const getCurrentTestHook = (): TestStep["hook"] => {
   }
 };
 
+function getCypressId(cmd: Cypress.CommandQueue): string {
+  // Cypress 8 doesn't include an `id` on the command so we fall back to
+  // userInvocationStack as a means to uniquely identify a command
+  return cmd.get("id") || cmd.get("userInvocationStack");
+}
+
 function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
   return {
     name: cmd.get("name"),
-    id: getReplayId(cmd.get("id")),
+    id: getReplayId(getCypressId(cmd)),
     groupId: getReplayId(cmd.get("chainerId")),
     args: cmd.get("args"),
   };
@@ -162,9 +168,14 @@ export default function register() {
     // as a fallback
     currentTest = currentTest || getCurrentTest();
 
-    const id = getReplayId(cmd.id);
+    const id = getReplayId(cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString());
     addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
-    handleCypressEvent(currentTest!, "step:enqueue", "other", Object.assign({}, cmd, { id }));
+    handleCypressEvent(currentTest!, "step:enqueue", "other", {
+      id,
+      groupId: getReplayId(cmd.chainerId),
+      name: cmd.name,
+      args: cmd.args,
+    });
   });
   Cypress.on("command:start", cmd => {
     const next = cmd.get("next");
@@ -174,7 +185,7 @@ export default function register() {
 
     addAnnotation(currentTest!, "step:start", {
       commandVariable: "cmd",
-      id: getReplayId(cmd.get("id")),
+      id: getReplayId(getCypressId(cmd)),
     });
     return handleCypressEvent(currentTest!, "step:start", "command", toCommandJSON(cmd));
   });
@@ -186,7 +197,7 @@ export default function register() {
     addAnnotation(currentTest!, "step:end", {
       commandVariable: "cmd",
       logVariable: log ? "log" : undefined,
-      id: getReplayId(cmd.get("id")),
+      id: getReplayId(getCypressId(cmd)),
     });
     handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
   });
@@ -203,7 +214,7 @@ export default function register() {
       return;
     }
 
-    const replayId = getReplayId(nextAssertion?.get("id") || log.id);
+    const replayId = getReplayId(nextAssertion ? getCypressId(nextAssertion) : log.id);
 
     const cmd = {
       name: log.name,
@@ -246,7 +257,7 @@ export default function register() {
         addAnnotation(currentTest!, "step:end", {
           commandVariable: "failedCommand",
           logVariable: failedCommandLog ? "failedCommandLog" : undefined,
-          id: getReplayId(failedCommand.get("id")),
+          id: getReplayId(getCypressId(failedCommand)),
         });
         handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(failedCommand));
       }
