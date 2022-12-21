@@ -109,7 +109,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   config.env = config.env || {};
   config.browsers = config.browsers || [];
 
-  if (!config.isInteractive) {
+  if (config.isTextTerminal) {
     config.env.NO_COMMAND_LOG =
       process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
   }
