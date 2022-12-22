@@ -79,7 +79,10 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   config.env = config.env || {};
   config.browsers = config.browsers || [];
 
-  config.env.NO_COMMAND_LOG = process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
+  if (config.isTextTerminal) {
+    config.env.NO_COMMAND_LOG =
+      process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
+  }
 
   const chromiumPath = getPlaywrightBrowserPath("chromium");
   if (chromiumPath) {
