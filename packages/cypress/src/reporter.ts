@@ -17,6 +17,10 @@ class CypressReporter {
     this.selectedBrowser = browser;
   }
 
+  clearSteps() {
+    this.steps = [];
+  }
+
   addStep(step: StepEvent) {
     this.steps.push(step);
   }

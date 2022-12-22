@@ -51,6 +51,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     const startTime = Date.now();
     appendToFixtureFile("spec:start", { spec, startTime });
 
+    cypressReporter.clearSteps();
     cypressReporter.setStartTime(startTime);
     reporter.onTestBegin(undefined, getMetadataFilePath());
   });
