@@ -4,26 +4,28 @@ import path from "path";
 import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { getDirectory } from "@replayio/replay/src/utils";
-import { ReplayReporter, Test } from "@replayio/test-utils";
+import { ReplayReporter } from "@replayio/test-utils";
+
 import { TASK_NAME } from "./constants";
-import type { StepEvent } from "./support";
-import { groupStepsByTest } from "./steps";
+import { appendToFixtureFile, initFixtureFile } from "./fixture";
+import CypressReporter from "./reporter";
+
+let cypressReporter: CypressReporter;
 
 const pluginVersion = require("../package.json").version;
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  let steps: StepEvent[] = [];
+  initFixtureFile();
 
   const reporter = new ReplayReporter({
     name: "cypress",
     version: config.version,
     plugin: pluginVersion,
   });
-  let selectedBrowser: "chromium" | "firefox";
-  let startTime: number | undefined;
+  cypressReporter = new CypressReporter();
 
   on("before:browser:launch", (browser, launchOptions) => {
-    selectedBrowser = browser.family;
+    cypressReporter.setSelectedBrowser(browser.family);
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
@@ -36,7 +38,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         ...launchOptions,
         env: {
           RECORD_REPLAY_DRIVER:
-            process.env.RECORD_REPLAY_NO_RECORD && selectedBrowser === "chromium"
+            process.env.RECORD_REPLAY_NO_RECORD && browser.family === "chromium"
               ? __filename
               : undefined,
           RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
@@ -45,50 +47,17 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       };
     }
   });
-  on("before:spec", () => {
-    startTime = Date.now();
+  on("before:spec", spec => {
+    const startTime = Date.now();
+    appendToFixtureFile("spec:start", { spec, startTime });
+
+    cypressReporter.setStartTime(startTime);
     reporter.onTestBegin(undefined, getMetadataFilePath());
   });
   on("after:spec", (spec, result) => {
-    let testsWithSteps: Test[] = [];
-    try {
-      testsWithSteps = groupStepsByTest(steps, startTime!);
-    } catch (e) {
-      console.warn("Failed to build test step metadata for this replay.");
-      console.warn(e);
-    }
+    appendToFixtureFile("spec:end", { spec, result });
 
-    if (!result.tests) {
-      // If the browser crashes, no tests are run and tests will be null
-      return;
-    }
-
-    const tests = result.tests.map<Test>(t => {
-      const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
-
-      const error = t.displayError
-        ? {
-            // typically, we won't use this because we'll have a step error that
-            // originated the message but keeping as a fallback
-            message: t.displayError.substring(0, t.displayError.indexOf("\n")),
-          }
-        : undefined;
-
-      return {
-        title: t.title[t.title.length - 1] || spec.relative,
-        // If we found the test from the steps array (we should), merge it in
-        // and overwrite the default title and relativePath values. It won't
-        // have the correct path or result so those are added and we bubble up
-        // the first error found in a step falling back to reported test error
-        // if it exists.
-        ...foundTest,
-        relativePath: spec.relative,
-        path: ["", selectedBrowser || "", spec.relative, spec.specType || ""],
-        result: t.state == "failed" ? "failed" : "passed",
-        error,
-      };
-    });
-
+    const tests = cypressReporter.getTestResults(spec, result);
     reporter.onTestEnd(tests, spec.relative);
   });
 
@@ -98,7 +67,8 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     [TASK_NAME]: value => {
       if (!value || typeof value !== "object") return;
 
-      steps.push(value);
+      appendToFixtureFile("task", value);
+      cypressReporter.addStep(value);
 
       return true;
     },
@@ -152,6 +122,10 @@ export function getMetadataFilePath(workerIndex = 0) {
     process.env.RECORD_REPLAY_METADATA_FILE ||
     path.join(getDirectory(), `CYPRESS_METADATA_${workerIndex}`)
   );
+}
+
+export function getCypressReporter() {
+  return cypressReporter;
 }
 
 export default plugin;
