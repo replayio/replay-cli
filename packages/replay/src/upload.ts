@@ -4,7 +4,13 @@ import dbg from "debug";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
-import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
+import {
+  Options,
+  OriginalSourceEntry,
+  RecordingEntry,
+  RecordingMetadata,
+  SourceMapEntry,
+} from "./types";
 
 const debug = dbg("replay:cli:upload");
 
@@ -129,10 +135,12 @@ async function connectionWaitForProcessed(recordingId: string) {
   return error;
 }
 
-async function connectionReportCrash(data: any) {
+async function connectionReportCrash(entry: RecordingEntry, data: any) {
   if (!gClient) throw new Error("Protocol client is not initialized");
 
-  await gClient.sendCommand("Internal.reportCrash", { data });
+  await gClient.sendCommand("Internal.reportCrash", {
+    data: [{ kind: "metadata", id: entry.id, metadata: entry.metadata }, ...data],
+  });
 }
 
 // Granularity for splitting up a recording into chunks for uploading.

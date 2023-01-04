@@ -325,7 +325,7 @@ async function doUploadCrash(
   }
   await Promise.all(
     (recording.crashData || []).map(async data => {
-      await connectionReportCrash(data);
+      await connectionReportCrash(recording, data);
     })
   );
   addRecordingEvent(dir, "crashUploaded", recording.id, { server });
