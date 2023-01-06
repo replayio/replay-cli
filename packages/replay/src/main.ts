@@ -343,26 +343,35 @@ async function doUploadRecording(
 ) {
   debug("Uploading %s from %s to %s", recording.id, dir, server);
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
+
   if (recording.status == "uploaded" && recording.recordingId) {
     maybeLog(verbose, `Already uploaded: ${recording.recordingId}`);
+
     return recording.recordingId;
   }
+
   const reason = uploadSkipReason(recording);
   if (reason) {
     maybeLog(verbose, `Upload failed: ${reason}`);
+
     return null;
   }
+
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
     maybeLog(verbose, `Upload failed: crashed while recording`);
-    return null;
+
+    return recording.id;
   }
+
   debug("Uploading recording %o", recording);
   if (!(await initConnection(server, apiKey, verbose, agent))) {
     maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
+
     return null;
   }
+
   // validate metadata before uploading so invalid data can block the upload
   const metadata = recording.metadata
     ? buildRecordingMetadata(recording.metadata, { verbose })
@@ -372,13 +381,16 @@ async function doUploadRecording(
   if (metadata) {
     await setRecordingMetadata(recordingId, metadata);
   }
+
   addRecordingEvent(dir, "uploadStarted", recording.id, {
     server,
     recordingId,
   });
+
   if (shouldProcessRecording(recording)) {
     connectionProcessRecording(recordingId);
   }
+
   await connectionUploadRecording(recordingId, recording.path!);
   for (const sourcemap of recording.sourcemaps) {
     try {
@@ -392,6 +404,7 @@ async function doUploadRecording(
       maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
     }
   }
+
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
     verbose,
