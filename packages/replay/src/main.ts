@@ -463,7 +463,7 @@ async function uploadAllRecordings(opts: Options & FilterOptions = {}) {
   const dir = getDirectory(opts);
   const recordings = filterRecordings(readRecordings(dir), opts.filter);
 
-  const recordingIds = await Promise.all(
+  const recordingIds = await Promise.allSettled(
     recordings
       .filter(r => !uploadSkipReason(r))
       .map(r => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent))
