@@ -39,6 +39,11 @@ class CypressReporter {
       return [];
     }
 
+    // If the spec doesn't have any tests, we should bail here
+    if (!result.tests.length) {
+      return [];
+    }
+
     const tests = result.tests.map<Test>(t => {
       const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]) || null;
 
