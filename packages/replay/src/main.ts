@@ -323,8 +323,15 @@ async function doUploadCrash(
     maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
+
+  const crashData = recording.crashData || [];
+  crashData.push({
+    kind: "recordingMetadata",
+    recordingId: recording.id,
+  });
+
   await Promise.all(
-    (recording.crashData || []).map(async data => {
+    crashData.map(async data => {
       await connectionReportCrash(data);
     })
   );
@@ -360,8 +367,8 @@ async function doUploadRecording(
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Upload failed: crashed while recording`);
-
+    maybeLog(verbose, `Crash uploaded: crashed while recording`);
+    maybeLog(verbose, `Recording upload failed: crashed while recording`);
     return recording.id;
   }
 
