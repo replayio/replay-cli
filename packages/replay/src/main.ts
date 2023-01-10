@@ -375,7 +375,12 @@ async function doUploadRecording(
   const recordingId = await client.connectionCreateRecording(recording.id, recording.buildId!);
   debug(`Created remote recording ${recordingId}`);
   if (metadata) {
-    await client.setRecordingMetadata(recordingId, metadata);
+    try {
+      await client.setRecordingMetadata(recordingId, metadata);
+    } catch (e) {
+      console.warn("Failed to set recording metadata");
+      console.warn(e);
+    }
   }
 
   addRecordingEvent(dir, "uploadStarted", recording.id, {
