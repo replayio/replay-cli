@@ -54,7 +54,7 @@ const handleCypressEvent = (
   cmd?: CommandLike,
   error?: TestError
 ) => {
-  if (cmd?.args[0] === TASK_NAME) return;
+  if (cmd?.args?.[0] === TASK_NAME) return;
 
   const arg = makeEvent(currentTest, event, category, cmd, error);
 
