@@ -18,6 +18,7 @@ import {
   MetadataOptions,
   Options,
   RecordingEntry,
+  UploadOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
@@ -382,6 +383,7 @@ async function doUploadRecording(
   }
 
   await client.connectionUploadRecording(recordingId, recording.path!);
+
   for (const sourcemap of recording.sourcemaps) {
     try {
       const contents = fs.readFileSync(sourcemap.path, "utf8");
@@ -458,16 +460,28 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & FilterOptions = {}) {
+async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = filterRecordings(readRecordings(dir), opts.filter);
 
-  const recordingIds = await Promise.allSettled(
-    recordings
-      .filter(r => !uploadSkipReason(r))
-      .map(r => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent))
-  );
+  if (opts.batchSize) {
+    debug("Batching upload in groups of %d", opts.batchSize);
+  }
+
+  const batchSize = Math.min(opts.batchSize || 20, 25);
+
+  let recordingsToUpload = recordings.filter(r => !uploadSkipReason(r));
+
+  let recordingIds: (string | null)[] = [];
+  while (recordingsToUpload.length > 0) {
+    const batch = recordingsToUpload.splice(0, batchSize);
+    const batchIds = await Promise.allSettled(
+      batch.map(r => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent))
+    );
+
+    recordingIds.push(...batchIds.map(b => (b.status === "fulfilled" ? b.value : null)));
+  }
 
   return recordingIds.every(r => r != null);
 }

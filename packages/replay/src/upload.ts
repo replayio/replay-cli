@@ -174,7 +174,7 @@ class ReplayClient {
 
     for await (const chunk of file) {
       const cb = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
-      debug("%s: Read %d bytes from file", recordingId, cb.length, offset);
+      debug("%s: Read %d bytes from file", recordingId, cb.length);
 
       buffer = buffer ? Buffer.concat([buffer, cb]) : cb;
 

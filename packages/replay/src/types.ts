@@ -52,6 +52,10 @@ export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
 
+export interface UploadOptions extends FilterOptions {
+  batchSize?: number;
+}
+
 /**
  * Supported replay browsers
  */
