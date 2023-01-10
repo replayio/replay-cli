@@ -141,43 +141,7 @@ class ReplayClient {
   async connectionUploadRecording(recordingId: string, path: string) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const endWaiter = defer();
-    const promises = [];
     const file = fs.createReadStream(path);
-
-    let buffer: Buffer | undefined;
-    let offset = 0;
-
-    debug("Replay file size: %d bytes", fs.statSync(path).size);
-
-    const send = (b: Buffer) => {
-      const length = b.length;
-      debug("Sending %d bytes at offset %d", length, offset);
-
-      promises.push(
-        this.client?.sendCommand("Internal.addRecordingData", { recordingId, offset, length }, b)
-      );
-
-      offset += length;
-    };
-
-    file.on("data", chunk => {
-      const cb = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
-      buffer = buffer ? Buffer.concat([buffer, cb]) : cb;
-
-      if (buffer.length >= ChunkGranularity) {
-        const data = buffer.subarray(0, ChunkGranularity);
-        buffer = buffer.subarray(ChunkGranularity);
-        send(data);
-      }
-    });
-
-    file.on("end", () => {
-      if (buffer?.length) {
-        send(buffer);
-      }
-      endWaiter.resolve(true);
-    });
 
     file.on("error", e => {
       console.error(`Failed to read replay ${recordingId} from disk`);
@@ -186,16 +150,52 @@ class ReplayClient {
       throw e;
     });
 
-    await endWaiter.promise;
+    let buffer: Buffer | undefined;
+    let offset = 0;
 
-    debug("Uploaded %d bytes", offset);
+    debug("%s: Replay file size: %d bytes", recordingId, fs.statSync(path).size);
+
+    const send = async (b: Buffer) => {
+      const length = b.length;
+      debug("%s: Sending %d bytes at offset %d", recordingId, length, offset);
+
+      await new Promise<void>((resolve, reject) =>
+        this.client?.sendCommand(
+          "Internal.addRecordingData",
+          { recordingId, offset, length },
+          b,
+          undefined,
+          err => (err ? reject(err) : resolve())
+        )
+      );
+
+      offset += length;
+    };
+
+    for await (const chunk of file) {
+      const cb = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
+      debug("%s: Read %d bytes from file", recordingId, cb.length, offset);
+
+      buffer = buffer ? Buffer.concat([buffer, cb]) : cb;
+
+      if (buffer.length >= ChunkGranularity) {
+        const data = buffer.subarray(0, ChunkGranularity);
+        buffer = buffer.subarray(ChunkGranularity);
+        await send(data);
+      }
+    }
+
+    if (buffer?.length) {
+      await send(buffer);
+    }
+
+    debug("%s: Uploaded %d bytes", recordingId, offset);
 
     // Explicitly mark the recording complete so the server knows that it has
     // been sent all of the recording data, and can save the recording.
     // This means if someone presses Ctrl+C, the server doesn't save a
     // partial recording.
-    promises.push(this.client.sendCommand("Internal.finishRecording", { recordingId }));
-    return Promise.all(promises);
+    await this.client.sendCommand("Internal.finishRecording", { recordingId });
   }
 
   async connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {
