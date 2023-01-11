@@ -72,6 +72,9 @@ class ProtocolClient {
         if (!err && data) {
           this.socket.send(data, callback);
         } else {
+          if (err) {
+            debug("Received socket error: %s", err);
+          }
           callback?.(err);
         }
       }
