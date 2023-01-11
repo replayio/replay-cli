@@ -1,6 +1,11 @@
 import dbg from "debug";
 import fs from "fs";
 import path from "path";
+
+// requiring v4 explicitly because it's the last version with commonjs support.
+// Should be upgraded to lhe latest when converting this code to es modules.
+import pMap from "p-map";
+
 import { ReplayClient } from "./upload";
 import {
   ensurePuppeteerBrowsersInstalled,
@@ -471,19 +476,13 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
 
   const batchSize = Math.min(opts.batchSize || 20, 25);
 
-  let recordingsToUpload = recordings.filter(r => !uploadSkipReason(r));
+  const recordingIds: (string | null)[] = await pMap(
+    recordings.filter(r => !uploadSkipReason(r)),
+    (r: RecordingEntry) => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent),
+    { concurrency: batchSize, stopOnError: false }
+  );
 
-  let recordingIds: (string | null)[] = [];
-  while (recordingsToUpload.length > 0) {
-    const batch = recordingsToUpload.splice(0, batchSize);
-    const batchIds = await Promise.allSettled(
-      batch.map(r => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent))
-    );
-
-    recordingIds.push(...batchIds.map(b => (b.status === "fulfilled" ? b.value : null)));
-  }
-
-  return recordingIds.every(r => r != null);
+  return recordingIds.every(r => r !== null);
 }
 
 // Get the executable name to use when opening a URL.
