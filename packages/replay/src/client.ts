@@ -55,7 +55,8 @@ class ProtocolClient {
     method: string,
     params: P,
     data?: any,
-    sessionId?: string
+    sessionId?: string,
+    callback?: (err?: Error) => void
   ) {
     const id = this.nextMessageId++;
     debug("Sending command %s: %o", method, { id, params, sessionId });
@@ -66,11 +67,18 @@ class ProtocolClient {
         params,
         binary: data ? true : undefined,
         sessionId,
-      })
+      }),
+      err => {
+        if (!err && data) {
+          this.socket.send(data, callback);
+        } else {
+          if (err) {
+            debug("Received socket error: %s", err);
+          }
+          callback?.(err);
+        }
+      }
     );
-    if (data) {
-      this.socket.send(data);
-    }
     const waiter = defer<T>();
     this.pendingMessages.set(id, waiter);
     return waiter.promise;

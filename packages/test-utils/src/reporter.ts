@@ -143,6 +143,12 @@ class ReplayReporter {
   }
 
   onTestEnd(tests: Test[], replayTitle?: string, extraMetadata?: Record<string, unknown>) {
+    // if we bailed building test metadata because of a crash or because no
+    // tests ran, we can bail here too
+    if (tests.length === 0) {
+      return;
+    }
+
     const recs = listAllRecordings({
       filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
         tests.map(test => this.getTestId(test.id))
