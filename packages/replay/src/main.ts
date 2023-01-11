@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
-// Should be upgraded to lhe latest when converting this code to es modules.
+// Should be upgraded to the latest when converting this code to es modules.
 import pMap from "p-map";
 
 import { ReplayClient } from "./upload";
