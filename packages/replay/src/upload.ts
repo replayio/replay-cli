@@ -143,13 +143,6 @@ class ReplayClient {
 
     const file = fs.createReadStream(path);
 
-    file.on("error", e => {
-      console.error(`Failed to read replay ${recordingId} from disk`);
-      console.error(e);
-
-      throw e;
-    });
-
     let buffer: Buffer | undefined;
     let offset = 0;
 
