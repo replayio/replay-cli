@@ -18,6 +18,7 @@ import {
   FilterOptions,
   MetadataOptions,
   SourcemapUploadOptions,
+  UploadOptions,
 } from "./types";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
@@ -53,6 +54,7 @@ program
   .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .option("--filter <filter string>", "String to filter recordings")
+  .option("--batch-size <batchSize number>", "Number of recordings to upload in parallel (max 25)")
   .option(
     "--include-in-progress",
     "Upload all recordings, including ones with an in progress status"
@@ -155,7 +157,7 @@ async function commandProcessRecording(id: string, opts: CommandLineOptions) {
   process.exit(recordingId ? 0 : 1);
 }
 
-async function commandUploadAllRecordings(opts: CommandLineOptions & FilterOptions) {
+async function commandUploadAllRecordings(opts: CommandLineOptions & UploadOptions) {
   const uploadedAll = await uploadAllRecordings({ ...opts, verbose: true });
   process.exit(uploadedAll ? 0 : 1);
 }

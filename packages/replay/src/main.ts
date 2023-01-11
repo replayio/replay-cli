@@ -1,19 +1,12 @@
 import dbg from "debug";
 import fs from "fs";
 import path from "path";
-import {
-  initConnection,
-  connectionCreateRecording,
-  connectionProcessRecording,
-  connectionWaitForProcessed,
-  connectionUploadRecording,
-  connectionUploadSourcemap,
-  connectionReportCrash,
-  closeConnection,
-  setRecordingMetadata,
-  buildRecordingMetadata,
-  connectionUploadOriginalSource,
-} from "./upload";
+
+// requiring v4 explicitly because it's the last version with commonjs support.
+// Should be upgraded to the latest when converting this code to es modules.
+import pMap from "p-map";
+
+import { ReplayClient } from "./upload";
 import {
   ensurePuppeteerBrowsersInstalled,
   ensurePlaywrightBrowsersInstalled,
@@ -30,6 +23,7 @@ import {
   MetadataOptions,
   Options,
   RecordingEntry,
+  UploadOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
@@ -318,19 +312,20 @@ async function doUploadCrash(
   apiKey?: string,
   agent?: any
 ) {
+  const client = new ReplayClient();
   maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
-  if (!(await initConnection(server, apiKey, verbose, agent))) {
+  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
     maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
   await Promise.all(
     (recording.crashData || []).map(async data => {
-      await connectionReportCrash(data);
+      await client.connectionReportCrash(data);
     })
   );
   addRecordingEvent(dir, "crashUploaded", recording.id, { server });
   maybeLog(verbose, `Crash data upload finished.`);
-  closeConnection();
+  client.closeConnection();
 }
 
 async function doUploadRecording(
@@ -366,7 +361,8 @@ async function doUploadRecording(
   }
 
   debug("Uploading recording %o", recording);
-  if (!(await initConnection(server, apiKey, verbose, agent))) {
+  const client = new ReplayClient();
+  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
     maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
 
     return null;
@@ -374,12 +370,12 @@ async function doUploadRecording(
 
   // validate metadata before uploading so invalid data can block the upload
   const metadata = recording.metadata
-    ? buildRecordingMetadata(recording.metadata, { verbose })
+    ? client.buildRecordingMetadata(recording.metadata, { verbose })
     : null;
-  const recordingId = await connectionCreateRecording(recording.id, recording.buildId!);
+  const recordingId = await client.connectionCreateRecording(recording.id, recording.buildId!);
   debug(`Created remote recording ${recordingId}`);
   if (metadata) {
-    await setRecordingMetadata(recordingId, metadata);
+    await client.setRecordingMetadata(recordingId, metadata);
   }
 
   addRecordingEvent(dir, "uploadStarted", recording.id, {
@@ -388,17 +384,23 @@ async function doUploadRecording(
   });
 
   if (shouldProcessRecording(recording)) {
-    connectionProcessRecording(recordingId);
+    client.connectionProcessRecording(recordingId);
   }
 
-  await connectionUploadRecording(recordingId, recording.path!);
+  await client.connectionUploadRecording(recordingId, recording.path!);
+
   for (const sourcemap of recording.sourcemaps) {
     try {
       const contents = fs.readFileSync(sourcemap.path, "utf8");
-      const sourcemapId = await connectionUploadSourcemap(recordingId, sourcemap, contents);
+      const sourcemapId = await client.connectionUploadSourcemap(recordingId, sourcemap, contents);
       for (const originalSource of sourcemap.originalSources) {
         const contents = fs.readFileSync(originalSource.path, "utf8");
-        await connectionUploadOriginalSource(recordingId, sourcemapId, originalSource, contents);
+        await client.connectionUploadOriginalSource(
+          recordingId,
+          sourcemapId,
+          originalSource,
+          contents
+        );
       }
     } catch (e) {
       maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
@@ -410,7 +412,7 @@ async function doUploadRecording(
     verbose,
     `Upload finished! View your Replay at: https://app.replay.io/recording/${recordingId}`
   );
-  closeConnection();
+  client.closeConnection();
   return recordingId;
 }
 
@@ -434,19 +436,20 @@ async function processUploadedRecording(recordingId: string, opts: Options) {
 
   maybeLog(verbose, `Processing recording ${recordingId}...`);
 
-  if (!(await initConnection(server, apiKey, verbose, agent))) {
+  const client = new ReplayClient();
+  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
     maybeLog(verbose, `Processing failed: can't connect to server ${server}`);
     return false;
   }
 
   try {
-    const error = await connectionWaitForProcessed(recordingId);
+    const error = await client.connectionWaitForProcessed(recordingId);
     if (error) {
       maybeLog(verbose, `Processing failed: ${error}`);
       return false;
     }
   } finally {
-    closeConnection();
+    client.closeConnection();
   }
 
   maybeLog(verbose, "Finished processing.");
@@ -462,22 +465,24 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & FilterOptions = {}) {
+async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = filterRecordings(readRecordings(dir), opts.filter);
-  let uploadedAll = true;
 
-  for (const recording of recordings) {
-    if (!uploadSkipReason(recording)) {
-      if (
-        !(await doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent))
-      ) {
-        uploadedAll = false;
-      }
-    }
+  if (opts.batchSize) {
+    debug("Batching upload in groups of %d", opts.batchSize);
   }
-  return uploadedAll;
+
+  const batchSize = Math.min(opts.batchSize || 20, 25);
+
+  const recordingIds: (string | null)[] = await pMap(
+    recordings.filter(r => !uploadSkipReason(r)),
+    (r: RecordingEntry) => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent),
+    { concurrency: batchSize, stopOnError: false }
+  );
+
+  return recordingIds.every(r => r !== null);
 }
 
 // Get the executable name to use when opening a URL.
