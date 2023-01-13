@@ -4,6 +4,7 @@ import install from "../src/install";
 
 let [, , cmd, ...args] = process.argv;
 
+let firstRun = false;
 if (
   cmd === "first-run" &&
   !process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD &&
@@ -11,6 +12,7 @@ if (
 ) {
   args = [];
   cmd = "install";
+  firstRun = true;
 }
 
 function commandInstall() {
@@ -35,12 +37,21 @@ Available commands:
   `);
 }
 
-switch (cmd) {
-  case "install":
-    commandInstall();
-    break;
-  case "help":
-  default:
-    help();
-    break;
+try {
+  switch (cmd) {
+    case "install":
+      commandInstall();
+      break;
+    case "help":
+    default:
+      help();
+      break;
+  }
+} catch (e) {
+  if (firstRun) {
+    // Log install errors during first-run but don't fail package install
+    console.error(e);
+  } else {
+    throw e;
+  }
 }
