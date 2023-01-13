@@ -5,7 +5,7 @@ import install from "../src/install";
 let [, , cmd, ...args] = process.argv;
 
 let firstRun = false;
-if (cmd === "first-run" && process.env.CYPRESS_INSTALL_BINARY !== "0") {
+if (cmd === "first-run" && !process.env.REPLAY_SKIP_BROWSER_DOWNLOAD) {
   args = [];
   cmd = "install";
   firstRun = true;

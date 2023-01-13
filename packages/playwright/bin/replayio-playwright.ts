@@ -5,7 +5,11 @@ import install from "../src/install";
 let [, , cmd, ...args] = process.argv;
 
 let firstRun = false;
-if (cmd === "first-run" && !process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD) {
+if (
+  cmd === "first-run" &&
+  !process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD &&
+  !process.env.REPLAY_SKIP_BROWSER_DOWNLOAD
+) {
   args = [];
   cmd = "install";
   firstRun = true;
