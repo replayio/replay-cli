@@ -188,6 +188,19 @@ function getPuppeteerBrowserPath(kind: BrowserName) {
   return getExecutablePath("puppeteer", kind);
 }
 
+function extractBrowserArchive(browserDir: string, name: string) {
+  const fullName = path.join(browserDir, name);
+  const tarResult = spawnSync("tar", ["xf", name], { cwd: browserDir });
+  if (tarResult.status !== 0) {
+    console.error("Failed to extract", fullName);
+    console.error(String(tarResult.stderr));
+
+    throw new Error("Unable to extract browser archive");
+  }
+
+  fs.unlinkSync(fullName);
+}
+
 // Installs a browser if it isn't already installed.
 async function installReplayBrowser(
   name: string,
@@ -216,8 +229,7 @@ async function installReplayBrowser(
 
   maybeLog(opts.verbose, `Saving ${dstName} to ${browserDir}`);
   fs.writeFileSync(path.join(browserDir, name), contents);
-  spawnSync("tar", ["xf", name], { cwd: browserDir });
-  fs.unlinkSync(path.join(browserDir, name));
+  extractBrowserArchive(browserDir, name);
 
   if (srcName != dstName) {
     fs.renameSync(path.join(browserDir, srcName), path.join(browserDir, dstName));
