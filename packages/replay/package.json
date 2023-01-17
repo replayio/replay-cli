@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
     "replay": "bin/replay.js"
