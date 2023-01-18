@@ -235,9 +235,13 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
 }
 
 function filterRecordings(recordings: RecordingEntry[], filter?: string) {
+  debug("Recording log contains %d replays", recordings.length);
   if (filter) {
+    debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     recordings = exp.evaluate(recordings) || [];
+
+    debug("Filtering resulted in %d replays", recordings.length);
   }
 
   return recordings;
@@ -480,8 +484,20 @@ async function processRecording(id: string, opts: Options = {}) {
 async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
-  const recordings = filterRecordings(readRecordings(dir), opts.filter);
+  const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
+  const recordings = filterRecordings(allRecordings, opts.filter);
 
+  if (recordings.length === 0) {
+    if (opts.filter && allRecordings.length > 0) {
+      maybeLog(opts.verbose, `No replays matched the provided filter`);
+    } else {
+      maybeLog(opts.verbose, `No replays were found to upload`);
+    }
+
+    return;
+  }
+
+  maybeLog(opts.verbose, `Starting upload of ${recordings.length} replays`);
   if (opts.batchSize) {
     debug("Batching upload in groups of %d", opts.batchSize);
   }
@@ -489,7 +505,7 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   const batchSize = Math.min(opts.batchSize || 20, 25);
 
   const recordingIds: (string | null)[] = await pMap(
-    recordings.filter(r => !uploadSkipReason(r)),
+    recordings,
     (r: RecordingEntry) => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent),
     { concurrency: batchSize, stopOnError: false }
   );
