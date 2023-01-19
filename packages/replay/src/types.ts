@@ -1,3 +1,5 @@
+export type UnstructuredMetadata = Record<string, unknown>;
+
 export interface CommandLineOptions {
   /**
    * Alternate recording directory
@@ -73,7 +75,7 @@ export interface RecordingMetadata {
     lastScreenData?: string;
     lastScreenMimeType: string;
   };
-  metadata: Record<string, unknown>;
+  metadata: UnstructuredMetadata;
 }
 
 export interface OriginalSourceEntry {
@@ -95,7 +97,7 @@ export interface RecordingEntry {
   id: string;
   createTime: Date;
   runtime: string;
-  metadata: Record<string, unknown>;
+  metadata: UnstructuredMetadata;
   sourcemaps: SourceMapEntry[];
   buildId?: string;
   status:

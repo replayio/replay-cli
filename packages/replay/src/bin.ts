@@ -216,6 +216,6 @@ async function commandUploadSourcemaps(
   });
 }
 
-function commandMetadata(opts: MetadataOptions & FilterOptions) {
-  updateMetadata({ ...opts, verbose: true });
+async function commandMetadata(opts: MetadataOptions & FilterOptions) {
+  await updateMetadata({ ...opts, verbose: true });
 }

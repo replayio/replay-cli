@@ -1,4 +1,3 @@
-import { envString, firstEnvValueOf } from "./env";
 import {
   array,
   create,
@@ -14,7 +13,8 @@ import {
 } from "superstruct";
 const isUuid = require("is-uuid");
 
-import { UnstructuredMetadata } from "./types";
+import { UnstructuredMetadata } from "../src/types";
+import { envString, firstEnvValueOf } from "./env";
 
 const VERSION = 1;
 

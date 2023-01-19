@@ -1,14 +1,77 @@
 import { number, Struct } from "superstruct";
+import fetch from "node-fetch";
 const { create, object, optional, defaulted } = require("superstruct");
 
+import { UnstructuredMetadata } from "../src/types";
 import { envString } from "./env";
-import { UnstructuredMetadata } from "./types";
 
 const defaultObject = (objStruct: any) => optional(defaulted(object(objStruct), {}));
 
 const VERSION = 1;
 
-const versions: Record<number, Struct> = {
+function getCircleCIRepository(env: NodeJS.ProcessEnv) {
+  return env.CIRCLE_PROJECT_USERNAME && env.CIRCLE_PROJECT_REPONAME
+    ? `${env.CIRCLE_PROJECT_USERNAME}/${env.CIRCLE_PROJECT_REPONAME}`
+    : "";
+}
+
+function getCircleCIMergeId(env: NodeJS.ProcessEnv) {
+  return env.CIRCLE_PULL_REQUEST?.split("/").pop();
+}
+
+async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
+  const {
+    GITHUB_TOKEN,
+    RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE,
+    RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
+  } = process.env;
+
+  if (!GITHUB_TOKEN || !repo || !sha) return;
+
+  const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
+
+  const resp = await fetch(url, {
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+    },
+  });
+
+  if (resp.status === 200) {
+    const json = await resp.json();
+    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE =
+      RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE ||
+      json.commit.message.split("\n").shift().substring(0, 80);
+    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL =
+      RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL || json.html_url;
+  }
+}
+
+async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
+  const {
+    GITHUB_TOKEN,
+    RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE,
+    RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
+  } = process.env;
+
+  if (!GITHUB_TOKEN || !repo || !pr) return;
+
+  const url = `https://api.github.com/repos/${repo}/pulls/${pr}`;
+  const resp = await fetch(url, {
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+    },
+  });
+
+  if (resp.status === 200) {
+    const json = await resp.json();
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE =
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE || json.title;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL =
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_URL || json.html_url;
+  }
+}
+
+const versions: () => Record<number, Struct> = () => ({
   1: object({
     branch: optional(
       envString(
@@ -61,8 +124,10 @@ const versions: Record<number, Struct> = {
     }),
     merge: defaultObject({
       id: optional(
-        envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_ID", "BUILDKITE_PULL_REQUEST", env =>
-          process.env.CIRCLE_PULL_REQUEST?.split("/").pop()
+        envString(
+          "RECORD_REPLAY_METADATA_SOURCE_MERGE_ID",
+          "BUILDKITE_PULL_REQUEST",
+          getCircleCIMergeId
         )
       ),
       title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE")),
@@ -86,15 +151,12 @@ const versions: Record<number, Struct> = {
         "RECORD_REPLAY_METADATA_SOURCE_REPOSITORY",
         "GITHUB_REPOSITORY",
         env => env.BUILDKITE_REPO?.match(/.*:(.*)\.git/)?.[1],
-        env =>
-          env.CIRCLE_PROJECT_USERNAME && env.CIRCLE_PROJECT_REPONAME
-            ? `${env.CIRCLE_PROJECT_USERNAME}/${env.CIRCLE_PROJECT_REPONAME}`
-            : ""
+        getCircleCIRepository
       )
     ),
     version: defaulted(number(), () => 1),
   }),
-};
+});
 
 function validate(metadata: { source: UnstructuredMetadata }) {
   if (!metadata || !metadata.source) {
@@ -104,11 +166,30 @@ function validate(metadata: { source: UnstructuredMetadata }) {
   return init(metadata.source);
 }
 
-function init(data: UnstructuredMetadata = {}) {
+async function expandEnvironment() {
+  const { CIRCLECI, CIRCLE_SHA1 } = process.env;
+
+  const repo = getCircleCIRepository(process.env);
+
+  try {
+    if (CIRCLECI) {
+      await expandCommitMetadataFromGitHub(repo, CIRCLE_SHA1);
+      await expandMergeMetadataFromGitHub(repo, getCircleCIMergeId(process.env));
+    }
+  } catch (e) {
+    console.warn("Failed to expand environment details", e);
+  }
+}
+
+async function init(data: UnstructuredMetadata = {}) {
   const version = typeof data.version === "number" ? data.version : VERSION;
-  if (versions[version]) {
+
+  await expandEnvironment();
+  const structs = versions();
+
+  if (structs[version]) {
     return {
-      source: create(data, versions[version]),
+      source: create(data, structs[version]),
     };
   } else {
     throw new Error(`Source metadata version ${data.version} not supported`);
