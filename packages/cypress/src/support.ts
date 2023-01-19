@@ -231,6 +231,12 @@ export default function register() {
     handleCypressEvent(currentTest!, "step:start", "assertion", cmd);
 
     const logChanged = (changedLog: any) => {
+      // This callback may be invoked multiple times for an assertion if Cypress
+      // retries the evaluation. There doesn't appear to be an indication when
+      // it's done retrying and it doesn't report `command:end` for failed
+      // events so we're stuck capturing all of these and then ignoring the
+      // intermediate events.
+
       if (changedLog.id !== log.id || !["passed", "failed"].includes(changedLog.state)) return;
 
       // We only care about asserts
@@ -251,7 +257,9 @@ export default function register() {
 
       const failedCommand: Cypress.CommandQueue = nextAssertion?.get("prev");
       if (error && failedCommand) {
-        const failedCommandLog = failedCommand.get("logs")?.[0];
+        const failedCommandLog = failedCommand
+          .get("logs")
+          ?.find((l: any) => l.get("id") === changedLog.id);
 
         // if an assertion fails, emit step:end for the failed command
         addAnnotation(currentTest!, "step:end", {
@@ -268,8 +276,6 @@ export default function register() {
         id: changedCmd.id,
       });
       handleCypressEvent(currentTest!, "step:end", "assertion", changedCmd, error);
-
-      Cypress.off("logchanged", logChanged);
     };
 
     Cypress.on("log:changed", logChanged);
