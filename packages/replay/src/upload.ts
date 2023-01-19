@@ -70,7 +70,10 @@ class ReplayClient {
     return recordingId;
   }
 
-  buildRecordingMetadata(metadata: Record<string, unknown>, opts: Options = {}) {
+  async buildRecordingMetadata(
+    metadata: Record<string, unknown>,
+    opts: Options = {}
+  ): Promise<RecordingMetadata> {
     // extract the "standard" metadata and route the `rest` through the sanitizer
     const { duration, url, uri, title, operations, ...rest } = metadata;
 
@@ -90,7 +93,7 @@ class ReplayClient {
         lastScreenData: "",
         lastScreenMimeType: "",
       },
-      metadata: sanitizeMetadata(rest),
+      metadata: await sanitizeMetadata(rest),
     };
   }
 

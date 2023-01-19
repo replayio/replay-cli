@@ -377,7 +377,7 @@ async function doUploadRecording(
 
   // validate metadata before uploading so invalid data can block the upload
   const metadata = recording.metadata
-    ? client.buildRecordingMetadata(recording.metadata, { verbose })
+    ? await client.buildRecordingMetadata(recording.metadata, { verbose })
     : null;
   const recordingId = await client.connectionCreateRecording(recording.id, recording.buildId!);
   debug(`Created remote recording ${recordingId}`);
@@ -614,7 +614,7 @@ function addLocalRecordingMetadata(recordingId: string, metadata: Record<string,
   add(recordingId, metadata);
 }
 
-function updateMetadata({
+async function updateMetadata({
   init: metadata,
   keys = [],
   filter,
@@ -627,23 +627,14 @@ function updateMetadata({
       md = JSON.parse(metadata);
     }
 
-    const data = keys.reduce((acc, v) => {
+    const keyedObjects = await pMap<string, Record<string, any> | null>(keys, v => {
       try {
         switch (v) {
           case "source":
-            return {
-              ...acc,
-              ...sourceMetadata.init(md.source || {}),
-            };
-          case "test": {
-            return {
-              ...acc,
-              ...testMetadata.init(md.test || {}),
-            };
-          }
+            return sourceMetadata.init(md.source || {});
+          case "test":
+            return testMetadata.init(md.test || {});
         }
-
-        return acc;
       } catch (e) {
         if (!warn) {
           console.error("Unable to initialize metadata field", v);
@@ -654,12 +645,13 @@ function updateMetadata({
 
         console.warn("Unable to initialize metadata field", v);
         console.warn(String(e));
-
-        return acc;
       }
-    }, md);
 
-    const sanitized = sanitize(data);
+      return null;
+    });
+
+    const data = Object.assign(md, ...keyedObjects);
+    const sanitized = await sanitize(data);
 
     maybeLog(verbose, "Metadata:");
     maybeLog(verbose, JSON.stringify(sanitized, undefined, 2));

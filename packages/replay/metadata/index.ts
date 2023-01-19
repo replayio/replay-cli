@@ -1,12 +1,11 @@
 import { appendFileSync } from "fs";
 import path from "path";
 
-import { Options } from "../src/types";
+import { Options, UnstructuredMetadata } from "../src/types";
 import { getDirectory, maybeLog } from "../src/utils";
 
 import * as test from "./test";
 import * as source from "./source";
-import { UnstructuredMetadata } from "./types";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
@@ -24,9 +23,9 @@ function isAllowedKey(key: string): key is AllowedKey {
 // Sanitizing arbitrary recording metadata before uploading by removing any
 // non-object values (allowing null) and limiting object values to known keys or
 // userspace keys prefixed by `x-`.
-function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
+async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
   const updated: UnstructuredMetadata = {};
-  Object.keys(metadata).forEach(key => {
+  for (const key of Object.keys(metadata)) {
     const value = metadata[key];
 
     if (typeof value !== "object") {
@@ -34,7 +33,8 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
         opts.verbose,
         `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
       );
-      return;
+
+      continue;
     }
 
     if (value === null || key.startsWith("x-")) {
@@ -42,7 +42,8 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
       updated[key] = value;
     } else if (isAllowedKey(key)) {
       // validate known types
-      Object.assign(updated, handlers[key](metadata as any));
+      const validated = await handlers[key](metadata as any);
+      Object.assign(updated, validated);
     } else {
       // and warn when dropping all other types
       maybeLog(
@@ -50,7 +51,7 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
         `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
       );
     }
-  });
+  }
 
   return updated;
 }
@@ -67,7 +68,7 @@ function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
  * @param recordingId UUID of the recording
  * @param metadata Recording metadata
  */
-function add(recordingId: string, metadata: Record<string, unknown>) {
+function add(recordingId: string, metadata: UnstructuredMetadata) {
   const entry = {
     id: recordingId,
     kind: "addMetadata",
