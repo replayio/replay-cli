@@ -158,9 +158,8 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
           relativeEndTime - currentTestStep.relativeStartTime!
         );
 
-        if (step.error) {
-          currentTestStep.error = step.error;
-        }
+        // Always set the error so that a successful retry will clear a previous error
+        currentTestStep.error = step.error;
         break;
       case "test:end":
         currentTest.duration =
