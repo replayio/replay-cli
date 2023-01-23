@@ -12,9 +12,9 @@ import {
   ReplayReporterConfig,
   removeAnsiCodes,
   TestStep as ReplayTestStep,
+  getMetadataFilePath,
 } from "@replayio/test-utils";
 
-import { getMetadataFilePath } from "./index";
 import { readFileSync } from "fs";
 
 const pluginVersion = require("../package.json").version;
@@ -100,7 +100,10 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onTestBegin(test: TestCase, testResult: TestResult) {
     this.startTime = Date.now();
-    this.reporter?.onTestBegin(this.getTestId(test), getMetadataFilePath(testResult.workerIndex));
+    this.reporter?.onTestBegin(
+      this.getTestId(test),
+      getMetadataFilePath("PLAYWRIGHT", testResult.workerIndex)
+    );
   }
 
   onTestEnd(test: TestCase, result: TestResult) {

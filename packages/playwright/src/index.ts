@@ -1,6 +1,5 @@
 import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
-import { getDirectory } from "@replayio/replay/src/utils";
-import path from "path";
+import { initMetadataFilePath } from "@replayio/test-utils";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -25,7 +24,7 @@ function getDeviceConfig(browserName: BrowserName) {
   if (process.env.TEST_WORKER_INDEX) {
     const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
     env.RECORD_REPLAY_METADATA = undefined;
-    env.RECORD_REPLAY_METADATA_FILE = getMetadataFilePath(workerIndex);
+    env.RECORD_REPLAY_METADATA_FILE = initMetadataFilePath("PLAYWRIGHT", workerIndex);
   }
 
   return {
@@ -41,10 +40,6 @@ function getDeviceConfig(browserName: BrowserName) {
     },
     defaultBrowserType: browserName,
   };
-}
-
-export function getMetadataFilePath(workerIndex = 0) {
-  return path.join(getDirectory(), `PLAYWRIGHT_METADATA_${workerIndex}`);
 }
 
 export function getExecutablePath(browserName: BrowserName) {

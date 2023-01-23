@@ -1,11 +1,14 @@
 import type { JestEnvironment } from "@jest/environment";
 import type { TestFileEvent, TestResult } from "@jest/test-result";
 import type { Circus, Config } from "@jest/types";
-import { ReplayReporter, removeAnsiCodes } from "@replayio/test-utils";
+import {
+  ReplayReporter,
+  removeAnsiCodes,
+  getMetadataFilePath,
+  initMetadataFilePath,
+} from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
-
-import { getMetadataFilePath } from ".";
 
 const runner = require("jest-circus/runner");
 const pluginVersion = require("../package.json").version;
@@ -50,18 +53,17 @@ const ReplayRunner = async (
     return `${relativePath}-${name.join("-")}`;
   }
 
-  function getCurrentWorkerMetadataPath() {
-    const workerIndex = +(process.env.JEST_WORKER_ID || 0);
-    return getMetadataFilePath(workerIndex);
+  function getWorkerIndex() {
+    return +(process.env.JEST_WORKER_ID || 0);
   }
 
   function setupMetadataFile(env: NodeJS.ProcessEnv) {
     process.env.RECORD_REPLAY_METADATA_FILE = env.RECORD_REPLAY_METADATA_FILE =
-      getCurrentWorkerMetadataPath();
+      initMetadataFilePath("JEST", getWorkerIndex());
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getTestId(test), getCurrentWorkerMetadataPath());
+    reporter.onTestBegin(getTestId(test), getMetadataFilePath("JEST", getWorkerIndex()));
   }
 
   function getErrorMessage(errors: any[]) {
