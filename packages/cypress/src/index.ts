@@ -1,10 +1,12 @@
 /// <reference types="cypress" />
 
-import path from "path";
 import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
-import { getDirectory } from "@replayio/replay/src/utils";
-import { ReplayReporter } from "@replayio/test-utils";
+import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  initMetadataFile,
+  ReplayReporter,
+} from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
@@ -31,7 +33,8 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
     // current test
-    reporter.onTestBegin(undefined, getMetadataFilePath());
+    const metadataPath = getMetadataFilePath();
+    reporter.onTestBegin(undefined, metadataPath);
 
     if (config.version && semver.gte(config.version, "10.9.0")) {
       return {
@@ -42,7 +45,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
               ? __filename
               : undefined,
           RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
-          RECORD_REPLAY_METADATA_FILE: getMetadataFilePath(),
+          RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataPath),
         },
       };
     }
@@ -119,10 +122,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 };
 
 export function getMetadataFilePath(workerIndex = 0) {
-  return (
-    process.env.RECORD_REPLAY_METADATA_FILE ||
-    path.join(getDirectory(), `CYPRESS_METADATA_${workerIndex}`)
-  );
+  return getMetadataFilePathBase("CYPRESS", workerIndex);
 }
 
 export function getCypressReporter() {

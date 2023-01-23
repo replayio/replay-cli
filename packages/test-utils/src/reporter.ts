@@ -1,9 +1,9 @@
 import { listAllRecordings } from "@replayio/replay";
-import { getDirectory } from "@replayio/replay/src/utils";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync } from "fs";
-import path from "path";
 const uuid = require("uuid");
+
+import { getMetadataFilePath } from "./metadata";
 
 import { pingTestMetrics } from "./metrics";
 
@@ -47,10 +47,6 @@ export interface TestRunner {
   name?: string;
   version?: string;
   plugin?: string;
-}
-
-export function getMetadataFilePath(workerIndex = 0) {
-  return path.join(getDirectory(), `REPLAY_TEST_METADATA_${workerIndex}`);
 }
 
 function parseRuntime(runtime?: string) {
@@ -124,7 +120,7 @@ class ReplayReporter {
     this.parseConfig(config, metadataKey);
   }
 
-  onTestBegin(testId?: string, metadataFilePath = getMetadataFilePath(0)) {
+  onTestBegin(testId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
     this.startTimes[this.getTestId(testId)] = Date.now();
     writeFileSync(
       metadataFilePath,

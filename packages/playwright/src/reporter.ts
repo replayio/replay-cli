@@ -12,12 +12,16 @@ import {
   ReplayReporterConfig,
   removeAnsiCodes,
   TestStep as ReplayTestStep,
+  getMetadataFilePath as getMetadataFilePathBase,
 } from "@replayio/test-utils";
 
-import { getMetadataFilePath } from "./index";
 import { readFileSync } from "fs";
 
 const pluginVersion = require("../package.json").version;
+
+export function getMetadataFilePath(workerIndex = 0) {
+  return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
+}
 
 function extractErrorMessage(errorStep?: TestStep) {
   const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
