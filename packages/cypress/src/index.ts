@@ -16,10 +16,6 @@ let cypressReporter: CypressReporter;
 
 const pluginVersion = require("../package.json").version;
 
-export function getMetadataFilePath() {
-  return getMetadataFilePathBase("CYPRESS", 0);
-}
-
 const plugin: Cypress.PluginConfig = (on, config) => {
   initFixtureFile();
 
@@ -124,6 +120,10 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
   return config;
 };
+
+export function getMetadataFilePath(workerIndex = 0) {
+  return getMetadataFilePathBase("CYPRESS", workerIndex);
+}
 
 export function getCypressReporter() {
   return cypressReporter;
