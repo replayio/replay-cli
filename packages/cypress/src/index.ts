@@ -2,7 +2,11 @@
 
 import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
-import { getMetadataFilePath, initMetadataFilePath, ReplayReporter } from "@replayio/test-utils";
+import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  initMetadataFile,
+  ReplayReporter,
+} from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
@@ -11,6 +15,10 @@ import CypressReporter from "./reporter";
 let cypressReporter: CypressReporter;
 
 const pluginVersion = require("../package.json").version;
+
+export function getMetadataFilePath() {
+  return getMetadataFilePathBase("CYPRESS", 0);
+}
 
 const plugin: Cypress.PluginConfig = (on, config) => {
   initFixtureFile();
@@ -29,7 +37,8 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
     // current test
-    reporter.onTestBegin(undefined, getMetadataFilePath("CYPRESS"));
+    const metadataPath = getMetadataFilePath();
+    reporter.onTestBegin(undefined, metadataPath);
 
     if (config.version && semver.gte(config.version, "10.9.0")) {
       return {
@@ -40,7 +49,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
               ? __filename
               : undefined,
           RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
-          RECORD_REPLAY_METADATA_FILE: initMetadataFilePath("CYPRESS"),
+          RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataPath),
         },
       };
     }
@@ -51,7 +60,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
     cypressReporter.clearSteps();
     cypressReporter.setStartTime(startTime);
-    reporter.onTestBegin(undefined, getMetadataFilePath("CYPRESS"));
+    reporter.onTestBegin(undefined, getMetadataFilePath());
   });
   on("after:spec", (spec, result) => {
     appendToFixtureFile("spec:end", { spec, result });

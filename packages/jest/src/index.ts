@@ -1,6 +1,3 @@
-import path from "path";
-import { getDirectory } from "@replayio/replay/src/utils";
+import ReplayRunner, { getMetadataFilePath } from "./runner";
 
-import ReplayRunner from "./runner";
-
-export { ReplayRunner };
+export { ReplayRunner, getMetadataFilePath };

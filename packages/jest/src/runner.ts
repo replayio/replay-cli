@@ -4,14 +4,18 @@ import type { Circus, Config } from "@jest/types";
 import {
   ReplayReporter,
   removeAnsiCodes,
-  getMetadataFilePath,
-  initMetadataFilePath,
+  getMetadataFilePath as getMetadataFilePathBase,
+  initMetadataFile,
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
 
 const runner = require("jest-circus/runner");
 const pluginVersion = require("../package.json").version;
+
+export function getMetadataFilePath(workerIndex = 0) {
+  return getMetadataFilePathBase("JEST", workerIndex);
+}
 
 let version: string | undefined;
 
@@ -58,12 +62,13 @@ const ReplayRunner = async (
   }
 
   function setupMetadataFile(env: NodeJS.ProcessEnv) {
-    process.env.RECORD_REPLAY_METADATA_FILE = env.RECORD_REPLAY_METADATA_FILE =
-      initMetadataFilePath("JEST", getWorkerIndex());
+    process.env.RECORD_REPLAY_METADATA_FILE = env.RECORD_REPLAY_METADATA_FILE = initMetadataFile(
+      getMetadataFilePath(getWorkerIndex())
+    );
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getTestId(test), getMetadataFilePath("JEST", getWorkerIndex()));
+    reporter.onTestBegin(getTestId(test), getMetadataFilePath(getWorkerIndex()));
   }
 
   function getErrorMessage(errors: any[]) {

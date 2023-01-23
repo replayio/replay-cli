@@ -1,5 +1,7 @@
 import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
-import { initMetadataFilePath } from "@replayio/test-utils";
+import { initMetadataFile } from "@replayio/test-utils";
+
+import { getMetadataFilePath } from "./reporter";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -23,8 +25,9 @@ function getDeviceConfig(browserName: BrowserName) {
   // up by the driver when it creates a new recording
   if (process.env.TEST_WORKER_INDEX) {
     const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
+    const path = getMetadataFilePath(workerIndex);
     env.RECORD_REPLAY_METADATA = undefined;
-    env.RECORD_REPLAY_METADATA_FILE = initMetadataFilePath("PLAYWRIGHT", workerIndex);
+    env.RECORD_REPLAY_METADATA_FILE = initMetadataFile(path);
   }
 
   return {
@@ -54,3 +57,5 @@ export const devices = {
     return getDeviceConfig("chromium");
   },
 };
+
+export { getMetadataFilePath };

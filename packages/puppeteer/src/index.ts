@@ -1,6 +1,8 @@
 import { getPuppeteerBrowserPath, BrowserName } from "@replayio/replay";
-import { getDirectory } from "@replayio/replay/src/utils";
-import path from "path";
+import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  initMetadataFile,
+} from "@replayio/test-utils";
 
 const browserName: BrowserName = "chromium";
 function getDeviceConfig() {
@@ -9,6 +11,7 @@ function getDeviceConfig() {
   const env: Record<string, any> = {
     ...process.env,
     RECORD_ALL_CONTENT: 1,
+    RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
   };
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
@@ -29,7 +32,7 @@ function getDeviceConfig() {
 }
 
 export function getMetadataFilePath(workerIndex = 0) {
-  return path.join(getDirectory(), `PUPPETEER_METADATA_${workerIndex}`);
+  return getMetadataFilePathBase("PUPPETEER", workerIndex);
 }
 
 export function getExecutablePath() {

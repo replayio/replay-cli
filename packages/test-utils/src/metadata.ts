@@ -1,4 +1,4 @@
-import { writeFileSync } from "fs";
+import { writeFileSync, existsSync } from "fs";
 import path from "path";
 import { getDirectory } from "@replayio/replay/src/utils";
 
@@ -9,11 +9,11 @@ export function getMetadataFilePath(base: string, workerIndex = 0) {
   );
 }
 
-export function initMetadataFilePath(base: string, workerIndex = 0) {
-  let path = "";
+export function initMetadataFile(path: string) {
   try {
-    path = getMetadataFilePath(base, workerIndex);
-    writeFileSync(path, "{}");
+    if (!existsSync(path)) {
+      writeFileSync(path, "{}");
+    }
 
     return path;
   } catch (e) {
