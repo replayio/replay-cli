@@ -64,7 +64,7 @@ class CypressReporter {
         // if it exists.
         ...foundTest,
         relativePath: spec.relative,
-        path: ["", this.selectedBrowser || "", spec.relative, spec.specType || ""],
+        path: ["", this.selectedBrowser || "", spec.relative, ...(foundTest?.path || [])],
         result: t.state == "failed" ? "failed" : "passed",
         error,
       };
