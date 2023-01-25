@@ -62,7 +62,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
     .filter(a => a.event === "test:start")
     .map(step => ({
       title: step.test[step.test.length - 1] || step.file,
-      path: [],
+      path: step.test,
       result: "passed",
       relativePath: step.file,
       relativeStartTime: toRelativeTime(step.timestamp, firstTimestamp),
