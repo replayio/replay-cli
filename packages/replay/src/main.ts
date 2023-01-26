@@ -403,24 +403,35 @@ async function doUploadRecording(
     client.connectionProcessRecording(recordingId);
   }
 
-  await client.connectionUploadRecording(recordingId, recording.path!);
-
-  for (const sourcemap of recording.sourcemaps) {
-    try {
-      const contents = fs.readFileSync(sourcemap.path, "utf8");
-      const sourcemapId = await client.connectionUploadSourcemap(recordingId, sourcemap, contents);
-      for (const originalSource of sourcemap.originalSources) {
-        const contents = fs.readFileSync(originalSource.path, "utf8");
-        await client.connectionUploadOriginalSource(
+  const [upload, ...sourcemaps] = await Promise.allSettled([
+    client.connectionUploadRecording(recordingId, recording.path!),
+    ...recording.sourcemaps.map(async sourcemap => {
+      try {
+        const contents = fs.readFileSync(sourcemap.path, "utf8");
+        const sourcemapId = await client.connectionUploadSourcemap(
           recordingId,
-          sourcemapId,
-          originalSource,
+          sourcemap,
           contents
         );
+        for (const originalSource of sourcemap.originalSources) {
+          const contents = fs.readFileSync(originalSource.path, "utf8");
+          await client.connectionUploadOriginalSource(
+            recordingId,
+            sourcemapId,
+            originalSource,
+            contents
+          );
+        }
+      } catch (e) {
+        maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
       }
-    } catch (e) {
-      maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
-    }
+    }),
+  ]);
+
+  if (upload.status === "rejected") {
+    maybeLog(verbose, "Failed to upload " + recordingId);
+
+    return null;
   }
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
