@@ -113,11 +113,15 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
           activeGroup = { groupId: step.command.groupId, parentId: step.command.id };
         }
 
+        // Simplify args to avoid sending large objects in metadata that we
+        // won't render in the UI anyway
+        const args = step.command!.args.map(a => (a && typeof a === "object" ? {} : a));
+
         const testStep = {
           id: step.command!.id,
           parentId,
           name: step.command!.name,
-          args: step.command!.args,
+          args: args,
           relativeStartTime:
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
           category: step.category || "other",
