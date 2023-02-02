@@ -643,13 +643,13 @@ async function updateMetadata({
       md = JSON.parse(metadata);
     }
 
-    const keyedObjects = await pMap<string, Record<string, any> | null>(keys, v => {
+    const keyedObjects = await pMap<string, Record<string, any> | null>(keys, async v => {
       try {
         switch (v) {
           case "source":
-            return sourceMetadata.init(md.source || {});
+            return await sourceMetadata.init(md.source || {});
           case "test":
-            return testMetadata.init(md.test || {});
+            return await testMetadata.init(md.test || {});
         }
       } catch (e) {
         if (!warn) {
