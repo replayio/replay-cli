@@ -257,14 +257,10 @@ export default function register() {
 
       const failedCommand: Cypress.CommandQueue = nextAssertion?.get("prev");
       if (error && failedCommand) {
-        const failedCommandLog = failedCommand
-          .get("logs")
-          ?.find((l: any) => l.get("id") === changedLog.id);
-
         // if an assertion fails, emit step:end for the failed command
         addAnnotation(currentTest!, "step:end", {
           commandVariable: "failedCommand",
-          logVariable: failedCommandLog ? "failedCommandLog" : undefined,
+          logVariable: "changedLog",
           id: getReplayId(getCypressId(failedCommand)),
         });
         handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(failedCommand));
