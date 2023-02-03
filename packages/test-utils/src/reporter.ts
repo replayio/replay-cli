@@ -1,11 +1,13 @@
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import { writeFileSync } from "fs";
+import dbg from "debug";
 const uuid = require("uuid");
 
 import { getMetadataFilePath } from "./metadata";
-
 import { pingTestMetrics } from "./metrics";
+
+const debug = dbg("replay:test-utils:reporter");
 
 export interface ReplayReporterConfig {
   runTitle?: string;
@@ -118,38 +120,46 @@ class ReplayReporter {
 
   onTestSuiteBegin(config?: ReplayReporterConfig, metadataKey?: string) {
     this.parseConfig(config, metadataKey);
+
+    debug("onTestSuiteBegin: Reporter Configuration: %o", {
+      baseId: this.baseId,
+      runTitle: this.runTitle,
+      runner: this.runner,
+      baseMetadata: this.baseMetadata,
+    });
   }
 
   onTestBegin(testId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
     this.startTimes[this.getTestId(testId)] = Date.now();
-    writeFileSync(
-      metadataFilePath,
-      JSON.stringify(
-        {
-          ...(this.baseMetadata || {}),
-          "x-replay-test": {
-            id: this.getTestId(testId),
-          },
-        },
-        undefined,
-        2
-      ),
-      {}
-    );
+    const metadata = {
+      ...(this.baseMetadata || {}),
+      "x-replay-test": {
+        id: this.getTestId(testId),
+      },
+    };
+
+    debug("onTestBegin: Writing metadata to %s: %o", metadataFilePath, metadata);
+
+    writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
   }
 
   onTestEnd(tests: Test[], replayTitle?: string, extraMetadata?: Record<string, unknown>) {
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
+      debug("onTestEnd: No tests found");
       return;
     }
 
+    const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
+      tests.map(test => this.getTestId(test.id))
+    )} and $not($exists($v.metadata.test)) }`;
+
     const recs = listAllRecordings({
-      filter: `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
-        tests.map(test => this.getTestId(test.id))
-      )} and $not($exists($v.metadata.test)) }`,
+      filter,
     });
+
+    debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
 
     const test = tests[0];
     const results = tests.map(t => t.result);
@@ -164,6 +174,9 @@ class ReplayReporter {
     if (recs.length > 0) {
       recordingId = recs[0].id;
       runtime = recs[0].runtime;
+
+      debug("onTestEnd: Adding test metadata to %s", recordingId);
+
       recs.forEach(rec =>
         add(rec.id, {
           title: replayTitle || test.title,

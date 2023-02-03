@@ -1,6 +1,7 @@
 /// <reference types="cypress" />
 
 import { Test, TestStep } from "@replayio/test-utils";
+import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
 
@@ -40,18 +41,35 @@ function assertMatchingStep(
   }
 }
 
-function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
+function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.Debugger) {
+  debug = debug.extend("skip");
   const lastArg = step.command?.args?.[step.command.args.length - 1];
 
-  return (
-    (lastArg != null && typeof lastArg === "object" && lastArg.log === false) ||
-    skippedSteps.includes(step.command?.id as any) ||
-    skippedSteps.includes(step.command?.groupId as any)
-  );
+  let reason: string | undefined;
+  if (lastArg != null && typeof lastArg === "object" && lastArg.log === false) {
+    reason = "Command logging disabled";
+  } else if (skippedSteps.includes(step.command?.id as any)) {
+    reason = "Prior step event already skipped";
+  } else if (skippedSteps.includes(step.command?.groupId as any)) {
+    reason = "Parent skipped";
+  }
+
+  if (reason) {
+    debug("Test step %s skipped: %s", step.command?.id || "", reason);
+    return true;
+  }
+
+  return false;
 }
 
-function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
+function groupStepsByTest(
+  steps: StepEvent[],
+  firstTimestamp: number,
+  debug: debug.Debugger
+): Test[] {
+  debug = debug.extend("group");
   if (steps.length === 0) {
+    debug("No test steps found");
     return [];
   }
 
@@ -68,6 +86,12 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
       relativeStartTime: toRelativeTime(step.timestamp, firstTimestamp),
       steps: [],
     }));
+
+  debug("Found %d tests", tests.length);
+  debug(
+    "%O",
+    tests.map(t => t.title)
+  );
 
   const stepStack: StepStackItem[] = [];
   const skippedStepIds: string[] = [];
@@ -89,6 +113,8 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
     currentTest = testForStep;
     assertCurrentTest(currentTest);
 
+    debug("Processing %s event: %o", step.event, step);
+
     switch (step.event) {
       case "step:enqueue":
         // ignore for now ...
@@ -96,7 +122,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
       case "step:start":
         let parentId: string | undefined;
 
-        if (shouldSkipStep(step, skippedStepIds)) {
+        if (shouldSkipStep(step, skippedStepIds, debug)) {
           if (step.command?.id) {
             skippedStepIds.push(step.command.id);
           }
@@ -144,6 +170,7 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
 
         // TODO [ryanjduffy]: Skipping handling after each events for now
         if (step.test[0] === AFTER_EACH_HOOK) {
+          debug("After each hooks are not currently supported");
           continue;
         }
 
