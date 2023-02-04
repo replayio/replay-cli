@@ -29,6 +29,9 @@ export interface TestStep {
   duration?: number;
   hook?: "beforeEach" | "afterEach";
   category: "command" | "assertion" | "other";
+  // Links an assert to the triggering command
+  commandId?: string;
+  assertIds?: string[];
 }
 
 export interface Test {
