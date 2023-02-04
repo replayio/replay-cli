@@ -106,7 +106,6 @@ function getCypressId(cmd: Cypress.CommandQueue): string {
 }
 
 function toCommandJSON(cmd: Cypress.CommandQueue): CommandLike {
-  const next = cmd.get("next");
   return {
     name: cmd.get("name"),
     id: getReplayId(getCypressId(cmd)),
@@ -220,11 +219,15 @@ export default function register() {
       : lastCommand?.get("next");
 
     if (maybeCurrentAssertion?.get("type") !== "assertion") {
-      console.error("?????", maybeCurrentAssertion);
+      // debug("Received an assertion log without a prior assertion or command: %o", {
+      //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
+      //   lastCommandId: lastCommand && getCypressId(lastCommand),
+      //   currentAssertion: maybeCurrentAssertion && maybeCurrentAssertion.toJSON(),
+      // });
       return;
     }
 
-    const assertionId = getReplayId(maybeCurrentAssertion.get("id"));
+    const assertionId = getReplayId(getCypressId(maybeCurrentAssertion));
 
     // store the current assertion as the last assertion so we can identify the
     // enqueued command for chained assertions
@@ -236,7 +239,7 @@ export default function register() {
       groupId: log.chainerId && getReplayId(log.chainerId),
       args: [log.consoleProps.Message],
       category: "assertion",
-      commandId: lastCommand ? getReplayId(lastCommand.get("id")) : undefined,
+      commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
     };
     addAnnotation(currentTest!, "step:start", {
       commandVariable: "lastCommand",
