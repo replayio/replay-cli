@@ -117,16 +117,28 @@ function groupStepsByTest(steps: StepEvent[], firstTimestamp: number): Test[] {
         // won't render in the UI anyway
         const args = step.command!.args.map(a => (a && typeof a === "object" ? {} : a));
 
-        const testStep = {
+        const testStep: TestStep = {
           id: step.command!.id,
           parentId,
           name: step.command!.name,
           args: args,
+          commandId: step.command!.commandId,
           relativeStartTime:
             toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
           category: step.category || "other",
           hook: step.hook,
         };
+
+        // If this assertion has an associated commandId, find that step by
+        // command and add this command to its assertIds array
+        if (step.command!.commandId) {
+          const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
+          if (commandStep) {
+            commandStep.assertIds = commandStep?.assertIds || [];
+            commandStep.assertIds.push(testStep.id);
+          }
+        }
+
         currentTest.steps!.push(testStep);
         stepStack.push({ event: step, step: testStep });
         break;
