@@ -2,9 +2,9 @@ import os from "os";
 import fetch from "node-fetch";
 
 function shouldReportTestMetrics() {
-  const optIn = process.env.RECORD_REPLAY_TEST_METRICS;
+  const optOut = process.env.RECORD_REPLAY_TEST_METRICS?.toLowerCase();
 
-  return optIn && optIn !== "0" && optIn !== "false";
+  return !optOut || !(optOut === "0" || optOut === "false");
 }
 
 async function pingTestMetrics(
@@ -16,6 +16,7 @@ async function pingTestMetrics(
     recorded: boolean;
     runtime?: string;
     runner?: string;
+    result?: string;
   }
 ) {
   if (!shouldReportTestMetrics()) return;

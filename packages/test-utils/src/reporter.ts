@@ -208,6 +208,7 @@ class ReplayReporter {
         recorded: !!recordingId,
         runtime: parseRuntime(runtime),
         runner: this.runner?.name,
+        result: result,
       });
     }
   }
