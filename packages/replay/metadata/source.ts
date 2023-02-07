@@ -23,7 +23,11 @@ class GitHubHttpError extends Error {
 }
 
 function getCircleCISourceControlProvider(env: NodeJS.ProcessEnv) {
-  return env.CIRCLE_PULL_REQUEST?.startsWith("https://github.com") ? "github" : "";
+  return env.CIRCLE_PULL_REQUEST?.startsWith("https://github.com")
+    ? "github"
+    : env.CIRCLE_PULL_REQUEST?.startsWith("https://bitbucket.com")
+    ? "bitbucket"
+    : undefined;
 }
 
 function getCircleCIRepository(env: NodeJS.ProcessEnv) {
@@ -44,7 +48,7 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
   } = process.env;
 
-  if (!!repo || !sha) return;
+  if (!repo || !sha) return;
 
   const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
 
@@ -78,7 +82,7 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
     RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
   } = process.env;
 
-  if (!!repo || !pr) return;
+  if (!repo || !pr) return;
 
   const url = `https://api.github.com/repos/${repo}/pulls/${pr}`;
 
@@ -171,12 +175,7 @@ const versions: () => Record<number, Struct> = () => ({
         "RECORD_REPLAY_METADATA_SOURCE_PROVIDER",
         env => env.GITHUB_WORKFLOW && "github",
         "BUILDKITE_PIPELINE_PROVIDER",
-        env =>
-          env.CIRCLE_REPOSITORY_URL?.includes("github.com")
-            ? "github"
-            : env.CIRCLE_REPOSITORY_URL?.includes("bitbucket.com")
-            ? "bitbucket"
-            : undefined
+        getCircleCISourceControlProvider
       )
     ),
     repository: optional(
