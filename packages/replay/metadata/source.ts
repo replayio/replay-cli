@@ -1,5 +1,6 @@
 import { number, Struct } from "superstruct";
 import fetch from "node-fetch";
+import dbg from "debug";
 const { create, object, optional, defaulted } = require("superstruct");
 
 import { UnstructuredMetadata } from "../src/types";
@@ -7,7 +8,23 @@ import { envString } from "./env";
 
 const defaultObject = (objStruct: any) => optional(defaulted(object(objStruct), {}));
 
+const debug = dbg("replay:cli:metadata:source");
 const VERSION = 1;
+
+class GitHubHttpError extends Error {
+  status: number;
+  statusText: string;
+
+  constructor(status: number, statusText: string) {
+    super();
+    this.status = status;
+    this.statusText = statusText;
+  }
+}
+
+function getCircleCISourceControlProvider(env: NodeJS.ProcessEnv) {
+  return env.CIRCLE_PULL_REQUEST?.startsWith("https://github.com") ? "github" : "";
+}
 
 function getCircleCIRepository(env: NodeJS.ProcessEnv) {
   return env.CIRCLE_PROJECT_USERNAME && env.CIRCLE_PROJECT_REPONAME
@@ -16,6 +33,7 @@ function getCircleCIRepository(env: NodeJS.ProcessEnv) {
 }
 
 function getCircleCIMergeId(env: NodeJS.ProcessEnv) {
+  debug("Extracting merge id from %s", env.CIRCLE_PULL_REQUEST);
   return env.CIRCLE_PULL_REQUEST?.split("/").pop();
 }
 
@@ -26,14 +44,18 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
   } = process.env;
 
-  if (!GITHUB_TOKEN || !repo || !sha) return;
+  if (!!repo || !sha) return;
 
   const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
 
+  debug("Fetching commit metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
+
   const resp = await fetch(url, {
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-    },
+    headers: GITHUB_TOKEN
+      ? {
+          Authorization: `token ${GITHUB_TOKEN}`,
+        }
+      : undefined,
   });
 
   if (resp.status === 200) {
@@ -43,6 +65,9 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
       json.commit.message.split("\n").shift().substring(0, 80);
     process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL =
       RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL || json.html_url;
+  } else {
+    debug("Failed to fetch GitHub commit metadata: %o", resp);
+    throw new GitHubHttpError(resp.status, resp.statusText);
   }
 }
 
@@ -53,13 +78,18 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
     RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
   } = process.env;
 
-  if (!GITHUB_TOKEN || !repo || !pr) return;
+  if (!!repo || !pr) return;
 
   const url = `https://api.github.com/repos/${repo}/pulls/${pr}`;
+
+  debug("Fetching merge metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
+
   const resp = await fetch(url, {
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-    },
+    headers: GITHUB_TOKEN
+      ? {
+          Authorization: `token ${GITHUB_TOKEN}`,
+        }
+      : undefined,
   });
 
   if (resp.status === 200) {
@@ -68,6 +98,9 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
       RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE || json.title;
     process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL =
       RECORD_REPLAY_METADATA_SOURCE_MERGE_URL || json.html_url;
+  } else {
+    debug("Failed to fetch GitHub commit metadata: %o", resp);
+    throw new GitHubHttpError(resp.status, resp.statusText);
   }
 }
 
@@ -173,10 +206,26 @@ async function expandEnvironment() {
 
   try {
     if (CIRCLECI) {
+      const provider = getCircleCISourceControlProvider(process.env);
+
+      if (provider !== "github") {
+        debug("Unsupported source control provider: %s", process.env.CIRCLE_PULL_REQUEST);
+        return;
+      }
+
       await expandCommitMetadataFromGitHub(repo, CIRCLE_SHA1);
       await expandMergeMetadataFromGitHub(repo, getCircleCIMergeId(process.env));
     }
   } catch (e) {
+    if (e instanceof GitHubHttpError) {
+      console.warn(`Unable to fetch pull request from GitHub: ${e.statusText}`);
+      if (!process.env.GITHUB_TOKEN && e.status === 404) {
+        console.warn(
+          "If this is a private repo, you can set the GITHUB_TOKEN environment variable\nwith a personal access token to allow the Replay CLI to fetch this metadata."
+        );
+      }
+    }
+
     console.warn("Failed to expand environment details", e);
   }
 }
