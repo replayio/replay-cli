@@ -44,7 +44,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
     debugEvents("Browser launching: %o", { family: browser.family, metadataPath });
 
-    if (config.version && semver.gte(config.version, "10.9.0")) {
+    if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
       const env = {
         RECORD_REPLAY_DRIVER:
           process.env.RECORD_REPLAY_NO_RECORD && browser.family === "chromium"
