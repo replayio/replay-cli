@@ -160,154 +160,202 @@ function addAnnotation(
     window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
 }
 
+function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
+  return typeof cmd.toJSON === "function";
+}
+
 export default function register() {
   let lastCommand: Cypress.CommandQueue | undefined;
   let lastAssertionCommand: Cypress.CommandQueue | undefined;
   let currentTest: typeof Cypress.currentTest | undefined;
 
   Cypress.on("command:enqueued", cmd => {
-    // in cypress open, beforeEach isn't called so fetch the current test here
-    // as a fallback
-    currentTest = currentTest || getCurrentTest();
+    try {
+      // in cypress open, beforeEach isn't called so fetch the current test here
+      // as a fallback
+      currentTest = currentTest || getCurrentTest();
 
-    const id = getReplayId(cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString());
-    addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
-    handleCypressEvent(currentTest!, "step:enqueue", "other", {
-      id,
-      groupId: getReplayId(cmd.chainerId),
-      name: cmd.name,
-      args: cmd.args,
-    });
-  });
-  Cypress.on("command:start", cmd => {
-    lastCommand = cmd;
-    lastAssertionCommand = undefined;
-
-    addAnnotation(currentTest!, "step:start", {
-      commandVariable: "cmd",
-      id: getReplayId(getCypressId(cmd)),
-    });
-    return handleCypressEvent(currentTest!, "step:start", "command", toCommandJSON(cmd));
-  });
-  Cypress.on("command:end", cmd => {
-    const log = cmd
-      .get("logs")
-      .find((l: any) => l.get("name") === cmd.get("name"))
-      ?.toJSON();
-    addAnnotation(currentTest!, "step:end", {
-      commandVariable: "cmd",
-      logVariable: log ? "log" : undefined,
-      id: getReplayId(getCypressId(cmd)),
-    });
-    handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
-  });
-  Cypress.on("log:added", log => {
-    if (log.name === "new url") {
-      addAnnotation(currentTest!, "event:navigation", {
-        logVariable: "log",
-        url: log.url,
-        id: getReplayId(log.id),
-      });
-
-      return;
-    } else if (log.name !== "assert") {
-      return;
-    }
-
-    const maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
-      ? lastAssertionCommand.get("next")
-      : lastCommand?.get("next");
-
-    if (maybeCurrentAssertion?.get("type") !== "assertion") {
-      // debug("Received an assertion log without a prior assertion or command: %o", {
-      //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
-      //   lastCommandId: lastCommand && getCypressId(lastCommand),
-      //   currentAssertion: maybeCurrentAssertion && maybeCurrentAssertion.toJSON(),
-      // });
-      return;
-    }
-
-    const assertionId = getReplayId(getCypressId(maybeCurrentAssertion));
-
-    // store the current assertion as the last assertion so we can identify the
-    // enqueued command for chained assertions
-    lastAssertionCommand = maybeCurrentAssertion;
-
-    const cmd = {
-      name: log.name,
-      id: assertionId,
-      groupId: log.chainerId && getReplayId(log.chainerId),
-      args: [log.consoleProps.Message],
-      category: "assertion",
-      commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
-    };
-    addAnnotation(currentTest!, "step:start", {
-      commandVariable: "lastCommand",
-      logVariable: "log",
-      id: cmd.id,
-    });
-    handleCypressEvent(currentTest!, "step:start", "assertion", cmd);
-
-    const logChanged = (changedLog: any) => {
-      // This callback may be invoked multiple times for an assertion if Cypress
-      // retries the evaluation. There doesn't appear to be an indication when
-      // it's done retrying and it doesn't report `command:end` for failed
-      // events so we're stuck capturing all of these and then ignoring the
-      // intermediate events.
-
-      if (changedLog.id !== log.id || !["passed", "failed"].includes(changedLog.state)) return;
-
-      // We only care about asserts
-      const changedCmd = {
-        ...cmd,
-        // Update args which can be updated when an assert resolves
-        args: [changedLog.consoleProps.Message],
-      };
-
-      const error = changedLog.err
-        ? {
-            name: changedLog.err.name,
-            message: changedLog.err.message,
-            line: changedLog.err.codeFrame?.line,
-            column: changedLog.err.codeFrame?.column,
-          }
-        : undefined;
-
-      if (error && lastCommand) {
-        const failedCommandLog = lastCommand
-          .get("logs")
-          ?.find((l: any) => l.get("id") === changedLog.id);
-
-        // if an assertion fails, emit step:end for the failed command
-        addAnnotation(currentTest!, "step:end", {
-          commandVariable: "lastCommand",
-          logVariable: failedCommandLog ? "failedCommandLog" : undefined,
-          id: getReplayId(getCypressId(lastCommand)),
-        });
-        handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(lastCommand));
+      // Sometimes, cmd is an instance of Cypress.CommandQueue but we can loosely
+      // covert it using its toJSON method (which is typed wrong so we have to
+      // cast it to any first)
+      if (isCommandQueue(cmd)) {
+        cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
       }
 
-      addAnnotation(currentTest!, "step:end", {
-        commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
-        logVariable: "changedLog",
-        id: changedCmd.id,
+      const id = getReplayId(
+        cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString()
+      );
+      addAnnotation(currentTest!, "step:enqueue", { commandVariable: "cmd", id });
+      handleCypressEvent(currentTest!, "step:enqueue", "other", {
+        id,
+        groupId: getReplayId(cmd.chainerId),
+        name: cmd.name,
+        args: cmd.args,
       });
-      handleCypressEvent(currentTest!, "step:end", "assertion", changedCmd, error);
-    };
+    } catch (e) {
+      console.error("Replay: Failed to handle command:enqueue event");
+      console.error(e);
+    }
+  });
+  Cypress.on("command:start", cmd => {
+    try {
+      lastCommand = cmd;
+      lastAssertionCommand = undefined;
 
-    Cypress.on("log:changed", logChanged);
+      addAnnotation(currentTest!, "step:start", {
+        commandVariable: "cmd",
+        id: getReplayId(getCypressId(cmd)),
+      });
+      return handleCypressEvent(currentTest!, "step:start", "command", toCommandJSON(cmd));
+    } catch (e) {
+      console.error("Replay: Failed to handle command:start event");
+      console.error(e);
+    }
+  });
+  Cypress.on("command:end", cmd => {
+    try {
+      const log = cmd
+        .get("logs")
+        .find((l: any) => l.get("name") === cmd.get("name"))
+        ?.toJSON();
+      addAnnotation(currentTest!, "step:end", {
+        commandVariable: "cmd",
+        logVariable: log ? "log" : undefined,
+        id: getReplayId(getCypressId(cmd)),
+      });
+      handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
+    } catch (e) {
+      console.error("Replay: Failed to handle command:end event");
+      console.error(e);
+    }
+  });
+  Cypress.on("log:added", log => {
+    try {
+      if (log.name === "new url") {
+        addAnnotation(currentTest!, "event:navigation", {
+          logVariable: "log",
+          url: log.url,
+          id: getReplayId(log.id),
+        });
+
+        return;
+      } else if (log.name !== "assert") {
+        return;
+      }
+
+      const maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
+        ? lastAssertionCommand.get("next")
+        : lastCommand?.get("next");
+
+      if (maybeCurrentAssertion?.get("type") !== "assertion") {
+        // debug("Received an assertion log without a prior assertion or command: %o", {
+        //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
+        //   lastCommandId: lastCommand && getCypressId(lastCommand),
+        //   currentAssertion: maybeCurrentAssertion && maybeCurrentAssertion.toJSON(),
+        // });
+        return;
+      }
+
+      const assertionId = getReplayId(getCypressId(maybeCurrentAssertion));
+
+      // store the current assertion as the last assertion so we can identify the
+      // enqueued command for chained assertions
+      lastAssertionCommand = maybeCurrentAssertion;
+
+      const cmd = {
+        name: log.name,
+        id: assertionId,
+        groupId: log.chainerId && getReplayId(log.chainerId),
+        args: [log.consoleProps.Message],
+        category: "assertion",
+        commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
+      };
+      addAnnotation(currentTest!, "step:start", {
+        commandVariable: "lastCommand",
+        logVariable: "log",
+        id: cmd.id,
+      });
+      handleCypressEvent(currentTest!, "step:start", "assertion", cmd);
+
+      const logChanged = (changedLog: any) => {
+        try {
+          // This callback may be invoked multiple times for an assertion if Cypress
+          // retries the evaluation. There doesn't appear to be an indication when
+          // it's done retrying and it doesn't report `command:end` for failed
+          // events so we're stuck capturing all of these and then ignoring the
+          // intermediate events.
+
+          if (changedLog.id !== log.id || !["passed", "failed"].includes(changedLog.state)) return;
+
+          // We only care about asserts
+          const changedCmd = {
+            ...cmd,
+            // Update args which can be updated when an assert resolves
+            args: [changedLog.consoleProps.Message],
+          };
+
+          const error = changedLog.err
+            ? {
+                name: changedLog.err.name,
+                message: changedLog.err.message,
+                line: changedLog.err.codeFrame?.line,
+                column: changedLog.err.codeFrame?.column,
+              }
+            : undefined;
+
+          if (error && lastCommand) {
+            const failedCommandLog = lastCommand
+              .get("logs")
+              ?.find((l: any) => l.get("id") === changedLog.id);
+
+            // if an assertion fails, emit step:end for the failed command
+            addAnnotation(currentTest!, "step:end", {
+              commandVariable: "lastCommand",
+              logVariable: failedCommandLog ? "failedCommandLog" : undefined,
+              id: getReplayId(getCypressId(lastCommand)),
+            });
+            handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(lastCommand));
+          }
+
+          addAnnotation(currentTest!, "step:end", {
+            commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
+            logVariable: "changedLog",
+            id: changedCmd.id,
+          });
+          handleCypressEvent(currentTest!, "step:end", "assertion", changedCmd, error);
+        } catch (e) {
+          console.error("Replay: Failed to handle log:changed event");
+          console.error(e);
+        }
+      };
+
+      Cypress.on("log:changed", logChanged);
+    } catch (e) {
+      console.error("Replay: Failed to handle log:added event");
+      console.error(e);
+    }
   });
   beforeEach(() => {
-    currentTest = getCurrentTest();
-    if (currentTest) {
-      handleCypressEvent(currentTest!, "test:start");
-      addAnnotation(currentTest!, "test:start");
+    try {
+      currentTest = getCurrentTest();
+      if (currentTest) {
+        handleCypressEvent(currentTest!, "test:start");
+        addAnnotation(currentTest!, "test:start");
+      }
+    } catch (e) {
+      console.error("Replay: Failed to handle test:start event");
+      console.error(e);
     }
   });
   afterEach(() => {
-    if (currentTest) {
-      handleCypressEvent(currentTest!, "test:end");
-      addAnnotation(currentTest!, "test:end");
+    try {
+      if (currentTest) {
+        handleCypressEvent(currentTest!, "test:end");
+        addAnnotation(currentTest!, "test:end");
+      }
+    } catch (e) {
+      console.error("Replay: Failed to handle test:end event");
+      console.error(e);
     }
   });
 }
