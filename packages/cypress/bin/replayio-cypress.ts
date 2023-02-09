@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+import { spawnSync } from "child_process";
 import install from "../src/install";
-import { getDiagnosticRetryCount } from "../src/mode";
+import { getDiagnosticRetryCount, getReplayMode, ReplayMode } from "../src/mode";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -21,6 +22,50 @@ function commandInstall() {
   });
 }
 
+function commandRun() {
+  const runIndex = process.argv.indexOf("run");
+
+  if (runIndex === -1) {
+    throw new Error("huh?");
+  }
+
+  let noNpx = false;
+
+  while (args.length) {
+    switch (args[0]) {
+      case "--mode":
+        args.shift();
+        process.env.REPLAY_CYPRESS_MODE = args.shift();
+
+        continue;
+      case "--no-npx":
+        noNpx = true;
+        args.shift();
+
+        continue;
+    }
+
+    break;
+  }
+
+  const retryCount = getDiagnosticRetryCount();
+  const mode = getReplayMode();
+
+  const command = noNpx ? "cypress-repeat" : "npx";
+  const spawnArgs = [
+    ...(noNpx ? [] : ["cypress-repeat"]),
+    "run",
+    "-n",
+    String(retryCount),
+    ...(mode === ReplayMode.RecordOnRetry ? ["--rerun-failed-only"] : []),
+    ...args,
+  ];
+
+  console.log(command, ...spawnArgs);
+
+  spawnSync(command, spawnArgs, { stdio: "inherit" });
+}
+
 function help() {
   console.log(`
 npx @replayio/cypress
@@ -31,6 +76,9 @@ Available commands:
 
   - install [all | firefox | chromium]
     Installs all or the specified Replay browser
+
+  - run
+    Runs your cypress tests using cypress-repeat
   `);
 }
 
@@ -39,8 +87,8 @@ try {
     case "install":
       commandInstall();
       break;
-    case "diagnostics-retry-count":
-      console.log(getDiagnosticRetryCount());
+    case "run":
+      commandRun();
       break;
     case "help":
     default:

@@ -145,7 +145,7 @@ function getRetryEnv(config?: Cypress.PluginConfigOptions): RetryEnv {
   return env;
 }
 
-function getReplayMode(): ReplayMode {
+export function getReplayMode(): ReplayMode {
   const { mode } = getRetryEnv();
 
   switch (mode) {

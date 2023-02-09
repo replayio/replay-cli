@@ -63,7 +63,6 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataPath),
         ...diagnosticConfig.env,
       };
-      console.log(">>>>>>>>>>> ", noRecord, env);
 
       debugEvents("Adding environment variables to browser: %o", env);
 

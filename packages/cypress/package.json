@@ -34,6 +34,7 @@
   "dependencies": {
     "@replayio/replay": "^0.12.2",
     "@replayio/test-utils": "^0.4.3",
+    "cypress-repeat": "^2.3.3",
     "semver": "^7.3.8",
     "uuid": "^8.3.2"
   },
