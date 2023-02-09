@@ -22,7 +22,7 @@ import cypressReplay from "@replayio/cypress";
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      // Adds "Replay Firefox" (macOS, linux) and "Replay Chromium" (linux)
+      // Adds replay-firefox (macOS, linux) and replay-chromium (linux)
       // browsers and hooks into Cypress lifecycle methods to capture test
       // metadata and results
       cypressReplay(on, config);
@@ -48,7 +48,7 @@ import "@replayio/cypress/support";
 ```bash
 RECORD_ALL_CONTENT=1 \
 RECORD_REPLAY_METADATA_FILE=$(mktemp) \
-npx cypress run --browser "Replay Firefox"
+npx cypress run --browser replay-chromium
 ```
 
 ## Parallel runs on CI
