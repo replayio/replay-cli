@@ -9,7 +9,7 @@
     "if:source": "npm run if:exists -- src/index.ts",
     "prepare": "npm run if:source -- npm run build",
     "install": "npm run if:dist -- node ./bin/replayio-cypress first-run",
-    "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },

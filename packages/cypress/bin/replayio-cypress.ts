@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import install from "../src/install";
+import { getDiagnosticRetryCount } from "../src/mode";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -37,6 +38,9 @@ try {
   switch (cmd) {
     case "install":
       commandInstall();
+      break;
+    case "diagnostics-retry-count":
+      console.log(getDiagnosticRetryCount());
       break;
     case "help":
     default:
