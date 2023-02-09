@@ -23,12 +23,6 @@ function commandInstall() {
 }
 
 function commandRun() {
-  const runIndex = process.argv.indexOf("run");
-
-  if (runIndex === -1) {
-    throw new Error("huh?");
-  }
-
   let noNpx = false;
 
   while (args.length) {
