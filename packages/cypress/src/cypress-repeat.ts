@@ -1,7 +1,6 @@
 // Adapted from https://github.com/bahmutov/cypress-repeat
 
 import cypress from "cypress";
-import { all } from "cypress/types/bluebird";
 import dbg from "debug";
 
 const debug = dbg("replay:cypress:repeat");
