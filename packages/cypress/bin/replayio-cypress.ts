@@ -3,6 +3,7 @@
 import install from "../src/install";
 import { configure, ReplayMode } from "../src/mode";
 import cypressRepeat, { SpecRepeatMode } from "../src/cypress-repeat";
+import { gte } from "semver";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -45,6 +46,14 @@ async function commandRun() {
   }
 
   const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt });
+
+  if (
+    (mode === ReplayMode.Diagnostics || mode === ReplayMode.RecordOnRetry) &&
+    !gte(require("cypress/package.json").version, "10.9")
+  ) {
+    console.error("Cypress 10.9 or greater is required for diagnostic or record-on-retry modes");
+    process.exit(1);
+  }
 
   await cypressRepeat({
     repeat,
