@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "child_process";
-
 import install from "../src/install";
-import { getDiagnosticRetryCount, getReplayMode, ReplayMode } from "../src/mode";
+import { configure, ReplayMode } from "../src/mode";
 import cypressRepeat, { SpecRepeatMode } from "../src/cypress-repeat";
 
 let [, , cmd, ...args] = process.argv;
@@ -25,16 +23,20 @@ function commandInstall() {
 }
 
 async function commandRun() {
+  let modeOpt: string | undefined;
+  let levelOpt: string | undefined;
+
+  // TODO [ryanjduffy]: Migrate to commander
   while (args.length) {
     switch (args[0]) {
       case "--mode":
         args.shift();
-        process.env.REPLAY_CYPRESS_MODE = args.shift();
+        modeOpt = args.shift();
 
         continue;
       case "--level":
         args.shift();
-        process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = args.shift();
+        levelOpt = args.shift();
 
         continue;
     }
@@ -42,8 +44,7 @@ async function commandRun() {
     break;
   }
 
-  const repeat = getDiagnosticRetryCount();
-  const mode = getReplayMode();
+  const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt });
 
   await cypressRepeat({
     repeat,
@@ -65,7 +66,7 @@ Available commands:
     Installs all or the specified Replay browser
 
   - run
-    Runs your cypress tests using cypress-repeat
+    Runs your cypress tests with additional repeat modes
   `);
 }
 

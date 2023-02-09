@@ -1,5 +1,3 @@
-/// <reference types="cypress" />
-
 import dbg from "debug";
 
 const debug = dbg("replay:cypress:mode");
@@ -56,32 +54,20 @@ export enum DiagnosticLevel {
   Full,
 }
 
-interface RetryEnv {
-  retryCount?: string;
-  retryIndex?: string;
-  mode?: string;
-  level?: string;
-}
+export function configure(options: { mode?: string; level?: string }) {
+  // Set this modes into the environment so they can be picked up by the plugin
+  process.env.REPLAY_CYPRESS_MODE = options.mode;
+  process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
 
-function getRetryEnv(config?: Cypress.PluginConfigOptions): RetryEnv {
-  const { cypress_repeat_n, cypress_repeat_k } = config?.env || {};
-
-  const { REPLAY_CYPRESS_MODE: mode, REPLAY_CYPRESS_DIAGNOSTIC_LEVEL: level } = process.env;
-
-  const env = {
-    retryCount: cypress_repeat_n,
-    retryIndex: cypress_repeat_k,
-    mode,
-    level,
+  return {
+    mode: getReplayMode(),
+    level: getDiagnosticLevel(),
+    repeat: getRepeatCount(),
   };
-
-  debug("Environment: %o", env);
-
-  return env;
 }
 
-export function getReplayMode(): ReplayMode {
-  const { mode } = getRetryEnv();
+function getReplayMode(): ReplayMode {
+  const { REPLAY_CYPRESS_MODE: mode } = process.env;
 
   switch (mode) {
     case "record-on-retry":
@@ -95,9 +81,9 @@ export function getReplayMode(): ReplayMode {
   return ReplayMode.Record;
 }
 
-export function getReplayDiagnosticLevel(): DiagnosticLevel {
+function getDiagnosticLevel(): DiagnosticLevel {
   const mode = getReplayMode();
-  const { level } = getRetryEnv();
+  const { REPLAY_CYPRESS_DIAGNOSTIC_LEVEL: level } = process.env;
 
   switch (level) {
     case "basic":
@@ -109,13 +95,8 @@ export function getReplayDiagnosticLevel(): DiagnosticLevel {
   return mode === ReplayMode.Diagnostics ? DiagnosticLevel.Basic : DiagnosticLevel.None;
 }
 
-function getRetryIndex(config: Cypress.PluginConfigOptions) {
-  const retryIndex = getRetryEnv(config).retryIndex;
-  return retryIndex ? Number.parseInt(retryIndex) : undefined;
-}
-
-export function getDiagnosticRetryCount() {
-  const level = getReplayDiagnosticLevel();
+function getRepeatCount() {
+  const level = getDiagnosticLevel();
 
   switch (getReplayMode()) {
     case ReplayMode.RecordOnRetry:
@@ -135,14 +116,17 @@ export function getDiagnosticConfig(config: Cypress.PluginConfigOptions): {
 } {
   let noRecord = false;
   let env: NodeJS.ProcessEnv = {};
-  const retryIndex = getRetryIndex(config);
 
-  if (getReplayMode() === ReplayMode.RecordOnRetry) {
-    noRecord = retryIndex === 1;
+  const { cypress_repeat_k } = config.env;
+  const repeatIndex = cypress_repeat_k ? Number.parseInt(cypress_repeat_k) : undefined;
+  const mode = getReplayMode();
+
+  if (mode === ReplayMode.RecordOnRetry) {
+    noRecord = repeatIndex === 1;
   }
 
-  if (getReplayMode() === ReplayMode.Diagnostics && retryIndex) {
-    switch (retryIndex) {
+  if (mode === ReplayMode.Diagnostics && repeatIndex) {
+    switch (repeatIndex) {
       case 1:
         noRecord = true;
         break;
@@ -156,13 +140,13 @@ export function getDiagnosticConfig(config: Cypress.PluginConfigOptions): {
         break;
       default:
         env = {
-          RECORD_REPLAY_DISABLE_FEATURES: diagnosticFlags[retryIndex - 3],
+          RECORD_REPLAY_DISABLE_FEATURES: diagnosticFlags[repeatIndex - 3],
         };
     }
   }
 
   const cfg = { noRecord, env };
-  debug("Diagnostic configuration for mode %d: %o", getReplayMode(), cfg);
+  debug("Diagnostic configuration for mode %d: %o", mode, cfg);
 
   return cfg;
 }
