@@ -50,21 +50,29 @@ export enum ReplayMode {
   Stress,
 }
 
+export enum DiagnosticLevel {
+  None,
+  Basic,
+  Full,
+}
+
 interface RetryEnv {
   retryCount?: string;
   retryIndex?: string;
   mode?: string;
+  level?: string;
 }
 
 function getRetryEnv(config?: Cypress.PluginConfigOptions): RetryEnv {
   const { cypress_repeat_n, cypress_repeat_k } = config?.env || {};
 
-  const { REPLAY_CYPRESS_MODE: mode } = process.env;
+  const { REPLAY_CYPRESS_MODE: mode, REPLAY_CYPRESS_DIAGNOSTIC_LEVEL: level } = process.env;
 
   const env = {
     retryCount: cypress_repeat_n,
     retryIndex: cypress_repeat_k,
     mode,
+    level,
   };
 
   debug("Environment: %o", env);
@@ -87,17 +95,33 @@ export function getReplayMode(): ReplayMode {
   return ReplayMode.Record;
 }
 
+export function getReplayDiagnosticLevel(): DiagnosticLevel {
+  const mode = getReplayMode();
+  const { level } = getRetryEnv();
+
+  switch (level) {
+    case "basic":
+      return DiagnosticLevel.Basic;
+    case "full":
+      return DiagnosticLevel.Full;
+  }
+
+  return mode === ReplayMode.Diagnostics ? DiagnosticLevel.Basic : DiagnosticLevel.None;
+}
+
 function getRetryIndex(config: Cypress.PluginConfigOptions) {
   const retryIndex = getRetryEnv(config).retryIndex;
   return retryIndex ? Number.parseInt(retryIndex) : undefined;
 }
 
 export function getDiagnosticRetryCount() {
+  const level = getReplayDiagnosticLevel();
+
   switch (getReplayMode()) {
     case ReplayMode.RecordOnRetry:
       return 2;
     case ReplayMode.Diagnostics:
-      return diagnosticFlags.length + 3;
+      return level === DiagnosticLevel.Basic ? 3 : diagnosticFlags.length + 3;
     case ReplayMode.Stress:
       return 10;
     case ReplayMode.Record:

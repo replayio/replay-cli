@@ -29,12 +29,11 @@
   "devDependencies": {
     "@types/node": "^16.11.39",
     "@types/semver": "^7.3.13",
-    "cypress": "^10.0.3"
+    "cypress": "10.9"
   },
   "dependencies": {
     "@replayio/replay": "^0.12.2",
     "@replayio/test-utils": "^0.4.3",
-    "cypress-repeat": "^2.3.3",
     "semver": "^7.3.8",
     "uuid": "^8.3.2"
   },

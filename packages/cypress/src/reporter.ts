@@ -9,7 +9,7 @@ class CypressReporter {
   debug: debug.Debugger;
   startTime: number | undefined;
   steps: StepEvent[] = [];
-  selectedBrowser: "chromium" | "firefox" | undefined;
+  selectedBrowser: string | undefined;
 
   constructor(debug: debug.Debugger) {
     this.debug = debug.extend("reporter");
@@ -19,7 +19,7 @@ class CypressReporter {
     this.startTime = startTime;
   }
 
-  setSelectedBrowser(browser: "chromium" | "firefox") {
+  setSelectedBrowser(browser: string) {
     this.selectedBrowser = browser;
   }
 

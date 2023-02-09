@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "child_process";
+
 import install from "../src/install";
 import { getDiagnosticRetryCount, getReplayMode, ReplayMode } from "../src/mode";
+import cypressRepeat, { SpecRepeatMode } from "../src/cypress-repeat";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -22,9 +24,7 @@ function commandInstall() {
   });
 }
 
-function commandRun() {
-  let noNpx = false;
-
+async function commandRun() {
   while (args.length) {
     switch (args[0]) {
       case "--mode":
@@ -32,9 +32,9 @@ function commandRun() {
         process.env.REPLAY_CYPRESS_MODE = args.shift();
 
         continue;
-      case "--no-npx":
-        noNpx = true;
+      case "--level":
         args.shift();
+        process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = args.shift();
 
         continue;
     }
@@ -42,22 +42,15 @@ function commandRun() {
     break;
   }
 
-  const retryCount = getDiagnosticRetryCount();
+  const repeat = getDiagnosticRetryCount();
   const mode = getReplayMode();
 
-  const command = noNpx ? "cypress-repeat" : "npx";
-  const spawnArgs = [
-    ...(noNpx ? [] : ["cypress-repeat"]),
-    "run",
-    "-n",
-    String(retryCount),
-    ...(mode === ReplayMode.RecordOnRetry ? ["--rerun-failed-only"] : []),
-    ...args,
-  ];
-
-  console.log(command, ...spawnArgs);
-
-  spawnSync(command, spawnArgs, { stdio: "inherit" });
+  await cypressRepeat({
+    repeat,
+    mode: mode === ReplayMode.RecordOnRetry ? SpecRepeatMode.Failed : SpecRepeatMode.All,
+    untilPasses: mode === ReplayMode.RecordOnRetry,
+    args,
+  });
 }
 
 function help() {
@@ -76,24 +69,26 @@ Available commands:
   `);
 }
 
-try {
-  switch (cmd) {
-    case "install":
-      commandInstall();
-      break;
-    case "run":
-      commandRun();
-      break;
-    case "help":
-    default:
-      help();
-      break;
+(async () => {
+  try {
+    switch (cmd) {
+      case "install":
+        commandInstall();
+        break;
+      case "run":
+        await commandRun();
+        break;
+      case "help":
+      default:
+        help();
+        break;
+    }
+  } catch (e) {
+    if (firstRun) {
+      // Log install errors during first-run but don't fail package install
+      console.error(e);
+    } else {
+      throw e;
+    }
   }
-} catch (e) {
-  if (firstRun) {
-    // Log install errors during first-run but don't fail package install
-    console.error(e);
-  } else {
-    throw e;
-  }
-}
+})();
