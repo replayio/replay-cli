@@ -30,21 +30,22 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   cypressReporter = new CypressReporter(debug);
 
+  const diagnosticConfig = getDiagnosticConfig(config);
+
+  // Mix diagnostic env into process env so it can be picked up by test
+  // metrics and reported to telemetry
+  Object.keys(diagnosticConfig.env).forEach(k => {
+    process.env[k] = diagnosticConfig.env[k];
+  });
+
+  reporter.setDiagnosticMetadata(diagnosticConfig.env);
+
   const debugEvents = debug.extend("events");
   on("before:browser:launch", (browser, launchOptions) => {
     debugEvents("Handling before:browser:launch");
 
-    const diagnosticConfig = getDiagnosticConfig(config);
-
-    // Mix diagnostic env into process env so it can be picked up by test
-    // metrics and reported to telemetry
-    Object.keys(diagnosticConfig.env).forEach(k => {
-      process.env[k] = diagnosticConfig.env[k];
-    });
-
     cypressReporter.setSelectedBrowser(browser.family);
     reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
-    reporter.setDiagnosticMetadata(diagnosticConfig.env);
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
