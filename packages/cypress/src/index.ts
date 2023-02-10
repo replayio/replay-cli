@@ -111,7 +111,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   if (chromiumPath) {
     debug("Adding chromium to cypress at %s", chromiumPath);
     config.browsers = config.browsers.concat({
-      name: "Replay Chromium",
+      name: "replay-chromium",
       channel: "stable",
       family: "chromium",
       displayName: "Replay",
@@ -129,7 +129,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   if (firefoxPath) {
     debug("Adding firefox to cypress at %s", chromiumPath);
     config.browsers = config.browsers.concat({
-      name: "Replay Firefox",
+      name: "replay-firefox",
       channel: "stable",
       family: "firefox",
       displayName: "Replay",
