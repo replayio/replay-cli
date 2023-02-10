@@ -121,6 +121,13 @@ class ReplayReporter {
     }
   }
 
+  setDiagnosticMetadata(metadata: Record<string, unknown>) {
+    this.baseMetadata = {
+      ...this.baseMetadata,
+      "x-replay-diagnostics": metadata,
+    };
+  }
+
   onTestSuiteBegin(config?: ReplayReporterConfig, metadataKey?: string) {
     this.parseConfig(config, metadataKey);
 

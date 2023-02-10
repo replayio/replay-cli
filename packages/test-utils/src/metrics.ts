@@ -34,6 +34,11 @@ async function pingTestMetrics(
           ...test,
           platform: os.platform,
           runId,
+          env: {
+            disableAsserts: !!process.env.RECORD_REPLAY_DISABLE_ASSERTS,
+            disableSourcemapCollection: !!process.env.RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION,
+            disableFeatures: process.env.RECORD_REPLAY_DISABLE_FEATURES || "none",
+          },
         },
       }),
     });

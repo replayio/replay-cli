@@ -12,6 +12,7 @@ import dbg from "debug";
 import { TASK_NAME } from "./constants";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import CypressReporter from "./reporter";
+import { getDiagnosticConfig } from "./mode";
 
 const debug = dbg("replay:cypress:plugin");
 
@@ -29,6 +30,16 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   cypressReporter = new CypressReporter(debug);
 
+  const diagnosticConfig = getDiagnosticConfig(config);
+
+  // Mix diagnostic env into process env so it can be picked up by test
+  // metrics and reported to telemetry
+  Object.keys(diagnosticConfig.env).forEach(k => {
+    process.env[k] = diagnosticConfig.env[k];
+  });
+
+  reporter.setDiagnosticMetadata(diagnosticConfig.env);
+
   const debugEvents = debug.extend("events");
   on("before:browser:launch", (browser, launchOptions) => {
     debugEvents("Handling before:browser:launch");
@@ -45,13 +56,13 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     debugEvents("Browser launching: %o", { family: browser.family, metadataPath });
 
     if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
-      const env = {
-        RECORD_REPLAY_DRIVER:
-          process.env.RECORD_REPLAY_NO_RECORD && browser.family === "chromium"
-            ? __filename
-            : undefined,
-        RECORD_ALL_CONTENT: process.env.RECORD_REPLAY_NO_RECORD ? undefined : 1,
+      const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
+
+      const env: NodeJS.ProcessEnv = {
+        RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
+        RECORD_ALL_CONTENT: noRecord ? undefined : "1",
         RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataPath),
+        ...diagnosticConfig.env,
       };
 
       debugEvents("Adding environment variables to browser: %o", env);

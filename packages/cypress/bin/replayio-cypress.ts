@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import install from "../src/install";
+import { configure, ReplayMode } from "../src/mode";
+import cypressRepeat, { SpecRepeatMode } from "../src/cypress-repeat";
+import { gte } from "semver";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -20,6 +23,46 @@ function commandInstall() {
   });
 }
 
+async function commandRun() {
+  let modeOpt: string | undefined;
+  let levelOpt: string | undefined;
+
+  // TODO [ryanjduffy]: Migrate to commander
+  while (args.length) {
+    switch (args[0]) {
+      case "--mode":
+        args.shift();
+        modeOpt = args.shift();
+
+        continue;
+      case "--level":
+        args.shift();
+        levelOpt = args.shift();
+
+        continue;
+    }
+
+    break;
+  }
+
+  const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt });
+
+  if (
+    (mode === ReplayMode.Diagnostics || mode === ReplayMode.RecordOnRetry) &&
+    !gte(require("cypress/package.json").version, "10.9")
+  ) {
+    console.error("Cypress 10.9 or greater is required for diagnostic or record-on-retry modes");
+    process.exit(1);
+  }
+
+  await cypressRepeat({
+    repeat,
+    mode: mode === ReplayMode.RecordOnRetry ? SpecRepeatMode.Failed : SpecRepeatMode.All,
+    untilPasses: mode === ReplayMode.RecordOnRetry,
+    args,
+  });
+}
+
 function help() {
   console.log(`
 npx @replayio/cypress
@@ -30,24 +73,32 @@ Available commands:
 
   - install [all | firefox | chromium]
     Installs all or the specified Replay browser
+
+  - run
+    Runs your cypress tests with additional repeat modes
   `);
 }
 
-try {
-  switch (cmd) {
-    case "install":
-      commandInstall();
-      break;
-    case "help":
-    default:
-      help();
-      break;
+(async () => {
+  try {
+    switch (cmd) {
+      case "install":
+        commandInstall();
+        break;
+      case "run":
+        await commandRun();
+        break;
+      case "help":
+      default:
+        help();
+        break;
+    }
+  } catch (e) {
+    if (firstRun) {
+      // Log install errors during first-run but don't fail package install
+      console.error(e);
+    } else {
+      throw e;
+    }
   }
-} catch (e) {
-  if (firstRun) {
-    // Log install errors during first-run but don't fail package install
-    console.error(e);
-  } else {
-    throw e;
-  }
-}
+})();
