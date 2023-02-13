@@ -29,6 +29,7 @@ export interface UploadOptions {
   ignore?: Array<string>;
   root?: string;
   log?: LogCallback;
+  apiServer?: string;
 }
 
 export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
@@ -87,6 +88,12 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     "'log' must be a function or undefined"
   );
 
+  const apiServer =
+    opts.apiServer ||
+    process.env.RECORD_REPLAY_API_SERVER ||
+    "https://api.replay.io";
+  assert(typeof apiServer === "string" || "'apiServer' must be a string");
+
   const cwd = process.cwd();
   return processSourceMaps({
     cwd,
@@ -100,6 +107,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     ignorePatterns: opts.ignore || [],
     rootPath: path.resolve(cwd, opts.root || ""),
     log: opts.log || (() => undefined),
+    apiServer,
   });
 }
 
@@ -113,6 +121,7 @@ interface NormalizedOptions {
   ignorePatterns: Array<string>;
   rootPath: string;
   log: LogCallback;
+  apiServer: string;
 }
 
 interface GeneratedFileEntry {
@@ -190,7 +199,12 @@ async function processSourceMaps(opts: NormalizedOptions) {
     log("normal", `Uploading ${relativePath}`);
 
     if (!dryRun) {
-      await uploadSourcemapToAPI(groupName, apiKey, mapToUpload);
+      await uploadSourcemapToAPI(
+        groupName,
+        apiKey,
+        mapToUpload,
+        opts.apiServer
+      );
     }
   }
 
@@ -203,18 +217,15 @@ async function processSourceMaps(opts: NormalizedOptions) {
   );
 }
 
-function getApiServer() {
-  return process.env.RECORD_REPLAY_API_SERVER || "https://api.replay.io/";
-}
-
 type PutOptions = {
   groupName: string;
   apiKey: string;
   map: SourceMapToUpload;
+  apiServer: string;
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
-  return fetch(`${getApiServer()}/v1/sourcemap-upload`, {
+  return fetch(`${opts.apiServer}/v1/sourcemap-upload`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -247,11 +258,17 @@ async function sendUploadPUTWithRetries(opts: PutOptions): Promise<Response> {
 async function uploadSourcemapToAPI(
   groupName: string,
   apiKey: string,
-  map: SourceMapToUpload
+  map: SourceMapToUpload,
+  apiServer: string
 ) {
   let response;
   try {
-    response = await sendUploadPUTWithRetries({ groupName, apiKey, map });
+    response = await sendUploadPUTWithRetries({
+      groupName,
+      apiKey,
+      map,
+      apiServer,
+    });
   } catch (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     err: any
