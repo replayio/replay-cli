@@ -203,6 +203,10 @@ async function processSourceMaps(opts: NormalizedOptions) {
   );
 }
 
+function getApiServer() {
+  return process.env.RECORD_REPLAY_API_SERVER || "https://api.replay.io/";
+}
+
 type PutOptions = {
   groupName: string;
   apiKey: string;
@@ -210,7 +214,7 @@ type PutOptions = {
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
-  return fetch("https://api.replay.io/v1/sourcemap-upload", {
+  return fetch(`${getApiServer()}/sourcemap-upload`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
