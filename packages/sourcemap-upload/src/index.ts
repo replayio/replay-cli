@@ -214,7 +214,7 @@ type PutOptions = {
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
-  return fetch(`${getApiServer()}/sourcemap-upload`, {
+  return fetch(`${getApiServer()}/v1/sourcemap-upload`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
