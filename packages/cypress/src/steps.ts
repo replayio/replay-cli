@@ -141,7 +141,7 @@ function groupStepsByTest(
 
         // Simplify args to avoid sending large objects in metadata that we
         // won't render in the UI anyway
-        const args = step.command!.args.map(a => (a && typeof a === "object" ? {} : a));
+        const args = step.command?.args?.map(a => (a && typeof a === "object" ? {} : a)) || [];
 
         const testStep: TestStep = {
           id: step.command!.id,
