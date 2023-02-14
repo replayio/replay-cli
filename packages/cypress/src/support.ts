@@ -23,7 +23,7 @@ interface CommandLike {
   id: string;
   groupId?: string;
   name: string;
-  args: any[];
+  args?: any[];
   commandId?: string;
 }
 
