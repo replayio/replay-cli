@@ -49,7 +49,7 @@ async function commandRun() {
 
   if (
     (mode === ReplayMode.Diagnostics || mode === ReplayMode.RecordOnRetry) &&
-    !gte(require("cypress/package.json").version, "10.9")
+    !gte(require("cypress/package.json").version, "10.9.0")
   ) {
     console.error("Cypress 10.9 or greater is required for diagnostic or record-on-retry modes");
     process.exit(1);
