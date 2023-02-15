@@ -143,10 +143,14 @@ export default async function CypressRepeat({
           }
         }
       }
+
+      return 0;
     };
 
-    await cypress.run(runOptions).then(onTestResults);
+    const failed = await cypress.run(runOptions).then(onTestResults);
 
     console.log("***** finished %d run(s) successfully *****", repeat);
+
+    return failed;
   }
 }
