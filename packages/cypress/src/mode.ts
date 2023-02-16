@@ -72,6 +72,7 @@ function getReplayMode(): ReplayMode {
   switch (mode) {
     case "record-on-retry":
       return ReplayMode.RecordOnRetry;
+    case "diagnostic":
     case "diagnostics":
       return ReplayMode.Diagnostics;
     case "stress":
