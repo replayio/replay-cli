@@ -29,7 +29,7 @@ export interface UploadOptions {
   ignore?: Array<string>;
   root?: string;
   log?: LogCallback;
-  apiServer?: string;
+  server?: string;
 }
 
 export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
@@ -89,7 +89,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   );
 
   const apiServer =
-    opts.apiServer ||
+    opts.server ||
     process.env.RECORD_REPLAY_API_SERVER ||
     "https://api.replay.io";
   assert(typeof apiServer === "string" || "'apiServer' must be a string");

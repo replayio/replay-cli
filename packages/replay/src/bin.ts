@@ -112,6 +112,7 @@ program
   .option("-q, --quiet", "Silence all stdout logging.")
   .option("-v, --verbose", "Output extra data to stdout when processing files.")
   .option("--root <dirname>", "The base directory to use when computing relative paths")
+  .option("--server <address>", "Alternate server to upload sourcemaps to.")
   .arguments("<paths...>")
   .action((filepaths, opts) => commandUploadSourcemaps(filepaths, opts));
 
