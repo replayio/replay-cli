@@ -91,62 +91,67 @@ export default async function CypressRepeat({
     const isLastRun = k === n - 1;
     console.log("***** %s %d of %d *****", name, k + 1, n);
 
-    const onTestResults = (
-      testResults: CypressCommandLine.CypressRunResult | CypressCommandLine.CypressFailedRunResult
-    ) => {
-      debug("is %d the last run? %o", k, isLastRun);
-      if (rerunFailedOnly && !isLastRun && "runs" in testResults) {
-        const failedSpecs = testResults.runs
-          .filter(run => run.stats.failures != 0)
-          .map(run => run.spec.relative)
-          .join(",");
+    const testResults:
+      | CypressCommandLine.CypressRunResult
+      | CypressCommandLine.CypressFailedRunResult = await cypress.run(runOptions);
 
-        if (failedSpecs.length) {
-          console.log("%s failed specs", name);
-          console.log(failedSpecs);
-          allRunOptions[k + 1].spec = failedSpecs;
-        } else if (untilPasses) {
-          console.log("%s there were no failed specs", name);
-          console.log("%s exiting", name);
+    debug(
+      "is %d the last run? %o",
+      k,
+      { isLastRun, rerunFailedOnly, runs: (testResults as any).runs }
+      // JSON.stringify(testResults)
+    );
+    if (rerunFailedOnly && !isLastRun && "runs" in testResults) {
+      const failedSpecs = testResults.runs
+        .filter(run => run.stats.failures != 0)
+        .map(run => run.spec.relative)
+        .join(",");
+
+      if (failedSpecs.length) {
+        console.log("%s failed specs", name);
+        console.log(failedSpecs);
+        allRunOptions[k + 1].spec = failedSpecs;
+      } else if (untilPasses) {
+        console.log("%s there were no failed specs", name);
+        console.log("%s exiting", name);
+
+        return 0;
+      }
+    }
+
+    if (testResults.status === "failed") {
+      // failed to even run Cypress tests
+      if (testResults.failures) {
+        console.error(testResults.message);
+
+        return testResults.failures;
+      }
+    }
+
+    if (testResults.status === "finished") {
+      if (untilPasses) {
+        if (!testResults.totalFailed) {
+          console.log("%s successfully passed on run %d of %d", name, k + 1, n);
 
           return 0;
         }
-      }
-
-      if (testResults.status === "failed") {
-        // failed to even run Cypress tests
-        if (testResults.failures) {
-          console.error(testResults.message);
-
-          return testResults.failures;
+        console.error("%s run %d of %d failed", name, k + 1, n);
+        if (k === n - 1) {
+          console.error("%s no more attempts left", name);
+          return testResults.totalFailed;
         }
-      }
-
-      if (testResults.status === "finished") {
-        if (untilPasses) {
-          if (!testResults.totalFailed) {
-            console.log("%s successfully passed on run %d of %d", name, k + 1, n);
-
-            return 0;
-          }
-          console.error("%s run %d of %d failed", name, k + 1, n);
-          if (k === n - 1) {
-            console.error("%s no more attempts left", name);
+      } else {
+        if (testResults.totalFailed) {
+          console.error("%s run %d of %d failed", name, k + 1, n, isLastRun);
+          if (isLastRun) {
             return testResults.totalFailed;
           }
-        } else {
-          if (testResults.totalFailed) {
-            console.error("%s run %d of %d failed", name, k + 1, n);
-            if (isLastRun) {
-              return testResults.totalFailed;
-            }
-          }
         }
       }
-    };
+    }
 
-    await cypress.run(runOptions).then(onTestResults);
-
-    console.log("***** finished %d run(s) successfully *****", repeat);
+    console.log("***** finished %d run(s) *****", k + 1);
   }
+
+  return 0;
 }

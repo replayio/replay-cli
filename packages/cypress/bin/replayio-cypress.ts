@@ -55,12 +55,14 @@ async function commandRun() {
     process.exit(1);
   }
 
-  await cypressRepeat({
+  const failed = await cypressRepeat({
     repeat,
     mode: mode === ReplayMode.RecordOnRetry ? SpecRepeatMode.Failed : SpecRepeatMode.All,
     untilPasses: mode === ReplayMode.RecordOnRetry,
     args,
   });
+
+  process.exit(failed ? 1 : 0);
 }
 
 function help() {
