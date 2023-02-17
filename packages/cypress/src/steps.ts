@@ -10,6 +10,18 @@ interface StepStackItem {
   step: TestStep;
 }
 
+export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
+  switch (state) {
+    case "failed":
+    case "passed":
+      return state;
+    case "pending":
+      return "skipped";
+  }
+
+  return "unknown";
+}
+
 function toTime(timestamp: string) {
   return new Date(timestamp).getTime();
 }
@@ -63,6 +75,8 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.De
 }
 
 function groupStepsByTest(
+  spec: Cypress.Spec,
+  resultTests: CypressCommandLine.TestResult[],
   steps: StepEvent[],
   firstTimestamp: number,
   debug: debug.Debugger
@@ -76,16 +90,19 @@ function groupStepsByTest(
   // The steps can come in out of order but are sortable by timestamp
   const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
-  const tests: Test[] = sortedSteps
-    .filter(a => a.event === "test:start")
-    .map(step => ({
-      title: step.test[step.test.length - 1] || step.file,
-      path: step.test,
-      result: "passed",
-      relativePath: step.file,
-      relativeStartTime: toRelativeTime(step.timestamp, firstTimestamp),
+  const testStartEvents = sortedSteps.filter(a => a.event === "test:start");
+  const tests = resultTests.map<Test>(result => {
+    const step = testStartEvents.find(e => e.test.join(",") === result.title.join(","));
+
+    return {
+      title: result.title[result.title.length - 1],
+      path: result.title,
+      result: mapStateToResult(result.state),
+      relativePath: spec.relative,
+      relativeStartTime: step ? toRelativeTime(step.timestamp, firstTimestamp) : 0,
       steps: [],
-    }));
+    };
+  });
 
   debug("Found %d tests", tests.length);
   debug(

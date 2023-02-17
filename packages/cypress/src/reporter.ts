@@ -3,7 +3,7 @@
 import type { Test } from "@replayio/test-utils";
 import debug from "debug";
 import type { StepEvent } from "./support";
-import { groupStepsByTest } from "./steps";
+import { groupStepsByTest, mapStateToResult } from "./steps";
 
 class CypressReporter {
   debug: debug.Debugger;
@@ -35,9 +35,8 @@ class CypressReporter {
     if (
       // If the browser crashes, no tests are run and tests will be null
       !result.tests ||
-      // If the spec doesn't have any tests or all tests are pended, we should bail
-      result.tests.length === 0 ||
-      result.tests.every(t => t.state === "pending")
+      // If the spec doesn't have any tests, we should bail
+      result.tests.length === 0
     ) {
       this.debug("No test results found for spec %s", spec.relative);
       return [];
@@ -45,7 +44,13 @@ class CypressReporter {
 
     let testsWithSteps: Test[] = [];
     try {
-      testsWithSteps = groupStepsByTest(this.steps, this.startTime!, this.debug);
+      testsWithSteps = groupStepsByTest(
+        spec,
+        result.tests,
+        this.steps,
+        this.startTime!,
+        this.debug
+      );
     } catch (e) {
       console.warn("Failed to build test step metadata for this replay.");
       console.warn(e);
@@ -83,7 +88,7 @@ class CypressReporter {
         ...foundTest,
         relativePath: spec.relative,
         path: ["", this.selectedBrowser || "", spec.relative, ...(foundTest?.path || [])],
-        result: t.state == "failed" ? "failed" : "passed",
+        result: mapStateToResult(t.state),
         error,
       };
     });
