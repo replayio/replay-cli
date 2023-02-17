@@ -20,7 +20,9 @@ const VERSION = 1;
 
 const versions: Record<number, Struct<any, any>> = {
   1: object({
+    suite: optional(envString("RECORD_REPLAY_METADATA_TEST_SUITE")),
     file: optional(envString("RECORD_REPLAY_METADATA_TEST_FILE")),
+    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
     path: optional(array(string())),
     result: defaulted(
       enums(["passed", "failed", "timedOut"]),
@@ -34,7 +36,7 @@ const versions: Record<number, Struct<any, any>> = {
           title: string(),
           path: optional(array(string())),
           relativePath: optional(string()),
-          result: enums(["passed", "failed", "timedOut"]),
+          result: enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
           error: optional(
             object({
               message: string(),
@@ -70,7 +72,6 @@ const versions: Record<number, Struct<any, any>> = {
         {}
       )
     ),
-    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
     version: defaulted(number(), () => 1),
   }),
 };
