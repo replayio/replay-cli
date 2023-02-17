@@ -40,7 +40,7 @@ export interface Test {
   id?: string;
   title: string;
   path: string[];
-  result: "passed" | "failed" | "timedOut";
+  result: "passed" | "failed" | "timedOut" | "skipped" | "unknown";
   relativePath: string;
   error?: TestError;
   steps?: TestStep[];
@@ -58,6 +58,25 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
+export class ReporterError extends Error {
+  testId: string;
+  constructor(testId: string, message: string) {
+    super();
+
+    this.message = message;
+    this.name = "ReporterError";
+    this.testId = testId;
+  }
+
+  valueOf() {
+    return {
+      name: this.name,
+      message: this.message,
+      test: this.testId,
+    };
+  }
+}
+
 class ReplayReporter {
   baseId = uuid.validate(
     process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID || ""
@@ -68,6 +87,7 @@ class ReplayReporter {
   runTitle?: string;
   startTimes: Record<string, number> = {};
   runner?: TestRunner;
+  errors: (string | Error | ReporterError)[] = [];
 
   constructor(runner?: TestRunner) {
     this.runner = runner;
@@ -121,6 +141,12 @@ class ReplayReporter {
     }
   }
 
+  addError(err: Error | string) {
+    if (err) {
+      this.errors.push(err);
+    }
+  }
+
   setDiagnosticMetadata(metadata: Record<string, unknown>) {
     this.baseMetadata = {
       ...this.baseMetadata,
@@ -140,6 +166,7 @@ class ReplayReporter {
   }
 
   onTestBegin(testId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+    this.errors = [];
     this.startTimes[this.getTestId(testId)] = Date.now();
     const metadata = {
       ...(this.baseMetadata || {}),
@@ -186,6 +213,7 @@ class ReplayReporter {
       runtime = recs[0].runtime;
 
       debug("onTestEnd: Adding test metadata to %s", recordingId);
+      debug("onTestEnd: Includes %s errors", this.errors.length);
 
       recs.forEach(rec =>
         add(rec.id, {
@@ -203,6 +231,13 @@ class ReplayReporter {
             file: test.relativePath,
             tests: tests,
           }),
+          ...(this.errors.length
+            ? {
+                "x-replay-errors": {
+                  reporter: this.errors,
+                },
+              }
+            : null),
         })
       );
     }

@@ -1,44 +1,108 @@
 /// <reference types="cypress" />
-
-import type { Test } from "@replayio/test-utils";
+import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  ReplayReporter,
+  Test,
+  ReporterError,
+} from "@replayio/test-utils";
 import debug from "debug";
-import type { StepEvent } from "./support";
+
+import { appendToFixtureFile, initFixtureFile } from "./fixture";
+import { getDiagnosticConfig } from "./mode";
 import { groupStepsByTest, mapStateToResult } from "./steps";
+import type { StepEvent } from "./support";
 
 class CypressReporter {
+  reporter: ReplayReporter;
+  config: Cypress.PluginConfigOptions;
   debug: debug.Debugger;
   startTime: number | undefined;
   steps: StepEvent[] = [];
   selectedBrowser: string | undefined;
+  errors: string[] = [];
+  diagnosticConfig: ReturnType<typeof getDiagnosticConfig>;
 
-  constructor(debug: debug.Debugger) {
+  constructor(config: Cypress.PluginConfigOptions, debug: debug.Debugger) {
+    initFixtureFile();
+
+    this.config = config;
+    this.reporter = new ReplayReporter({
+      name: "cypress",
+      version: config.version,
+      plugin: require("../package.json").version,
+    });
     this.debug = debug.extend("reporter");
+
+    this.diagnosticConfig = getDiagnosticConfig(config);
+
+    // Mix diagnostic env into process env so it can be picked up by test
+    // metrics and reported to telemetry
+    Object.keys(this.diagnosticConfig.env).forEach(k => {
+      process.env[k] = this.diagnosticConfig.env[k];
+    });
+
+    this.reporter.setDiagnosticMetadata(this.diagnosticConfig.env);
   }
 
-  setStartTime(startTime: number) {
+  onLaunchBrowser(browser: string) {
+    this.setSelectedBrowser(browser);
+    this.reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
+
+    // Cypress around 10.9 launches the browser before `before:spec` is called
+    // causing us to fail to create the metadata file and link the replay to the
+    // current test
+    const metadataPath = getMetadataFilePath();
+    this.reporter.onTestBegin(undefined, metadataPath);
+  }
+
+  onBeforeSpec(spec: Cypress.Spec) {
+    const startTime = Date.now();
+    appendToFixtureFile("spec:start", { spec, startTime });
+
+    this.clearSteps();
+    this.setStartTime(startTime);
+    this.reporter.onTestBegin(undefined, getMetadataFilePath());
+  }
+
+  onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+    appendToFixtureFile("spec:end", { spec, result });
+
+    const tests = this.getTestResults(spec, result);
+    this.reporter.onTestEnd(tests, spec.relative);
+  }
+
+  getDiagnosticConfig() {
+    return this.diagnosticConfig;
+  }
+
+  private setStartTime(startTime: number) {
     this.startTime = startTime;
   }
 
-  setSelectedBrowser(browser: string) {
+  private setSelectedBrowser(browser: string) {
     this.selectedBrowser = browser;
   }
 
-  clearSteps() {
+  private clearSteps() {
     this.steps = [];
   }
 
   addStep(step: StepEvent) {
+    appendToFixtureFile("task", step);
     this.steps.push(step);
   }
 
-  getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     if (
       // If the browser crashes, no tests are run and tests will be null
       !result.tests ||
       // If the spec doesn't have any tests, we should bail
       result.tests.length === 0
     ) {
-      this.debug("No test results found for spec %s", spec.relative);
+      const msg = "No test results found for spec " + spec.relative;
+      this.debug(msg);
+      this.reporter.addError(new ReporterError(spec.relative, msg));
+
       return [];
     }
 
@@ -51,9 +115,11 @@ class CypressReporter {
         this.startTime!,
         this.debug
       );
-    } catch (e) {
+    } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay.");
       console.warn(e);
+
+      this.reporter.addError(e);
     }
 
     const tests = result.tests.map<Test>(t => {
@@ -95,6 +161,10 @@ class CypressReporter {
 
     return tests;
   }
+}
+
+export function getMetadataFilePath(workerIndex = 0) {
+  return getMetadataFilePathBase("CYPRESS", workerIndex);
 }
 
 export default CypressReporter;
