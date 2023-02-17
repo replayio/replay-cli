@@ -45,7 +45,7 @@ const emitter = (name: string, cb: EmitterCallback) => {
   events[name].push(cb);
 };
 
-plugin(emitter as any, { version: "0.0.0", browsers: [] } as any);
+plugin(emitter as any, { version: "0.0.0", browsers: [], env: {} } as any);
 driver(
   (type, value) => {
     let DateNow: any = undefined;
