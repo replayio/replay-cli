@@ -2,66 +2,34 @@
 
 import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
-import {
-  getMetadataFilePath as getMetadataFilePathBase,
-  initMetadataFile,
-  ReplayReporter,
-} from "@replayio/test-utils";
+import { initMetadataFile } from "@replayio/test-utils";
 import dbg from "debug";
 
 import { TASK_NAME } from "./constants";
-import { appendToFixtureFile, initFixtureFile } from "./fixture";
-import CypressReporter from "./reporter";
-import { getDiagnosticConfig } from "./mode";
+import CypressReporter, { getMetadataFilePath } from "./reporter";
 
 const debug = dbg("replay:cypress:plugin");
 
 let cypressReporter: CypressReporter;
 
-const pluginVersion = require("../package.json").version;
-
 const plugin: Cypress.PluginConfig = (on, config) => {
-  initFixtureFile();
-
-  const reporter = new ReplayReporter({
-    name: "cypress",
-    version: config.version,
-    plugin: pluginVersion,
-  });
-  cypressReporter = new CypressReporter(debug);
-
-  const diagnosticConfig = getDiagnosticConfig(config);
-
-  // Mix diagnostic env into process env so it can be picked up by test
-  // metrics and reported to telemetry
-  Object.keys(diagnosticConfig.env).forEach(k => {
-    process.env[k] = diagnosticConfig.env[k];
-  });
-
-  reporter.setDiagnosticMetadata(diagnosticConfig.env);
-
+  cypressReporter = new CypressReporter(config, debug);
   const debugEvents = debug.extend("events");
+
   on("before:browser:launch", (browser, launchOptions) => {
     debugEvents("Handling before:browser:launch");
+    cypressReporter.onLaunchBrowser(browser.family);
 
-    cypressReporter.setSelectedBrowser(browser.family);
-    reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
-
-    // Cypress around 10.9 launches the browser before `before:spec` is called
-    // causing us to fail to create the metadata file and link the replay to the
-    // current test
-    const metadataPath = getMetadataFilePath();
-    reporter.onTestBegin(undefined, metadataPath);
-
-    debugEvents("Browser launching: %o", { family: browser.family, metadataPath });
+    debugEvents("Browser launching: %o", { family: browser.family });
 
     if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
+      const diagnosticConfig = cypressReporter.getDiagnosticConfig();
       const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
 
       const env: NodeJS.ProcessEnv = {
         RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
         RECORD_ALL_CONTENT: noRecord ? undefined : "1",
-        RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataPath),
+        RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
         ...diagnosticConfig.env,
       };
 
@@ -75,21 +43,11 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   });
   on("before:spec", spec => {
     debugEvents("Handling before:spec %s", spec.relative);
-
-    const startTime = Date.now();
-    appendToFixtureFile("spec:start", { spec, startTime });
-
-    cypressReporter.clearSteps();
-    cypressReporter.setStartTime(startTime);
-    reporter.onTestBegin(undefined, getMetadataFilePath());
+    cypressReporter.onBeforeSpec(spec);
   });
   on("after:spec", (spec, result) => {
     debugEvents("Handling after:spec %s", spec.relative);
-
-    appendToFixtureFile("spec:end", { spec, result });
-
-    const tests = cypressReporter.getTestResults(spec, result);
-    reporter.onTestEnd(tests, spec.relative);
+    cypressReporter.onAfterSpec(spec, result);
   });
 
   const debugTask = debug.extend("task");
@@ -100,7 +58,6 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       debugTask("Handling %s task: %o", TASK_NAME, value);
       if (!value || typeof value !== "object") return;
 
-      appendToFixtureFile("task", value);
       cypressReporter.addStep(value);
 
       return true;
@@ -157,12 +114,9 @@ const plugin: Cypress.PluginConfig = (on, config) => {
   return config;
 };
 
-export function getMetadataFilePath(workerIndex = 0) {
-  return getMetadataFilePathBase("CYPRESS", workerIndex);
-}
-
 export function getCypressReporter() {
   return cypressReporter;
 }
 
 export default plugin;
+export { getMetadataFilePath };

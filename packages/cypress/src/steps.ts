@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { Test, TestStep } from "@replayio/test-utils";
+import { ReporterError, Test, TestStep } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
@@ -30,14 +30,17 @@ function toRelativeTime(timestamp: string, startTime: number) {
   return toTime(timestamp) - startTime;
 }
 
-function assertCurrentTest(currentTest: Test | undefined): asserts currentTest is Test {
+function assertCurrentTest(
+  currentTest: Test | undefined,
+  step: StepEvent
+): asserts currentTest is Test {
   if (!currentTest) {
-    throw new Error("currentTest does not exist");
+    throw new ReporterError(step.test.join(" > "), "currentTest does not exist");
   }
 }
 
 function assertMatchingStep(
-  currentStep: StepEvent | undefined,
+  currentStep: StepEvent,
   previousStep: StepEvent | undefined
 ): asserts previousStep is StepEvent {
   if (
@@ -47,7 +50,8 @@ function assertMatchingStep(
     !previousStep.command ||
     currentStep.command.id !== previousStep.command.id
   ) {
-    throw new Error(
+    throw new ReporterError(
+      currentStep?.test.join(" > "),
       "Mismatched step event: " + JSON.stringify(currentStep) + JSON.stringify(previousStep)
     );
   }
@@ -128,7 +132,7 @@ function groupStepsByTest(
       activeGroup = undefined;
     }
     currentTest = testForStep;
-    assertCurrentTest(currentTest);
+    assertCurrentTest(currentTest, step);
 
     debug("Processing %s event: %o", step.event, step);
 
@@ -186,7 +190,7 @@ function groupStepsByTest(
         stepStack.push({ event: step, step: testStep });
         break;
       case "step:end":
-        assertCurrentTest(currentTest);
+        assertCurrentTest(currentTest, step);
         const isAssert = step.command!.name === "assert";
         const lastStep: StepStackItem | undefined = stepStack.find(
           a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
