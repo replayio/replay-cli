@@ -30,6 +30,10 @@ function toRelativeTime(timestamp: string, startTime: number) {
   return toTime(timestamp) - startTime;
 }
 
+function toEventOrder(event: StepEvent) {
+  return ["test:start", "step:enqueue", "step:start", "step:end", "test:end"].indexOf(event.event);
+}
+
 function assertCurrentTest(
   currentTest: Test | undefined,
   step: StepEvent
@@ -92,7 +96,14 @@ function groupStepsByTest(
   }
 
   // The steps can come in out of order but are sortable by timestamp
-  const sortedSteps = [...steps].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const sortedSteps = [...steps].sort((a, b) => {
+    const tsCompare = a.timestamp.localeCompare(b.timestamp);
+    if (tsCompare === 0) {
+      return toEventOrder(a) - toEventOrder(b);
+    }
+
+    return tsCompare;
+  });
 
   const testStartEvents = sortedSteps.filter(a => a.event === "test:start");
   const tests = resultTests.map<Test>(result => {
