@@ -25,7 +25,7 @@ const versions: Record<number, Struct<any, any>> = {
     title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
     path: optional(array(string())),
     result: defaulted(
-      enums(["passed", "failed", "timedOut"]),
+      enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
       firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
     tests: optional(

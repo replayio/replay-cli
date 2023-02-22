@@ -199,12 +199,18 @@ class ReplayReporter {
     debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
 
     const test = tests[0];
-    const results = tests.map(t => t.result);
-    const result = results.includes("failed")
-      ? "failed"
-      : results.includes("timedOut")
-      ? "timedOut"
-      : "passed";
+    const results = tests.reduce<Test["result"][]>(
+      (acc, t) => (acc.includes(t.result) ? acc : [...acc, t.result]),
+      []
+    );
+    const result =
+      results.length === 1
+        ? results[0]
+        : results.includes("failed")
+        ? "failed"
+        : results.includes("timedOut")
+        ? "timedOut"
+        : "passed";
 
     let recordingId: string | undefined;
     let runtime: string | undefined;

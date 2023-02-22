@@ -92,7 +92,7 @@ class CypressReporter {
     this.steps.push(step);
   }
 
-  private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     if (
       // If the browser crashes, no tests are run and tests will be null
       !result.tests ||
@@ -103,7 +103,17 @@ class CypressReporter {
       this.debug(msg);
       this.reporter.addError(new ReporterError(spec.relative, msg));
 
-      return [];
+      return [
+        // return an placeholder test because cypress will still launch a
+        // browser for a file that matches the spec format but doesn't contain
+        // any tests.
+        {
+          title: spec.relative,
+          path: [spec.relative],
+          result: "unknown",
+          relativePath: spec.relative,
+        },
+      ];
     }
 
     let testsWithSteps: Test[] = [];
