@@ -30,6 +30,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
         RECORD_ALL_CONTENT: noRecord ? undefined : "1",
         RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
+        RECORD_REPLAY_TEST_ENVIRONMENT: process.env.RECORD_REPLAY_TEST_ENVIRONMENT || '',
         ...diagnosticConfig.env,
       };
 
