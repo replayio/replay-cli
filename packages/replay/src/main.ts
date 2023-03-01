@@ -297,17 +297,6 @@ function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
   writeRecordingFile(dir, lines);
 }
 
-function shouldProcessRecording(recording: RecordingEntry) {
-  // only pre-process test replays for failed tests
-  if (recording.metadata.test && typeof recording.metadata.test === "object") {
-    debug("Skipping processing recording %s", recording.id);
-    const test: Record<string, any> = recording.metadata.test;
-    return test.result === "failed";
-  }
-
-  return true;
-}
-
 async function doUploadCrash(
   dir: string,
   server: string,
@@ -398,10 +387,6 @@ async function doUploadRecording(
     server,
     recordingId,
   });
-
-  if (shouldProcessRecording(recording)) {
-    client.connectionProcessRecording(recordingId);
-  }
 
   await client.connectionUploadRecording(recordingId, recording.path!);
 
