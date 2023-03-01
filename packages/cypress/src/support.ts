@@ -27,6 +27,54 @@ interface CommandLike {
   commandId?: string;
 }
 
+function simplifyCommand(cmd?: CommandLike) {
+  if (!cmd) {
+    return cmd;
+  }
+
+  let args = cmd.args || [];
+
+  try {
+    // simplify the command to omit complex objects that may exist in `args`
+    args = JSON.parse(
+      JSON.stringify(args, (key: string, value: unknown) => {
+        if (key === "") {
+          return value;
+        }
+
+        const t = typeof value;
+        switch (t) {
+          case "boolean":
+          case "number":
+          case "string":
+            return value;
+          case "object":
+            const constructorName = (value as object)?.constructor?.name;
+            if (constructorName === "jQuery") {
+              return `[object ${(value as any).length === 1 ? "Node" : "NodeList"}]`;
+            } else if (constructorName !== "Object") {
+              return `[object ${constructorName}]`;
+            } else {
+              return value;
+            }
+          default:
+            return undefined;
+        }
+      })
+    );
+  } catch (e) {
+    console.error("Replay: Failed to serialize Cypress command");
+    console.error(e);
+
+    args = [];
+  }
+
+  return {
+    ...cmd,
+    args,
+  };
+}
+
 const makeEvent = (
   currentTest: typeof Cypress.currentTest,
   event: StepEvent["event"],
@@ -38,7 +86,7 @@ const makeEvent = (
   test: currentTest.titlePath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
-  command: cmd,
+  command: simplifyCommand(cmd),
   category,
   hook: getCurrentTestHook(),
   ...(error
