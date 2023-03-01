@@ -54,7 +54,7 @@ export enum DiagnosticLevel {
   Full,
 }
 
-export function configure(options: { mode?: string; level?: string }) {
+export function configure(options: { mode?: string; level?: string; stressCount?: number }) {
   // Set this modes into the environment so they can be picked up by the plugin
   process.env.REPLAY_CYPRESS_MODE = options.mode;
   process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
@@ -62,7 +62,7 @@ export function configure(options: { mode?: string; level?: string }) {
   return {
     mode: getReplayMode(),
     level: getDiagnosticLevel(),
-    repeat: getRepeatCount(),
+    repeat: getRepeatCount(options.stressCount),
   };
 }
 
@@ -96,7 +96,7 @@ function getDiagnosticLevel(): DiagnosticLevel {
   return mode === ReplayMode.Diagnostics ? DiagnosticLevel.Basic : DiagnosticLevel.None;
 }
 
-function getRepeatCount() {
+function getRepeatCount(stressCount = 10) {
   const level = getDiagnosticLevel();
 
   switch (getReplayMode()) {
@@ -105,7 +105,7 @@ function getRepeatCount() {
     case ReplayMode.Diagnostics:
       return level === DiagnosticLevel.Basic ? 3 : diagnosticFlags.length + 3;
     case ReplayMode.Stress:
-      return 10;
+      return stressCount;
     case ReplayMode.Record:
       return 1;
   }
