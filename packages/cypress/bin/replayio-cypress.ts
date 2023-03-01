@@ -23,21 +23,40 @@ function commandInstall() {
   });
 }
 
+function parseRetryCount(arg: string | undefined) {
+  const num = arg ? Number.parseInt(arg) : NaN;
+  if (isNaN(num)) {
+    throw new Error("Error: --count must be a number");
+  }
+
+  return num;
+}
+
 async function commandRun() {
   let modeOpt: string | undefined;
   let levelOpt: string | undefined;
+  let retryCount: number | undefined;
 
   // TODO [ryanjduffy]: Migrate to commander
   while (args.length) {
     switch (args[0]) {
+      case "-m":
       case "--mode":
         args.shift();
         modeOpt = args.shift();
 
         continue;
+      case "-l":
       case "--level":
         args.shift();
         levelOpt = args.shift();
+
+        continue;
+
+      case "-c":
+      case "--count":
+        args.shift();
+        retryCount = parseRetryCount(args.shift());
 
         continue;
     }
@@ -45,7 +64,7 @@ async function commandRun() {
     break;
   }
 
-  const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt });
+  const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt, stressCount: retryCount });
 
   if (
     (mode === ReplayMode.Diagnostics || mode === ReplayMode.RecordOnRetry) &&
