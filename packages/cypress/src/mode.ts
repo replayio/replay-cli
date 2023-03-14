@@ -1,4 +1,5 @@
 import dbg from "debug";
+import { v4 } from "uuid";
 
 const debug = dbg("replay:cypress:mode");
 
@@ -58,6 +59,12 @@ export function configure(options: { mode?: string; level?: string; stressCount?
   // Set this modes into the environment so they can be picked up by the plugin
   process.env.REPLAY_CYPRESS_MODE = options.mode;
   process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
+
+  // configure shared metadata values
+  process.env.RECORD_REPLAY_METADATA_TEST_RUN_MODE = options.mode;
+  // set a test run id so all the replays share a run when running in retry modes
+  process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID =
+    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || v4();
 
   return {
     mode: getReplayMode(),
