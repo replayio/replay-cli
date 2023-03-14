@@ -68,6 +68,7 @@ const versions: Record<number, Struct<any, any>> = {
             firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
           ),
           title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),
+          mode: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_MODE")),
         }),
         {}
       )
