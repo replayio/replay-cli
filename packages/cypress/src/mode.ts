@@ -60,17 +60,32 @@ export function configure(options: { mode?: string; level?: string; stressCount?
   process.env.REPLAY_CYPRESS_MODE = options.mode;
   process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
 
-  // configure shared metadata values
-  process.env.RECORD_REPLAY_METADATA_TEST_RUN_MODE = options.mode;
-  // set a test run id so all the replays share a run when running in retry modes
-  process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID =
-    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || v4();
-
-  return {
+  const config = {
     mode: getReplayMode(),
     level: getDiagnosticLevel(),
     repeat: getRepeatCount(options.stressCount),
   };
+
+  // configure shared metadata values
+  process.env.RECORD_REPLAY_METADATA_TEST_RUN_MODE = toModeString(config.mode);
+  // set a test run id so all the replays share a run when running in retry modes
+  process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID =
+    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || v4();
+
+  return config;
+}
+
+function toModeString(mode: ReplayMode) {
+  switch (mode) {
+    case ReplayMode.Record:
+      return "record";
+    case ReplayMode.RecordOnRetry:
+      return "record-on-retry";
+    case ReplayMode.Diagnostics:
+      return "diagnostics";
+    case ReplayMode.Stress:
+      return "stress";
+  }
 }
 
 function getReplayMode(): ReplayMode {
@@ -81,11 +96,13 @@ function getReplayMode(): ReplayMode {
       return ReplayMode.RecordOnRetry;
     case "diagnostic":
     case "diagnostics":
+      process.env.REPLAY_CYPRESS_MODE = "diagnostics";
       return ReplayMode.Diagnostics;
     case "stress":
       return ReplayMode.Stress;
   }
 
+  process.env.REPLAY_CYPRESS_MODE = "record";
   return ReplayMode.Record;
 }
 
