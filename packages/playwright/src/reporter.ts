@@ -60,7 +60,9 @@ interface ReplayPlaywrightConfig extends ReplayReporterConfig {
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
   startTime?: number;
-  captureTestFile = true;
+  captureTestFile = ["1", "true"].includes(
+    process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
+  );
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
@@ -116,7 +118,7 @@ class ReplayPlaywrightReporter implements Reporter {
     const errorStep = result.steps.find(step => step.error?.message);
     const errorMessage = extractErrorMessage(errorStep);
 
-    const relativePath = test.titlePath()[2] || test.location.file;
+    const relativePath = test.titlePath()[2];
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
@@ -124,7 +126,7 @@ class ReplayPlaywrightReporter implements Reporter {
         playwrightMetadata = {
           "x-replay-playwright": {
             sources: {
-              [relativePath]: readFileSync(relativePath, "utf8").toString(),
+              [relativePath]: readFileSync(test.location.file, "utf8").toString(),
             },
           },
         };
