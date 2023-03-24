@@ -479,7 +479,7 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
       maybeLog(opts.verbose, `No replays were found to upload`);
     }
 
-    return;
+    return true;
   }
 
   maybeLog(opts.verbose, `Starting upload of ${recordings.length} replays`);
