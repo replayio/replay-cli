@@ -158,6 +158,7 @@ class ReplayPlaywrightReporter implements Reporter {
             return {
               id: String(i),
               name: s.title,
+              path: s.titlePath(),
               error: stepErrorMessage
                 ? {
                     message: stepErrorMessage,
@@ -175,6 +176,7 @@ class ReplayPlaywrightReporter implements Reporter {
           }),
         },
       ],
+      [],
       test.title,
       playwrightMetadata
     );

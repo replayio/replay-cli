@@ -10,6 +10,10 @@ interface StepStackItem {
   step: TestStep;
 }
 
+function isGlobalHook(testStep: TestStep) {
+  return testStep.hook === "beforeAll" || testStep.hook === "afterAll";
+}
+
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
   switch (state) {
     case "failed":
@@ -144,7 +148,6 @@ function groupStepsByTest(
       activeGroup = undefined;
     }
     currentTest = testForStep;
-    assertCurrentTest(currentTest, step);
 
     debug("Processing %s event: %o", step.event, step);
 
@@ -178,31 +181,21 @@ function groupStepsByTest(
 
         const testStep: TestStep = {
           id: step.command!.id,
+          path: step.test,
           parentId,
           name: step.command!.name,
           args: args,
           commandId: step.command!.commandId,
-          relativeStartTime:
-            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
           category: step.category || "other",
           hook: step.hook,
         };
 
-        // If this assertion has an associated commandId, find that step by
-        // command and add this command to its assertIds array
-        if (step.command!.commandId) {
-          const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
-          if (commandStep) {
-            commandStep.assertIds = commandStep?.assertIds || [];
-            commandStep.assertIds.push(testStep.id);
-          }
-        }
-
-        if (testStep.hook === "beforeAll" || testStep.hook === "afterAll") {
+        if (isGlobalHook(testStep)) {
           let hook = hooks.find(h => h.title === testStep.hook);
           if (!hook) {
             hook = {
               title: testStep.hook!,
+              path: testStep.path,
               steps: [],
             };
             hooks.push(hook);
@@ -210,12 +203,26 @@ function groupStepsByTest(
 
           hook.steps!.push(testStep);
         } else {
+          assertCurrentTest(currentTest, step);
+
+          testStep.relativeStartTime =
+            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
+
+          // If this assertion has an associated commandId, find that step by
+          // command and add this command to its assertIds array
+          if (step.command!.commandId) {
+            const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
+            if (commandStep) {
+              commandStep.assertIds = commandStep?.assertIds || [];
+              commandStep.assertIds.push(testStep.id);
+            }
+          }
+
           currentTest.steps!.push(testStep);
         }
         stepStack.push({ event: step, step: testStep });
         break;
       case "step:end":
-        assertCurrentTest(currentTest, step);
         const isAssert = step.command!.name === "assert";
         const lastStep: StepStackItem | undefined = stepStack.find(
           a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
@@ -240,17 +247,22 @@ function groupStepsByTest(
         }
 
         const currentTestStep = lastStep.step!;
-        const relativeEndTime =
-          toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-        currentTestStep.duration = Math.max(
-          0,
-          relativeEndTime - currentTestStep.relativeStartTime!
-        );
+        if (!isGlobalHook(currentTestStep)) {
+          assertCurrentTest(currentTest, step);
+
+          const relativeEndTime =
+            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
+          currentTestStep.duration = Math.max(
+            0,
+            relativeEndTime - currentTestStep.relativeStartTime!
+          );
+        }
 
         // Always set the error so that a successful retry will clear a previous error
         currentTestStep.error = step.error;
         break;
       case "test:end":
+        assertCurrentTest(currentTest, step);
         currentTest.duration =
           toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
         break;

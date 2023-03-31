@@ -33,6 +33,7 @@ const versions: Record<number, Struct<any, any>> = {
       array(
         object({
           title: string(),
+          path: array(string()),
           steps: optional(array(any())),
         })
       )

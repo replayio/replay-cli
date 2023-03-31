@@ -23,6 +23,7 @@ export interface TestError {
 
 export interface TestStep {
   id: string;
+  path: string[];
   parentId?: string;
   name: string;
   args?: any[];
@@ -38,7 +39,7 @@ export interface TestStep {
 
 export interface Hook {
   title: string;
-  // path: string[];
+  path: string[];
   steps?: TestStep[];
 }
 
