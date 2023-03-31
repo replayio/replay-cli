@@ -191,7 +191,9 @@ function groupStepsByTest(
         };
 
         if (isGlobalHook(testStep)) {
-          let hook = hooks.find(h => h.title === testStep.hook);
+          let hook = hooks.find(
+            h => h.title === testStep.hook && h.path.join(",") === testStep.path.join(",")
+          );
           if (!hook) {
             hook = {
               title: testStep.hook!,
