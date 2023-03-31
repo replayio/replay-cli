@@ -3,6 +3,7 @@ import {
   getMetadataFilePath as getMetadataFilePathBase,
   ReplayReporter,
   Test,
+  Hook,
   ReporterError,
 } from "@replayio/test-utils";
 import debug from "debug";
@@ -67,8 +68,8 @@ class CypressReporter {
   onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     appendToFixtureFile("spec:end", { spec, result });
 
-    const tests = this.getTestResults(spec, result);
-    this.reporter.onTestEnd(tests, spec.relative);
+    const { hooks, tests } = this.getTestResults(spec, result);
+    this.reporter.onTestEnd(tests, hooks, spec.relative);
   }
 
   getDiagnosticConfig() {
@@ -92,7 +93,10 @@ class CypressReporter {
     this.steps.push(step);
   }
 
-  private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
+  private getTestResults(
+    spec: Cypress.Spec,
+    result: CypressCommandLine.RunResult
+  ): { hooks: Hook[]; tests: Test[] } {
     if (
       // If the browser crashes, no tests are run and tests will be null
       !result.tests ||
@@ -103,28 +107,28 @@ class CypressReporter {
       this.debug(msg);
       this.reporter.addError(new ReporterError(spec.relative, msg));
 
-      return [
-        // return an placeholder test because cypress will still launch a
-        // browser for a file that matches the spec format but doesn't contain
-        // any tests.
-        {
-          title: spec.relative,
-          path: [spec.relative],
-          result: "unknown",
-          relativePath: spec.relative,
-        },
-      ];
+      return {
+        hooks: [],
+        tests: [
+          // return an placeholder test because cypress will still launch a
+          // browser for a file that matches the spec format but doesn't contain
+          // any tests.
+          {
+            title: spec.relative,
+            path: [spec.relative],
+            result: "unknown",
+            relativePath: spec.relative,
+          },
+        ],
+      };
     }
 
     let testsWithSteps: Test[] = [];
+    let hooksWithSteps: Hook[] = [];
     try {
-      testsWithSteps = groupStepsByTest(
-        spec,
-        result.tests,
-        this.steps,
-        this.startTime!,
-        this.debug
-      );
+      const grouped = groupStepsByTest(spec, result.tests, this.steps, this.startTime!, this.debug);
+      testsWithSteps = grouped.tests;
+      hooksWithSteps = grouped.hooks;
     } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay.");
       console.warn(e);
@@ -169,7 +173,10 @@ class CypressReporter {
       };
     });
 
-    return tests;
+    return {
+      hooks: hooksWithSteps,
+      tests,
+    };
   }
 }
 

@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ReporterError, Test, TestStep } from "@replayio/test-utils";
+import { Hook, ReporterError, Test, TestStep } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
@@ -88,11 +88,11 @@ function groupStepsByTest(
   steps: StepEvent[],
   firstTimestamp: number,
   debug: debug.Debugger
-): Test[] {
+): { hooks: Hook[]; tests: Test[] } {
   debug = debug.extend("group");
   if (steps.length === 0) {
     debug("No test steps found");
-    return [];
+    return { hooks: [], tests: [] };
   }
 
   // The steps can come in out of order but are sortable by timestamp
@@ -118,6 +118,7 @@ function groupStepsByTest(
       steps: [],
     };
   });
+  const hooks: Hook[] = [];
 
   debug("Found %d tests", tests.length);
   debug(
@@ -197,7 +198,20 @@ function groupStepsByTest(
           }
         }
 
-        currentTest.steps!.push(testStep);
+        if (testStep.hook === "beforeAll" || testStep.hook === "afterAll") {
+          let hook = hooks.find(h => h.title === testStep.hook);
+          if (!hook) {
+            hook = {
+              title: testStep.hook!,
+              steps: [],
+            };
+            hooks.push(hook);
+          }
+
+          hook.steps!.push(testStep);
+        } else {
+          currentTest.steps!.push(testStep);
+        }
         stepStack.push({ event: step, step: testStep });
         break;
       case "step:end":
@@ -243,7 +257,7 @@ function groupStepsByTest(
     }
   }
 
-  return tests;
+  return { hooks, tests };
 }
 
 export { groupStepsByTest };

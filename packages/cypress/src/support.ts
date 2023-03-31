@@ -136,10 +136,14 @@ const getCurrentTestHook = (): TestStep["hook"] => {
     const { type, hookName } = (Cypress as any).mocha.getRunner().currentRunnable;
     if (type === "hook") {
       switch (hookName) {
+        case "before all":
+          return "beforeAll";
         case "before each":
           return "beforeEach";
         case "after each":
           return "afterEach";
+        case "after all":
+          return "afterAll";
       }
     }
   } catch {
