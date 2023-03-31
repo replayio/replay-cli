@@ -38,6 +38,7 @@ export interface TestStep {
 
 export interface Hook {
   title: string;
+  // path: string[];
   steps?: TestStep[];
 }
 
