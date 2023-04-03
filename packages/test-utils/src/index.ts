@@ -1,6 +1,6 @@
 import ReplayReporter from "./reporter";
 
-export type { Test, TestError, TestStep, ReplayReporterConfig } from "./reporter";
+export type { Hook, Test, TestError, TestStep, ReplayReporterConfig } from "./reporter";
 export { ReporterError } from "./reporter";
 export { pingTestMetrics } from "./metrics";
 export { removeAnsiCodes } from "./terminal";

@@ -23,17 +23,24 @@ export interface TestError {
 
 export interface TestStep {
   id: string;
+  path: string[];
   parentId?: string;
   name: string;
   args?: any[];
   error?: TestError;
   relativeStartTime?: number;
   duration?: number;
-  hook?: "beforeEach" | "afterEach";
+  hook?: "beforeEach" | "afterEach" | "beforeAll" | "afterAll";
   category: "command" | "assertion" | "other";
   // Links an assert to the triggering command
   commandId?: string;
   assertIds?: string[];
+}
+
+export interface Hook {
+  title: string;
+  path: string[];
+  steps?: TestStep[];
 }
 
 export interface Test {
@@ -180,7 +187,12 @@ class ReplayReporter {
     writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
   }
 
-  onTestEnd(tests: Test[], replayTitle?: string, extraMetadata?: Record<string, unknown>) {
+  onTestEnd(
+    tests: Test[],
+    hooks?: Hook[],
+    replayTitle?: string,
+    extraMetadata?: Record<string, unknown>
+  ) {
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
@@ -235,6 +247,7 @@ class ReplayReporter {
               title: this.runTitle,
             },
             file: test.relativePath,
+            hooks: hooks,
             tests: tests,
           }),
           ...(this.errors.length

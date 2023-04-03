@@ -28,6 +28,16 @@ const versions: Record<number, Struct<any, any>> = {
       enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
       firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
     ),
+    // before/after all hooks
+    hooks: optional(
+      array(
+        object({
+          title: string(),
+          path: array(string()),
+          steps: optional(array(any())),
+        })
+      )
+    ),
     tests: optional(
       array(
         object({

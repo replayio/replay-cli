@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ReporterError, Test, TestStep } from "@replayio/test-utils";
+import { Hook, ReporterError, Test, TestStep } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
@@ -8,6 +8,10 @@ import type { StepEvent } from "./support";
 interface StepStackItem {
   event: StepEvent;
   step: TestStep;
+}
+
+function isGlobalHook(testStep: TestStep) {
+  return testStep.hook === "beforeAll" || testStep.hook === "afterAll";
 }
 
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
@@ -88,11 +92,11 @@ function groupStepsByTest(
   steps: StepEvent[],
   firstTimestamp: number,
   debug: debug.Debugger
-): Test[] {
+): { hooks: Hook[]; tests: Test[] } {
   debug = debug.extend("group");
   if (steps.length === 0) {
     debug("No test steps found");
-    return [];
+    return { hooks: [], tests: [] };
   }
 
   // The steps can come in out of order but are sortable by timestamp
@@ -118,6 +122,7 @@ function groupStepsByTest(
       steps: [],
     };
   });
+  const hooks: Hook[] = [];
 
   debug("Found %d tests", tests.length);
   debug(
@@ -143,7 +148,6 @@ function groupStepsByTest(
       activeGroup = undefined;
     }
     currentTest = testForStep;
-    assertCurrentTest(currentTest, step);
 
     debug("Processing %s event: %o", step.event, step);
 
@@ -177,31 +181,50 @@ function groupStepsByTest(
 
         const testStep: TestStep = {
           id: step.command!.id,
+          path: step.test,
           parentId,
           name: step.command!.name,
           args: args,
           commandId: step.command!.commandId,
-          relativeStartTime:
-            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!,
           category: step.category || "other",
           hook: step.hook,
         };
 
-        // If this assertion has an associated commandId, find that step by
-        // command and add this command to its assertIds array
-        if (step.command!.commandId) {
-          const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
-          if (commandStep) {
-            commandStep.assertIds = commandStep?.assertIds || [];
-            commandStep.assertIds.push(testStep.id);
+        if (isGlobalHook(testStep)) {
+          let hook = hooks.find(
+            h => h.title === testStep.hook && h.path.join(",") === testStep.path.join(",")
+          );
+          if (!hook) {
+            hook = {
+              title: testStep.hook!,
+              path: testStep.path,
+              steps: [],
+            };
+            hooks.push(hook);
           }
-        }
 
-        currentTest.steps!.push(testStep);
+          hook.steps!.push(testStep);
+        } else {
+          assertCurrentTest(currentTest, step);
+
+          testStep.relativeStartTime =
+            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
+
+          // If this assertion has an associated commandId, find that step by
+          // command and add this command to its assertIds array
+          if (step.command!.commandId) {
+            const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
+            if (commandStep) {
+              commandStep.assertIds = commandStep?.assertIds || [];
+              commandStep.assertIds.push(testStep.id);
+            }
+          }
+
+          currentTest.steps!.push(testStep);
+        }
         stepStack.push({ event: step, step: testStep });
         break;
       case "step:end":
-        assertCurrentTest(currentTest, step);
         const isAssert = step.command!.name === "assert";
         const lastStep: StepStackItem | undefined = stepStack.find(
           a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
@@ -226,24 +249,29 @@ function groupStepsByTest(
         }
 
         const currentTestStep = lastStep.step!;
-        const relativeEndTime =
-          toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-        currentTestStep.duration = Math.max(
-          0,
-          relativeEndTime - currentTestStep.relativeStartTime!
-        );
+        if (!isGlobalHook(currentTestStep)) {
+          assertCurrentTest(currentTest, step);
+
+          const relativeEndTime =
+            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
+          currentTestStep.duration = Math.max(
+            0,
+            relativeEndTime - currentTestStep.relativeStartTime!
+          );
+        }
 
         // Always set the error so that a successful retry will clear a previous error
         currentTestStep.error = step.error;
         break;
       case "test:end":
+        assertCurrentTest(currentTest, step);
         currentTest.duration =
           toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
         break;
     }
   }
 
-  return tests;
+  return { hooks, tests };
 }
 
 export { groupStepsByTest };
