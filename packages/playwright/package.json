@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "src/index.js",
   "scripts": {
@@ -35,8 +35,8 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.12.7",
-    "@replayio/test-utils": "^0.5.6",
+    "@replayio/replay": "^0.12.8",
+    "@replayio/test-utils": "^0.5.7",
     "uuid": "^8.3.2"
   },
   "peerDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.12.7",
+  "version": "0.12.8",
   "description": "CLI tool for uploading and managing recordings",
   "bin": {
     "replay": "bin/replay.js"
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replay/README.md",
   "dependencies": {
-    "@replayio/sourcemap-upload": "^1.0.6",
+    "@replayio/sourcemap-upload": "^1.0.7",
     "commander": "^7.2.0",
     "debug": "^4.3.4",
     "is-uuid": "^1.0.2",
