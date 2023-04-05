@@ -34,10 +34,6 @@ if (argv[0] == "--update") {
     console.log(Usage);
     process.exit(1);
   }
-} else if (argv[0].startsWith("--")) {
-  console.log(`Unrecognized option: ${argv[0]}`);
-  console.log(Usage);
-  process.exit(1);
 }
 
 main();
