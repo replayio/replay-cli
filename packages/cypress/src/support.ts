@@ -309,9 +309,10 @@ export default function register() {
     }
   });
   Cypress.on("log:added", log => {
+    const assertionCurrentTest = currentTest;
     try {
       if (log.name === "new url") {
-        addAnnotation(getCurrentPath(currentTest!), "event:navigation", {
+        addAnnotation(getCurrentPath(assertionCurrentTest!), "event:navigation", {
           logVariable: "log",
           url: log.url,
           id: getReplayId(log.id),
@@ -349,12 +350,12 @@ export default function register() {
         category: "assertion",
         commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
       };
-      addAnnotation(getCurrentPath(currentTest!), "step:start", {
+      addAnnotation(getCurrentPath(assertionCurrentTest!), "step:start", {
         commandVariable: "lastCommand",
         logVariable: "log",
         id: cmd.id,
       });
-      handleCypressEvent(currentTest!, "step:start", "assertion", cmd);
+      handleCypressEvent(assertionCurrentTest!, "step:start", "assertion", cmd);
 
       const logChanged = (changedLog: any) => {
         try {
@@ -388,20 +389,20 @@ export default function register() {
               ?.find((l: any) => l.get("id") === changedLog.id);
 
             // if an assertion fails, emit step:end for the failed command
-            addAnnotation(getCurrentPath(currentTest!), "step:end", {
+            addAnnotation(getCurrentPath(assertionCurrentTest!), "step:end", {
               commandVariable: "lastCommand",
               logVariable: failedCommandLog ? "failedCommandLog" : undefined,
               id: getReplayId(getCypressId(lastCommand)),
             });
-            handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(lastCommand));
+            handleCypressEvent(assertionCurrentTest!, "step:end", "command", toCommandJSON(lastCommand));
           }
 
-          addAnnotation(getCurrentPath(currentTest!), "step:end", {
+          addAnnotation(getCurrentPath(assertionCurrentTest!), "step:end", {
             commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
             logVariable: "changedLog",
             id: changedCmd.id,
           });
-          handleCypressEvent(currentTest!, "step:end", "assertion", changedCmd, error);
+          handleCypressEvent(assertionCurrentTest!, "step:end", "assertion", changedCmd, error);
         } catch (e) {
           console.error("Replay: Failed to handle log:changed event");
           console.error(e);
