@@ -394,7 +394,12 @@ export default function register() {
               logVariable: failedCommandLog ? "failedCommandLog" : undefined,
               id: getReplayId(getCypressId(lastCommand)),
             });
-            handleCypressEvent(assertionCurrentTest!, "step:end", "command", toCommandJSON(lastCommand));
+            handleCypressEvent(
+              assertionCurrentTest!,
+              "step:end",
+              "command",
+              toCommandJSON(lastCommand)
+            );
           }
 
           addAnnotation(getCurrentPath(assertionCurrentTest!), "step:end", {
