@@ -83,6 +83,7 @@ const versions: Record<number, Struct<any, any>> = {
         {}
       )
     ),
+    reporterErrors: defaulted(array(any()), []),
     version: defaulted(number(), () => 1),
   }),
 };

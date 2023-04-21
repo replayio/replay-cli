@@ -94,6 +94,7 @@ const ReplayRunner = async (
               message: errorMessage,
             }
           : undefined,
+        steps: [],
       },
     ]);
   }
