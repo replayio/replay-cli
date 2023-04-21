@@ -45,7 +45,7 @@
     "eslint-plugin-prettier": "^3.4.0",
     "prettier": "^2.2.1",
     "typescript": "^4.2.4",
-    "webpack": "^5.0.0"
+    "webpack": "^5.76.0"
   },
   "dependencies": {
     "@replayio/sourcemap-upload": "^1.0.7"
