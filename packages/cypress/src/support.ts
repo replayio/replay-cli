@@ -76,14 +76,14 @@ function simplifyCommand(cmd?: CommandLike) {
 }
 
 const makeEvent = (
-  currentTest: typeof Cypress.currentTest,
+  currentPath: string[],
   event: StepEvent["event"],
   category?: TestStep["category"],
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
   event,
-  test: getCurrentPath(currentTest),
+  test: currentPath,
   file: Cypress.spec.relative,
   timestamp: new Date().toISOString(),
   command: simplifyCommand(cmd),
@@ -97,7 +97,7 @@ const makeEvent = (
 });
 
 const handleCypressEvent = (
-  currentTest: typeof Cypress.currentTest,
+  currentPath: string[],
   event: StepEvent["event"],
   category?: TestStep["category"],
   cmd?: CommandLike,
@@ -105,7 +105,7 @@ const handleCypressEvent = (
 ) => {
   if (cmd?.args?.[0] === TASK_NAME) return;
 
-  const arg = makeEvent(currentTest, event, category, cmd, error);
+  const arg = makeEvent(currentPath, event, category, cmd, error);
 
   return Promise.resolve()
     .then(() => {
@@ -264,8 +264,9 @@ export default function register() {
       const id = getReplayId(
         cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString()
       );
-      addAnnotation(getCurrentPath(currentTest), "step:enqueue", { commandVariable: "cmd", id });
-      handleCypressEvent(currentTest!, "step:enqueue", "other", {
+      const currentPath = getCurrentPath(currentTest);
+      addAnnotation(currentPath, "step:enqueue", { commandVariable: "cmd", id });
+      handleCypressEvent(currentPath, "step:enqueue", "other", {
         id,
         groupId: getReplayId(cmd.chainerId),
         name: cmd.name,
@@ -281,11 +282,12 @@ export default function register() {
       lastCommand = cmd;
       lastAssertionCommand = undefined;
 
-      addAnnotation(getCurrentPath(currentTest!), "step:start", {
+      const currentPath = getCurrentPath(currentTest!);
+      addAnnotation(currentPath, "step:start", {
         commandVariable: "cmd",
         id: getReplayId(getCypressId(cmd)),
       });
-      return handleCypressEvent(currentTest!, "step:start", "command", toCommandJSON(cmd));
+      return handleCypressEvent(currentPath, "step:start", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:start event");
       console.error(e);
@@ -297,22 +299,24 @@ export default function register() {
         .get("logs")
         .find((l: any) => l.get("name") === cmd.get("name"))
         ?.toJSON();
-      addAnnotation(getCurrentPath(currentTest!), "step:end", {
+      const currentPath = getCurrentPath(currentTest!);
+      addAnnotation(currentPath, "step:end", {
         commandVariable: "cmd",
         logVariable: log ? "log" : undefined,
         id: getReplayId(getCypressId(cmd)),
       });
-      handleCypressEvent(currentTest!, "step:end", "command", toCommandJSON(cmd));
+      handleCypressEvent(currentPath, "step:end", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:end event");
       console.error(e);
     }
   });
   Cypress.on("log:added", log => {
-    const assertionCurrentTest = currentTest;
+    const assertionCurrentTest = currentTest || getCurrentTest();
+    const annotationCurrentPath = getCurrentPath(assertionCurrentTest);
     try {
       if (log.name === "new url") {
-        addAnnotation(getCurrentPath(assertionCurrentTest!), "event:navigation", {
+        addAnnotation(annotationCurrentPath, "event:navigation", {
           logVariable: "log",
           url: log.url,
           id: getReplayId(log.id),
@@ -350,12 +354,12 @@ export default function register() {
         category: "assertion",
         commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
       };
-      addAnnotation(getCurrentPath(assertionCurrentTest!), "step:start", {
+      addAnnotation(annotationCurrentPath, "step:start", {
         commandVariable: "lastCommand",
         logVariable: "log",
         id: cmd.id,
       });
-      handleCypressEvent(assertionCurrentTest!, "step:start", "assertion", cmd);
+      handleCypressEvent(annotationCurrentPath, "step:start", "assertion", cmd);
 
       const logChanged = (changedLog: any) => {
         try {
@@ -389,25 +393,25 @@ export default function register() {
               ?.find((l: any) => l.get("id") === changedLog.id);
 
             // if an assertion fails, emit step:end for the failed command
-            addAnnotation(getCurrentPath(assertionCurrentTest!), "step:end", {
+            addAnnotation(annotationCurrentPath, "step:end", {
               commandVariable: "lastCommand",
               logVariable: failedCommandLog ? "failedCommandLog" : undefined,
               id: getReplayId(getCypressId(lastCommand)),
             });
             handleCypressEvent(
-              assertionCurrentTest!,
+              annotationCurrentPath,
               "step:end",
               "command",
               toCommandJSON(lastCommand)
             );
           }
 
-          addAnnotation(getCurrentPath(assertionCurrentTest!), "step:end", {
+          addAnnotation(annotationCurrentPath, "step:end", {
             commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
             logVariable: "changedLog",
             id: changedCmd.id,
           });
-          handleCypressEvent(assertionCurrentTest!, "step:end", "assertion", changedCmd, error);
+          handleCypressEvent(annotationCurrentPath, "step:end", "assertion", changedCmd, error);
         } catch (e) {
           console.error("Replay: Failed to handle log:changed event");
           console.error(e);
@@ -424,8 +428,9 @@ export default function register() {
     try {
       currentTest = getCurrentTest();
       if (currentTest) {
-        handleCypressEvent(currentTest!, "test:start");
-        addAnnotation(currentTest!.titlePath, "test:start");
+        const currentPath = getCurrentPath(currentTest);
+        handleCypressEvent(currentPath, "test:start");
+        addAnnotation(currentPath, "test:start");
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:start event");
@@ -435,8 +440,9 @@ export default function register() {
   afterEach(() => {
     try {
       if (currentTest) {
-        handleCypressEvent(currentTest!, "test:end");
-        addAnnotation(currentTest!.titlePath, "test:end");
+        const currentPath = getCurrentPath(currentTest);
+        handleCypressEvent(currentPath, "test:end");
+        addAnnotation(currentPath, "test:end");
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:end event");

@@ -79,7 +79,7 @@ driver(
         break;
     }
   },
-  { delay: 0 }
+  { delay: 0, file: process.argv[2] }
 ).then(() => {
   console.log("done");
 });
