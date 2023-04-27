@@ -31,7 +31,8 @@
   "devDependencies": {
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",
-    "@types/node": "^17.0.21"
+    "@types/node": "^18.16.1",
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "@replayio/replay": "^0.12.8",

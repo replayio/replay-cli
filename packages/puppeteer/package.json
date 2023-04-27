@@ -20,7 +20,8 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@types/node": "^17.0.21"
+    "@types/node": "^18.16.1",
+    "typescript": "^5.0.4"
   },
   "repository": {
     "type": "git",
