@@ -32,5 +32,8 @@
     "node-fetch": "^2.6.7",
     "uuid": "^8.3.2"
   },
-  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b"
+  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b",
+  "devDependencies": {
+    "@types/debug": "^4.1.7"
+  }
 }
