@@ -1,6 +1,7 @@
 import fs from "fs";
 import crypto from "crypto";
 import dbg from "debug";
+import fetch from "node-fetch";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
@@ -51,23 +52,22 @@ class ReplayClient {
     return this.clientReady.promise;
   }
 
-  async connectionCreateRecording(id: string, buildId: string) {
+  async connectionCreateRecording(id: string, buildId: string, size: number) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const { recordingId } = await this.client.sendCommand<{ recordingId: string }>(
-      "Internal.createRecording",
+    const { recordingId, uploadLink } = await this.client.sendCommand<{ recordingId: string }>(
+      "Internal.uploadRecording",
       {
         buildId,
         // 3/22/2022: Older builds use integers instead of UUIDs for the recording
         // IDs written to disk. These are not valid to use as recording IDs when
         // uploading recordings to the backend.
         recordingId: isValidUUID(id) ? id : undefined,
-        // Ensure that if the upload fails, we will not create
-        // partial recordings.
+        recordingSize: size,
         requireFinish: true,
       }
     );
-    return recordingId;
+    return { recordingId, uploadLink };
   }
 
   async buildRecordingMetadata(
@@ -141,56 +141,18 @@ class ReplayClient {
     await this.client.sendCommand("Internal.reportCrash", { data });
   }
 
-  async connectionUploadRecording(recordingId: string, path: string) {
+  async uploadRecording(path: string, uploadLink: string, size: number) {
+    const file = fs.createReadStream(path);
+    await fetch(uploadLink, {
+      method: "PUT",
+      headers: { "Content-Length": size.toString() },
+      body: file,
+    });
+  }
+
+  async finishRecording(recordingId: string) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const file = fs.createReadStream(path);
-
-    let buffer: Buffer | undefined;
-    let offset = 0;
-
-    debug("%s: Replay file size: %d bytes", recordingId, fs.statSync(path).size);
-
-    const send = async (b: Buffer) => {
-      const length = b.length;
-      debug("%s: Sending %d bytes at offset %d", recordingId, length, offset);
-
-      await new Promise<void>((resolve, reject) =>
-        this.client?.sendCommand(
-          "Internal.addRecordingData",
-          { recordingId, offset, length },
-          b,
-          undefined,
-          err => (err ? reject(err) : resolve())
-        )
-      );
-
-      offset += length;
-    };
-
-    for await (const chunk of file) {
-      const cb = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
-      debug("%s: Read %d bytes from file", recordingId, cb.length);
-
-      buffer = buffer ? Buffer.concat([buffer, cb]) : cb;
-
-      if (buffer.length >= ChunkGranularity) {
-        const data = buffer.subarray(0, ChunkGranularity);
-        buffer = buffer.subarray(ChunkGranularity);
-        await send(data);
-      }
-    }
-
-    if (buffer?.length) {
-      await send(buffer);
-    }
-
-    debug("%s: Uploaded %d bytes", recordingId, offset);
-
-    // Explicitly mark the recording complete so the server knows that it has
-    // been sent all of the recording data, and can save the recording.
-    // This means if someone presses Ctrl+C, the server doesn't save a
-    // partial recording.
     await this.client.sendCommand("Internal.finishRecording", { recordingId });
   }
 
