@@ -52,21 +52,20 @@ class ReplayClient {
     return this.clientReady.promise;
   }
 
-  async connectionCreateRecording(id: string, buildId: string, size: number) {
+  async connectionBeginRecordingUpload(id: string, buildId: string, size: number) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const { recordingId, uploadLink } = await this.client.sendCommand<{ recordingId: string }>(
-      "Internal.uploadRecording",
-      {
-        buildId,
-        // 3/22/2022: Older builds use integers instead of UUIDs for the recording
-        // IDs written to disk. These are not valid to use as recording IDs when
-        // uploading recordings to the backend.
-        recordingId: isValidUUID(id) ? id : undefined,
-        recordingSize: size,
-        requireFinish: true,
-      }
-    );
+    const { recordingId, uploadLink } = await this.client.sendCommand<{
+      recordingId: string;
+      uploadLink: string;
+    }>("Internal.beginRecordingUpload", {
+      buildId,
+      // 3/22/2022: Older builds use integers instead of UUIDs for the recording
+      // IDs written to disk. These are not valid to use as recording IDs when
+      // uploading recordings to the backend.
+      recordingId: isValidUUID(id) ? id : undefined,
+      recordingSize: size,
+    });
     return { recordingId, uploadLink };
   }
 
@@ -150,10 +149,12 @@ class ReplayClient {
     });
   }
 
-  async finishRecording(recordingId: string) {
+  async connectionEndRecordingUpload(recordingId: string) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    await this.client.sendCommand("Internal.finishRecording", { recordingId });
+    await this.client.sendCommand<{ recordingId: string }>("Internal.endRecordingUpload", {
+      recordingId,
+    });
   }
 
   async connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {
