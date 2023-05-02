@@ -374,7 +374,7 @@ async function doUploadRecording(
   const metadata = recording.metadata
     ? await client.buildRecordingMetadata(recording.metadata, { verbose })
     : null;
-  const { recordingId, uploadLink } = await client.connectionCreateRecording(
+  const { recordingId, uploadLink } = await client.connectionBeginRecordingUpload(
     recording.id,
     recording.buildId!,
     size
@@ -398,10 +398,7 @@ async function doUploadRecording(
 
   debug("%s: Uploaded %d bytes", recordingId, size);
 
-  // Explicitly mark the recording complete so the server knows that all
-  // recording data has been uploaded. This means if someone presses Ctrl+C,
-  // the server doesn't save a partial recording.
-  await client.finishRecording(recordingId);
+  await client.connectionEndRecordingUpload(recording.id);
 
   for (const sourcemap of recording.sourcemaps) {
     try {
