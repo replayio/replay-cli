@@ -50,7 +50,7 @@ export interface Test {
   result: "passed" | "failed" | "timedOut" | "skipped" | "unknown";
   relativePath: string;
   error?: TestError;
-  steps?: TestStep[];
+  steps: TestStep[];
   relativeStartTime?: number;
   duration?: number;
 }
@@ -66,13 +66,18 @@ function parseRuntime(runtime?: string) {
 }
 
 export class ReporterError extends Error {
-  testId: string;
-  constructor(testId: string, message: string) {
+  code: number;
+  testId?: string;
+  detail?: any;
+
+  constructor(code: number, message: string, testId?: string, detail?: any) {
     super();
 
-    this.message = message;
     this.name = "ReporterError";
+    this.code = code;
+    this.message = message;
     this.testId = testId;
+    this.detail = detail;
   }
 
   valueOf() {
@@ -80,6 +85,7 @@ export class ReporterError extends Error {
       name: this.name,
       message: this.message,
       test: this.testId,
+      detail: this.detail,
     };
   }
 }
@@ -148,9 +154,11 @@ class ReplayReporter {
     }
   }
 
-  addError(err: Error | string) {
-    if (err) {
+  addError(err: Error) {
+    if (err.name === "ReporterError") {
       this.errors.push(err);
+    } else {
+      this.errors.push(new ReporterError(-1, "Unexpected error", undefined, err));
     }
   }
 
@@ -249,14 +257,8 @@ class ReplayReporter {
             file: test.relativePath,
             hooks: hooks,
             tests: tests,
+            reporterErrors: this.errors,
           }),
-          ...(this.errors.length
-            ? {
-                "x-replay-errors": {
-                  reporter: this.errors,
-                },
-              }
-            : null),
         })
       );
     }

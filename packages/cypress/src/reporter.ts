@@ -8,6 +8,7 @@ import {
 } from "@replayio/test-utils";
 import debug from "debug";
 
+import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
 import { groupStepsByTest, mapStateToResult } from "./steps";
@@ -105,7 +106,7 @@ class CypressReporter {
     ) {
       const msg = "No test results found for spec " + spec.relative;
       this.debug(msg);
-      this.reporter.addError(new ReporterError(spec.relative, msg));
+      this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
       return {
         hooks: [],
@@ -118,6 +119,7 @@ class CypressReporter {
             path: [spec.relative],
             result: "unknown",
             relativePath: spec.relative,
+            steps: [],
           },
         ],
       };
@@ -125,12 +127,13 @@ class CypressReporter {
 
     let testsWithSteps: Test[] = [];
     let hooksWithSteps: Hook[] = [];
+
     try {
       const grouped = groupStepsByTest(spec, result.tests, this.steps, this.startTime!, this.debug);
       testsWithSteps = grouped.tests;
       hooksWithSteps = grouped.hooks;
     } catch (e: any) {
-      console.warn("Failed to build test step metadata for this replay.");
+      console.warn("Failed to build test step metadata for this replay");
       console.warn(e);
 
       this.reporter.addError(e);
@@ -160,6 +163,7 @@ class CypressReporter {
 
       return {
         title: t.title[t.title.length - 1] || spec.relative,
+        steps: [],
         // If we found the test from the steps array (we should), merge it in
         // and overwrite the default title and relativePath values. It won't
         // have the correct path or result so those are added and we bubble up
