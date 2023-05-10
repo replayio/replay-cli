@@ -1,6 +1,6 @@
 {
   "name": "@replayio/jest",
-  "version": "27.2.1",
+  "version": "27.2.2",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "src/index.js",
   "scripts": {
@@ -35,8 +35,8 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@replayio/replay": "^0.12.9",
-    "@replayio/test-utils": "^0.5.8",
+    "@replayio/replay": "^0.12.10",
+    "@replayio/test-utils": "^0.5.9",
     "jest-circus": "^27.5.1",
     "jest-environment-node": "^27.5.1",
     "uuid": "^8.3.2"
