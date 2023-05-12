@@ -92,7 +92,6 @@ function groupStepsByTest(
       path: result.title,
       result: mapStateToResult(result.state),
       relativePath: spec.relative,
-      relativeStartTime: step ? toRelativeTime(step.timestamp, firstTimestamp) : 0,
       steps: [],
     };
   });
@@ -182,9 +181,6 @@ function groupStepsByTest(
           } else {
             assertCurrentTest(currentTest, step);
 
-            testStep.relativeStartTime =
-              toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-
             // If this assertion has an associated commandId, find that step by
             // command and add this command to its assertIds array
             if (step.command!.commandId) {
@@ -226,13 +222,6 @@ function groupStepsByTest(
           const currentTestStep = lastStep.step!;
           if (!isGlobalHook(currentTestStep)) {
             assertCurrentTest(currentTest, step);
-
-            const relativeEndTime =
-              toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-            currentTestStep.duration = Math.max(
-              0,
-              relativeEndTime - currentTestStep.relativeStartTime!
-            );
           }
 
           // Always set the error so that a successful retry will clear a previous error
@@ -240,8 +229,6 @@ function groupStepsByTest(
           break;
         case "test:end":
           assertCurrentTest(currentTest, step);
-          currentTest.duration =
-            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
           break;
       }
     } catch (e) {

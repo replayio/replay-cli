@@ -28,11 +28,14 @@ class CypressReporter {
     initFixtureFile();
 
     this.config = config;
-    this.reporter = new ReplayReporter({
-      name: "cypress",
-      version: config.version,
-      plugin: require("../package.json").version,
-    });
+    this.reporter = new ReplayReporter(
+      {
+        name: "cypress",
+        version: config.version,
+        plugin: require("../package.json").version,
+      },
+      2
+    );
     this.debug = debug.extend("reporter");
 
     this.diagnosticConfig = getDiagnosticConfig(config);

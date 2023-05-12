@@ -86,6 +86,61 @@ const versions: Record<number, Struct<any, any>> = {
     reporterErrors: defaulted(array(any()), []),
     version: defaulted(number(), () => 1),
   }),
+  2: object({
+    suite: optional(envString("RECORD_REPLAY_METADATA_TEST_SUITE")),
+    file: envString("RECORD_REPLAY_METADATA_TEST_FILE"),
+    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
+    path: optional(array(string())),
+    result: defaulted(
+      enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
+      firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
+    ),
+    // before/after all hooks
+    hooks: array(
+      object({
+        title: string(),
+        path: array(string()),
+        steps: optional(array(any())),
+      })
+    ),
+    tests: array(
+      object({
+        title: string(),
+        path: array(string()),
+        relativePath: string(),
+        result: enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
+        error: optional(
+          object({
+            message: string(),
+            line: optional(number()),
+            column: optional(number()),
+          })
+        ),
+        steps: array(any()),
+      })
+    ),
+    runner: defaulted(
+      object({
+        name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
+        version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
+        plugin: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_PLUGIN")),
+      }),
+      {}
+    ),
+    run: defaulted(
+      object({
+        id: defaulted(
+          define("uuid", (v: any) => isUuid.v4(v)),
+          firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
+        ),
+        title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),
+        mode: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_MODE")),
+      }),
+      {}
+    ),
+    reporterErrors: defaulted(array(any()), []),
+    version: defaulted(number(), () => 2),
+  }),
 };
 
 function validate(metadata: { test: UnstructuredMetadata }) {
