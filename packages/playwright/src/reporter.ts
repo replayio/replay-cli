@@ -92,11 +92,14 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin(config: FullConfig) {
     const cfg = this.parseConfig(config);
-    this.reporter = new ReplayReporter({
-      name: "playwright",
-      version: config.version,
-      plugin: pluginVersion,
-    });
+    this.reporter = new ReplayReporter(
+      {
+        name: "playwright",
+        version: config.version,
+        plugin: pluginVersion,
+      },
+      2
+    );
     this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
 
     if (cfg.captureTestFile === false) {
@@ -144,8 +147,6 @@ class ReplayPlaywrightReporter implements Reporter {
           path: test.titlePath(),
           result: status,
           relativePath,
-          relativeStartTime: 0,
-          duration,
           error: errorMessage
             ? {
                 message: errorMessage,
@@ -166,10 +167,6 @@ class ReplayPlaywrightReporter implements Reporter {
                     column: s.location?.column,
                   }
                 : undefined,
-              relativeStartTime: this.startTime
-                ? Math.max(0, s.startTime.getTime() - this.startTime)
-                : undefined,
-              duration: s.duration,
               hook: mapTestStepHook(s),
               category: mapTestStepCategory(s),
             };

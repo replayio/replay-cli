@@ -28,8 +28,6 @@ export interface TestStep {
   name: string;
   args?: any[];
   error?: TestError;
-  relativeStartTime?: number;
-  duration?: number;
   hook?: "beforeEach" | "afterEach" | "beforeAll" | "afterAll";
   category: "command" | "assertion" | "other";
   // Links an assert to the triggering command
@@ -51,8 +49,6 @@ export interface Test {
   relativePath: string;
   error?: TestError;
   steps: TestStep[];
-  relativeStartTime?: number;
-  duration?: number;
 }
 
 export interface TestRunner {
@@ -97,13 +93,15 @@ class ReplayReporter {
     ? process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID
     : uuid.v4();
   baseMetadata: Record<string, any> | null = null;
+  metadataVersion: number;
   runTitle?: string;
   startTimes: Record<string, number> = {};
   runner?: TestRunner;
   errors: (string | Error | ReporterError)[] = [];
 
-  constructor(runner?: TestRunner) {
+  constructor(runner?: TestRunner, metadataVersion = 1) {
     this.runner = runner;
+    this.metadataVersion = metadataVersion;
   }
 
   getTestId(testId?: string) {
@@ -256,8 +254,14 @@ class ReplayReporter {
             },
             file: test.relativePath,
             hooks: hooks,
-            tests: tests,
+            tests: tests.map(t => {
+              const updated = { ...t };
+              delete updated.id;
+
+              return updated;
+            }),
             reporterErrors: this.errors,
+            version: this.metadataVersion,
           }),
         })
       );
