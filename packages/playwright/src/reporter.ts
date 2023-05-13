@@ -174,6 +174,8 @@ class ReplayPlaywrightReporter implements Reporter {
     for (let e of hookMap.entries()) {
       hooks.push({
         title: e[0],
+        // TODO [ryanjduffy]: Fix this before landing ... this isn't handling
+        // hooks at multiple levels yet
         path: [],
         steps: e[1],
       });
