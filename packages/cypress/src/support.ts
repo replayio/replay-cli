@@ -1,4 +1,4 @@
-import type { TestError, TestStep } from "@replayio/test-utils";
+import type { TestError, TestStep, HookKind } from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 
@@ -14,7 +14,7 @@ export interface StepEvent {
   file: string;
   timestamp: string;
   category?: TestStep["category"];
-  hook?: TestStep["hook"];
+  hook?: HookKind;
   command?: CommandLike;
   error?: TestError;
 }
@@ -150,7 +150,7 @@ const getHookPath = (parent?: RunnableHook) => {
   return path;
 };
 
-const getCurrentTestHook = (): TestStep["hook"] => {
+const getCurrentTestHook = (): HookKind | undefined => {
   try {
     const { type, hookName } = (Cypress as any).mocha.getRunner().currentRunnable;
 
