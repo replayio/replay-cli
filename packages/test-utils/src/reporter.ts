@@ -26,7 +26,7 @@ export interface TestStep {
   path: string[];
   parentId?: string;
   name: string;
-  args?: any[];
+  args: string[];
   error?: TestError;
   hook?: "beforeEach" | "afterEach" | "beforeAll" | "afterAll";
   category: "command" | "assertion" | "other";

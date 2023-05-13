@@ -60,6 +60,10 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.De
   return false;
 }
 
+function simplifyArgs(args?: any[]) {
+  return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
+}
+
 function groupStepsByTest(
   spec: Cypress.Spec,
   resultTests: CypressCommandLine.TestResult[],
@@ -151,7 +155,7 @@ function groupStepsByTest(
 
           // Simplify args to avoid sending large objects in metadata that we
           // won't render in the UI anyway
-          const args = step.command?.args?.map(a => (a && typeof a === "object" ? {} : a)) || [];
+          const args = simplifyArgs(step.command?.args);
 
           const testStep: TestStep = {
             id: step.command!.id,
@@ -216,15 +220,11 @@ function groupStepsByTest(
 
           // asserts can change the args if the message changes
           if (isAssert && step.command) {
-            lastStep.step.args = step.command.args;
-          }
-
-          const currentTestStep = lastStep.step!;
-          if (!isGlobalHook(currentTestStep)) {
-            assertCurrentTest(currentTest, step);
+            lastStep.step.args = simplifyArgs(step.command.args);
           }
 
           // Always set the error so that a successful retry will clear a previous error
+          const currentTestStep = lastStep.step!;
           currentTestStep.error = step.error;
           break;
         case "test:end":
