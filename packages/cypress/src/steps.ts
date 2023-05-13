@@ -11,8 +11,8 @@ interface StepStackItem {
   step: TestStep;
 }
 
-function isGlobalHook(testStep: TestStep) {
-  return testStep.hook === "beforeAll" || testStep.hook === "afterAll";
+function isGlobalHook(hook?: string): hook is "beforeAll" | "afterAll" {
+  return hook === "beforeAll" || hook === "afterAll";
 }
 
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
@@ -165,16 +165,15 @@ function groupStepsByTest(
             args: args,
             commandId: step.command!.commandId,
             category: step.category || "other",
-            hook: step.hook,
           };
 
-          if (isGlobalHook(testStep)) {
+          if (isGlobalHook(step.hook)) {
             let hook = hooks.find(
-              h => h.title === testStep.hook && h.path.join(",") === testStep.path.join(",")
+              h => h.title === step.hook && h.path.join(",") === testStep.path.join(",")
             );
             if (!hook) {
               hook = {
-                title: testStep.hook!,
+                title: step.hook,
                 path: testStep.path,
                 steps: [],
               };

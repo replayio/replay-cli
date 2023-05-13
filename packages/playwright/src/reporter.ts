@@ -12,6 +12,8 @@ import {
   ReplayReporterConfig,
   removeAnsiCodes,
   TestStep as ReplayTestStep,
+  HookKind,
+  Hook,
   getMetadataFilePath as getMetadataFilePathBase,
 } from "@replayio/test-utils";
 
@@ -42,7 +44,7 @@ function mapTestStepCategory(step: TestStep): ReplayTestStep["category"] {
   }
 }
 
-function mapTestStepHook(step: TestStep): ReplayTestStep["hook"] {
+function mapTestStepHook(step: TestStep): HookKind | undefined {
   if (step.category !== "hook") return;
 
   switch (step.title) {
@@ -139,6 +141,44 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
+    const hookMap = new Map<HookKind, ReplayTestStep[]>();
+    const steps: ReplayTestStep[] = [];
+    for (let [i, s] of result.steps.entries()) {
+      const hook = mapTestStepHook(s);
+      const stepErrorMessage = extractErrorMessage(s);
+      const step = {
+        id: String(i),
+        name: s.title,
+        path: s.titlePath(),
+        args: [],
+        error: stepErrorMessage
+          ? {
+              message: stepErrorMessage,
+              line: s.location?.line,
+              column: s.location?.column,
+            }
+          : undefined,
+        category: mapTestStepCategory(s),
+      };
+
+      if (hook) {
+        const hookSteps = hookMap.get(hook) || [];
+        hookSteps.push(step);
+        hookMap.set(hook, hookSteps);
+      } else {
+        steps.push(step);
+      }
+    }
+
+    const hooks: Hook[] = [];
+    for (let e of hookMap.entries()) {
+      hooks.push({
+        title: e[0],
+        path: [],
+        steps: e[1],
+      });
+    }
+
     this.reporter?.onTestEnd(
       [
         {
@@ -154,26 +194,10 @@ class ReplayPlaywrightReporter implements Reporter {
                 column: errorStep?.location?.column,
               }
             : undefined,
-          steps: result.steps.map((s, i) => {
-            const stepErrorMessage = extractErrorMessage(s);
-            return {
-              id: String(i),
-              name: s.title,
-              path: s.titlePath(),
-              error: stepErrorMessage
-                ? {
-                    message: stepErrorMessage,
-                    line: s.location?.line,
-                    column: s.location?.column,
-                  }
-                : undefined,
-              hook: mapTestStepHook(s),
-              category: mapTestStepCategory(s),
-            };
-          }),
+          steps: steps,
         },
       ],
-      [],
+      hooks,
       test.title,
       playwrightMetadata
     );

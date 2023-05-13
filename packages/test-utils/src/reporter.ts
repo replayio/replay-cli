@@ -16,7 +16,6 @@ export interface ReplayReporterConfig {
 
 export interface TestError {
   message: string;
-  name?: string;
   line?: number;
   column?: number;
 }
@@ -28,15 +27,16 @@ export interface TestStep {
   name: string;
   args: string[];
   error?: TestError;
-  hook?: "beforeEach" | "afterEach" | "beforeAll" | "afterAll";
   category: "command" | "assertion" | "other";
   // Links an assert to the triggering command
   commandId?: string;
   assertIds?: string[];
 }
 
+export type HookKind = "beforeAll" | "afterAll" | "beforeEach" | "afterEach";
+
 export interface Hook {
-  title: string;
+  title: HookKind;
   path: string[];
   steps?: TestStep[];
 }
