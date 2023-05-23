@@ -1,16 +1,10 @@
 import fs from "fs";
 import crypto from "crypto";
-import dbg from "debug";
 import fetch from "node-fetch";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-
-const debug = dbg("replay:cli:upload");
-
-// Granularity for splitting up a recording into chunks for uploading.
-const ChunkGranularity = 1024 * 1024;
 
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
@@ -71,7 +65,7 @@ class ReplayClient {
 
   async buildRecordingMetadata(
     metadata: Record<string, unknown>,
-    opts: Options = {}
+    _opts: Options = {}
   ): Promise<RecordingMetadata> {
     // extract the "standard" metadata and route the `rest` through the sanitizer
     const { duration, url, uri, title, operations, ...rest } = metadata;
