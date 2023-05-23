@@ -14,7 +14,7 @@ import {
   getPuppeteerBrowserPath,
   updateBrowsers,
 } from "./install";
-import { getDirectory, maybeLog } from "./utils";
+import { exponentialBackoffRetry, getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
 import {
   ExternalRecordingEntry,
@@ -394,7 +394,12 @@ async function doUploadRecording(
     recordingId,
   });
 
-  await client.uploadRecording(recording.path!, uploadLink, size);
+  await exponentialBackoffRetry(
+    () => client.uploadRecording(recording.path!, uploadLink, size),
+    e => {
+      debug("Upload failed with error:  %j", e);
+    }
+  );
 
   debug("%s: Uploaded %d bytes", recordingId, size);
 

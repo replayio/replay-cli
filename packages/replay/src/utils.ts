@@ -41,4 +41,42 @@ function isValidUUID(str: unknown) {
   return true;
 }
 
+async function waitForTime(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// Random extra delay under 100ms to avoid retrying in bursts.
+function jitter(): number {
+  return Math.random() * 100.0;
+}
+
+// Returns backoff timeouts (in ms) in a geometric progression, and with jitter.
+function backoff(iteration: number): number {
+  return 2 ** iteration * 100 + jitter();
+}
+
+const MAX_ATTEMPTS = 5;
+
+export async function exponentialBackoffRetry<T>(
+  fn: () => T,
+  onFail?: (e: unknown) => void
+): Promise<T> {
+  let currentAttempt = 0;
+  while (currentAttempt <= MAX_ATTEMPTS) {
+    currentAttempt++;
+    try {
+      return fn();
+    } catch (e) {
+      if (onFail) {
+        onFail(e);
+      }
+      if (currentAttempt == MAX_ATTEMPTS) {
+        throw e;
+      }
+      waitForTime(backoff(currentAttempt));
+    }
+  }
+  throw Error("ShouldBeUnreachable");
+}
+
 export { defer, maybeLog, getDirectory, isValidUUID };
