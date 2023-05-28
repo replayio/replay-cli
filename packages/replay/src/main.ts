@@ -14,7 +14,7 @@ import {
   getPuppeteerBrowserPath,
   updateBrowsers,
 } from "./install";
-import { exponentialBackoffRetry, getDirectory, maybeLog } from "./utils";
+import { exponentialBackoffRetry, getDirectory, maybeLog, queryGraphQL } from "./utils";
 import { spawn } from "child_process";
 import {
   ExternalRecordingEntry,
@@ -686,6 +686,43 @@ async function updateMetadata({
   }
 }
 
+async function updateSettings(opts: Options) {
+  try {
+    const dir = getDirectory(opts);
+    const apiKey = opts.apiKey;
+
+    if (!apiKey) {
+      console.error("Missing API key");
+      return false;
+    }
+
+    const settings = await queryGraphQL(
+      apiKey,
+      `
+    query WorkspaceSettings {
+      workspace {
+        recording_settings
+      }
+    }`
+    );
+
+    if (!settings) {
+      console.error("Failed to fetch workspace settings");
+      return false;
+    }
+
+    fs.writeFileSync(path.join(dir, "settings.json"), JSON.stringify(settings, undefined, 2));
+    console.log("Wrote settings.json", path.join(dir, "settings.json"));
+    console.log("opts", opts);
+    return true;
+  } catch (e) {
+    console.error("Failed to set replay settings");
+    console.error(e);
+
+    return false;
+  }
+}
+
 export {
   addLocalRecordingMetadata,
   listAllRecordings,
@@ -698,6 +735,7 @@ export {
   removeAllRecordings,
   updateBrowsers,
   updateMetadata,
+  updateSettings,
   // These methods aren't documented or available via the CLI, and are used by other
   // replay NPM packages.
   ensurePlaywrightBrowsersInstalled,

@@ -12,6 +12,7 @@ import {
   removeAllRecordings,
   updateBrowsers,
   updateMetadata,
+  updateSettings,
 } from "./main";
 import {
   CommandLineOptions,
@@ -124,6 +125,14 @@ program
   .option("--filter <filter string>", "String to filter recordings")
   .action(commandMetadata);
 
+program
+  .command("update-settings")
+  .description("Sync recording settings")
+  .option("--directory <dir>", "Alternate recording directory.")
+  .option("--server <address>", "Alternate server to upload recordings to.")
+  .option("--api-key <key>", "Authentication API Key")
+  .action(commandUpdateSettings);
+
 program.parseAsync().catch(err => {
   console.log(err);
   process.exit(1);
@@ -146,6 +155,11 @@ function commandListAllRecordings(
     console.log(formatAllRecordingsHumanReadable(recordings));
   }
   process.exit(0);
+}
+
+async function commandUpdateSettings(opts: Pick<CommandLineOptions, "directory">) {
+  const updated = await updateSettings(opts);
+  process.exit(updated ? 0 : 1);
 }
 
 async function commandUploadRecording(id: string, opts: CommandLineOptions) {

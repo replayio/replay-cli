@@ -2,6 +2,7 @@ import dbg from "debug";
 import path from "path";
 
 import { CommandLineOptions } from "./types";
+import fetch from "node-fetch";
 
 const debug = dbg("replay:cli");
 
@@ -77,6 +78,42 @@ export async function exponentialBackoffRetry<T>(
     }
   }
   throw Error("ShouldBeUnreachable");
+}
+
+export async function queryGraphQL(
+  accessToken: string | null,
+  query: string,
+  variables: Object = {}
+): Promise<any | null> {
+  const response = await fetch("https://api.replay.io/v1/graphql", {
+    method: "POST",
+    headers: {
+      ...(accessToken && {
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
+  });
+  const json = await response.json();
+  return json;
+}
+
+export async function fetchGraphql(query: string, variables: Object, apiKey: string) {
+  const queryRes = await fetch("https://graphql.replay.io/v1/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET,
+    },
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
+  });
 }
 
 export { defer, maybeLog, getDirectory, isValidUUID };
