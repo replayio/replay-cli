@@ -163,6 +163,13 @@ function getPlatformKey(browserName: BrowserName) {
 }
 
 function getExecutablePath(runner: Runner, browserName: BrowserName) {
+  const overridePathKey = `REPLAY_${browserName.toUpperCase()}_EXECUTABLE_PATH`;
+  const overridePath = process.env[overridePathKey];
+  if (overridePath) {
+    debug(`Using executable override for ${browserName}: ${overridePath}`);
+    return overridePath;
+  }
+
   // Override with replay specific browsers.
   const replayDir = getDirectory();
 
