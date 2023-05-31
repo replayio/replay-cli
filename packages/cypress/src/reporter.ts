@@ -3,7 +3,6 @@ import {
   getMetadataFilePath as getMetadataFilePathBase,
   ReplayReporter,
   Test,
-  Hook,
   ReporterError,
 } from "@replayio/test-utils";
 import debug from "debug";
@@ -34,7 +33,7 @@ class CypressReporter {
         version: config.version,
         plugin: require("../package.json").version,
       },
-      2
+      "2.0.0"
     );
     this.debug = debug.extend("reporter");
 
@@ -72,8 +71,8 @@ class CypressReporter {
   onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     appendToFixtureFile("spec:end", { spec, result });
 
-    const { hooks, tests } = this.getTestResults(spec, result);
-    this.reporter.onTestEnd(tests, hooks, spec.relative);
+    const tests = this.getTestResults(spec, result);
+    this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
   }
 
   getDiagnosticConfig() {
@@ -97,10 +96,22 @@ class CypressReporter {
     this.steps.push(step);
   }
 
-  private getTestResults(
-    spec: Cypress.Spec,
-    result: CypressCommandLine.RunResult
-  ): { hooks: Hook[]; tests: Test[] } {
+  private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
+    const placeholderTest: Test = {
+      source: {
+        title: spec.relative,
+        scope: [],
+      },
+      result: "unknown",
+      actions: {
+        afterAll: [],
+        afterEach: [],
+        beforeAll: [],
+        beforeEach: [],
+        main: [],
+      },
+    };
+
     if (
       // If the browser crashes, no tests are run and tests will be null
       !result.tests ||
@@ -111,30 +122,24 @@ class CypressReporter {
       this.debug(msg);
       this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
-      return {
-        hooks: [],
-        tests: [
-          // return an placeholder test because cypress will still launch a
-          // browser for a file that matches the spec format but doesn't contain
-          // any tests.
-          {
-            title: spec.relative,
-            path: [spec.relative],
-            result: "unknown",
-            relativePath: spec.relative,
-            steps: [],
-          },
-        ],
-      };
+      return [
+        // return an placeholder test because cypress will still launch a
+        // browser for a file that matches the spec format but doesn't contain
+        // any tests.
+        placeholderTest,
+      ];
     }
 
     let testsWithSteps: Test[] = [];
-    let hooksWithSteps: Hook[] = [];
 
     try {
-      const grouped = groupStepsByTest(spec, result.tests, this.steps, this.startTime!, this.debug);
-      testsWithSteps = grouped.tests;
-      hooksWithSteps = grouped.hooks;
+      testsWithSteps = groupStepsByTest(
+        spec,
+        result.tests,
+        this.steps,
+        this.startTime!,
+        this.debug
+      );
     } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay");
       console.warn(e);
@@ -143,12 +148,12 @@ class CypressReporter {
     }
 
     const tests = result.tests.map<Test>(t => {
-      const foundTest = testsWithSteps.find(ts => ts.title === t.title[t.title.length - 1]);
+      const foundTest = testsWithSteps.find(ts => ts.source.title === t.title[t.title.length - 1]);
 
       if (foundTest) {
         this.debug("Matching test result with test steps from support: %o", {
           testResult: t.title,
-          testWithSteps: foundTest.path,
+          testWithSteps: foundTest.source.title,
         });
       } else {
         this.debug("Failed to find matching test steps for test result: %o", {
@@ -156,34 +161,32 @@ class CypressReporter {
         });
       }
 
-      const error = t.displayError
-        ? {
-            // typically, we won't use this because we'll have a step error that
-            // originated the message but keeping as a fallback
-            message: t.displayError.substring(0, t.displayError.indexOf("\n")),
-          }
-        : undefined;
+      const error =
+        t.displayError &&
+        (!foundTest ||
+          !Object.values(foundTest.actions).some(testActions => testActions.some(a => a.error)))
+          ? {
+              name: "DisplayError",
+              message: t.displayError.substring(0, t.displayError.indexOf("\n")),
+            }
+          : undefined;
 
-      return {
-        title: t.title[t.title.length - 1] || spec.relative,
-        steps: [],
+      const mergedTest: Test = {
+        ...placeholderTest,
         // If we found the test from the steps array (we should), merge it in
         // and overwrite the default title and relativePath values. It won't
         // have the correct path or result so those are added and we bubble up
         // the first error found in a step falling back to reported test error
         // if it exists.
         ...foundTest,
-        relativePath: spec.relative,
-        path: ["", this.selectedBrowser || "", spec.relative, ...(foundTest?.path || [])],
         result: mapStateToResult(t.state),
         error,
       };
+
+      return mergedTest;
     });
 
-    return {
-      hooks: hooksWithSteps,
-      tests,
-    };
+    return tests;
   }
 }
 
