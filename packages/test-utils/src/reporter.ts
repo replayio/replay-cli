@@ -6,7 +6,6 @@ import type {
   TestResult,
   TestError,
   TestRun,
-  ScopedTestAction,
 } from "@replayio/replay/metadata/test/v2";
 import { writeFileSync } from "fs";
 import dbg from "debug";
@@ -293,4 +292,4 @@ class ReplayReporter {
 }
 
 export default ReplayReporter;
-export { TestAction, Test, TestResult, TestError, ScopedTestAction };
+export { TestAction, Test, TestResult, TestError };

@@ -98,12 +98,13 @@ class CypressReporter {
 
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     const placeholderTest: Test = {
+      approximateDuration: 0,
       source: {
         title: spec.relative,
         scope: [],
       },
       result: "unknown",
-      actions: {
+      events: {
         afterAll: [],
         afterEach: [],
         beforeAll: [],
@@ -164,7 +165,7 @@ class CypressReporter {
       const error =
         t.displayError &&
         (!foundTest ||
-          !Object.values(foundTest.actions).some(testActions => testActions.some(a => a.error)))
+          !Object.values(foundTest.events).some(testActions => testActions.some(a => a.error)))
           ? {
               name: "DisplayError",
               message: t.displayError.substring(0, t.displayError.indexOf("\n")),
