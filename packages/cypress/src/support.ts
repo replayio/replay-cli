@@ -329,11 +329,25 @@ export default function register() {
         return;
       }
 
-      const maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
+      let maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
         ? lastAssertionCommand.get("next")
         : lastCommand?.get("next");
 
-      if (maybeCurrentAssertion?.get("type") !== "assertion") {
+      // if we failed to find an assertion command but this log is for an
+      // assert, it's a chai assertion so we'll emit the command:start now
+      if (!maybeCurrentAssertion && log.name === "assert") {
+        // TODO [ryanjduffy]: This is making a log look like a command. This
+        // works in this very narrow case but we should fix this acknowledge
+        // that this is a chai assertion which is special and shouldn't
+        // masquerade as a command
+        maybeCurrentAssertion = {
+          logs: () => [],
+          add: () => {},
+          get: (key?: any) => (!key ? log : log[key]),
+          toJSON: () => log,
+          create: () => ({} as any),
+        };
+      } else if (maybeCurrentAssertion?.get("type") !== "assertion") {
         // debug("Received an assertion log without a prior assertion or command: %o", {
         //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
         //   lastCommandId: lastCommand && getCypressId(lastCommand),

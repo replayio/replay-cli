@@ -1,146 +1,15 @@
-import {
-  array,
-  create,
-  defaulted,
-  enums,
-  number,
-  object,
-  optional,
-  string,
-  define,
-  Struct,
-  any,
-} from "superstruct";
-const isUuid = require("is-uuid");
+import { create, Struct } from "superstruct";
 
 import { UnstructuredMetadata } from "../src/types";
-import { envString, firstEnvValueOf } from "./env";
 
-const VERSION = 1;
+import v1 from "./test/v1";
+import v2 from "./test/v2";
 
-const versions: Record<number, Struct<any, any>> = {
-  1: object({
-    suite: optional(envString("RECORD_REPLAY_METADATA_TEST_SUITE")),
-    file: optional(envString("RECORD_REPLAY_METADATA_TEST_FILE")),
-    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
-    path: optional(array(string())),
-    result: defaulted(
-      enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
-      firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
-    ),
-    // before/after all hooks
-    hooks: optional(
-      array(
-        object({
-          title: string(),
-          path: array(string()),
-          steps: optional(array(any())),
-        })
-      )
-    ),
-    tests: optional(
-      array(
-        object({
-          id: optional(string()),
-          parentId: optional(string()),
-          title: string(),
-          path: optional(array(string())),
-          relativePath: optional(string()),
-          result: enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
-          error: optional(
-            object({
-              message: string(),
-              line: optional(number()),
-              column: optional(number()),
-            })
-          ),
-          relativeStartTime: optional(number()),
-          duration: optional(number()),
-          steps: optional(array(any())),
-        })
-      )
-    ),
-    runner: optional(
-      defaulted(
-        object({
-          name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
-          version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
-          plugin: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_PLUGIN")),
-        }),
-        {}
-      )
-    ),
-    run: optional(
-      defaulted(
-        object({
-          id: defaulted(
-            define("uuid", (v: any) => isUuid.v4(v)),
-            firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
-          ),
-          title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),
-          mode: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_MODE")),
-        }),
-        {}
-      )
-    ),
-    reporterErrors: defaulted(array(any()), []),
-    version: defaulted(number(), () => 1),
-  }),
-  2: object({
-    suite: optional(envString("RECORD_REPLAY_METADATA_TEST_SUITE")),
-    file: envString("RECORD_REPLAY_METADATA_TEST_FILE"),
-    title: envString("RECORD_REPLAY_METADATA_TEST_TITLE"),
-    path: optional(array(string())),
-    result: defaulted(
-      enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
-      firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RESULT")
-    ),
-    // before/after all hooks
-    hooks: array(
-      object({
-        title: string(),
-        path: array(string()),
-        steps: optional(array(any())),
-      })
-    ),
-    tests: array(
-      object({
-        title: string(),
-        path: array(string()),
-        relativePath: string(),
-        result: enums(["passed", "failed", "timedOut", "skipped", "unknown"]),
-        error: optional(
-          object({
-            message: string(),
-            line: optional(number()),
-            column: optional(number()),
-          })
-        ),
-        steps: array(any()),
-      })
-    ),
-    runner: defaulted(
-      object({
-        name: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_NAME")),
-        version: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_VERSION")),
-        plugin: optional(envString("RECORD_REPLAY_METADATA_TEST_RUNNER_PLUGIN")),
-      }),
-      {}
-    ),
-    run: defaulted(
-      object({
-        id: defaulted(
-          define("uuid", (v: any) => isUuid.v4(v)),
-          firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
-        ),
-        title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),
-        mode: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_MODE")),
-      }),
-      {}
-    ),
-    reporterErrors: defaulted(array(any()), []),
-    version: defaulted(number(), () => 2),
-  }),
+const VERSION = "2.0.0";
+
+const versions = {
+  ...v1,
+  ...v2,
 };
 
 function validate(metadata: { test: UnstructuredMetadata }) {
@@ -151,14 +20,36 @@ function validate(metadata: { test: UnstructuredMetadata }) {
   return init(metadata.test);
 }
 
-function init(data: UnstructuredMetadata = {}) {
-  const version = typeof data.version === "number" ? data.version : VERSION;
-  if (versions[version]) {
+type Metadata = typeof versions[keyof typeof versions];
+
+function getVersion(k: string): Struct {
+  const v: Struct | undefined = (versions as any)[k];
+  if (!v) {
+    throw new Error(`Test metadata version ${k} not supported`);
+  }
+
+  return v;
+}
+
+function init(data: Metadata | UnstructuredMetadata = {}) {
+  let version = VERSION;
+  if ("version" in data && typeof data.version === "number") {
+    // explicitly adapt the pre-semver scheme
+    version = "1.0.0";
+  } else if ("schemaVersion" in data && typeof data.schemaVersion === "string") {
+    version = data.schemaVersion;
+  }
+
+  try {
     return {
-      test: create(data, versions[version]),
+      test: create(data, getVersion(version)),
     };
-  } else {
-    throw new Error(`Test metadata version ${data.version} not supported`);
+  } catch (e) {
+    console.error(e);
+    console.error("Metadata:");
+    console.error(JSON.stringify(data, undefined, 2));
+
+    return {};
   }
 }
 
