@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ReporterError, Test, TestAction, ScopedTestAction } from "@replayio/test-utils";
+import { ReporterError, Test, TestAction } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
@@ -8,7 +8,7 @@ import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } f
 
 interface StepStackItem {
   event: StepEvent;
-  step: TestAction | ScopedTestAction;
+  step: TestAction;
 }
 
 function isGlobalHook(hook?: string): hook is "beforeAll" | "afterAll" {
@@ -92,12 +92,13 @@ function groupStepsByTest(
     const title = scope.pop()!;
 
     return {
+      approximateDuration: result.attempts.reduce((acc, v) => acc + v.duration, 0),
       source: {
         title,
         scope,
       },
       result: mapStateToResult(result.state),
-      actions: {
+      events: {
         beforeAll: [],
         afterAll: [],
         beforeEach: [],
@@ -107,10 +108,10 @@ function groupStepsByTest(
     };
   });
   const hooks = {
-    afterAll: [] as ScopedTestAction[],
-    afterEach: [] as ScopedTestAction[],
-    beforeAll: [] as ScopedTestAction[],
-    beforeEach: [] as ScopedTestAction[],
+    afterAll: [] as TestAction[],
+    afterEach: [] as TestAction[],
+    beforeAll: [] as TestAction[],
+    beforeEach: [] as TestAction[],
   };
 
   debug("Found %d tests", tests.length);
@@ -177,6 +178,7 @@ function groupStepsByTest(
               name: step.command!.name,
               arguments: args,
             },
+            scope: null,
           };
 
           if (step.hook) {
@@ -186,15 +188,14 @@ function groupStepsByTest(
               throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
             }
 
-            const scopedTestStep = { ...testStep, scope: step.test };
-            hook.push(scopedTestStep);
-            stepStack.push({ event: step, step: scopedTestStep });
+            testStep.scope = step.test;
+            hook.push(testStep);
           } else {
             assertCurrentTest(currentTest, step);
 
-            currentTest.actions.main.push(testStep);
-            stepStack.push({ event: step, step: testStep });
+            currentTest.events.main.push(testStep);
           }
+          stepStack.push({ event: step, step: testStep });
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
@@ -246,7 +247,7 @@ function groupStepsByTest(
         // so we pop the title off and test that first while cloning the action with a new scope
         // limited to the parent context so all hooks are consistently scoped when uploaded
         if (hookName === "beforeEach" || hookName === "afterEach") {
-          const scope = [...action.scope];
+          const scope = [...action.scope!];
           const title = scope.pop();
           if (title != test.source.title) {
             return;
@@ -258,8 +259,8 @@ function groupStepsByTest(
           };
         }
 
-        if (action.scope.every((scope, i) => scope === test.source.scope[i])) {
-          test.actions[hookName].push(action);
+        if (action.scope!.every((scope, i) => scope === test.source.scope[i])) {
+          test.events[hookName].push(action);
         }
       });
     });

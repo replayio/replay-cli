@@ -31,24 +31,18 @@ const testAction = object({
     arguments: array(string()), // ****
     name: string(),
   }),
+  scope: nullable(array(string())),
   error: optional(testError), // ****
 });
-
-const scopedAction = assign(
-  testAction,
-  object({
-    scope: array(string()),
-  })
-);
 
 const testResult = enums(["failed", "passed", "skipped", "timedOut", "unknown"]);
 
 const test = object({
   events: object({
-    afterAll: defaulted(array(scopedAction), []),
-    afterEach: defaulted(array(scopedAction), []),
-    beforeAll: defaulted(array(scopedAction), []),
-    beforeEach: defaulted(array(scopedAction), []),
+    afterAll: array(testAction),
+    afterEach: array(testAction),
+    beforeAll: array(testAction),
+    beforeEach: array(testAction),
     main: array(testAction),
   }),
   approximateDuration: number(), // ****
@@ -61,7 +55,6 @@ const test = object({
 });
 
 const v2_0_0 = object({
-  suiteName: optional(envString("REPLAY_METADATA_TEST_SUITENAME")), // ****
   approximateDuration: number(),
   environment: object({
     errors: defaulted(
@@ -99,6 +92,7 @@ const v2_0_0 = object({
           "RECORD_REPLAY_TEST_RUN_ID"
         )
       ),
+      suiteName: optional(envString("REPLAY_METADATA_TEST_SUITENAME")),
       title: optional(
         defaulted(
           string(),
@@ -117,7 +111,6 @@ const v2_0_0 = object({
 });
 
 export type TestAction = Infer<typeof testAction>;
-export type ScopedTestAction = Infer<typeof scopedAction>;
 export type Test = Infer<typeof test>;
 export type TestResult = Infer<typeof testResult>;
 export type TestRun = Infer<typeof v2_0_0>;
