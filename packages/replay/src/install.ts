@@ -12,6 +12,7 @@ const debug = dbg("replay:cli:install");
 
 const EXECUTABLE_PATHS = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
+  "darwin:chromium": ["chromium", "Contents", "MacOS", "Chromium"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
 } as const;
@@ -20,6 +21,9 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
   switch (key) {
     case "darwin:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "macOS-replay-playwright.tar.xz";
+    case "darwin:chromium":
+      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "macOS-replay-chromium.tar.xz";
+
     case "linux:chromium":
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz";
     case "linux:firefox":
@@ -54,6 +58,15 @@ async function ensurePlaywrightBrowsersInstalled(
           "playwright",
           "firefox",
           "firefox",
+          opts
+        );
+      }
+      if (["all", "chromium"].includes(kind)) {
+        await installReplayBrowser(
+          getBrowserDownloadFileName("darwin:chromium"),
+          "playwright",
+          "Replay-Chromium.app",
+          "chromium",
           opts
         );
       }
@@ -155,6 +168,7 @@ function getPlatformKey(browserName: BrowserName) {
   switch (key) {
     case "darwin:firefox":
     case "linux:firefox":
+    case "darwin:chromium":
     case "linux:chromium":
       return key;
   }
