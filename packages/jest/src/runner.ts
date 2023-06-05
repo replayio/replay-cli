@@ -40,7 +40,9 @@ const ReplayRunner = async (
       version = require(require.resolve("jest/package.json", {
         paths: [globalConfig.rootDir],
       }))?.version;
-    } catch {}
+    } finally {
+      version = version || "0.0.0";
+    }
   }
 
   const relativePath = path.relative(config.cwd, testPath);
@@ -49,12 +51,15 @@ const ReplayRunner = async (
 
   function getTestId(test: Circus.TestEntry) {
     let name = [];
-    let current: Circus.TestEntry | Circus.DescribeBlock | undefined = test;
+    let current: Circus.TestEntry | Circus.DescribeBlock | undefined = test.parent;
     while (current && current.name !== "ROOT_DESCRIBE_BLOCK") {
       name.unshift(current.name);
       current = current.parent;
     }
-    return `${relativePath}-${name.join("-")}`;
+    return {
+      title: test.name,
+      scope: name,
+    };
   }
 
   function getWorkerIndex() {
@@ -80,23 +85,23 @@ const ReplayRunner = async (
   }
 
   function handleResult(test: Circus.TestEntry, passed: boolean) {
-    const title = test.name;
-    const errorMessage = getErrorMessage(test.errors);
-    reporter.onTestEnd([
-      {
-        id: getTestId(test),
-        title,
-        result: passed ? "passed" : "failed",
-        path: ["", "jest", relativePath, title],
-        relativePath,
-        error: errorMessage
-          ? {
-              message: errorMessage,
-            }
-          : undefined,
-        steps: [],
-      },
-    ]);
+    // const title = test.name;
+    // const errorMessage = getErrorMessage(test.errors);
+    // reporter.onTestEnd([
+    //   {
+    //     id: getTestId(test),
+    //     title,
+    //     result: passed ? "passed" : "failed",
+    //     path: ["", "jest", relativePath, title],
+    //     relativePath,
+    //     error: errorMessage
+    //       ? {
+    //           message: errorMessage,
+    //         }
+    //       : undefined,
+    //     steps: [],
+    //   },
+    // ]);
   }
 
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {
