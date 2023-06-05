@@ -2,6 +2,7 @@ import { Test } from "@replayio/test-utils";
 import type { StepEvent } from "./support";
 
 export enum Errors {
+  UnexpectedError = -1,
   NoTestResults = 101,
   MismatchedStep = 201,
   TestMissing = 202,

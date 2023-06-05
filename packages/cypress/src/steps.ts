@@ -4,11 +4,11 @@ import { ReporterError, Test, TestAction, ScopedTestAction } from "@replayio/tes
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
-import { assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
+import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
 
 interface StepStackItem {
   event: StepEvent;
-  step: TestAction;
+  step: TestAction | ScopedTestAction;
 }
 
 function isGlobalHook(hook?: string): hook is "beforeAll" | "afterAll" {
@@ -106,7 +106,12 @@ function groupStepsByTest(
       },
     };
   });
-  const hooks: Record<string, ScopedTestAction[]> = {};
+  const hooks = {
+    afterAll: [] as ScopedTestAction[],
+    afterEach: [] as ScopedTestAction[],
+    beforeAll: [] as ScopedTestAction[],
+    beforeEach: [] as ScopedTestAction[],
+  };
 
   debug("Found %d tests", tests.length);
   debug(
@@ -174,26 +179,22 @@ function groupStepsByTest(
             },
           };
 
-          if (isGlobalHook(step.hook)) {
+          if (step.hook) {
             let hook = hooks[step.hook];
 
-            hook.push({ ...testStep, scope: step.test });
+            if (!hook) {
+              throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
+            }
+
+            const scopedTestStep = { ...testStep, scope: step.test };
+            hook.push(scopedTestStep);
+            stepStack.push({ event: step, step: scopedTestStep });
           } else {
             assertCurrentTest(currentTest, step);
 
-            // If this assertion has an associated commandId, find that step by
-            // command and add this command to its assertIds array
-            // if (step.command!.commandId) {
-            //   const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
-            //   if (commandStep) {
-            //     commandStep.assertIds = commandStep?.assertIds || [];
-            //     commandStep.assertIds.push(testStep.id);
-            //   }
-            // }
-
             currentTest.actions.main.push(testStep);
+            stepStack.push({ event: step, step: testStep });
           }
-          stepStack.push({ event: step, step: testStep });
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
@@ -229,19 +230,40 @@ function groupStepsByTest(
       }
     } catch (e) {
       if (isStepAssertionError(e)) {
-        throw new ReporterError(
-          e.code,
-          e.message,
-          currentTest
-            ? [...currentTest.source.scope, currentTest.source.title].join("-")
-            : spec.relative,
-          e.step
-        );
+        throw new ReporterError(e.code, e.message, e.step);
       } else {
-        throw e;
+        throw new ReporterError(Errors.UnexpectedError, "Unexpected step processing error", e);
       }
     }
   }
+
+  const hookNames = Object.keys(hooks) as any as (keyof typeof hooks)[];
+  hookNames.forEach(hookName => {
+    const hookActions = hooks[hookName];
+    hookActions.forEach(action => {
+      tests.forEach(test => {
+        // beforeEach/afterEach hooks have a scope matching the describe tree plus the test title
+        // so we pop the title off and test that first while cloning the action with a new scope
+        // limited to the parent context so all hooks are consistently scoped when uploaded
+        if (hookName === "beforeEach" || hookName === "afterEach") {
+          const scope = [...action.scope];
+          const title = scope.pop();
+          if (title != test.source.title) {
+            return;
+          }
+
+          action = {
+            ...action,
+            scope,
+          };
+        }
+
+        if (action.scope.every((scope, i) => scope === test.source.scope[i])) {
+          test.actions[hookName].push(action);
+        }
+      });
+    });
+  });
 
   return tests;
 }
