@@ -1,4 +1,4 @@
-import type { TestError, TestAction } from "@replayio/test-utils";
+import type { TestError, UserActionEvent } from "@replayio/test-utils";
 
 import { TASK_NAME } from "./constants";
 
@@ -15,7 +15,7 @@ export interface StepEvent {
   test: string[];
   file: string;
   timestamp: string;
-  category?: TestAction["category"];
+  category?: UserActionEvent["data"]["category"];
   hook?: HookKind;
   command?: CommandLike;
   error?: TestError;
@@ -80,7 +80,7 @@ function simplifyCommand(cmd?: CommandLike) {
 const makeEvent = (
   currentPath: string[],
   event: StepEvent["event"],
-  category?: TestAction["category"],
+  category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
@@ -101,7 +101,7 @@ const makeEvent = (
 const handleCypressEvent = (
   currentPath: string[],
   event: StepEvent["event"],
-  category?: TestAction["category"],
+  category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
   error?: TestError
 ) => {

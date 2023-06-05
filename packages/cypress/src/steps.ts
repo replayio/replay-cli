@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ReporterError, Test, TestAction } from "@replayio/test-utils";
+import { ReporterError, Test, UserActionEvent } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
@@ -8,7 +8,7 @@ import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } f
 
 interface StepStackItem {
   event: StepEvent;
-  step: TestAction;
+  step: UserActionEvent;
 }
 
 function isGlobalHook(hook?: string): hook is "beforeAll" | "afterAll" {
@@ -92,7 +92,11 @@ function groupStepsByTest(
     const title = scope.pop()!;
 
     return {
-      approximateDuration: result.attempts.reduce((acc, v) => acc + v.duration, 0),
+      // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
+      approximateDuration: result.attempts.reduce(
+        (acc, v: any) => acc + (v.duration || v.wallClockDuration || 0),
+        0
+      ),
       source: {
         title,
         scope,
@@ -105,13 +109,14 @@ function groupStepsByTest(
         afterEach: [],
         main: [],
       },
+      error: null,
     };
   });
   const hooks = {
-    afterAll: [] as TestAction[],
-    afterEach: [] as TestAction[],
-    beforeAll: [] as TestAction[],
-    beforeEach: [] as TestAction[],
+    afterAll: [] as UserActionEvent[],
+    afterEach: [] as UserActionEvent[],
+    beforeAll: [] as UserActionEvent[],
+    beforeEach: [] as UserActionEvent[],
   };
 
   debug("Found %d tests", tests.length);
@@ -170,15 +175,18 @@ function groupStepsByTest(
           // won't render in the UI anyway
           const args = simplifyArgs(step.command?.args);
 
-          const testStep: TestAction = {
-            id: step.command!.id,
-            parentId,
-            category: step.category || "other",
-            command: {
-              name: step.command!.name,
-              arguments: args,
+          const testStep: UserActionEvent = {
+            data: {
+              id: step.command!.id,
+              parentId: parentId || null,
+              category: step.category || "other",
+              command: {
+                name: step.command!.name,
+                arguments: args,
+              },
+              scope: null,
+              error: null,
             },
-            scope: null,
           };
 
           if (step.hook) {
@@ -188,7 +196,7 @@ function groupStepsByTest(
               throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
             }
 
-            testStep.scope = step.test;
+            testStep.data.scope = step.test;
             hook.push(testStep);
           } else {
             assertCurrentTest(currentTest, step);
@@ -200,7 +208,9 @@ function groupStepsByTest(
         case "step:end":
           const isAssert = step.command!.name === "assert";
           const lastStep: StepStackItem | undefined = stepStack.find(
-            a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
+            a =>
+              a.step.data.id === step.command!.id &&
+              a.event.test.toString() === step.test.toString()
           );
 
           if (!lastStep && skippedStepIds.includes(step.command?.id as any)) {
@@ -218,12 +228,12 @@ function groupStepsByTest(
 
           // asserts can change the args if the message changes
           if (isAssert && step.command) {
-            lastStep.step.command.arguments = simplifyArgs(step.command.args);
+            lastStep.step.data.command.arguments = simplifyArgs(step.command.args);
           }
 
           // Always set the error so that a successful retry will clear a previous error
           const currentTestStep = lastStep.step!;
-          currentTestStep.error = step.error;
+          currentTestStep.data.error = step.error || null;
           break;
         case "test:end":
           assertCurrentTest(currentTest, step);
@@ -247,19 +257,19 @@ function groupStepsByTest(
         // so we pop the title off and test that first while cloning the action with a new scope
         // limited to the parent context so all hooks are consistently scoped when uploaded
         if (hookName === "beforeEach" || hookName === "afterEach") {
-          const scope = [...action.scope!];
+          const scope = [...action.data.scope!];
           const title = scope.pop();
           if (title != test.source.title) {
             return;
           }
 
-          action = {
-            ...action,
+          action.data = {
+            ...action.data,
             scope,
           };
         }
 
-        if (action.scope!.every((scope, i) => scope === test.source.scope[i])) {
+        if (action.data.scope!.every((scope, i) => scope === test.source.scope[i])) {
           test.events[hookName].push(action);
         }
       });

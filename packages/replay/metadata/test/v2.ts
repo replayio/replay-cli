@@ -23,35 +23,37 @@ const testError = object({
   column: optional(number()),
 });
 
-const testAction = object({
-  id: string(), // ****
-  parentId: optional(string()), // ****
-  category: enums(["assertion", "command", "other"]),
-  command: object({
-    arguments: array(string()), // ****
-    name: string(),
+const userActionEvent = object({
+  data: object({
+    id: string(),
+    parentId: nullable(string()),
+    category: enums(["assertion", "command", "other"]),
+    command: object({
+      arguments: array(string()),
+      name: string(),
+    }),
+    scope: nullable(array(string())),
+    error: nullable(testError),
   }),
-  scope: nullable(array(string())),
-  error: optional(testError), // ****
 });
 
 const testResult = enums(["failed", "passed", "skipped", "timedOut", "unknown"]);
 
 const test = object({
   events: object({
-    afterAll: array(testAction),
-    afterEach: array(testAction),
-    beforeAll: array(testAction),
-    beforeEach: array(testAction),
-    main: array(testAction),
+    afterAll: array(userActionEvent),
+    afterEach: array(userActionEvent),
+    beforeAll: array(userActionEvent),
+    beforeEach: array(userActionEvent),
+    main: array(userActionEvent),
   }),
-  approximateDuration: number(), // ****
+  approximateDuration: number(),
   result: testResult,
   source: object({
     scope: array(string()),
     title: string(),
   }),
-  error: optional(testError), // ****
+  error: nullable(testError),
 });
 
 const v2_0_0 = object({
@@ -82,7 +84,6 @@ const v2_0_0 = object({
   }),
   tests: array(test),
   run: defaulted(
-    // ****
     object({
       id: defaulted(
         define("uuid", (v: any) => isUuid.v4(v)),
@@ -110,7 +111,7 @@ const v2_0_0 = object({
   ),
 });
 
-export type TestAction = Infer<typeof testAction>;
+export type UserActionEvent = Infer<typeof userActionEvent>;
 export type Test = Infer<typeof test>;
 export type TestResult = Infer<typeof testResult>;
 export type TestRun = Infer<typeof v2_0_0>;
