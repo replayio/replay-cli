@@ -97,14 +97,31 @@ function validate(metadata: { test: UnstructuredMetadata }) {
 }
 
 function init(data: UnstructuredMetadata = {}) {
-  const version = typeof data.version === "number" ? data.version : VERSION;
-  if (versions[version]) {
+  const version =
+    // we're switching over to schemaVersion so this will intentionally pick
+    // an invalid version so we can warn that we didn't find the schema but
+    // still allow the metadata
+    typeof data.version === "number"
+      ? data.version
+      : typeof data.schemaVersion === "string"
+      ? -1
+      : VERSION;
+
+  if (!versions[version]) {
+    console.warn(
+      `Unable to validate unknown version of test metadata: ${
+        data.version || data.schemaVersion || "Unspecified"
+      }`
+    );
+
     return {
-      test: create(data, versions[version]),
+      test: data,
     };
-  } else {
-    throw new Error(`Test metadata version ${data.version} not supported`);
   }
+
+  return {
+    test: create(data, versions[version]),
+  };
 }
 
 export { validate, init };
