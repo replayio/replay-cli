@@ -1,4 +1,4 @@
-import { create, Struct } from "superstruct";
+import { create, Struct, any } from "superstruct";
 
 import { UnstructuredMetadata } from "../src/types";
 
@@ -25,7 +25,8 @@ type Metadata = typeof versions[keyof typeof versions];
 function getVersion(k: string): Struct {
   const v: Struct | undefined = (versions as any)[k];
   if (!v) {
-    throw new Error(`Test metadata version ${k} not supported`);
+    console.warn(`Unable to validate unknown version of test metadata:${k} `);
+    return any();
   }
 
   return v;
