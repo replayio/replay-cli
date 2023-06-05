@@ -111,6 +111,7 @@ class CypressReporter {
         beforeEach: [],
         main: [],
       },
+      error: null,
     };
 
     if (
@@ -165,7 +166,7 @@ class CypressReporter {
       const error =
         t.displayError &&
         (!foundTest ||
-          !Object.values(foundTest.events).some(testActions => testActions.some(a => a.error)))
+          !Object.values(foundTest.events).some(testActions => testActions.some(a => a.data.error)))
           ? {
               name: "DisplayError",
               message: t.displayError.substring(0, t.displayError.indexOf("\n")),
@@ -181,7 +182,7 @@ class CypressReporter {
         // if it exists.
         ...foundTest,
         result: mapStateToResult(t.state),
-        error,
+        error: error || null,
       };
 
       return mergedTest;

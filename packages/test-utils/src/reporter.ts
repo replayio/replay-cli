@@ -1,7 +1,7 @@
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import type {
-  TestAction,
+  UserActionEvent,
   Test,
   TestResult,
   TestError,
@@ -43,7 +43,7 @@ function getResults(tests: Test[]) {
   };
 
   tests.forEach(t => {
-    approximateDuration += t.approximateDuration;
+    approximateDuration += t.approximateDuration || 0;
     switch (t.result) {
       case "failed":
         resultCounts.failed++;
@@ -292,4 +292,4 @@ class ReplayReporter {
 }
 
 export default ReplayReporter;
-export { TestAction, Test, TestResult, TestError };
+export { UserActionEvent, Test, TestResult, TestError };
