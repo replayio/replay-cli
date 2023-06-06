@@ -93,7 +93,6 @@ const v2_0_0 = object({
           "RECORD_REPLAY_TEST_RUN_ID"
         )
       ),
-      suiteName: optional(envString("REPLAY_METADATA_TEST_SUITENAME")),
       title: optional(
         defaulted(
           string(),
