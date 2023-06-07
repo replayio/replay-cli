@@ -38,10 +38,10 @@ function getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestR
     return "failed";
   } else if (timedOut > 0) {
     return "timedOut";
-  } else if (skipped > 0) {
-    return "skipped";
   } else if (passed > 0) {
     return "passed";
+  } else if (skipped > 0) {
+    return "skipped";
   } else {
     return "unknown";
   }
