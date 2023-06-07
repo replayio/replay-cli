@@ -31,9 +31,24 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function getResults(tests: Test[]) {
+function getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestResult {
+  const { failed, passed, skipped, timedOut } = resultCounts;
+
+  if (failed > 0) {
+    return "failed";
+  } else if (timedOut > 0) {
+    return "timedOut";
+  } else if (skipped > 0) {
+    return "skipped";
+  } else if (passed > 0) {
+    return "passed";
+  } else {
+    return "unknown";
+  }
+}
+
+function summarizeResults(tests: Test[]) {
   let approximateDuration = 0;
-  let result: TestResult = "passed";
   let resultCounts: TestRun["resultCounts"] = {
     failed: 0,
     passed: 0,
@@ -62,13 +77,7 @@ function getResults(tests: Test[]) {
     }
   });
 
-  if (resultCounts.failed > 0) {
-    result = "failed";
-  } else if (resultCounts.timedOut > 0) {
-    result = "timedOut";
-  }
-
-  return { approximateDuration, result, resultCounts };
+  return { approximateDuration, resultCounts };
 }
 
 export class ReporterError extends Error {
@@ -232,7 +241,8 @@ class ReplayReporter {
     debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
 
     const test = tests[0];
-    const { approximateDuration, result, resultCounts } = getResults(tests);
+    const { approximateDuration, resultCounts } = summarizeResults(tests);
+    const result = getResultFromResultCounts(resultCounts);
 
     const metadata: TestRun = {
       approximateDuration,
@@ -240,6 +250,7 @@ class ReplayReporter {
         path: specFile,
         title: replayTitle || test.source.title,
       },
+      result,
       resultCounts,
       run: {
         id: this.baseId,

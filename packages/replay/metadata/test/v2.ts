@@ -76,6 +76,7 @@ const v2_0_0 = object({
       version: string(),
     }),
   }),
+  result: testResult,
   resultCounts: record(testResult, number()),
   schemaVersion: defaulted(string(), () => "2.0.0"),
   source: object({
