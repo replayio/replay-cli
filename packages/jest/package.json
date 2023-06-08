@@ -1,6 +1,6 @@
 {
   "name": "@replayio/jest",
-  "version": "27.2.4-alpha.1",
+  "version": "27.2.4-alpha.2",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "src/index.js",
   "scripts": {
