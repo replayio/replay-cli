@@ -84,24 +84,51 @@ const ReplayRunner = async (
     return removeAnsiCodes(error?.matcherResult.message);
   }
 
+  function getScope(test: Circus.TestEntry) {
+    const scope = [];
+    let current: Circus.DescribeBlock | undefined = test.parent;
+    while (current) {
+      if (current) {
+        scope.unshift(current.name);
+        current = current.parent;
+      } else {
+        break;
+      }
+    }
+
+    return scope;
+  }
+
   function handleResult(test: Circus.TestEntry, passed: boolean) {
-    // const title = test.name;
-    // const errorMessage = getErrorMessage(test.errors);
-    // reporter.onTestEnd([
-    //   {
-    //     id: getTestId(test),
-    //     title,
-    //     result: passed ? "passed" : "failed",
-    //     path: ["", "jest", relativePath, title],
-    //     relativePath,
-    //     error: errorMessage
-    //       ? {
-    //           message: errorMessage,
-    //         }
-    //       : undefined,
-    //     steps: [],
-    //   },
-    // ]);
+    const title = test.name;
+    const errorMessage = getErrorMessage(test.errors);
+
+    reporter.onTestEnd({
+      tests: [
+        {
+          approximateDuration: test.duration || 0,
+          source: {
+            title,
+            scope: getScope(test),
+          },
+          result: passed ? "passed" : "failed",
+          error: errorMessage
+            ? {
+                name: "Error",
+                message: errorMessage,
+              }
+            : null,
+          events: {
+            afterAll: [],
+            afterEach: [],
+            beforeAll: [],
+            beforeEach: [],
+            main: [],
+          },
+        },
+      ],
+      specFile: relativePath,
+    });
   }
 
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {

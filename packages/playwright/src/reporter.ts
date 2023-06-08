@@ -59,7 +59,6 @@ interface ReplayPlaywrightConfig extends ReplayReporterConfig {
 
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
-  startTime?: number;
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
@@ -108,7 +107,6 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.startTime = Date.now();
     this.reporter?.onTestBegin(
       { title: test.title, scope: test.titlePath() },
       getMetadataFilePath(testResult.workerIndex)
@@ -116,7 +114,6 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    const duration = Date.now() - this.startTime!;
     const status = result.status;
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
@@ -177,39 +174,36 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
-    // const hooks: UserActionEvent[] = [];
-    // for (let e of hookMap.entries()) {
-    //   hooks.push({
-    //     title: e[0],
-    //     // TODO [ryanjduffy]: Fix this before landing ... this isn't handling
-    //     // hooks at multiple levels yet
-    //     path: [],
-    //     steps: e[1],
-    //   });
-    // }
-
-    // this.reporter?.onTestEnd(
-    //   [
-    //     {
-    //       id: this.getTestId(test),
-    //       title: test.title,
-    //       path: test.titlePath(),
-    //       result: status,
-    //       relativePath,
-    //       error: errorMessage
-    //         ? {
-    //             message: errorMessage,
-    //             line: errorStep?.location?.line,
-    //             column: errorStep?.location?.column,
-    //           }
-    //         : undefined,
-    //       steps: steps,
-    //     },
-    //   ],
-    //   hooks,
-    //   test.title,
-    //   playwrightMetadata
-    // );
+    this.reporter?.onTestEnd({
+      tests: [
+        {
+          approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
+          source: {
+            title: test.title,
+            scope: test.titlePath(),
+          },
+          result: status,
+          error: errorMessage
+            ? {
+                name: "Error",
+                message: errorMessage,
+                line: errorStep?.location?.line,
+                column: errorStep?.location?.column,
+              }
+            : null,
+          events: {
+            beforeAll: [],
+            afterAll: [],
+            beforeEach: hookMap.get("beforeEach") || [],
+            afterEach: hookMap.get("afterEach") || [],
+            main: steps,
+          },
+        },
+      ],
+      specFile: relativePath,
+      replayTitle: test.title,
+      extraMetadata: playwrightMetadata,
+    });
   }
 }
 
