@@ -49,7 +49,7 @@ const ReplayRunner = async (
   const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion });
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
-  function getTestId(test: Circus.TestEntry) {
+  function getSource(test: Circus.TestEntry) {
     let name = [];
     let current: Circus.TestEntry | Circus.DescribeBlock | undefined = test.parent;
     while (current && current.name !== "ROOT_DESCRIBE_BLOCK") {
@@ -73,7 +73,7 @@ const ReplayRunner = async (
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getTestId(test), getMetadataFilePath(getWorkerIndex()));
+    reporter.onTestBegin(getSource(test), getMetadataFilePath(getWorkerIndex()));
   }
 
   function getErrorMessage(errors: any[]) {
@@ -84,21 +84,6 @@ const ReplayRunner = async (
     return removeAnsiCodes(error?.matcherResult.message);
   }
 
-  function getScope(test: Circus.TestEntry) {
-    const scope = [];
-    let current: Circus.DescribeBlock | undefined = test.parent;
-    while (current) {
-      if (current) {
-        scope.unshift(current.name);
-        current = current.parent;
-      } else {
-        break;
-      }
-    }
-
-    return scope;
-  }
-
   function handleResult(test: Circus.TestEntry, passed: boolean) {
     const title = test.name;
     const errorMessage = getErrorMessage(test.errors);
@@ -107,10 +92,7 @@ const ReplayRunner = async (
       tests: [
         {
           approximateDuration: test.duration || 0,
-          source: {
-            title,
-            scope: getScope(test),
-          },
+          source: getSource(test),
           result: passed ? "passed" : "failed",
           error: errorMessage
             ? {
