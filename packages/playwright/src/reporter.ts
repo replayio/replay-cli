@@ -180,7 +180,7 @@ class ReplayPlaywrightReporter implements Reporter {
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
           source: {
             title: test.title,
-            scope: test.titlePath(),
+            scope: test.titlePath().slice(3, -1),
           },
           result: status,
           error: errorMessage
