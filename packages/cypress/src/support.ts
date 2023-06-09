@@ -1,4 +1,7 @@
-import type { TestError, TestStep } from "@replayio/test-utils";
+import type { TestMetadataV2 } from "@replayio/test-utils";
+
+type TestError = TestMetadataV2.TestError;
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { TASK_NAME } from "./constants";
 
@@ -8,13 +11,15 @@ declare global {
   }
 }
 
+type HookKind = "beforeAll" | "beforeEach" | "afterEach" | "afterAll";
+
 export interface StepEvent {
   event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end";
   test: string[];
   file: string;
   timestamp: string;
-  category?: TestStep["category"];
-  hook?: TestStep["hook"];
+  category?: UserActionEvent["data"]["category"];
+  hook?: HookKind;
   command?: CommandLike;
   error?: TestError;
 }
@@ -78,7 +83,7 @@ function simplifyCommand(cmd?: CommandLike) {
 const makeEvent = (
   currentPath: string[],
   event: StepEvent["event"],
-  category?: TestStep["category"],
+  category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
@@ -99,7 +104,7 @@ const makeEvent = (
 const handleCypressEvent = (
   currentPath: string[],
   event: StepEvent["event"],
-  category?: TestStep["category"],
+  category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
   error?: TestError
 ) => {
@@ -150,7 +155,7 @@ const getHookPath = (parent?: RunnableHook) => {
   return path;
 };
 
-const getCurrentTestHook = (): TestStep["hook"] => {
+const getCurrentTestHook = (): HookKind | undefined => {
   try {
     const { type, hookName } = (Cypress as any).mocha.getRunner().currentRunnable;
 
@@ -327,11 +332,25 @@ export default function register() {
         return;
       }
 
-      const maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
+      let maybeCurrentAssertion: Cypress.CommandQueue | undefined = lastAssertionCommand
         ? lastAssertionCommand.get("next")
         : lastCommand?.get("next");
 
-      if (maybeCurrentAssertion?.get("type") !== "assertion") {
+      // if we failed to find an assertion command but this log is for an
+      // assert, it's a chai assertion so we'll emit the command:start now
+      if (!maybeCurrentAssertion && log.name === "assert") {
+        // TODO [ryanjduffy]: This is making a log look like a command. This
+        // works in this very narrow case but we should fix this acknowledge
+        // that this is a chai assertion which is special and shouldn't
+        // masquerade as a command
+        maybeCurrentAssertion = {
+          logs: () => [],
+          add: () => {},
+          get: (key?: any) => (!key ? log : log[key]),
+          toJSON: () => log,
+          create: () => ({} as any),
+        };
+      } else if (maybeCurrentAssertion?.get("type") !== "assertion") {
         // debug("Received an assertion log without a prior assertion or command: %o", {
         //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
         //   lastCommandId: lastCommand && getCypressId(lastCommand),

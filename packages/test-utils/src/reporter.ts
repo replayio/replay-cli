@@ -1,5 +1,6 @@
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
+import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync } from "fs";
 import dbg from "debug";
 const uuid = require("uuid");
@@ -14,52 +15,27 @@ export interface ReplayReporterConfig {
   metadata?: Record<string, any> | string;
 }
 
-export interface TestError {
-  message: string;
-  name?: string;
-  line?: number;
-  column?: number;
-}
-
-export interface TestStep {
-  id: string;
-  path: string[];
-  parentId?: string;
-  name: string;
-  args?: any[];
-  error?: TestError;
-  relativeStartTime?: number;
-  duration?: number;
-  hook?: "beforeEach" | "afterEach" | "beforeAll" | "afterAll";
-  category: "command" | "assertion" | "other";
-  // Links an assert to the triggering command
-  commandId?: string;
-  assertIds?: string[];
-}
-
-export interface Hook {
-  title: string;
-  path: string[];
-  steps?: TestStep[];
-}
-
-export interface Test {
-  id?: string;
-  title: string;
-  path: string[];
-  result: "passed" | "failed" | "timedOut" | "skipped" | "unknown";
-  relativePath: string;
-  error?: TestError;
-  steps: TestStep[];
-  relativeStartTime?: number;
-  duration?: number;
-}
-
 export interface TestRunner {
-  name?: string;
-  version?: string;
-  plugin?: string;
+  name: string;
+  version: string;
+  plugin: string;
 }
+
+type UserActionEvent = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.UserActionEvent
+  : TestMetadataV2.UserActionEvent;
+type Test = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.Test
+  : TestMetadataV2.Test;
+type TestResult = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestResult
+  : TestMetadataV2.TestResult;
+type TestError = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestError
+  : TestMetadataV2.TestError;
+type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestRun
+  : TestMetadataV2.TestRun;
 
 function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
@@ -67,24 +43,22 @@ function parseRuntime(runtime?: string) {
 
 export class ReporterError extends Error {
   code: number;
-  testId?: string;
-  detail?: any;
+  detail: any;
 
-  constructor(code: number, message: string, testId?: string, detail?: any) {
+  constructor(code: number, message: string, detail: any = null) {
     super();
 
     this.name = "ReporterError";
     this.code = code;
     this.message = message;
-    this.testId = testId;
-    this.detail = detail;
+    this.detail = !detail || typeof detail === "string" ? detail : JSON.stringify(detail);
   }
 
   valueOf() {
     return {
+      code: this.code,
       name: this.name,
       message: this.message,
-      test: this.testId,
       detail: this.detail,
     };
   }
@@ -97,21 +71,72 @@ class ReplayReporter {
     ? process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID
     : uuid.v4();
   baseMetadata: Record<string, any> | null = null;
+  schemaVersion: string;
   runTitle?: string;
   startTimes: Record<string, number> = {};
-  runner?: TestRunner;
-  errors: (string | Error | ReporterError)[] = [];
+  runner: TestRunner;
+  errors: ReporterError[] = [];
 
-  constructor(runner?: TestRunner) {
+  constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
+    this.schemaVersion = schemaVersion;
   }
 
-  getTestId(testId?: string) {
-    if (!testId) {
+  getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestResult {
+    const { failed, passed, skipped, timedOut } = resultCounts;
+
+    if (failed > 0) {
+      return "failed";
+    } else if (timedOut > 0) {
+      return "timedOut";
+    } else if (passed > 0) {
+      return "passed";
+    } else if (skipped > 0) {
+      return "skipped";
+    } else {
+      return "unknown";
+    }
+  }
+
+  summarizeResults(tests: Test[]) {
+    let approximateDuration = 0;
+    let resultCounts: TestRun["resultCounts"] = {
+      failed: 0,
+      passed: 0,
+      skipped: 0,
+      timedOut: 0,
+      unknown: 0,
+    };
+
+    tests.forEach(t => {
+      approximateDuration += t.approximateDuration || 0;
+      switch (t.result) {
+        case "failed":
+          resultCounts.failed++;
+          break;
+        case "passed":
+          resultCounts.passed++;
+          break;
+        case "skipped":
+          resultCounts.skipped++;
+          break;
+        case "timedOut":
+          resultCounts.timedOut++;
+          break;
+        default:
+          resultCounts.unknown++;
+      }
+    });
+
+    return { approximateDuration, resultCounts };
+  }
+
+  getTestId(source?: Test["source"]) {
+    if (!source) {
       return this.baseId;
     }
 
-    return `${this.baseId}-${testId}`;
+    return `${this.baseId}-${[...source.scope, source.title].join("-")}`;
   }
 
   parseConfig(config: ReplayReporterConfig = {}, metadataKey?: string) {
@@ -154,11 +179,11 @@ class ReplayReporter {
     }
   }
 
-  addError(err: Error) {
+  addError(err: Error | ReporterError) {
     if (err.name === "ReporterError") {
-      this.errors.push(err);
+      this.errors.push(err as ReporterError);
     } else {
-      this.errors.push(new ReporterError(-1, "Unexpected error", undefined, err));
+      this.errors.push(new ReporterError(-1, "Unexpected error", err));
     }
   }
 
@@ -180,13 +205,14 @@ class ReplayReporter {
     });
   }
 
-  onTestBegin(testId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+  onTestBegin(source?: Test["source"], metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+    const id = this.getTestId(source);
     this.errors = [];
-    this.startTimes[this.getTestId(testId)] = Date.now();
+    this.startTimes[id] = Date.now();
     const metadata = {
       ...(this.baseMetadata || {}),
       "x-replay-test": {
-        id: this.getTestId(testId),
+        id,
       },
     };
 
@@ -195,12 +221,17 @@ class ReplayReporter {
     writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
   }
 
-  onTestEnd(
-    tests: Test[],
-    hooks?: Hook[],
-    replayTitle?: string,
-    extraMetadata?: Record<string, unknown>
-  ) {
+  onTestEnd({
+    tests,
+    specFile,
+    replayTitle,
+    extraMetadata,
+  }: {
+    tests: Test[];
+    specFile: string;
+    replayTitle?: string;
+    extraMetadata?: Record<string, unknown>;
+  }) {
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
@@ -208,9 +239,10 @@ class ReplayReporter {
       return;
     }
 
-    const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify(
-      tests.map(test => this.getTestId(test.id))
-    )} and $not($exists($v.metadata.test)) }`;
+    const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
+      ...tests.map(test => this.getTestId(test.source)),
+      this.getTestId(),
+    ])} and $not($exists($v.metadata.test)) }`;
 
     const recs = listAllRecordings({
       filter,
@@ -219,18 +251,32 @@ class ReplayReporter {
     debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
 
     const test = tests[0];
-    const results = tests.reduce<Test["result"][]>(
-      (acc, t) => (acc.includes(t.result) ? acc : [...acc, t.result]),
-      []
-    );
-    const result =
-      results.length === 1
-        ? results[0]
-        : results.includes("failed")
-        ? "failed"
-        : results.includes("timedOut")
-        ? "timedOut"
-        : "passed";
+    const { approximateDuration, resultCounts } = this.summarizeResults(tests);
+    const result = this.getResultFromResultCounts(resultCounts);
+
+    const metadata: TestRun = {
+      approximateDuration,
+      source: {
+        path: specFile,
+        title: replayTitle || test.source.title,
+      },
+      result,
+      resultCounts,
+      run: {
+        id: this.baseId,
+        title: this.runTitle,
+      },
+      tests,
+      environment: {
+        errors: this.errors.map(e => e.valueOf()),
+        pluginVersion: this.runner.plugin,
+        testRunner: {
+          name: this.runner.name,
+          version: this.runner.version,
+        },
+      },
+      schemaVersion: this.schemaVersion,
+    };
 
     let recordingId: string | undefined;
     let runtime: string | undefined;
@@ -243,34 +289,23 @@ class ReplayReporter {
 
       recs.forEach(rec =>
         add(rec.id, {
-          title: replayTitle || test.title,
+          title: replayTitle || test.source.title,
           ...extraMetadata,
-          ...testMetadata.init({
-            title: replayTitle || test.title,
-            result,
-            path: test.path,
-            runner: this.runner,
-            run: {
-              id: this.baseId,
-              title: this.runTitle,
-            },
-            file: test.relativePath,
-            hooks: hooks,
-            tests: tests,
-            reporterErrors: this.errors,
-          }),
+          ...testMetadata.init(metadata),
         })
       );
     }
 
-    const startTime = this.startTimes[this.getTestId(test.id)];
+    const testId = this.getTestId(test.source);
+
+    const startTime = this.startTimes[testId];
     if (startTime) {
       pingTestMetrics(recordingId, this.baseId, {
-        id: test.id || test.relativePath,
+        id: testId,
         duration: Date.now() - startTime,
         recorded: !!recordingId,
         runtime: parseRuntime(runtime),
-        runner: this.runner?.name,
+        runner: this.runner.name,
         result: result,
       });
     }
@@ -278,3 +313,4 @@ class ReplayReporter {
 }
 
 export default ReplayReporter;
+export type { UserActionEvent, Test, TestResult, TestError, TestMetadataV1, TestMetadataV2 };

@@ -1,18 +1,17 @@
 /// <reference types="cypress" />
 
-import { Hook, ReporterError, Test, TestStep } from "@replayio/test-utils";
+import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
-import { assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
+import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
+
+type Test = TestMetadataV2.Test;
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 interface StepStackItem {
   event: StepEvent;
-  step: TestStep;
-}
-
-function isGlobalHook(testStep: TestStep) {
-  return testStep.hook === "beforeAll" || testStep.hook === "afterAll";
+  step: UserActionEvent;
 }
 
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
@@ -29,10 +28,6 @@ export function mapStateToResult(state: CypressCommandLine.TestResult["state"]):
 
 function toTime(timestamp: string) {
   return new Date(timestamp).getTime();
-}
-
-function toRelativeTime(timestamp: string, startTime: number) {
-  return toTime(timestamp) - startTime;
 }
 
 function toEventOrder(event: StepEvent) {
@@ -60,17 +55,20 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.De
   return false;
 }
 
+function simplifyArgs(args?: any[]) {
+  return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
+}
+
 function groupStepsByTest(
   spec: Cypress.Spec,
   resultTests: CypressCommandLine.TestResult[],
   steps: StepEvent[],
-  firstTimestamp: number,
   debug: debug.Debugger
-): { hooks: Hook[]; tests: Test[] } {
+): Test[] {
   debug = debug.extend("group");
   if (steps.length === 0) {
     debug("No test steps found");
-    return { hooks: [], tests: [] };
+    return [];
   }
 
   // The steps can come in out of order but are sortable by timestamp
@@ -83,25 +81,42 @@ function groupStepsByTest(
     return tsCompare;
   });
 
-  const testStartEvents = sortedSteps.filter(a => a.event === "test:start");
   const tests = resultTests.map<Test>(result => {
-    const step = testStartEvents.find(e => e.test.join(",") === result.title.join(","));
+    const scope = [...result.title];
+    const title = scope.pop()!;
 
     return {
-      title: result.title[result.title.length - 1],
-      path: result.title,
+      // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
+      approximateDuration: result.attempts.reduce(
+        (acc, v: any) => acc + (v.duration || v.wallClockDuration || 0),
+        0
+      ),
+      source: {
+        title,
+        scope,
+      },
       result: mapStateToResult(result.state),
-      relativePath: spec.relative,
-      relativeStartTime: step ? toRelativeTime(step.timestamp, firstTimestamp) : 0,
-      steps: [],
+      events: {
+        beforeAll: [],
+        afterAll: [],
+        beforeEach: [],
+        afterEach: [],
+        main: [],
+      },
+      error: null,
     };
   });
-  const hooks: Hook[] = [];
+  const hooks = {
+    afterAll: [] as UserActionEvent[],
+    afterEach: [] as UserActionEvent[],
+    beforeAll: [] as UserActionEvent[],
+    beforeEach: [] as UserActionEvent[],
+  };
 
   debug("Found %d tests", tests.length);
   debug(
     "%O",
-    tests.map(t => t.title)
+    tests.map(t => t.source.title)
   );
 
   const stepStack: StepStackItem[] = [];
@@ -116,7 +131,7 @@ function groupStepsByTest(
     const step = sortedSteps[i];
 
     let testForStep: Test | undefined = tests.find(
-      t => t.title === step.test[step.test.length - 1]
+      t => t.source.title === step.test[step.test.length - 1]
     );
     if (currentTest !== testForStep) {
       activeGroup = undefined;
@@ -152,57 +167,44 @@ function groupStepsByTest(
 
           // Simplify args to avoid sending large objects in metadata that we
           // won't render in the UI anyway
-          const args = step.command?.args?.map(a => (a && typeof a === "object" ? {} : a)) || [];
+          const args = simplifyArgs(step.command?.args);
 
-          const testStep: TestStep = {
-            id: step.command!.id,
-            path: step.test,
-            parentId,
-            name: step.command!.name,
-            args: args,
-            commandId: step.command!.commandId,
-            category: step.category || "other",
-            hook: step.hook,
+          const testStep: UserActionEvent = {
+            data: {
+              id: step.command!.id,
+              parentId: parentId || null,
+              category: step.category || "other",
+              command: {
+                name: step.command!.name,
+                arguments: args,
+              },
+              scope: null,
+              error: null,
+            },
           };
 
-          if (isGlobalHook(testStep)) {
-            let hook = hooks.find(
-              h => h.title === testStep.hook && h.path.join(",") === testStep.path.join(",")
-            );
+          if (step.hook) {
+            let hook = hooks[step.hook];
+
             if (!hook) {
-              hook = {
-                title: testStep.hook!,
-                path: testStep.path,
-                steps: [],
-              };
-              hooks.push(hook);
+              throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
             }
 
-            hook.steps!.push(testStep);
+            testStep.data.scope = step.test;
+            hook.push(testStep);
           } else {
             assertCurrentTest(currentTest, step);
 
-            testStep.relativeStartTime =
-              toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-
-            // If this assertion has an associated commandId, find that step by
-            // command and add this command to its assertIds array
-            if (step.command!.commandId) {
-              const commandStep = currentTest.steps!.find(s => s.id === step.command!.commandId);
-              if (commandStep) {
-                commandStep.assertIds = commandStep?.assertIds || [];
-                commandStep.assertIds.push(testStep.id);
-              }
-            }
-
-            currentTest.steps!.push(testStep);
+            currentTest.events.main.push(testStep);
           }
           stepStack.push({ event: step, step: testStep });
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
           const lastStep: StepStackItem | undefined = stepStack.find(
-            a => a.step.id === step.command!.id && a.event.test.toString() === step.test.toString()
+            a =>
+              a.step.data.id === step.command!.id &&
+              a.event.test.toString() === step.test.toString()
           );
 
           if (!lastStep && skippedStepIds.includes(step.command?.id as any)) {
@@ -220,40 +222,55 @@ function groupStepsByTest(
 
           // asserts can change the args if the message changes
           if (isAssert && step.command) {
-            lastStep.step.args = step.command.args;
-          }
-
-          const currentTestStep = lastStep.step!;
-          if (!isGlobalHook(currentTestStep)) {
-            assertCurrentTest(currentTest, step);
-
-            const relativeEndTime =
-              toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
-            currentTestStep.duration = Math.max(
-              0,
-              relativeEndTime - currentTestStep.relativeStartTime!
-            );
+            lastStep.step.data.command.arguments = simplifyArgs(step.command.args);
           }
 
           // Always set the error so that a successful retry will clear a previous error
-          currentTestStep.error = step.error;
+          const currentTestStep = lastStep.step!;
+          currentTestStep.data.error = step.error || null;
           break;
         case "test:end":
           assertCurrentTest(currentTest, step);
-          currentTest.duration =
-            toRelativeTime(step.timestamp, firstTimestamp) - currentTest.relativeStartTime!;
           break;
       }
     } catch (e) {
       if (isStepAssertionError(e)) {
-        throw new ReporterError(e.code, e.message, currentTest?.id || spec.relative, e.step);
+        throw new ReporterError(e.code, e.message, e.step);
       } else {
-        throw e;
+        throw new ReporterError(Errors.UnexpectedError, "Unexpected step processing error", e);
       }
     }
   }
 
-  return { hooks, tests };
+  const hookNames = Object.keys(hooks) as any as (keyof typeof hooks)[];
+  hookNames.forEach(hookName => {
+    const hookActions = hooks[hookName];
+    hookActions.forEach(action => {
+      tests.forEach(test => {
+        // beforeEach/afterEach hooks have a scope matching the describe tree plus the test title
+        // so we pop the title off and test that first while cloning the action with a new scope
+        // limited to the parent context so all hooks are consistently scoped when uploaded
+        if (hookName === "beforeEach" || hookName === "afterEach") {
+          const scope = [...action.data.scope!];
+          const title = scope.pop();
+          if (title != test.source.title) {
+            return;
+          }
+
+          action.data = {
+            ...action.data,
+            scope,
+          };
+        }
+
+        if (action.data.scope!.every((scope, i) => scope === test.source.scope[i])) {
+          test.events[hookName].push(action);
+        }
+      });
+    });
+  });
+
+  return tests;
 }
 
 export { groupStepsByTest };

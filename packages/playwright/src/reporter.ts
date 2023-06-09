@@ -11,9 +11,11 @@ import {
   ReplayReporter,
   ReplayReporterConfig,
   removeAnsiCodes,
-  TestStep as ReplayTestStep,
+  TestMetadataV2,
   getMetadataFilePath as getMetadataFilePathBase,
 } from "@replayio/test-utils";
+
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 
@@ -30,7 +32,7 @@ function extractErrorMessage(errorStep?: TestStep) {
   return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
 }
 
-function mapTestStepCategory(step: TestStep): ReplayTestStep["category"] {
+function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
   switch (step.category) {
     case "expect":
       return "assertion";
@@ -42,7 +44,7 @@ function mapTestStepCategory(step: TestStep): ReplayTestStep["category"] {
   }
 }
 
-function mapTestStepHook(step: TestStep): ReplayTestStep["hook"] {
+function mapTestStepHook(step: TestStep): "beforeEach" | "afterEach" | undefined {
   if (step.category !== "hook") return;
 
   switch (step.title) {
@@ -59,7 +61,6 @@ interface ReplayPlaywrightConfig extends ReplayReporterConfig {
 
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
-  startTime?: number;
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
@@ -92,11 +93,14 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin(config: FullConfig) {
     const cfg = this.parseConfig(config);
-    this.reporter = new ReplayReporter({
-      name: "playwright",
-      version: config.version,
-      plugin: pluginVersion,
-    });
+    this.reporter = new ReplayReporter(
+      {
+        name: "playwright",
+        version: config.version,
+        plugin: pluginVersion,
+      },
+      "2.0.0"
+    );
     this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
 
     if (cfg.captureTestFile === false) {
@@ -105,12 +109,13 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.startTime = Date.now();
-    this.reporter?.onTestBegin(this.getTestId(test), getMetadataFilePath(testResult.workerIndex));
+    this.reporter?.onTestBegin(
+      { title: test.title, scope: test.titlePath() },
+      getMetadataFilePath(testResult.workerIndex)
+    );
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    const duration = Date.now() - this.startTime!;
     const status = result.status;
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
@@ -136,50 +141,71 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
-    this.reporter?.onTestEnd(
-      [
+    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
+    const steps: UserActionEvent[] = [];
+    for (let [i, s] of result.steps.entries()) {
+      const hook = mapTestStepHook(s);
+      const stepErrorMessage = extractErrorMessage(s);
+      const step: UserActionEvent = {
+        data: {
+          id: String(i),
+          parentId: null,
+          command: {
+            name: s.title,
+            arguments: [],
+          },
+          scope: s.titlePath(),
+          error: stepErrorMessage
+            ? {
+                name: "AssertionError",
+                message: stepErrorMessage,
+                line: s.location?.line,
+                column: s.location?.column,
+              }
+            : null,
+          category: mapTestStepCategory(s),
+        },
+      };
+
+      if (hook) {
+        const hookSteps = hookMap.get(hook) || [];
+        hookSteps.push(step);
+        hookMap.set(hook, hookSteps);
+      } else {
+        steps.push(step);
+      }
+    }
+
+    this.reporter?.onTestEnd({
+      tests: [
         {
-          id: this.getTestId(test),
-          title: test.title,
-          path: test.titlePath(),
+          approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
+          source: {
+            title: test.title,
+            scope: test.titlePath().slice(3, -1),
+          },
           result: status,
-          relativePath,
-          relativeStartTime: 0,
-          duration,
           error: errorMessage
             ? {
+                name: "Error",
                 message: errorMessage,
                 line: errorStep?.location?.line,
                 column: errorStep?.location?.column,
               }
-            : undefined,
-          steps: result.steps.map((s, i) => {
-            const stepErrorMessage = extractErrorMessage(s);
-            return {
-              id: String(i),
-              name: s.title,
-              path: s.titlePath(),
-              error: stepErrorMessage
-                ? {
-                    message: stepErrorMessage,
-                    line: s.location?.line,
-                    column: s.location?.column,
-                  }
-                : undefined,
-              relativeStartTime: this.startTime
-                ? Math.max(0, s.startTime.getTime() - this.startTime)
-                : undefined,
-              duration: s.duration,
-              hook: mapTestStepHook(s),
-              category: mapTestStepCategory(s),
-            };
-          }),
+            : null,
+          events: {
+            beforeAll: [],
+            afterAll: [],
+            beforeEach: hookMap.get("beforeEach") || [],
+            afterEach: hookMap.get("afterEach") || [],
+            main: steps,
+          },
         },
       ],
-      [],
-      test.title,
-      playwrightMetadata
-    );
+      specFile: relativePath,
+      replayTitle: test.title,
+      extraMetadata: playwrightMetadata,
+    });
   }
 }
 
