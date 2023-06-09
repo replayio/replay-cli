@@ -116,7 +116,7 @@ class ReplayReporter {
   runner: TestRunner;
   errors: ReporterError[] = [];
 
-  constructor(runner: TestRunner, schemaVersion = "1.0.0") {
+  constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
   }
