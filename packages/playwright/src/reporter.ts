@@ -91,6 +91,13 @@ class ReplayPlaywrightReporter implements Reporter {
     return cfg;
   }
 
+  getSource(test: TestCase) {
+    return {
+      title: test.title,
+      scope: test.titlePath().slice(3, -1),
+    };
+  }
+
   onBegin(config: FullConfig) {
     const cfg = this.parseConfig(config);
     this.reporter = new ReplayReporter(
@@ -109,10 +116,7 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter?.onTestBegin(
-      { title: test.title, scope: test.titlePath() },
-      getMetadataFilePath(testResult.workerIndex)
-    );
+    this.reporter?.onTestBegin(this.getSource(test), getMetadataFilePath(testResult.workerIndex));
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -180,10 +184,7 @@ class ReplayPlaywrightReporter implements Reporter {
       tests: [
         {
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          source: {
-            title: test.title,
-            scope: test.titlePath().slice(3, -1),
-          },
+          source: this.getSource(test),
           result: status,
           error: errorMessage
             ? {
