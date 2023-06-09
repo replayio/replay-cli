@@ -10,7 +10,7 @@ import debug from "debug";
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
-import { groupStepsByTest, mapStateToResult } from "./steps";
+import { getTestsFromSteps, groupStepsByTest, mapStateToResult } from "./steps";
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
@@ -129,10 +129,10 @@ class CypressReporter {
       ];
     }
 
-    let testsWithSteps: Test[] = [];
+    let testsWithSteps: Test[] = getTestsFromSteps(result.tests, this.steps);
 
     try {
-      testsWithSteps = groupStepsByTest(spec, result.tests, this.steps, this.debug);
+      testsWithSteps = groupStepsByTest(testsWithSteps, this.steps);
     } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay");
       console.warn(e);
