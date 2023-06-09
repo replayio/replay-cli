@@ -111,11 +111,14 @@ const v2_0_0 = object({
   ),
 });
 
-export type UserActionEvent = Infer<typeof userActionEvent>;
-export type Test = Infer<typeof test>;
-export type TestResult = Infer<typeof testResult>;
-export type TestRun = Infer<typeof v2_0_0>;
-export type TestError = Infer<typeof testError>;
+export namespace TestMetadataV2 {
+  export type UserActionEvent = Infer<typeof userActionEvent>;
+  export type Test = Infer<typeof test>;
+  export type TestResult = Infer<typeof testResult>;
+  export type TestRun = Infer<typeof v2_0_0>;
+  export type TestError = Infer<typeof testError>;
+}
+
 export default {
   "2.0.0": v2_0_0,
 };

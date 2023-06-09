@@ -11,9 +11,11 @@ import {
   ReplayReporter,
   ReplayReporterConfig,
   removeAnsiCodes,
-  UserActionEvent,
+  TestMetadataV2,
   getMetadataFilePath as getMetadataFilePathBase,
 } from "@replayio/test-utils";
+
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 

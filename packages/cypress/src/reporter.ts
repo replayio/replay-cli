@@ -2,7 +2,7 @@
 import {
   getMetadataFilePath as getMetadataFilePathBase,
   ReplayReporter,
-  Test,
+  TestMetadataV2,
   ReporterError,
 } from "@replayio/test-utils";
 import debug from "debug";
@@ -12,6 +12,8 @@ import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
 import { groupStepsByTest, mapStateToResult } from "./steps";
 import type { StepEvent } from "./support";
+
+type Test = TestMetadataV2.Test;
 
 class CypressReporter {
   reporter: ReplayReporter;

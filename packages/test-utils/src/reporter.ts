@@ -1,12 +1,6 @@
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
-import type {
-  UserActionEvent,
-  Test,
-  TestResult,
-  TestError,
-  TestRun,
-} from "@replayio/replay/metadata/test/v2";
+import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync } from "fs";
 import dbg from "debug";
 const uuid = require("uuid");
@@ -27,57 +21,24 @@ export interface TestRunner {
   plugin: string;
 }
 
+type UserActionEvent = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.UserActionEvent
+  : TestMetadataV2.UserActionEvent;
+type Test = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.Test
+  : TestMetadataV2.Test;
+type TestResult = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestResult
+  : TestMetadataV2.TestResult;
+type TestError = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestError
+  : TestMetadataV2.TestError;
+type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
+  ? TestMetadataV1.TestRun
+  : TestMetadataV2.TestRun;
+
 function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
-}
-
-function getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestResult {
-  const { failed, passed, skipped, timedOut } = resultCounts;
-
-  if (failed > 0) {
-    return "failed";
-  } else if (timedOut > 0) {
-    return "timedOut";
-  } else if (passed > 0) {
-    return "passed";
-  } else if (skipped > 0) {
-    return "skipped";
-  } else {
-    return "unknown";
-  }
-}
-
-function summarizeResults(tests: Test[]) {
-  let approximateDuration = 0;
-  let resultCounts: TestRun["resultCounts"] = {
-    failed: 0,
-    passed: 0,
-    skipped: 0,
-    timedOut: 0,
-    unknown: 0,
-  };
-
-  tests.forEach(t => {
-    approximateDuration += t.approximateDuration || 0;
-    switch (t.result) {
-      case "failed":
-        resultCounts.failed++;
-        break;
-      case "passed":
-        resultCounts.passed++;
-        break;
-      case "skipped":
-        resultCounts.skipped++;
-        break;
-      case "timedOut":
-        resultCounts.timedOut++;
-        break;
-      default:
-        resultCounts.unknown++;
-    }
-  });
-
-  return { approximateDuration, resultCounts };
 }
 
 export class ReporterError extends Error {
@@ -119,6 +80,55 @@ class ReplayReporter {
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
+  }
+
+  getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestResult {
+    const { failed, passed, skipped, timedOut } = resultCounts;
+
+    if (failed > 0) {
+      return "failed";
+    } else if (timedOut > 0) {
+      return "timedOut";
+    } else if (passed > 0) {
+      return "passed";
+    } else if (skipped > 0) {
+      return "skipped";
+    } else {
+      return "unknown";
+    }
+  }
+
+  summarizeResults(tests: Test[]) {
+    let approximateDuration = 0;
+    let resultCounts: TestRun["resultCounts"] = {
+      failed: 0,
+      passed: 0,
+      skipped: 0,
+      timedOut: 0,
+      unknown: 0,
+    };
+
+    tests.forEach(t => {
+      approximateDuration += t.approximateDuration || 0;
+      switch (t.result) {
+        case "failed":
+          resultCounts.failed++;
+          break;
+        case "passed":
+          resultCounts.passed++;
+          break;
+        case "skipped":
+          resultCounts.skipped++;
+          break;
+        case "timedOut":
+          resultCounts.timedOut++;
+          break;
+        default:
+          resultCounts.unknown++;
+      }
+    });
+
+    return { approximateDuration, resultCounts };
   }
 
   getTestId(source?: Test["source"]) {
@@ -241,8 +251,8 @@ class ReplayReporter {
     debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
 
     const test = tests[0];
-    const { approximateDuration, resultCounts } = summarizeResults(tests);
-    const result = getResultFromResultCounts(resultCounts);
+    const { approximateDuration, resultCounts } = this.summarizeResults(tests);
+    const result = this.getResultFromResultCounts(resultCounts);
 
     const metadata: TestRun = {
       approximateDuration,
@@ -303,4 +313,4 @@ class ReplayReporter {
 }
 
 export default ReplayReporter;
-export { UserActionEvent, Test, TestResult, TestError };
+export type { UserActionEvent, Test, TestResult, TestError, TestMetadataV1, TestMetadataV2 };

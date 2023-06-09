@@ -1,4 +1,7 @@
-import type { TestError, UserActionEvent } from "@replayio/test-utils";
+import type { TestMetadataV2 } from "@replayio/test-utils";
+
+type TestError = TestMetadataV2.TestError;
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { TASK_NAME } from "./constants";
 

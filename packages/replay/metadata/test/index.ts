@@ -1,11 +1,18 @@
 import { create, Struct, any } from "superstruct";
 
-import { UnstructuredMetadata } from "../src/types";
+import { UnstructuredMetadata } from "../../src/types";
 
-import v1 from "./test/v1";
-import v2 from "./test/v2";
+import v1, { TestMetadataV1 } from "./v1";
+import v2, { TestMetadataV2 } from "./v2";
 
 const VERSION = "2.0.0";
+
+export type { TestMetadataV1, TestMetadataV2 };
+export type UserActionEvent = TestMetadataV1.UserActionEvent | TestMetadataV2.UserActionEvent;
+export type Test = TestMetadataV1.Test | TestMetadataV2.Test;
+export type TestResult = TestMetadataV1.TestResult | TestMetadataV2.TestResult;
+export type TestRun = TestMetadataV1.TestRun | TestMetadataV2.TestRun;
+export type TestError = TestMetadataV1.TestError | TestMetadataV2.TestError;
 
 const versions = {
   ...v1,

@@ -1,10 +1,13 @@
 /// <reference types="cypress" />
 
-import { ReporterError, Test, UserActionEvent } from "@replayio/test-utils";
+import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
 import type debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
 import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
+
+type Test = TestMetadataV2.Test;
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 interface StepStackItem {
   event: StepEvent;

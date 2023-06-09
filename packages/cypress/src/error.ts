@@ -1,5 +1,7 @@
-import { Test } from "@replayio/test-utils";
+import { TestMetadataV2 } from "@replayio/test-utils";
 import type { StepEvent } from "./support";
+
+type Test = TestMetadataV2.Test;
 
 export enum Errors {
   UnexpectedError = -1,
