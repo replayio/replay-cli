@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
-import type debug from "debug";
+import Debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
 import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
@@ -13,6 +13,8 @@ interface StepStackItem {
   event: StepEvent;
   step: UserActionEvent;
 }
+
+const debug = Debug("replay:cypress:plugin:reporter:steps");
 
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
   switch (state) {
@@ -34,8 +36,8 @@ function toEventOrder(event: StepEvent) {
   return ["test:start", "step:enqueue", "step:start", "step:end", "test:end"].indexOf(event.event);
 }
 
-function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.Debugger) {
-  debug = debug.extend("skip");
+function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
+  const skipDebug = debug.extend("skip");
   const lastArg = step.command?.args?.[step.command.args.length - 1];
 
   let reason: string | undefined;
@@ -48,7 +50,7 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[], debug: debug.De
   }
 
   if (reason) {
-    debug("Test step %s skipped: %s", step.command?.id || "", reason);
+    skipDebug("Test step %s skipped: %s", step.command?.id || "", reason);
     return true;
   }
 
@@ -59,27 +61,11 @@ function simplifyArgs(args?: any[]) {
   return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
 }
 
-function groupStepsByTest(
-  spec: Cypress.Spec,
-  resultTests: CypressCommandLine.TestResult[],
-  steps: StepEvent[],
-  debug: debug.Debugger
-): Test[] {
-  debug = debug.extend("group");
+function getTestsFromSteps(resultTests: CypressCommandLine.TestResult[], steps: StepEvent[]) {
   if (steps.length === 0) {
     debug("No test steps found");
     return [];
   }
-
-  // The steps can come in out of order but are sortable by timestamp
-  const sortedSteps = [...steps].sort((a, b) => {
-    const tsCompare = a.timestamp.localeCompare(b.timestamp);
-    if (tsCompare === 0) {
-      return toEventOrder(a) - toEventOrder(b);
-    }
-
-    return tsCompare;
-  });
 
   const tests = resultTests.map<Test>(result => {
     const scope = [...result.title];
@@ -106,18 +92,33 @@ function groupStepsByTest(
       error: null,
     };
   });
-  const hooks = {
-    afterAll: [] as UserActionEvent[],
-    afterEach: [] as UserActionEvent[],
-    beforeAll: [] as UserActionEvent[],
-    beforeEach: [] as UserActionEvent[],
-  };
 
   debug("Found %d tests", tests.length);
   debug(
     "%O",
     tests.map(t => t.source.title)
   );
+
+  return tests;
+}
+
+function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
+  // The steps can come in out of order but are sortable by timestamp
+  const sortedSteps = [...steps].sort((a, b) => {
+    const tsCompare = a.timestamp.localeCompare(b.timestamp);
+    if (tsCompare === 0) {
+      return toEventOrder(a) - toEventOrder(b);
+    }
+
+    return tsCompare;
+  });
+
+  const hooks = {
+    afterAll: [] as UserActionEvent[],
+    afterEach: [] as UserActionEvent[],
+    beforeAll: [] as UserActionEvent[],
+    beforeEach: [] as UserActionEvent[],
+  };
 
   const stepStack: StepStackItem[] = [];
   const skippedStepIds: string[] = [];
@@ -148,7 +149,7 @@ function groupStepsByTest(
         case "step:start":
           let parentId: string | undefined;
 
-          if (shouldSkipStep(step, skippedStepIds, debug)) {
+          if (shouldSkipStep(step, skippedStepIds)) {
             if (step.command?.id) {
               skippedStepIds.push(step.command.id);
             }
@@ -273,4 +274,4 @@ function groupStepsByTest(
   return tests;
 }
 
-export { groupStepsByTest };
+export { groupStepsByTest, getTestsFromSteps };
