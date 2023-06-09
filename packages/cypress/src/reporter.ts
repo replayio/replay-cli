@@ -66,7 +66,6 @@ class CypressReporter {
     appendToFixtureFile("spec:start", { spec, startTime });
 
     this.clearSteps();
-    this.setStartTime(startTime);
     this.reporter.onTestBegin(undefined, getMetadataFilePath());
   }
 
@@ -79,10 +78,6 @@ class CypressReporter {
 
   getDiagnosticConfig() {
     return this.diagnosticConfig;
-  }
-
-  private setStartTime(startTime: number) {
-    this.startTime = startTime;
   }
 
   private setSelectedBrowser(browser: string) {
@@ -137,13 +132,7 @@ class CypressReporter {
     let testsWithSteps: Test[] = [];
 
     try {
-      testsWithSteps = groupStepsByTest(
-        spec,
-        result.tests,
-        this.steps,
-        this.startTime!,
-        this.debug
-      );
+      testsWithSteps = groupStepsByTest(spec, result.tests, this.steps, this.debug);
     } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay");
       console.warn(e);

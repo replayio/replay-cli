@@ -14,10 +14,6 @@ interface StepStackItem {
   step: UserActionEvent;
 }
 
-function isGlobalHook(hook?: string): hook is "beforeAll" | "afterAll" {
-  return hook === "beforeAll" || hook === "afterAll";
-}
-
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
   switch (state) {
     case "failed":
@@ -32,10 +28,6 @@ export function mapStateToResult(state: CypressCommandLine.TestResult["state"]):
 
 function toTime(timestamp: string) {
   return new Date(timestamp).getTime();
-}
-
-function toRelativeTime(timestamp: string, startTime: number) {
-  return toTime(timestamp) - startTime;
 }
 
 function toEventOrder(event: StepEvent) {
@@ -71,7 +63,6 @@ function groupStepsByTest(
   spec: Cypress.Spec,
   resultTests: CypressCommandLine.TestResult[],
   steps: StepEvent[],
-  firstTimestamp: number,
   debug: debug.Debugger
 ): Test[] {
   debug = debug.extend("group");
