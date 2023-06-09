@@ -32,6 +32,19 @@ interface CommandLike {
   commandId?: string;
 }
 
+// This lists cypress commands for which we don't need to track in metadata nor
+// create annotations because they are "internal plumbing" commands that aren't
+// user-facing
+const COMMAND_IGNORE_LIST = ["within-restore", "end-logGroup"];
+
+function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
+  if (isCommandQueue(cmd)) {
+    cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+  }
+
+  return COMMAND_IGNORE_LIST.includes(cmd.name);
+}
+
 function simplifyCommand(cmd?: CommandLike) {
   if (!cmd) {
     return cmd;
@@ -255,6 +268,10 @@ export default function register() {
 
   Cypress.on("command:enqueued", cmd => {
     try {
+      if (shouldIgnoreCommand(cmd)) {
+        return;
+      }
+
       // in cypress open, beforeEach isn't called so fetch the current test here
       // as a fallback
       currentTest = currentTest || getCurrentTest();
@@ -284,6 +301,10 @@ export default function register() {
   });
   Cypress.on("command:start", cmd => {
     try {
+      if (shouldIgnoreCommand(cmd)) {
+        return;
+      }
+
       lastCommand = cmd;
       lastAssertionCommand = undefined;
 
@@ -300,6 +321,10 @@ export default function register() {
   });
   Cypress.on("command:end", cmd => {
     try {
+      if (shouldIgnoreCommand(cmd)) {
+        return;
+      }
+
       const log = cmd
         .get("logs")
         .find((l: any) => l.get("name") === cmd.get("name"))
@@ -356,6 +381,10 @@ export default function register() {
         //   lastCommandId: lastCommand && getCypressId(lastCommand),
         //   currentAssertion: maybeCurrentAssertion && maybeCurrentAssertion.toJSON(),
         // });
+        return;
+      }
+
+      if (shouldIgnoreCommand(maybeCurrentAssertion)) {
         return;
       }
 
