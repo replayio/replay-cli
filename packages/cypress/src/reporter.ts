@@ -141,7 +141,12 @@ class CypressReporter {
     }
 
     const tests = result.tests.map<Test>(t => {
-      const foundTest = testsWithSteps.find(ts => ts.source.title === t.title[t.title.length - 1]);
+      const foundTest = testsWithSteps.find(ts => {
+        const title = t.title[t.title.length - 1];
+        const scope = t.title.slice(0, t.title.length - 1);
+
+        return ts.source.title === title && ts.source.scope.every((s, i) => s === scope[i]);
+      });
 
       if (foundTest) {
         this.debug("Matching test result with test steps from support: %o", {
