@@ -4,6 +4,9 @@ type TestError = TestMetadataV2.TestError;
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { TASK_NAME } from "./constants";
+import Debug from "debug";
+
+const debug = Debug("replay:cypress:plugin:reporter:support");
 
 declare global {
   interface Window {
@@ -252,9 +255,12 @@ function addAnnotation(path: string[], event: string, data?: Record<string, any>
     titlePath: path,
   });
 
-  window.top &&
-    window.top.__RECORD_REPLAY_ANNOTATION_HOOK__ &&
-    window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
+  if (!window.top || !window.top.__RECORD_REPLAY_ANNOTATION_HOOK__) {
+    debug("No annotation hook found");
+    return;
+  }
+
+  window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
 }
 
 function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
