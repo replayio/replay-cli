@@ -34,7 +34,7 @@ interface CommandLike {
 
 interface CypressTestScope {
   test: string[];
-  order: number;
+  id: number;
   attempt: number;
 }
 
@@ -119,7 +119,7 @@ function getCurrentTestScope(): CypressTestScope {
     return {
       test: Cypress.currentTest.titlePath,
       attempt,
-      order,
+      id: order,
     };
   }
 
@@ -137,7 +137,7 @@ function getCurrentTestScope(): CypressTestScope {
     currentTest = currentTest.parent;
   }
 
-  return { test: titlePath, order, attempt };
+  return { test: titlePath, id: order, attempt };
 }
 
 function getCurrentScope(testScope: CypressTestScope): CypressTestScope {
@@ -149,7 +149,7 @@ function getCurrentScope(testScope: CypressTestScope): CypressTestScope {
     return {
       test,
       attempt: -1,
-      order: -1,
+      id: -1,
     };
   }
 
@@ -165,7 +165,7 @@ const makeEvent = (
 ): StepEvent => ({
   event,
   file: Cypress.spec.relative,
-  testId: testScope.order,
+  testId: testScope.id,
   test: testScope.test,
   attempt: testScope.attempt,
   timestamp: new Date().toISOString(),
