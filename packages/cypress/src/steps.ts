@@ -118,9 +118,7 @@ function sortSteps(steps: StepEvent[]) {
 function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   const hooks = {
     afterAll: [] as UserActionEvent[],
-    afterEach: [] as UserActionEvent[],
     beforeAll: [] as UserActionEvent[],
-    beforeEach: [] as UserActionEvent[],
   };
 
   const stepStack: StepStackItem[] = [];
@@ -134,7 +132,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
 
-    let testForStep: Test | undefined = tests.find(
+    const testForStep: Test | undefined = tests.find(
       t =>
         [...t.source.scope, t.source.title].every((t, i) => step.test[i] === t) &&
         t.id === step.testId &&
@@ -185,20 +183,19 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
                 name: step.command!.name,
                 arguments: args,
               },
-              scope: null,
+              scope: step.test.slice(0, -1),
               error: null,
             },
           };
 
           if (step.hook) {
-            let hook = hooks[step.hook];
+            if (step.hook === "beforeEach" || step.hook === "afterEach") {
+              assertCurrentTest(currentTest, step);
 
-            if (!hook) {
-              throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
+              currentTest.events[step.hook].push(testStep);
+            } else {
+              hooks[step.hook].push(testStep);
             }
-
-            testStep.data.scope = step.test;
-            hook.push(testStep);
           } else {
             assertCurrentTest(currentTest, step);
 
@@ -249,27 +246,13 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
   }
 
+  // Add all global hooks to the relevant test after accumulating them in the
+  // first pass through the step events
   const hookNames = Object.keys(hooks) as any as (keyof typeof hooks)[];
   hookNames.forEach(hookName => {
     const hookActions = hooks[hookName];
     hookActions.forEach(action => {
       tests.forEach(test => {
-        // beforeEach/afterEach hooks have a scope matching the describe tree plus the test title
-        // so we pop the title off and test that first while cloning the action with a new scope
-        // limited to the parent context so all hooks are consistently scoped when uploaded
-        if (hookName === "beforeEach" || hookName === "afterEach") {
-          const scope = [...action.data.scope!];
-          const title = scope.pop();
-          if (title != test.source.title) {
-            return;
-          }
-
-          action.data = {
-            ...action.data,
-            scope,
-          };
-        }
-
         if (action.data.scope!.every((scope, i) => scope === test.source.scope[i])) {
           test.events[hookName].push(action);
         }
