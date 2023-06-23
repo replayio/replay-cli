@@ -109,6 +109,10 @@ function ensurePuppeteerBrowsersInstalled(kind: BrowserName | "all" = "all", opt
   return ensureBrowsersInstalled("chromium", false, opts);
 }
 
+function updateBrowsers(opts: Options) {
+  return ensureBrowsersInstalled("all", true, opts);
+}
+
 function getPlatformKey(browserName: BrowserName) {
   const key = `${process.platform}:${browserName}`;
   switch (key) {
@@ -243,10 +247,6 @@ async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
   }
 
   throw new Error("Download failed, giving up");
-}
-
-function updateBrowsers(opts: Options) {
-  return ensureBrowsersInstalled("all", true, opts);
 }
 
 export {
