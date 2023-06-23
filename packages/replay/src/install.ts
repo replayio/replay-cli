@@ -127,6 +127,13 @@ function getPlatformKey(browserName: BrowserName) {
 }
 
 function getExecutablePath(browserName: BrowserName) {
+  const overridePathKey = `REPLAY_${browserName.toUpperCase()}_EXECUTABLE_PATH`;
+  const overridePath = process.env[overridePathKey];
+  if (overridePath) {
+    debug(`Using executable override for ${browserName}: ${overridePath}`);
+    return overridePath;
+  }
+
   const key = getPlatformKey(browserName);
   if (!key) {
     return null;
