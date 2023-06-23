@@ -102,7 +102,7 @@ class CypressReporter {
         scope: [],
       },
       result: "unknown",
-      attempt: 0,
+      attempt: 1,
       events: {
         afterAll: [],
         afterEach: [],

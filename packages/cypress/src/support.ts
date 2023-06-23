@@ -113,7 +113,7 @@ function getCurrentTestScope(): CypressTestScope {
   } else if (gLastOrder != null) {
     order = gLastOrder;
   }
-  const attempt = mochaTest?._currentRetry ?? 0;
+  const attempt = (mochaTest?._currentRetry ?? 0) + 1;
 
   const hook = getCurrentTestHook();
   if (hook === "beforeAll" || hook === "afterAll") {
@@ -121,7 +121,7 @@ function getCurrentTestScope(): CypressTestScope {
     const test = getHookPath(runnable);
     return {
       test,
-      attempt: -1,
+      attempt: 1,
       testId: -1,
     };
   }

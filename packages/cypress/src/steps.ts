@@ -66,7 +66,7 @@ function getTestsFromResults(resultTests: CypressCommandLine.TestResult[]) {
       id,
       // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
       approximateDuration: a.duration || (a as any).wallClockDuration || 0,
-      attempt: attemptIndex,
+      attempt: attemptIndex + 1,
       source: {
         title,
         scope,
