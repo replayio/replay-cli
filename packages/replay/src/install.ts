@@ -123,15 +123,12 @@ function getPlatformKey(browserName: BrowserName) {
 }
 
 function getExecutablePath(browserName: BrowserName) {
-  // Override with replay specific browsers.
-  const replayDir = getDirectory();
-
   const key = getPlatformKey(browserName);
   if (!key) {
     return null;
   }
 
-  return path.join(replayDir, "runtimes", ...EXECUTABLE_PATHS[key]);
+  return path.join(getBrowserDir(), ...EXECUTABLE_PATHS[key]);
 }
 
 /**
@@ -161,7 +158,7 @@ function extractBrowserArchive(browserDir: string, name: string) {
   fs.unlinkSync(fullName);
 }
 
-function getBrowserDir(opts: Options) {
+function getBrowserDir(opts?: Options) {
   const replayDir = getDirectory(opts);
   return path.join(replayDir, "runtimes");
 }
