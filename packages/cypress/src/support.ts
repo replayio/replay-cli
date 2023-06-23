@@ -276,9 +276,11 @@ function addAnnotation(testScope: CypressTestScope, event: string, data?: Record
     event,
   });
 
-  window.top &&
-    window.top.__RECORD_REPLAY_ANNOTATION_HOOK__ &&
-    window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
+  if (!window.top?.__RECORD_REPLAY_ANNOTATION_HOOK__) {
+    return;
+  }
+
+  window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
 }
 
 function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
