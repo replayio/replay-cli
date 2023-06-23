@@ -128,7 +128,7 @@ function getExecutablePath(browserName: BrowserName) {
     return null;
   }
 
-  return path.join(getBrowserDir(), ...EXECUTABLE_PATHS[key]);
+  return path.join(getRuntimesDirectory(), ...EXECUTABLE_PATHS[key]);
 }
 
 /**
@@ -158,7 +158,7 @@ function extractBrowserArchive(browserDir: string, name: string) {
   fs.unlinkSync(fullName);
 }
 
-function getBrowserDir(opts?: Options) {
+function getRuntimesDirectory(opts?: Options) {
   const replayDir = getDirectory(opts);
   return path.join(replayDir, "runtimes");
 }
@@ -172,7 +172,7 @@ async function installReplayBrowser(
   opts: Options = {}
 ) {
   const replayDir = getDirectory();
-  const browserDir = getBrowserDir(opts);
+  const browserDir = getRuntimesDirectory(opts);
   const dstDir = path.join(browserDir, dstName);
   const dstExists = fs.existsSync(dstDir);
 
