@@ -10,7 +10,7 @@ import debug from "debug";
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
-import { getTestsFromSteps, groupStepsByTest, mapStateToResult } from "./steps";
+import { getTestsFromResults, groupStepsByTest, mapStateToResult, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
@@ -35,7 +35,7 @@ class CypressReporter {
         version: config.version,
         plugin: require("../package.json").version,
       },
-      "2.0.0"
+      "2.1.0"
     );
     this.debug = debug.extend("reporter");
 
@@ -95,12 +95,14 @@ class CypressReporter {
 
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     const placeholderTest: Test = {
+      id: 0,
       approximateDuration: 0,
       source: {
         title: spec.relative,
         scope: [],
       },
       result: "unknown",
+      attempt: 1,
       events: {
         afterAll: [],
         afterEach: [],
@@ -129,10 +131,12 @@ class CypressReporter {
       ];
     }
 
-    let testsWithSteps: Test[] = getTestsFromSteps(result.tests, this.steps);
+    let testsWithoutSteps: Test[] = getTestsFromResults(result.tests);
+    let testsWithSteps: Test[] = [];
 
     try {
-      testsWithSteps = groupStepsByTest(testsWithSteps, this.steps);
+      const sortedSteps = sortSteps(this.steps);
+      testsWithSteps = groupStepsByTest(testsWithoutSteps, sortedSteps);
     } catch (e: any) {
       console.warn("Failed to build test step metadata for this replay");
       console.warn(e);
@@ -140,51 +144,7 @@ class CypressReporter {
       this.reporter.addError(e);
     }
 
-    const tests = result.tests.map<Test>(t => {
-      const foundTest = testsWithSteps.find(ts => {
-        const title = t.title[t.title.length - 1];
-        const scope = t.title.slice(0, t.title.length - 1);
-
-        return ts.source.title === title && ts.source.scope.every((s, i) => s === scope[i]);
-      });
-
-      if (foundTest) {
-        this.debug("Matching test result with test steps from support: %o", {
-          testResult: t.title,
-          testWithSteps: foundTest.source.title,
-        });
-      } else {
-        this.debug("Failed to find matching test steps for test result: %o", {
-          testResult: t.title,
-        });
-      }
-
-      const error =
-        t.displayError &&
-        (!foundTest ||
-          !Object.values(foundTest.events).some(testActions => testActions.some(a => a.data.error)))
-          ? {
-              name: "DisplayError",
-              message: t.displayError.substring(0, t.displayError.indexOf("\n")),
-            }
-          : undefined;
-
-      const mergedTest: Test = {
-        ...placeholderTest,
-        // If we found the test from the steps array (we should), merge it in
-        // and overwrite the default title and relativePath values. It won't
-        // have the correct path or result so those are added and we bubble up
-        // the first error found in a step falling back to reported test error
-        // if it exists.
-        ...foundTest,
-        result: mapStateToResult(t.state),
-        error: error || null,
-      };
-
-      return mergedTest;
-    });
-
-    return tests;
+    return testsWithSteps;
   }
 }
 

@@ -10,11 +10,12 @@ import {
   nullable,
   Infer,
   assign,
+  omit,
   record,
 } from "superstruct";
 const isUuid = require("is-uuid");
 
-import { envString, firstEnvValueOf } from "../env";
+import { firstEnvValueOf } from "../env";
 
 const testError = object({
   name: string(),
@@ -39,7 +40,7 @@ const userActionEvent = object({
 
 const testResult = enums(["failed", "passed", "skipped", "timedOut", "unknown"]);
 
-const test = object({
+const test_v2_0_0 = object({
   events: object({
     afterAll: array(userActionEvent),
     afterEach: array(userActionEvent),
@@ -83,7 +84,7 @@ const v2_0_0 = object({
     path: string(),
     title: string(),
   }),
-  tests: array(test),
+  tests: array(test_v2_0_0),
   run: defaulted(
     object({
       id: defaulted(
@@ -111,14 +112,30 @@ const v2_0_0 = object({
   ),
 });
 
+const test_v2_1_0 = assign(
+  test_v2_0_0,
+  object({
+    id: number(),
+    attempt: number(),
+  })
+);
+
+const v2_1_0 = assign(
+  v2_0_0,
+  object({
+    tests: array(test_v2_1_0),
+  })
+);
+
 export namespace TestMetadataV2 {
   export type UserActionEvent = Infer<typeof userActionEvent>;
-  export type Test = Infer<typeof test>;
+  export type Test = Infer<typeof test_v2_1_0>;
   export type TestResult = Infer<typeof testResult>;
-  export type TestRun = Infer<typeof v2_0_0>;
+  export type TestRun = Infer<typeof v2_1_0>;
   export type TestError = Infer<typeof testError>;
 }
 
 export default {
+  "2.1.0": v2_1_0,
   "2.0.0": v2_0_0,
 };

@@ -5,7 +5,7 @@ import { UnstructuredMetadata } from "../../src/types";
 import v1, { TestMetadataV1 } from "./v1";
 import v2, { TestMetadataV2 } from "./v2";
 
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 
 export type { TestMetadataV1, TestMetadataV2 };
 export type UserActionEvent = TestMetadataV1.UserActionEvent | TestMetadataV2.UserActionEvent;

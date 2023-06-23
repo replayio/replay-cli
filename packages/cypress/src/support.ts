@@ -1,8 +1,4 @@
 import type { TestMetadataV2 } from "@replayio/test-utils";
-
-type TestError = TestMetadataV2.TestError;
-type UserActionEvent = TestMetadataV2.UserActionEvent;
-
 import { TASK_NAME } from "./constants";
 
 declare global {
@@ -11,6 +7,8 @@ declare global {
   }
 }
 
+type TestError = TestMetadataV2.TestError;
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 type HookKind = "beforeAll" | "beforeEach" | "afterEach" | "afterAll";
 
 export interface StepEvent {
@@ -18,6 +16,8 @@ export interface StepEvent {
   test: string[];
   file: string;
   timestamp: string;
+  testId: number;
+  attempt: number;
   category?: UserActionEvent["data"]["category"];
   hook?: HookKind;
   command?: CommandLike;
@@ -31,6 +31,17 @@ interface CommandLike {
   args?: any[];
   commandId?: string;
 }
+
+interface CypressTestScope {
+  test: string[];
+  testId: number;
+  attempt: number;
+}
+
+let gLastTest: MochaTest | undefined;
+// order is dropped on test retries so we cache the last value so we can restore
+// it for retries
+let gLastOrder: number | undefined;
 
 // This lists cypress commands for which we don't need to track in metadata nor
 // create annotations because they are "internal plumbing" commands that aren't
@@ -93,16 +104,65 @@ function simplifyCommand(cmd?: CommandLike) {
   };
 }
 
+function getCurrentTestScope(): CypressTestScope {
+  const mochaTest = (cy as any).state("test");
+  const mochaOrder = mochaTest?.order;
+  let order = 0;
+  if (mochaOrder != null && (gLastOrder == null || mochaOrder - 1 >= gLastOrder)) {
+    gLastOrder = order = mochaOrder - 1;
+  } else if (gLastOrder != null) {
+    order = gLastOrder;
+  }
+  const attempt = (mochaTest?._currentRetry ?? 0) + 1;
+
+  const hook = getCurrentTestHook();
+  if (hook === "beforeAll" || hook === "afterAll") {
+    const runnable = (Cypress as any).mocha.getRunner().currentRunnable;
+    const test = getHookPath(runnable);
+    return {
+      test,
+      attempt: 1,
+      testId: -1,
+    };
+  }
+
+  if (Cypress.currentTest) {
+    return {
+      test: Cypress.currentTest.titlePath,
+      attempt,
+      testId: order,
+    };
+  }
+
+  // Cypress < 8 logic
+  const mochaRunner = (Cypress as any).mocha?.getRunner();
+
+  if (!mochaRunner) {
+    throw new Error(`Cypress version ${Cypress.version || "(unknown)"} is not supported`);
+  }
+
+  let currentTest: MochaTest = (gLastTest = mochaRunner.test || gLastTest);
+  const titlePath = [];
+  while (currentTest?.title) {
+    titlePath.unshift(currentTest.title);
+    currentTest = currentTest.parent;
+  }
+
+  return { test: titlePath, testId: order, attempt };
+}
+
 const makeEvent = (
-  currentPath: string[],
+  testScope: CypressTestScope,
   event: StepEvent["event"],
   category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
   event,
-  test: currentPath,
   file: Cypress.spec.relative,
+  testId: testScope.testId,
+  test: testScope.test,
+  attempt: testScope.attempt,
   timestamp: new Date().toISOString(),
   command: simplifyCommand(cmd),
   category,
@@ -115,7 +175,7 @@ const makeEvent = (
 });
 
 const handleCypressEvent = (
-  currentPath: string[],
+  testScope: CypressTestScope,
   event: StepEvent["event"],
   category?: UserActionEvent["data"]["category"],
   cmd?: CommandLike,
@@ -123,7 +183,7 @@ const handleCypressEvent = (
 ) => {
   if (cmd?.args?.[0] === TASK_NAME) return;
 
-  const arg = makeEvent(currentPath, event, category, cmd, error);
+  const arg = makeEvent(testScope, event, category, cmd, error);
 
   return Promise.resolve()
     .then(() => {
@@ -209,47 +269,11 @@ interface MochaTest {
   parent: MochaTest;
 }
 
-let lastTest: MochaTest | undefined;
-
-function getCurrentTest(): { title: string; titlePath: string[] } {
-  if (Cypress.currentTest) {
-    return Cypress.currentTest;
-  }
-
-  // Cypress < 8 logic
-  const mochaRunner = (Cypress as any).mocha?.getRunner();
-
-  if (!mochaRunner) {
-    throw new Error(`Cypress version ${Cypress.version || "(unknown)"} is not supported`);
-  }
-
-  let currentTest: MochaTest = (lastTest = mochaRunner.test || lastTest);
-  const titlePath = [];
-  const title = currentTest?.title;
-  while (currentTest?.title) {
-    titlePath.unshift(currentTest.title);
-    currentTest = currentTest.parent;
-  }
-
-  return { title, titlePath };
-}
-
-function getCurrentPath(currentTest: typeof Cypress.currentTest) {
-  const hook = getCurrentTestHook();
-
-  if (hook === "beforeAll" || hook === "afterAll") {
-    const runnable = (Cypress as any).mocha.getRunner().currentRunnable;
-    return getHookPath(runnable.parent);
-  }
-
-  return currentTest.titlePath;
-}
-
-function addAnnotation(path: string[], event: string, data?: Record<string, any>) {
+function addAnnotation(testScope: CypressTestScope, event: string, data?: Record<string, any>) {
   const payload = JSON.stringify({
     ...data,
+    ...testScope,
     event,
-    titlePath: path,
   });
 
   window.top &&
@@ -264,7 +288,7 @@ function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
 export default function register() {
   let lastCommand: Cypress.CommandQueue | undefined;
   let lastAssertionCommand: Cypress.CommandQueue | undefined;
-  let currentTest: typeof Cypress.currentTest | undefined;
+  let currentTestScope: CypressTestScope | undefined;
 
   Cypress.on("command:enqueued", cmd => {
     try {
@@ -274,7 +298,7 @@ export default function register() {
 
       // in cypress open, beforeEach isn't called so fetch the current test here
       // as a fallback
-      currentTest = currentTest || getCurrentTest();
+      currentTestScope = getCurrentTestScope();
 
       // Sometimes, cmd is an instance of Cypress.CommandQueue but we can loosely
       // covert it using its toJSON method (which is typed wrong so we have to
@@ -286,9 +310,8 @@ export default function register() {
       const id = getReplayId(
         cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString()
       );
-      const currentPath = getCurrentPath(currentTest);
-      addAnnotation(currentPath, "step:enqueue", { commandVariable: "cmd", id });
-      handleCypressEvent(currentPath, "step:enqueue", "other", {
+      addAnnotation(currentTestScope, "step:enqueue", { commandVariable: "cmd", id });
+      handleCypressEvent(currentTestScope, "step:enqueue", "other", {
         id,
         groupId: getReplayId(cmd.chainerId),
         name: cmd.name,
@@ -308,12 +331,11 @@ export default function register() {
       lastCommand = cmd;
       lastAssertionCommand = undefined;
 
-      const currentPath = getCurrentPath(currentTest!);
-      addAnnotation(currentPath, "step:start", {
+      addAnnotation(currentTestScope!, "step:start", {
         commandVariable: "cmd",
         id: getReplayId(getCypressId(cmd)),
       });
-      return handleCypressEvent(currentPath, "step:start", "command", toCommandJSON(cmd));
+      return handleCypressEvent(currentTestScope!, "step:start", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:start event");
       console.error(e);
@@ -329,24 +351,22 @@ export default function register() {
         .get("logs")
         .find((l: any) => l.get("name") === cmd.get("name"))
         ?.toJSON();
-      const currentPath = getCurrentPath(currentTest!);
-      addAnnotation(currentPath, "step:end", {
+      addAnnotation(currentTestScope!, "step:end", {
         commandVariable: "cmd",
         logVariable: log ? "log" : undefined,
         id: getReplayId(getCypressId(cmd)),
       });
-      handleCypressEvent(currentPath, "step:end", "command", toCommandJSON(cmd));
+      handleCypressEvent(currentTestScope!, "step:end", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:end event");
       console.error(e);
     }
   });
   Cypress.on("log:added", log => {
-    const assertionCurrentTest = currentTest || getCurrentTest();
-    const annotationCurrentPath = getCurrentPath(assertionCurrentTest);
+    const assertionCurrentTest = currentTestScope || getCurrentTestScope();
     try {
       if (log.name === "new url") {
-        addAnnotation(annotationCurrentPath, "event:navigation", {
+        addAnnotation(assertionCurrentTest, "event:navigation", {
           logVariable: "log",
           url: log.url,
           id: getReplayId(log.id),
@@ -402,12 +422,12 @@ export default function register() {
         category: "assertion",
         commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
       };
-      addAnnotation(annotationCurrentPath, "step:start", {
+      addAnnotation(assertionCurrentTest, "step:start", {
         commandVariable: "lastCommand",
         logVariable: "log",
         id: cmd.id,
       });
-      handleCypressEvent(annotationCurrentPath, "step:start", "assertion", cmd);
+      handleCypressEvent(assertionCurrentTest, "step:start", "assertion", cmd);
 
       const logChanged = (changedLog: any) => {
         try {
@@ -441,25 +461,25 @@ export default function register() {
               ?.find((l: any) => l.get("id") === changedLog.id);
 
             // if an assertion fails, emit step:end for the failed command
-            addAnnotation(annotationCurrentPath, "step:end", {
+            addAnnotation(assertionCurrentTest, "step:end", {
               commandVariable: "lastCommand",
               logVariable: failedCommandLog ? "failedCommandLog" : undefined,
               id: getReplayId(getCypressId(lastCommand)),
             });
             handleCypressEvent(
-              annotationCurrentPath,
+              assertionCurrentTest,
               "step:end",
               "command",
               toCommandJSON(lastCommand)
             );
           }
 
-          addAnnotation(annotationCurrentPath, "step:end", {
+          addAnnotation(assertionCurrentTest, "step:end", {
             commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
             logVariable: "changedLog",
             id: changedCmd.id,
           });
-          handleCypressEvent(annotationCurrentPath, "step:end", "assertion", changedCmd, error);
+          handleCypressEvent(assertionCurrentTest, "step:end", "assertion", changedCmd, error);
         } catch (e) {
           console.error("Replay: Failed to handle log:changed event");
           console.error(e);
@@ -474,11 +494,10 @@ export default function register() {
   });
   beforeEach(() => {
     try {
-      currentTest = getCurrentTest();
-      if (currentTest) {
-        const currentPath = getCurrentPath(currentTest);
-        handleCypressEvent(currentPath, "test:start");
-        addAnnotation(currentPath, "test:start");
+      currentTestScope = getCurrentTestScope();
+      if (currentTestScope) {
+        handleCypressEvent(currentTestScope, "test:start");
+        addAnnotation(currentTestScope, "test:start");
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:start event");
@@ -487,10 +506,9 @@ export default function register() {
   });
   afterEach(() => {
     try {
-      if (currentTest) {
-        const currentPath = getCurrentPath(currentTest);
-        handleCypressEvent(currentPath, "test:end");
-        addAnnotation(currentPath, "test:end");
+      if (currentTestScope) {
+        handleCypressEvent(currentTestScope, "test:end");
+        addAnnotation(currentTestScope, "test:end");
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:end event");
