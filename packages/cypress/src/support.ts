@@ -115,6 +115,17 @@ function getCurrentTestScope(): CypressTestScope {
   }
   const attempt = mochaTest?._currentRetry ?? 0;
 
+  const hook = getCurrentTestHook();
+  if (hook === "beforeAll" || hook === "afterAll") {
+    const runnable = (Cypress as any).mocha.getRunner().currentRunnable;
+    const test = getHookPath(runnable);
+    return {
+      test,
+      attempt: -1,
+      testId: -1,
+    };
+  }
+
   if (Cypress.currentTest) {
     return {
       test: Cypress.currentTest.titlePath,
@@ -138,22 +149,6 @@ function getCurrentTestScope(): CypressTestScope {
   }
 
   return { test: titlePath, testId: order, attempt };
-}
-
-function getCurrentScope(testScope: CypressTestScope): CypressTestScope {
-  const hook = getCurrentTestHook();
-
-  if (hook === "beforeAll" || hook === "afterAll") {
-    const runnable = (Cypress as any).mocha.getRunner().currentRunnable;
-    const test = getHookPath(runnable.parent);
-    return {
-      test,
-      attempt: -1,
-      testId: -1,
-    };
-  }
-
-  return testScope;
 }
 
 const makeEvent = (
@@ -303,7 +298,7 @@ export default function register() {
 
       // in cypress open, beforeEach isn't called so fetch the current test here
       // as a fallback
-      currentTestScope = currentTestScope || getCurrentTestScope();
+      currentTestScope = getCurrentTestScope();
 
       // Sometimes, cmd is an instance of Cypress.CommandQueue but we can loosely
       // covert it using its toJSON method (which is typed wrong so we have to

@@ -28,10 +28,6 @@ export function mapStateToResult(state: CypressCommandLine.TestResult["state"]):
   return "unknown";
 }
 
-function toTime(timestamp: string) {
-  return new Date(timestamp).getTime();
-}
-
 function toEventOrder(event: StepEvent) {
   return ["test:start", "step:enqueue", "step:start", "step:end", "test:end"].indexOf(event.event);
 }
@@ -133,10 +129,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     const step = steps[i];
 
     const testForStep: Test | undefined = tests.find(
-      t =>
-        [...t.source.scope, t.source.title].every((t, i) => step.test[i] === t) &&
-        t.id === step.testId &&
-        t.attempt === step.attempt
+      t => t.id === step.testId && t.attempt === step.attempt
     );
     if (currentTest !== testForStep) {
       activeGroup = undefined;
@@ -188,20 +181,17 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
             },
           };
 
-          if (step.hook) {
-            if (step.hook === "beforeEach" || step.hook === "afterEach") {
-              assertCurrentTest(currentTest, step);
-
-              currentTest.events[step.hook].push(testStep);
-            } else {
-              hooks[step.hook].push(testStep);
-            }
-          } else {
-            assertCurrentTest(currentTest, step);
-
-            currentTest.events.main.push(testStep);
-          }
           stepStack.push({ event: step, step: testStep });
+
+          // accumulate beforeAll/afterAll commands so they can be distributed
+          // to all tests later
+          if (step.hook && (step.hook === "beforeAll" || step.hook === "afterAll")) {
+            hooks[step.hook].push(testStep);
+            continue;
+          }
+
+          assertCurrentTest(currentTest, step);
+          currentTest.events.main.push(testStep);
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
@@ -246,8 +236,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
   }
 
-  // Add all global hooks to the relevant test after accumulating them in the
-  // first pass through the step events
+  // Distribute beforeAll/afterAll hook commands to each test
   const hookNames = Object.keys(hooks) as any as (keyof typeof hooks)[];
   hookNames.forEach(hookName => {
     const hookActions = hooks[hookName];
