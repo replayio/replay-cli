@@ -183,6 +183,8 @@ class ReplayPlaywrightReporter implements Reporter {
     this.reporter?.onTestEnd({
       tests: [
         {
+          id: 0,
+          attempt: 1,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
           source: this.getSource(test),
           result: status,

@@ -28,10 +28,6 @@ export function mapStateToResult(state: CypressCommandLine.TestResult["state"]):
   return "unknown";
 }
 
-function toTime(timestamp: string) {
-  return new Date(timestamp).getTime();
-}
-
 function toEventOrder(event: StepEvent) {
   return ["test:start", "step:enqueue", "step:start", "step:end", "test:end"].indexOf(event.event);
 }
@@ -61,27 +57,21 @@ function simplifyArgs(args?: any[]) {
   return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
 }
 
-function getTestsFromSteps(resultTests: CypressCommandLine.TestResult[], steps: StepEvent[]) {
-  if (steps.length === 0) {
-    debug("No test steps found");
-    return [];
-  }
-
-  const tests = resultTests.map<Test>(result => {
+function getTestsFromResults(resultTests: CypressCommandLine.TestResult[]) {
+  const tests = resultTests.flatMap<Test>((result, id) => {
     const scope = [...result.title];
     const title = scope.pop()!;
 
-    return {
+    return result.attempts.map((a, attemptIndex) => ({
+      id,
       // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
-      approximateDuration: result.attempts.reduce(
-        (acc, v: any) => acc + (v.duration || v.wallClockDuration || 0),
-        0
-      ),
+      approximateDuration: a.duration || (a as any).wallClockDuration || 0,
+      attempt: attemptIndex + 1,
       source: {
         title,
         scope,
       },
-      result: mapStateToResult(result.state),
+      result: mapStateToResult(a.state),
       events: {
         beforeAll: [],
         afterAll: [],
@@ -89,8 +79,13 @@ function getTestsFromSteps(resultTests: CypressCommandLine.TestResult[], steps: 
         afterEach: [],
         main: [],
       },
-      error: null,
-    };
+      error: result.displayError
+        ? {
+            name: "DisplayError",
+            message: result.displayError.substring(0, result.displayError.indexOf("\n")),
+          }
+        : null,
+    }));
   });
 
   debug("Found %d tests", tests.length);
@@ -102,7 +97,7 @@ function getTestsFromSteps(resultTests: CypressCommandLine.TestResult[], steps: 
   return tests;
 }
 
-function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
+function sortSteps(steps: StepEvent[]) {
   // The steps can come in out of order but are sortable by timestamp
   const sortedSteps = [...steps].sort((a, b) => {
     const tsCompare = a.timestamp.localeCompare(b.timestamp);
@@ -113,11 +108,13 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     return tsCompare;
   });
 
+  return sortedSteps;
+}
+
+function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   const hooks = {
     afterAll: [] as UserActionEvent[],
-    afterEach: [] as UserActionEvent[],
     beforeAll: [] as UserActionEvent[],
-    beforeEach: [] as UserActionEvent[],
   };
 
   const stepStack: StepStackItem[] = [];
@@ -128,11 +125,11 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   let activeGroup: { groupId: string; parentId: string } | undefined;
   let currentTest: Test | undefined;
 
-  for (let i = 0; i < sortedSteps.length; i++) {
-    const step = sortedSteps[i];
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
 
-    let testForStep: Test | undefined = tests.find(
-      t => t.source.title === step.test[step.test.length - 1]
+    const testForStep: Test | undefined = tests.find(
+      t => t.id === step.testId && t.attempt === step.attempt
     );
     if (currentTest !== testForStep) {
       activeGroup = undefined;
@@ -179,26 +176,22 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
                 name: step.command!.name,
                 arguments: args,
               },
-              scope: null,
+              scope: step.test.slice(0, -1),
               error: null,
             },
           };
 
-          if (step.hook) {
-            let hook = hooks[step.hook];
-
-            if (!hook) {
-              throw new ReporterError(Errors.UnexpectedError, "Unexpected hook name", step.hook);
-            }
-
-            testStep.data.scope = step.test;
-            hook.push(testStep);
-          } else {
-            assertCurrentTest(currentTest, step);
-
-            currentTest.events.main.push(testStep);
-          }
           stepStack.push({ event: step, step: testStep });
+
+          // accumulate beforeAll/afterAll commands so they can be distributed
+          // to all tests later
+          if (step.hook && (step.hook === "beforeAll" || step.hook === "afterAll")) {
+            hooks[step.hook].push(testStep);
+            continue;
+          }
+
+          assertCurrentTest(currentTest, step);
+          currentTest.events.main.push(testStep);
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
@@ -243,27 +236,12 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
   }
 
+  // Distribute beforeAll/afterAll hook commands to each test
   const hookNames = Object.keys(hooks) as any as (keyof typeof hooks)[];
   hookNames.forEach(hookName => {
     const hookActions = hooks[hookName];
     hookActions.forEach(action => {
       tests.forEach(test => {
-        // beforeEach/afterEach hooks have a scope matching the describe tree plus the test title
-        // so we pop the title off and test that first while cloning the action with a new scope
-        // limited to the parent context so all hooks are consistently scoped when uploaded
-        if (hookName === "beforeEach" || hookName === "afterEach") {
-          const scope = [...action.data.scope!];
-          const title = scope.pop();
-          if (title != test.source.title) {
-            return;
-          }
-
-          action.data = {
-            ...action.data,
-            scope,
-          };
-        }
-
         if (action.data.scope!.every((scope, i) => scope === test.source.scope[i])) {
           test.events[hookName].push(action);
         }
@@ -274,4 +252,4 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   return tests;
 }
 
-export { groupStepsByTest, getTestsFromSteps };
+export { groupStepsByTest, getTestsFromResults, sortSteps };
