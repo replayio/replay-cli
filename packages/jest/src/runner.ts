@@ -92,7 +92,7 @@ const ReplayRunner = async (
       tests: [
         {
           id: 0,
-          attempt: 0,
+          attempt: 1,
           approximateDuration: test.duration || 0,
           source: getSource(test),
           result: passed ? "passed" : "failed",
