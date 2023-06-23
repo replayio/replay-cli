@@ -23,6 +23,7 @@ import {
   MetadataOptions,
   Options,
   RecordingEntry,
+  SourceMapEntry,
   UploadOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
@@ -405,23 +406,42 @@ async function doUploadRecording(
 
   await client.connectionEndRecordingUpload(recording.id);
 
-  for (const sourcemap of recording.sourcemaps) {
-    try {
-      const contents = fs.readFileSync(sourcemap.path, "utf8");
-      const sourcemapId = await client.connectionUploadSourcemap(recordingId, sourcemap, contents);
-      for (const originalSource of sourcemap.originalSources) {
-        const contents = fs.readFileSync(originalSource.path, "utf8");
-        await client.connectionUploadOriginalSource(
+  await pMap(
+    recording.sourcemaps,
+    async (sourcemap: SourceMapEntry) => {
+      try {
+        debug("Uploading sourcemap %s for recording %s", sourcemap.path, recording.id);
+        const contents = fs.readFileSync(sourcemap.path, "utf8");
+        const sourcemapId = await client.connectionUploadSourcemap(
           recordingId,
-          sourcemapId,
-          originalSource,
+          sourcemap,
           contents
         );
+        await pMap(
+          sourcemap.originalSources,
+          originalSource => {
+            debug(
+              "Uploading original source %s for sourcemap %s for recording %s",
+              originalSource.path,
+              sourcemap.path,
+              recording.id
+            );
+            const contents = fs.readFileSync(originalSource.path, "utf8");
+            return client.connectionUploadOriginalSource(
+              recordingId,
+              sourcemapId,
+              originalSource,
+              contents
+            );
+          },
+          { concurrency: 5, stopOnError: false }
+        );
+      } catch (e) {
+        maybeLog(verbose, `can't upload sourcemap ${sourcemap.path} from disk: ${e}`);
       }
-    } catch (e) {
-      maybeLog(verbose, `can't upload sourcemap from disk: ${e}`);
-    }
-  }
+    },
+    { concurrency: 10, stopOnError: false }
+  );
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
