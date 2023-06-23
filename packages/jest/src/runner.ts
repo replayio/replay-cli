@@ -40,21 +40,26 @@ const ReplayRunner = async (
       version = require(require.resolve("jest/package.json", {
         paths: [globalConfig.rootDir],
       }))?.version;
-    } catch {}
+    } finally {
+      version = version || "0.0.0";
+    }
   }
 
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion });
+  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion }, "2.0.0");
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
-  function getTestId(test: Circus.TestEntry) {
+  function getSource(test: Circus.TestEntry) {
     let name = [];
-    let current: Circus.TestEntry | Circus.DescribeBlock | undefined = test;
+    let current: Circus.TestEntry | Circus.DescribeBlock | undefined = test.parent;
     while (current && current.name !== "ROOT_DESCRIBE_BLOCK") {
       name.unshift(current.name);
       current = current.parent;
     }
-    return `${relativePath}-${name.join("-")}`;
+    return {
+      title: test.name,
+      scope: name,
+    };
   }
 
   function getWorkerIndex() {
@@ -68,7 +73,7 @@ const ReplayRunner = async (
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getTestId(test), getMetadataFilePath(getWorkerIndex()));
+    reporter.onTestBegin(getSource(test), getMetadataFilePath(getWorkerIndex()));
   }
 
   function getErrorMessage(errors: any[]) {
@@ -82,21 +87,32 @@ const ReplayRunner = async (
   function handleResult(test: Circus.TestEntry, passed: boolean) {
     const title = test.name;
     const errorMessage = getErrorMessage(test.errors);
-    reporter.onTestEnd([
-      {
-        id: getTestId(test),
-        title,
-        result: passed ? "passed" : "failed",
-        path: ["", "jest", relativePath, title],
-        relativePath,
-        error: errorMessage
-          ? {
-              message: errorMessage,
-            }
-          : undefined,
-        steps: [],
-      },
-    ]);
+
+    reporter.onTestEnd({
+      tests: [
+        {
+          id: 0,
+          attempt: 1,
+          approximateDuration: test.duration || 0,
+          source: getSource(test),
+          result: passed ? "passed" : "failed",
+          error: errorMessage
+            ? {
+                name: "Error",
+                message: errorMessage,
+              }
+            : null,
+          events: {
+            afterAll: [],
+            afterEach: [],
+            beforeAll: [],
+            beforeEach: [],
+            main: [],
+          },
+        },
+      ],
+      specFile: relativePath,
+    });
   }
 
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {
