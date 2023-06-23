@@ -276,7 +276,7 @@ function addAnnotation(testScope: CypressTestScope, event: string, data?: Record
     event,
   });
 
-  if (!window.top.__RECORD_REPLAY_ANNOTATION_HOOK__) {
+  if (!window.top?.__RECORD_REPLAY_ANNOTATION_HOOK__) {
     return;
   }
 
