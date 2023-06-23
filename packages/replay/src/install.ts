@@ -12,7 +12,7 @@ const debug = dbg("replay:cli:install");
 
 const EXECUTABLE_PATHS = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
-  "darwin:chromium": ["chromium", "Contents", "MacOS", "Chromium"],
+  "darwin:chromium": ["Replay-Chromium.app", "Contents", "MacOS", "Chromium"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
 } as const;
@@ -22,7 +22,9 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
     case "darwin:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "macOS-replay-playwright.tar.xz";
     case "darwin:chromium":
-      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "macOS-replay-chromium.tar.xz";
+      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || process.arch.startsWith("arm")
+        ? "macOS-replay-chromium-arm.tar.xz"
+        : "macOS-replay-chromium.tar.xz";
 
     case "linux:chromium":
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz";
@@ -33,12 +35,9 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
   throw new Error("Unexpected platform");
 }
 
-/**
- * Installs the Replay-enabled playwright browsers for the current platform is
- * not already installed
- */
-async function ensurePlaywrightBrowsersInstalled(
-  kind: BrowserName | "all" = "all",
+async function ensureBrowsersInstalled(
+  kind: BrowserName | "all",
+  force: boolean,
   opts: Options = {}
 ) {
   maybeLog(
@@ -55,18 +54,18 @@ async function ensurePlaywrightBrowsersInstalled(
       if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser(
           getBrowserDownloadFileName("darwin:firefox"),
-          "playwright",
           "firefox",
           "firefox",
+          force,
           opts
         );
       }
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
           getBrowserDownloadFileName("darwin:chromium"),
-          "playwright",
+          process.arch.startsWith("arm") ? "Replay-Chromium-ARM.app" : "Replay-Chromium.app",
           "Replay-Chromium.app",
-          "chromium",
+          force,
           opts
         );
       }
@@ -75,18 +74,18 @@ async function ensurePlaywrightBrowsersInstalled(
       if (["all", "firefox"].includes(kind)) {
         await installReplayBrowser(
           getBrowserDownloadFileName("linux:firefox"),
-          "playwright",
           "firefox",
           "firefox",
+          force,
           opts
         );
       }
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
           getBrowserDownloadFileName("linux:chromium"),
-          "playwright",
           "replay-chromium",
           "chrome-linux",
+          force,
           opts
         );
       }
@@ -95,72 +94,19 @@ async function ensurePlaywrightBrowsersInstalled(
 }
 
 /**
+ * Installs the Replay-enabled playwright browsers for the current platform is
+ * not already installed
+ */
+function ensurePlaywrightBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
+  return ensureBrowsersInstalled(kind, false, opts);
+}
+
+/**
  * Installs the Replay-enabled puppeteer browsers for the current platform is
  * not already installed
  */
-async function ensurePuppeteerBrowsersInstalled(
-  kind: BrowserName | "all" = "all",
-  opts: Options = {}
-) {
-  maybeLog(
-    opts.verbose,
-    `Installing ${kind === "all" ? "browsers" : kind} for ${process.platform}`
-  );
-  if (kind !== "all" && !getPlatformKey(kind)) {
-    console.log(`${kind} browser for Replay is not supported on ${process.platform}`);
-    return;
-  }
-
-  switch (process.platform) {
-    case "linux":
-      if (["all", "chromium"].includes(kind)) {
-        await installReplayBrowser(
-          "linux-replay-chromium.tar.xz",
-          "puppeteer",
-          "replay-chromium",
-          "chrome-linux",
-          opts
-        );
-      }
-      break;
-  }
-}
-
-async function updateBrowsers(opts: Options = {}) {
-  switch (process.platform) {
-    case "darwin":
-      await updateReplayBrowser(
-        getBrowserDownloadFileName("darwin:firefox"),
-        "playwright",
-        "firefox",
-        "firefox",
-        opts
-      );
-      break;
-    case "linux":
-      await updateReplayBrowser(
-        getBrowserDownloadFileName("linux:firefox"),
-        "playwright",
-        "firefox",
-        "firefox",
-        opts
-      );
-      await updateReplayBrowser(
-        getBrowserDownloadFileName("linux:chromium"),
-        "playwright",
-        "replay-chromium",
-        "chrome-linux",
-        opts
-      );
-      await updateReplayBrowser(
-        getBrowserDownloadFileName("linux:chromium"),
-        "puppeteer",
-        "replay-chromium",
-        "chrome-linux",
-        opts
-      );
-      break;
-  }
+function ensurePuppeteerBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
+  return ensureBrowsersInstalled("chromium", false, opts);
 }
 
 function getPlatformKey(browserName: BrowserName) {
@@ -176,7 +122,7 @@ function getPlatformKey(browserName: BrowserName) {
   return undefined;
 }
 
-function getExecutablePath(runner: Runner, browserName: BrowserName) {
+function getExecutablePath(browserName: BrowserName) {
   // Override with replay specific browsers.
   const replayDir = getDirectory();
 
@@ -185,21 +131,21 @@ function getExecutablePath(runner: Runner, browserName: BrowserName) {
     return null;
   }
 
-  return path.join(replayDir, runner, ...EXECUTABLE_PATHS[key]);
+  return path.join(replayDir, "runtimes", ...EXECUTABLE_PATHS[key]);
 }
 
 /**
  * Returns the path to playwright for the current platform
  */
 function getPlaywrightBrowserPath(kind: BrowserName) {
-  return getExecutablePath("playwright", kind);
+  return getExecutablePath(kind);
 }
 
 /**
  * Returns the path to puppeteer for the current platform
  */
 function getPuppeteerBrowserPath(kind: BrowserName) {
-  return getExecutablePath("puppeteer", kind);
+  return getExecutablePath(kind);
 }
 
 function extractBrowserArchive(browserDir: string, name: string) {
@@ -215,20 +161,34 @@ function extractBrowserArchive(browserDir: string, name: string) {
   fs.unlinkSync(fullName);
 }
 
+function getBrowserDir(opts: Options) {
+  const replayDir = getDirectory(opts);
+  return path.join(replayDir, "runtimes");
+}
+
 // Installs a browser if it isn't already installed.
 async function installReplayBrowser(
   name: string,
-  subdir: string,
   srcName: string,
   dstName: string,
-  opts: Options
+  force = false,
+  opts: Options = {}
 ) {
   const replayDir = getDirectory();
-  const browserDir = path.join(replayDir, subdir);
+  const browserDir = getBrowserDir(opts);
+  const dstDir = path.join(browserDir, dstName);
+  const dstExists = fs.existsSync(dstDir);
 
-  if (fs.existsSync(path.join(browserDir, dstName))) {
-    maybeLog(opts.verbose, `Skipping ${dstName}. Already exists in ${browserDir}`);
-    return;
+  if (dstExists) {
+    if (force) {
+      debug("Removing %s from %s before updating", name, dstDir);
+      // Remove the browser so installReplayBrowser will reinstall it. We don't have a way
+      // to see that the current browser is up to date.
+      fs.rmSync(dstDir, { force: true, recursive: true });
+    } else {
+      maybeLog(opts.verbose, `Skipping ${dstName}. Already exists in ${browserDir}`);
+      return;
+    }
   }
 
   debug("Installing %s from %s to %s", name, srcName, path.join(browserDir, name));
@@ -248,33 +208,6 @@ async function installReplayBrowser(
   if (srcName != dstName) {
     fs.renameSync(path.join(browserDir, srcName), path.join(browserDir, dstName));
   }
-}
-
-// Updates a browser if it is already installed.
-async function updateReplayBrowser(
-  name: string,
-  subdir: string,
-  srcName: string,
-  dstName: string,
-  opts: Options
-) {
-  const replayDir = getDirectory(opts);
-  const browserDir = path.join(replayDir, subdir);
-  const dstDir = path.join(browserDir, dstName);
-
-  if (fs.existsSync(dstDir)) {
-    debug("Removing %s from %s before updating", name, dstDir);
-    // Remove the browser so installReplayBrowser will reinstall it. We don't have a way
-    // to see that the current browser is up to date.
-    fs.rmSync(dstDir, { force: true, recursive: true });
-  } else {
-    maybeLog(opts.verbose, `Browser ${name} is not installed.`);
-    return;
-  }
-
-  await installReplayBrowser(name, subdir, srcName, dstName, opts);
-
-  maybeLog(opts.verbose, `Updated.`);
 }
 
 async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
@@ -313,6 +246,10 @@ async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
   }
 
   throw new Error("Download failed, giving up");
+}
+
+function updateBrowsers(opts: Options) {
+  return ensureBrowsersInstalled("all", true, opts);
 }
 
 export {
