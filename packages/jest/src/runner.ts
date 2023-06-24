@@ -46,7 +46,7 @@ const ReplayRunner = async (
   }
 
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion }, "2.0.0");
+  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion }, "2.1.0");
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getSource(test: Circus.TestEntry) {
