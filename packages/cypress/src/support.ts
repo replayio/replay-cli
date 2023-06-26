@@ -1,6 +1,5 @@
 import type { TestMetadataV2 } from "@replayio/test-utils";
 import { TASK_NAME } from "./constants";
-import { gte } from "./semver";
 
 declare global {
   interface Window {
@@ -175,23 +174,6 @@ const makeEvent = (
     : null),
 });
 
-const createReplayCallback = (callback: (...args: any) => any) => {
-  const fn = function (...args: any[]) {
-    return callback(...args);
-  };
-  fn.isReplayCallback = true;
-
-  return fn;
-};
-
-const isReplayCallback = (callback: any) => {
-  return (
-    typeof callback === "function" &&
-    "isReplayCallback" in callback &&
-    callback.isReplayCallback === true
-  );
-};
-
 const handleCypressEvent = (
   testScope: CypressTestScope,
   event: StepEvent["event"],
@@ -199,40 +181,22 @@ const handleCypressEvent = (
   cmd?: CommandLike,
   error?: TestError
 ) => {
-  const firstArg = cmd?.args?.[0];
-  if (firstArg === TASK_NAME || (cmd?.name === "then" && isReplayCallback(firstArg))) return;
+  if (cmd?.args?.[0] === TASK_NAME) return;
 
   const arg = makeEvent(testScope, event, category, cmd, error);
 
   return Promise.resolve()
     .then(() => {
-      let promise: Promise<void>;
-
-      if (gte(Cypress.version, "12.15.0")) {
-        const args = [TASK_NAME, arg];
-        // @ts-ignore
-        promise = Cypress.backend("run:privileged", {
-          commandName: "task",
-          userArgs: args,
-          options: {
-            task: TASK_NAME,
-            arg,
-          },
+      // Adapted from https://github.com/archfz/cypress-terminal-report
+      // @ts-ignore
+      Cypress.backend("task", {
+        task: TASK_NAME,
+        arg,
+      })
+        // For some reason cypress throws empty error although the task indeed works.
+        .catch(error => {
+          /* noop */
         });
-      } else {
-        // Adapted from https://github.com/archfz/cypress-terminal-report
-        // @ts-ignore
-        promise = Cypress.backend("task", {
-          task: TASK_NAME,
-          arg,
-        });
-      }
-
-      // For some reason cypress throws empty error although the task indeed works.
-      promise.catch(error => {
-        /* noop */
-        console.error(error);
-      });
     })
     .catch(console.error)
     .then(() => cmd);
@@ -373,9 +337,6 @@ export default function register() {
         commandVariable: "cmd",
         id: getReplayId(getCypressId(cmd)),
       });
-      // hack in cypress' verification promise for >12.15
-      // @ts-ignore
-      cy.state("current", cmd).set("verificationPromise", [true]);
       return handleCypressEvent(currentTestScope!, "step:start", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:start event");
