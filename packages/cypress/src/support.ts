@@ -1,5 +1,6 @@
 import type { TestMetadataV2 } from "@replayio/test-utils";
 import { TASK_NAME } from "./constants";
+import { gte } from "./semver";
 
 declare global {
   interface Window {
@@ -48,9 +49,17 @@ let gLastOrder: number | undefined;
 // user-facing
 const COMMAND_IGNORE_LIST = ["within-restore", "end-logGroup"];
 
+function isReplayTask(cmd: CommandLike) {
+  return cmd.name === "task" && cmd.args?.[0] === TASK_NAME;
+}
+
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
     cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+  }
+
+  if (isReplayTask(cmd)) {
+    return true;
   }
 
   return COMMAND_IGNORE_LIST.includes(cmd.name);
@@ -181,25 +190,12 @@ const handleCypressEvent = (
   cmd?: CommandLike,
   error?: TestError
 ) => {
-  if (cmd?.args?.[0] === TASK_NAME) return;
+  if (cmd && isReplayTask(cmd)) {
+    return;
+  }
 
   const arg = makeEvent(testScope, event, category, cmd, error);
-
-  return Promise.resolve()
-    .then(() => {
-      // Adapted from https://github.com/archfz/cypress-terminal-report
-      // @ts-ignore
-      Cypress.backend("task", {
-        task: TASK_NAME,
-        arg,
-      })
-        // For some reason cypress throws empty error although the task indeed works.
-        .catch(error => {
-          /* noop */
-        });
-    })
-    .catch(console.error)
-    .then(() => cmd);
+  return cy.task(TASK_NAME, arg, { log: false }).then(() => cmd);
 };
 
 const idMap: Record<string, string> = {};
