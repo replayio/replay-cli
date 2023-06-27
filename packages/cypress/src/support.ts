@@ -174,6 +174,8 @@ const makeEvent = (
     : null),
 });
 
+let eventBuffer: StepEvent[] = [];
+
 const handleCypressEvent = (
   testScope: CypressTestScope,
   event: StepEvent["event"],
@@ -184,22 +186,7 @@ const handleCypressEvent = (
   if (cmd?.args?.[0] === TASK_NAME) return;
 
   const arg = makeEvent(testScope, event, category, cmd, error);
-
-  return Promise.resolve()
-    .then(() => {
-      // Adapted from https://github.com/archfz/cypress-terminal-report
-      // @ts-ignore
-      Cypress.backend("task", {
-        task: TASK_NAME,
-        arg,
-      })
-        // For some reason cypress throws empty error although the task indeed works.
-        .catch(error => {
-          /* noop */
-        });
-    })
-    .catch(console.error)
-    .then(() => cmd);
+  eventBuffer.push(arg);
 };
 
 const idMap: Record<string, string> = {};
@@ -509,8 +496,14 @@ export default function register() {
   afterEach(() => {
     try {
       if (currentTestScope) {
-        handleCypressEvent(currentTestScope, "test:end");
         addAnnotation(currentTestScope, "test:end");
+        handleCypressEvent(currentTestScope, "test:end");
+
+        eventBuffer.forEach(arg => {
+          cy.task(TASK_NAME, arg, { log: false });
+        });
+
+        eventBuffer = [];
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:end event");
