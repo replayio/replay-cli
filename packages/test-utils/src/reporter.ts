@@ -108,7 +108,14 @@ class ReplayReporter {
       unknown: 0,
     };
 
-    tests.forEach(t => {
+    const testsById: Record<number, Test> = {};
+    tests.forEach(test => {
+      if (!testsById[test.id] || test.attempt > testsById[test.id].attempt) {
+        testsById[test.id] = test;
+      }
+    });
+
+    Object.values(testsById).forEach(t => {
       approximateDuration += t.approximateDuration || 0;
       switch (t.result) {
         case "failed":
