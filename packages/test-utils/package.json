@@ -1,6 +1,6 @@
 {
   "name": "@replayio/test-utils",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Utilities for recording tests with replay.io",
   "main": "src/index.js",
   "scripts": {
