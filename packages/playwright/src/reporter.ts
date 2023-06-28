@@ -2,6 +2,7 @@ import type {
   FullConfig,
   Reporter,
   TestCase,
+  TestError,
   TestResult,
   TestStep,
 } from "@playwright/test/reporter";
@@ -25,11 +26,11 @@ export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
 }
 
-function extractErrorMessage(errorStep?: TestStep) {
-  const errorMessageLines = removeAnsiCodes(errorStep?.error?.message)?.split("\n");
-  let stackStart = errorMessageLines?.findIndex(l => l.startsWith("Call log:"));
+function extractErrorMessage(error: TestError) {
+  const errorMessageLines = removeAnsiCodes(error.message)!.split("\n");
+  let stackStart = errorMessageLines.findIndex(l => l.startsWith("Call log:"));
   stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
-  return stackStart == null ? undefined : errorMessageLines?.slice(0, stackStart).join("\n");
+  return errorMessageLines.slice(0, stackStart).join("\n");
 }
 
 function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
@@ -124,9 +125,6 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const errorStep = result.steps.find(step => step.error?.message);
-    const errorMessage = extractErrorMessage(errorStep);
-
     const relativePath = test.titlePath()[2];
     let playwrightMetadata: Record<string, any> | undefined;
 
@@ -149,7 +147,7 @@ class ReplayPlaywrightReporter implements Reporter {
     const steps: UserActionEvent[] = [];
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
-      const stepErrorMessage = extractErrorMessage(s);
+      const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
       const step: UserActionEvent = {
         data: {
           id: String(i),
@@ -163,8 +161,8 @@ class ReplayPlaywrightReporter implements Reporter {
             ? {
                 name: "AssertionError",
                 message: stepErrorMessage,
-                line: s.location?.line,
-                column: s.location?.column,
+                line: s.location?.line || 0,
+                column: s.location?.column || 0,
               }
             : null,
           category: mapTestStepCategory(s),
@@ -187,13 +185,13 @@ class ReplayPlaywrightReporter implements Reporter {
           attempt: 1,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
           source: this.getSource(test),
-          result: status,
-          error: errorMessage
+          result: status === "interrupted" ? "unknown" : status,
+          error: result.error
             ? {
                 name: "Error",
-                message: errorMessage,
-                line: errorStep?.location?.line,
-                column: errorStep?.location?.column,
+                message: extractErrorMessage(result.error),
+                line: result.error.location?.line || 0,
+                column: result.error.location?.column || 0,
               }
             : null,
           events: {
