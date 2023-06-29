@@ -499,9 +499,7 @@ export default function register() {
         addAnnotation(currentTestScope, "test:end");
         handleCypressEvent(currentTestScope, "test:end");
 
-        eventBuffer.forEach(arg => {
-          cy.task(TASK_NAME, arg, { log: false });
-        });
+        cy.task(TASK_NAME, eventBuffer, { log: false });
 
         eventBuffer = [];
       }

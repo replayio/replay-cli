@@ -58,11 +58,31 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       debugTask("Handling %s task: %o", TASK_NAME, value);
       if (!value || typeof value !== "object") return;
 
-      cypressReporter.addStep(value);
+      const valueAsArray = Array.isArray(value) ? value : [value];
+      valueAsArray.forEach(v => {
+        if (!value || typeof value !== "object") return;
+        cypressReporter.addStep(v);
+      })
 
       return true;
     },
   });
+  on("task", {
+    // Events are sent to the plugin by the support adapter which runs in the
+    // browser context and has access to `Cypress` and `cy` methods.
+    [constants_1.TASK_NAME]: value => {
+        debugTask("Handling %s task: %o", constants_1.TASK_NAME, value);
+        if (!value || typeof value !== "object")
+            return;
+        const valueArray = Array.isArray(value) ? value : [value];
+        valueArray.forEach(v => {
+            if (v && typeof v === 'object') {
+                cypressReporter.addStep(v);
+            }
+        })
+        return true;
+    },
+});
 
   // make sure we have a config object with the keys we need to mutate
   config = config || {};
