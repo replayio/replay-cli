@@ -20,6 +20,7 @@ function isStepEvent(value: unknown): value is StepEvent {
     value &&
     typeof value === "object" &&
     "event" in value &&
+    typeof value.event === "string" &&
     ["step:enqueue", "step:start", "step:end", "test:start", "test:end"].includes(value.event)
   ) {
     return true;
