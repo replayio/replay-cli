@@ -6,7 +6,7 @@ import { initMetadataFile } from "@replayio/test-utils";
 import dbg from "debug";
 
 import { TASK_NAME } from "./constants";
-import CypressReporter, { getMetadataFilePath } from "./reporter";
+import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
 
 const debug = dbg("replay:cypress:plugin");
 
@@ -55,17 +55,21 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     // Events are sent to the plugin by the support adapter which runs in the
     // browser context and has access to `Cypress` and `cy` methods.
     [TASK_NAME]: value => {
-      debugTask("Handling %s task: %o", TASK_NAME, value);
+      debugTask("Handling %s task", TASK_NAME);
       if (!Array.isArray(value)) return;
 
       value.forEach(v => {
-        cypressReporter.addStep(v);
+        if (isStepEvent(v)) {
+          debugTask("Forwarding event to reporter: %o", v);
+          cypressReporter.addStep(v);
+        } else {
+          debugTask("Unexpected %s payload: %o", TASK_NAME, v);
+        }
       });
 
       return true;
     },
   });
-});
 
   // make sure we have a config object with the keys we need to mutate
   config = config || {};
