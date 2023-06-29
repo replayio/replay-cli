@@ -14,6 +14,10 @@ async function pingTestMetrics(
     id: string;
     duration: number;
     recorded: boolean;
+    source: {
+      title: string;
+      scope: string[];
+    };
     runtime?: string;
     runner?: string;
     result?: string;

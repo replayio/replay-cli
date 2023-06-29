@@ -309,6 +309,7 @@ class ReplayReporter {
     if (startTime) {
       pingTestMetrics(recordingId, this.baseId, {
         id: testId,
+        source: test.source,
         duration: Date.now() - startTime,
         recorded: !!recordingId,
         runtime: parseRuntime(runtime),
