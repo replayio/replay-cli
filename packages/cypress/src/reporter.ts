@@ -15,6 +15,20 @@ import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
 
+function isStepEvent(value: unknown): value is StepEvent {
+  if (
+    value &&
+    typeof value === "object" &&
+    "event" in value &&
+    typeof value.event === "string" &&
+    ["step:enqueue", "step:start", "step:end", "test:start", "test:end"].includes(value.event)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 class CypressReporter {
   reporter: ReplayReporter;
   config: Cypress.PluginConfigOptions;
@@ -153,3 +167,4 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 export default CypressReporter;
+export { isStepEvent };
