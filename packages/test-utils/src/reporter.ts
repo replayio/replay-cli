@@ -287,6 +287,7 @@ class ReplayReporter {
 
     let recordingId: string | undefined;
     let runtime: string | undefined;
+    let validatedTestMetadata: { test: TestRun } | undefined;
     if (recs.length > 0) {
       recordingId = recs[0].id;
       runtime = recs[0].runtime;
@@ -294,11 +295,13 @@ class ReplayReporter {
       debug("onTestEnd: Adding test metadata to %s", recordingId);
       debug("onTestEnd: Includes %s errors", this.errors.length);
 
+      validatedTestMetadata = testMetadata.init(metadata) as { test: TestMetadataV2.TestRun };
+
       recs.forEach(rec =>
         add(rec.id, {
           title: replayTitle || test.source.title,
           ...extraMetadata,
-          ...testMetadata.init(metadata),
+          ...validatedTestMetadata,
         })
       );
     }
@@ -316,6 +319,8 @@ class ReplayReporter {
         result: result,
       });
     }
+
+    return validatedTestMetadata;
   }
 }
 
