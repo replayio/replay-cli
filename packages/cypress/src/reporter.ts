@@ -14,6 +14,7 @@ import { getTestsFromResults, groupStepsByTest, mapStateToResult, sortSteps } fr
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
+type TestRun = TestMetadataV2.TestRun;
 
 function isStepEvent(value: unknown): value is StepEvent {
   if (
@@ -83,11 +84,15 @@ class CypressReporter {
     this.reporter.onTestBegin(undefined, getMetadataFilePath());
   }
 
-  onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  onAfterSpec(
+    spec: Cypress.Spec,
+    result: CypressCommandLine.RunResult
+  ): { test: TestRun } | undefined {
     appendToFixtureFile("spec:end", { spec, result });
 
     const tests = this.getTestResults(spec, result);
-    this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
+
+    return this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
   }
 
   getDiagnosticConfig() {
