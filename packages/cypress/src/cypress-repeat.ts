@@ -1,7 +1,10 @@
 // Adapted from https://github.com/bahmutov/cypress-repeat
 
+import path from "path";
 import cypress from "cypress";
 import dbg from "debug";
+import { fork } from "child_process";
+import terminate from "terminate";
 
 const debug = dbg("replay:cypress:repeat");
 
@@ -55,11 +58,13 @@ export default async function CypressRepeat({
   mode = SpecRepeatMode.All,
   untilPasses = false,
   args = [],
+  timeout,
 }: {
   repeat?: number;
   mode?: SpecRepeatMode;
   untilPasses?: boolean;
   args?: string[];
+  timeout?: number;
 }) {
   const name = "cypress-repeat:";
   const rerunFailedOnly = mode === SpecRepeatMode.Failed;
@@ -91,9 +96,37 @@ export default async function CypressRepeat({
     const isLastRun = k === n - 1;
     console.log("***** %s %d of %d *****", name, k + 1, n);
 
-    const testResults:
+    let testResults:
       | CypressCommandLine.CypressRunResult
-      | CypressCommandLine.CypressFailedRunResult = await cypress.run(runOptions);
+      | CypressCommandLine.CypressFailedRunResult;
+
+    try {
+      testResults = await new Promise((resolve, reject) => {
+        const child = fork(path.join(__dirname, "cypress-run.js"));
+        child.send(runOptions);
+        child.on("message", msg => {
+          const resp: any = msg.valueOf();
+          if (resp.success) {
+            resolve(resp.data);
+          } else {
+            reject(resp.error);
+          }
+        });
+
+        if (timeout) {
+          setTimeout(() => {
+            if (!testResults) {
+              terminate(child.pid!, "SIGINT", { timeout: 1000 }, () => {
+                reject("Timed out");
+              });
+            }
+          }, timeout);
+        }
+      });
+    } catch (e) {
+      console.error(e);
+      continue;
+    }
 
     debug(
       "is %d the last run? %o",
