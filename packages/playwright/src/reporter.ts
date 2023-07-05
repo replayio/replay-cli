@@ -185,13 +185,13 @@ class ReplayPlaywrightReporter implements Reporter {
           attempt: 1,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
           source: this.getSource(test),
-          result: status === "interrupted" ? "unknown" : status,
+          result: (status as any) === "interrupted" ? "unknown" : status,
           error: result.error
             ? {
                 name: "Error",
                 message: extractErrorMessage(result.error),
-                line: result.error.location?.line || 0,
-                column: result.error.location?.column || 0,
+                line: (result.error as any).location?.line || 0,
+                column: (result.error as any).location?.column || 0,
               }
             : null,
           events: {
