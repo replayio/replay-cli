@@ -23,7 +23,7 @@ function commandInstall() {
   });
 }
 
-function parseRetryCount(arg: string | undefined) {
+function parseNumberArg(arg: string | undefined) {
   const num = arg ? Number.parseInt(arg) : NaN;
   if (isNaN(num)) {
     throw new Error("Error: --count must be a number");
@@ -36,6 +36,7 @@ async function commandRun() {
   let modeOpt: string | undefined;
   let levelOpt: string | undefined;
   let retryCount: number | undefined;
+  let timeout: number | undefined;
 
   // TODO [ryanjduffy]: Migrate to commander
   while (args.length) {
@@ -52,11 +53,16 @@ async function commandRun() {
         levelOpt = args.shift();
 
         continue;
-
       case "-c":
       case "--count":
         args.shift();
-        retryCount = parseRetryCount(args.shift());
+        retryCount = parseNumberArg(args.shift());
+
+        continue;
+      case "-t":
+      case "--timeout":
+        args.shift();
+        timeout = parseNumberArg(args.shift());
 
         continue;
     }
@@ -79,6 +85,7 @@ async function commandRun() {
     mode: mode === ReplayMode.RecordOnRetry ? SpecRepeatMode.Failed : SpecRepeatMode.All,
     untilPasses: mode === ReplayMode.RecordOnRetry,
     args,
+    timeout,
   });
 
   process.exit(failed ? 1 : 0);

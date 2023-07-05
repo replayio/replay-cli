@@ -165,7 +165,7 @@ export function getDiagnosticConfig(config: Cypress.PluginConfigOptions): {
         break;
       default:
         env = {
-          RECORD_REPLAY_DISABLE_FEATURES: diagnosticFlags[repeatIndex - 3],
+          RECORD_REPLAY_DISABLE_FEATURES: JSON.stringify(diagnosticFlags.slice(repeatIndex - 4)),
         };
     }
   }
