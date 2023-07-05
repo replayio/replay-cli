@@ -73,7 +73,6 @@ class ReplayReporter {
   baseMetadata: Record<string, any> | null = null;
   schemaVersion: string;
   runTitle?: string;
-  startTimes: Record<string, number> = {};
   runner: TestRunner;
   errors: ReporterError[] = [];
 
@@ -215,7 +214,6 @@ class ReplayReporter {
   onTestBegin(source?: Test["source"], metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
     const id = this.getTestId(source);
     this.errors = [];
-    this.startTimes[id] = Date.now();
     const metadata = {
       ...(this.baseMetadata || {}),
       "x-replay-test": {
@@ -260,13 +258,14 @@ class ReplayReporter {
     const test = tests[0];
     const { approximateDuration, resultCounts } = this.summarizeResults(tests);
     const result = this.getResultFromResultCounts(resultCounts);
+    const source = {
+      path: specFile,
+      title: replayTitle || test.source.title,
+    };
 
     const metadata: TestRun = {
       approximateDuration,
-      source: {
-        path: specFile,
-        title: replayTitle || test.source.title,
-      },
+      source,
       result,
       resultCounts,
       run: {
@@ -306,21 +305,15 @@ class ReplayReporter {
       );
     }
 
-    const testId = this.getTestId(test.source);
-
-    const startTime = this.startTimes[testId];
-    if (startTime) {
-      pingTestMetrics(recordingId, this.baseId, {
-        id: testId,
-        duration: Date.now() - startTime,
-        recorded: !!recordingId,
-        runtime: parseRuntime(runtime),
-        runner: this.runner.name,
-        result: result,
-      });
-    }
-
-    return validatedTestMetadata;
+    pingTestMetrics(recordingId, this.baseId, {
+      id: source.path + "#" + source.title,
+      source,
+      approximateDuration,
+      recorded: !!recordingId,
+      runtime: parseRuntime(runtime),
+      runner: this.runner.name,
+      result: result,
+    });
   }
 }
 
