@@ -314,6 +314,8 @@ class ReplayReporter {
       runner: this.runner.name,
       result: result,
     });
+
+    return validatedTestMetadata;
   }
 }
 
