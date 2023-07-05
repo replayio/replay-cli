@@ -4,64 +4,128 @@ import semver from "semver";
 import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 import dbg from "debug";
+import chalk from "chalk";
 
 import { TASK_NAME } from "./constants";
-import CypressReporter, { getMetadataFilePath } from "./reporter";
+import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
 
 const debug = dbg("replay:cypress:plugin");
+const debugTask = debug.extend("task");
+const debugEvents = debug.extend("events");
 
 let cypressReporter: CypressReporter;
+let missingSteps = false;
 
-const plugin: Cypress.PluginConfig = (on, config) => {
-  cypressReporter = new CypressReporter(config, debug);
-  const debugEvents = debug.extend("events");
+function warn(...lines: string[]) {
+  const terminalWidth = process.stdout.columns || 80;
+  const packageName = "@replayio/cypress";
 
-  on("before:browser:launch", (browser, launchOptions) => {
-    debugEvents("Handling before:browser:launch");
-    cypressReporter.onLaunchBrowser(browser.family);
+  const startHeaderWidth = Math.floor((terminalWidth - packageName.length) / 2 - 1);
+  const endHeaderWidth = terminalWidth - startHeaderWidth - packageName.length - 2;
 
-    debugEvents("Browser launching: %o", { family: browser.family });
+  console.warn(
+    "\n%s %s %s\n",
+    "".padEnd(startHeaderWidth, "="),
+    chalk.magentaBright(packageName),
+    "".padEnd(endHeaderWidth, "=")
+  );
+  lines.forEach(l => console.warn(l));
+  console.warn("\n%s\n", "".padEnd(terminalWidth, "="));
+}
 
-    if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
-      const diagnosticConfig = cypressReporter.getDiagnosticConfig();
-      const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
+function onBeforeBrowserLaunch(
+  config: Cypress.PluginConfigOptions,
+  browser: Cypress.Browser,
+  launchOptions: Cypress.BrowserLaunchOptions
+) {
+  debugEvents("Handling before:browser:launch");
+  cypressReporter.onLaunchBrowser(browser.family);
 
-      const env: NodeJS.ProcessEnv = {
-        RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
-        RECORD_ALL_CONTENT: noRecord ? undefined : "1",
-        RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
-        ...diagnosticConfig.env,
-      };
+  debugEvents("Browser launching: %o", { family: browser.family });
 
-      debugEvents("Adding environment variables to browser: %o", env);
+  if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
+    const diagnosticConfig = cypressReporter.getDiagnosticConfig();
+    const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
 
-      return {
-        ...launchOptions,
-        env,
-      };
+    const env: NodeJS.ProcessEnv = {
+      RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
+      RECORD_ALL_CONTENT: noRecord ? undefined : "1",
+      RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
+      ...diagnosticConfig.env,
+    };
+
+    debugEvents("Adding environment variables to browser: %o", env);
+
+    return {
+      ...launchOptions,
+      env,
+    };
+  }
+}
+
+function onAfterRun() {
+  if (missingSteps) {
+    warn(
+      "Your tests completed but our plugin did not receive any command events.",
+      "",
+      `Did you remember to include ${chalk.magentaBright(
+        "@replayio/cypress/support"
+      )} in your support file?`
+    );
+  }
+}
+
+function onBeforeSpec(spec: Cypress.Spec) {
+  debugEvents("Handling before:spec %s", spec.relative);
+  cypressReporter.onBeforeSpec(spec);
+}
+
+function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  debugEvents("Handling after:spec %s", spec.relative);
+  const metadata = cypressReporter.onAfterSpec(spec, result);
+
+  if (metadata) {
+    const tests = metadata.test.tests;
+    const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
+
+    if (
+      completedTests.length > 0 &&
+      tests.flatMap(t => Object.values(t.events).flat()).length === 0
+    ) {
+      missingSteps = true;
+    }
+  }
+}
+
+function onReplayTask(value: any) {
+  debugTask("Handling %s task", TASK_NAME);
+  if (!Array.isArray(value)) return;
+
+  value.forEach(v => {
+    if (isStepEvent(v)) {
+      debugTask("Forwarding event to reporter: %o", v);
+      cypressReporter.addStep(v);
+    } else {
+      debugTask("Unexpected %s payload: %o", TASK_NAME, v);
     }
   });
-  on("before:spec", spec => {
-    debugEvents("Handling before:spec %s", spec.relative);
-    cypressReporter.onBeforeSpec(spec);
-  });
-  on("after:spec", (spec, result) => {
-    debugEvents("Handling after:spec %s", spec.relative);
-    cypressReporter.onAfterSpec(spec, result);
-  });
 
-  const debugTask = debug.extend("task");
+  return true;
+}
+const plugin: Cypress.PluginConfig = (on, config) => {
+  cypressReporter = new CypressReporter(config, debug);
+
+  on("before:browser:launch", (browser, launchOptions) =>
+    onBeforeBrowserLaunch(config, browser, launchOptions)
+  );
+  on("before:spec", onBeforeSpec);
+  on("after:spec", onAfterSpec);
+  on("after:run", onAfterRun);
+
   on("task", {
     // Events are sent to the plugin by the support adapter which runs in the
     // browser context and has access to `Cypress` and `cy` methods.
-    [TASK_NAME]: value => {
-      debugTask("Handling %s task: %o", TASK_NAME, value);
-      if (!value || typeof value !== "object") return;
-
-      cypressReporter.addStep(value);
-
-      return true;
-    },
+    [TASK_NAME]: onReplayTask,
   });
 
   // make sure we have a config object with the keys we need to mutate
@@ -119,4 +183,12 @@ export function getCypressReporter() {
 }
 
 export default plugin;
-export { getMetadataFilePath };
+export {
+  plugin,
+  onBeforeBrowserLaunch,
+  onBeforeSpec,
+  onAfterSpec,
+  onAfterRun,
+  getMetadataFilePath,
+  TASK_NAME as REPLAY_TASK_NAME,
+};

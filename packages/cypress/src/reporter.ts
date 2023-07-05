@@ -14,6 +14,21 @@ import { getTestsFromResults, groupStepsByTest, mapStateToResult, sortSteps } fr
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
+type TestRun = TestMetadataV2.TestRun;
+
+function isStepEvent(value: unknown): value is StepEvent {
+  if (
+    value &&
+    typeof value === "object" &&
+    "event" in value &&
+    typeof value.event === "string" &&
+    ["step:enqueue", "step:start", "step:end", "test:start", "test:end"].includes(value.event)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 class CypressReporter {
   reporter: ReplayReporter;
@@ -69,11 +84,15 @@ class CypressReporter {
     this.reporter.onTestBegin(undefined, getMetadataFilePath());
   }
 
-  onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  onAfterSpec(
+    spec: Cypress.Spec,
+    result: CypressCommandLine.RunResult
+  ): { test: TestRun } | undefined {
     appendToFixtureFile("spec:end", { spec, result });
 
     const tests = this.getTestResults(spec, result);
-    this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
+
+    return this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
   }
 
   getDiagnosticConfig() {
@@ -153,3 +172,4 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 export default CypressReporter;
+export { isStepEvent };
