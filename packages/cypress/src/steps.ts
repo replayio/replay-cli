@@ -111,6 +111,10 @@ function sortSteps(steps: StepEvent[]) {
   return sortedSteps;
 }
 
+function isTestForStep(test: Test, step: StepEvent) {
+  return test.id === step.testId && test.attempt === step.attempt;
+}
+
 function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   const hooks = {
     afterAll: [] as UserActionEvent[],
@@ -128,9 +132,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
 
-    const testForStep: Test | undefined = tests.find(
-      t => t.id === step.testId && t.attempt === step.attempt
-    );
+    const testForStep: Test | undefined = tests.find(t => isTestForStep(t, step));
     if (currentTest !== testForStep) {
       activeGroup = undefined;
     }
@@ -247,6 +249,17 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
         }
       });
     });
+  });
+
+  // If a test fails in the beforeAll hook phase, Cypress will mark the first
+  // test as failed and the rest as unknown. For consistency, try to detect this
+  // first case and set it to unknown as well.
+  tests.forEach(t => {
+    if (t.result === "failed" && t.events.main.length === 0) {
+      if (!steps.some(s => s.event === "test:start" && isTestForStep(t, s))) {
+        t.result = "unknown";
+      }
+    }
   });
 
   return tests;
