@@ -14,12 +14,15 @@ import {
   updateMetadata,
 } from "./main";
 import {
+  BrowserName,
   CommandLineOptions,
   FilterOptions,
   MetadataOptions,
   SourcemapUploadOptions,
   UploadOptions,
 } from "./types";
+import { spawn } from "child_process";
+import { ensurePlaywrightBrowsersInstalled, getPlaywrightBrowserPath } from "./install";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -38,6 +41,11 @@ program
   .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandUploadRecording);
+
+program
+  .command("launch <browser> [url]")
+  .description("Launch chromium or gecko")
+  .action(commandLaunchBrowser);
 
 program
   .command("process <id>")
@@ -151,6 +159,34 @@ function commandListAllRecordings(
 async function commandUploadRecording(id: string, opts: CommandLineOptions) {
   const recordingId = await uploadRecording(id, { ...opts, verbose: true });
   process.exit(recordingId ? 0 : 1);
+}
+
+async function commandLaunchBrowser(
+  browser: string | undefined,
+  url: string = "",
+  opts: CommandLineOptions
+) {
+  if (!browser || (browser !== "chromium" && browser !== "firefox")) {
+    console.log("Please specify a browser to launch: chromium or firefox");
+    process.exit(1);
+  }
+
+  const browserName = browser as BrowserName;
+  await ensurePlaywrightBrowsersInstalled(browserName);
+
+  const execPath = getPlaywrightBrowserPath(browserName);
+  if (!execPath) {
+    console.log("Path could not be found");
+    process.exit(1);
+  }
+
+  const browserArgs = {
+    chromium: ["--no-first-run", url],
+    firefox: [url || "about:blank"],
+  };
+
+  spawn(execPath, browserArgs[browser]);
+  process.exit(0);
 }
 
 async function commandProcessRecording(id: string, opts: CommandLineOptions) {
