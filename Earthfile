@@ -22,9 +22,7 @@ flake:
   RUN npm i && npm link @replayio/cypress
   RUN REPLAY_METADATA_TEST_RUN_TITLE=flake npx concurrently npm:start npm:test:replay
 
-e2e:
-  BUILD +flake
-
 ci:
   BUILD +lint
   BUILD +test
+  BUILD +flake
