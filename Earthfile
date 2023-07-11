@@ -20,7 +20,7 @@ flake:
   FROM +build
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN cd /usr/build/e2e-repos/flake && npm i && npm link @replayio/cypress
-  RUN cd /usr/build/e2e-repos/flake && npm run && npm run start-and-test
+  RUN cd /usr/build/e2e-repos/flake && ls -al && npm run && npm --prefix /usr/build/e2e-repos/flake run start-and-test
 
 ci:
   BUILD +lint
