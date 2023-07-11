@@ -18,9 +18,11 @@ test:
 
 flake:
   FROM +build
+  WORKDIR /usr/build/e2e-repos/flake
+  RUN npx @replayio/playwright install
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
-  RUN cd /usr/build/e2e-repos/flake && npm i && npm link @replayio/cypress
-  RUN cd /usr/build/e2e-repos/flake && ls -al && npm run && npm --prefix /usr/build/e2e-repos/flake run start-and-test
+  RUN npm i && npm link @replayio/cypress
+  RUN npm --prefix /usr/build/e2e-repos/flake run start-and-test
 
 ci:
   BUILD +lint
