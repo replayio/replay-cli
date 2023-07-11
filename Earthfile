@@ -34,7 +34,7 @@ e2e:
 upload:
   FROM +e2e
   ARG REPLAY_API_KEY
-  RUN npx @replayio/replay upload-all --api-key $REPLAY_API_KEY
+  RUN "npx @replayio/replay upload-all --api-key $REPLAY_API_KEY"
 
 ci:
   BUILD +lint
