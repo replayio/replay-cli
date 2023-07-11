@@ -15,3 +15,7 @@ jobs:
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.19/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: build, lint and test
         run: earthly +ci
+      - name: Upload Replays
+        uses: replayio/action-upload@v0.5.1
+        with:
+          api-key: ${{ secrets.CYPRESS_API_KEY }}
