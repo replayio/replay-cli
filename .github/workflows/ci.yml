@@ -7,7 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: replayio-public/flake
+          path: e2e-repos/flake
       - name: Download latest earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.19/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: build, lint and test
-        run: earthly +ci
+        run: earthly +ci --REPLAY_API_KEY="${{ secrets.CYPRESS_API_KEY }}"
