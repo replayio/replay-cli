@@ -17,18 +17,24 @@ test:
   RUN npm test
 
 setup:
-  FROM +build
   RUN apt update && apt install xz-utils
   RUN npx @replayio/playwright install
 
 flake:
-  FROM +setup
+  FROM +build
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN npm i && npm link @replayio/cypress
   RUN npm run start-and-test
 
+e2e:
+  ARG REPLAY_API_KEY
+  BUILD +setup
+  BUILD +flake
+  RUN npx @replayio/replay upload-all --api-key $REPLAY_API_KEY
+
 ci:
+  ARG REPLAY_API_KEY
   BUILD +lint
   BUILD +test
-  BUILD +flake
+  BUILD +flake -- REPLAY_API_KEY=$REPLAY_API_KEY
