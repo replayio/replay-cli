@@ -19,7 +19,8 @@ test:
 flake:
   FROM +build
   WORKDIR /usr/build/e2e-repos/flake
-  RUN npm i && npm link @replayio/cypress && REPLAY_METADATA_TEST_RUN_TITLE=flake npx --ddd concurrently npm:start npm:test:replay
+  RUN npm i && npm link @replayio/cypress
+  RUN REPLAY_METADATA_TEST_RUN_TITLE=flake npm run start-and-test
 
 ci:
   BUILD +lint
