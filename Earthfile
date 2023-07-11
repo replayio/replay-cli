@@ -16,10 +16,14 @@ test:
   FROM +build
   RUN npm test
 
+setup:
+  RUN apt update && apt install xz-utils
+  RUN npx @replayio/playwright install
+
 flake:
   FROM +build
+  BUILD +setup
   WORKDIR /usr/build/e2e-repos/flake
-  RUN npx @replayio/playwright install
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN npm i && npm link @replayio/cypress
   RUN npm --prefix /usr/build/e2e-repos/flake run start-and-test
