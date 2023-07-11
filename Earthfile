@@ -37,6 +37,7 @@ upload:
   RUN "npx @replayio/replay upload-all --api-key $REPLAY_API_KEY"
 
 ci:
+  ARG REPLAY_API_KEY
   BUILD +lint
   BUILD +test
-  BUILD +upload
+  BUILD +upload --REPLAY_API_KEY=$REPLAY_API_KEY
