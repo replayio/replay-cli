@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION --wait-block 0.6
 FROM mcr.microsoft.com/playwright:v1.34.0-jammy
 
 WORKDIR /usr/build
@@ -21,14 +21,16 @@ setup:
   RUN npx @replayio/playwright install
 
 flake:
-  FROM +setup
+  WAIT
+    BUILD +build
+    BUILD +setup
+  END
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN npm i && npm link @replayio/cypress
   RUN npm run start-and-test
 
 e2e:
-  FROM +build
   BUILD +flake
 
 upload:
