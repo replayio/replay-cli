@@ -32,10 +32,12 @@ flake:
 
 e2e:
   ARG REPLAY_API_KEY
-  BUILD +flake
+  WAIT
+    BUILD +flake
+  END
   RUN npx @replayio/replay upload-all --api-key $REPLAY_API_KEY
 
 ci:
   BUILD +lint
   BUILD +test
-  BUILD +flake
+  BUILD +e2e
