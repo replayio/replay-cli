@@ -21,23 +21,22 @@ setup:
   RUN npx @replayio/playwright install
 
 flake:
-  WAIT
-    BUILD +build
-    BUILD +setup
-  END
+  FROM +setup
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN npm i && npm link @replayio/cypress
   RUN npm run start-and-test
 
 e2e:
+  FROM +build
+  BUILD +flake
+
+upload:
+  FROM +e2e
   ARG REPLAY_API_KEY
-  WAIT
-    BUILD +flake
-  END
   RUN npx @replayio/replay upload-all --api-key $REPLAY_API_KEY
 
 ci:
   BUILD +lint
   BUILD +test
-  BUILD +e2e
+  BUILD +upload
