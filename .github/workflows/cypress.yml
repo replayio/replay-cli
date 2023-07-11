@@ -17,5 +17,6 @@ jobs:
         run: earthly +ci
       - name: Upload Replays
         uses: replayio/action-upload@v0.5.1
+        if: always()
         with:
           api-key: ${{ secrets.CYPRESS_API_KEY }}
