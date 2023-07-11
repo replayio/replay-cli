@@ -10,9 +10,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           name: replayio-public/flake
-          path: flake
-      - run: ls -al
-        shell: bash
+          path: e2e-repos/flake
       - name: Download latest earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.19/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: build, lint and test
