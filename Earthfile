@@ -23,21 +23,15 @@ setup:
 
 flake:
   FROM +setup
+  ARG REPLAY_API_KEY
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   RUN npm i && npm link @replayio/cypress
   RUN npm run start-and-test || exit 0
-
-e2e:
-  BUILD +flake
-
-upload:
-  FROM +e2e
-  ARG REPLAY_API_KEY
   RUN npx @replayio/replay upload-all --api-key ${REPLAY_API_KEY}
 
 ci:
   ARG REPLAY_API_KEY
   BUILD +lint
   BUILD +test
-  BUILD +upload --REPLAY_API_KEY=$REPLAY_API_KEY
+  BUILD +flake --REPLAY_API_KEY=$REPLAY_API_KEY
