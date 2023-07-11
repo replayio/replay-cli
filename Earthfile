@@ -36,7 +36,6 @@ e2e:
   RUN npx @replayio/replay upload-all --api-key $REPLAY_API_KEY
 
 ci:
-  ARG REPLAY_API_KEY
   BUILD +lint
   BUILD +test
-  BUILD +flake --REPLAY_API_KEY=$REPLAY_API_KEY
+  BUILD +flake
