@@ -1,4 +1,4 @@
-VERSION --wait-block 0.6
+VERSION 0.6
 FROM mcr.microsoft.com/playwright:v1.34.0-jammy
 
 WORKDIR /usr/build
