@@ -270,6 +270,20 @@ function addAnnotation(testScope: CypressTestScope, event: string, data?: Record
   window.top.__RECORD_REPLAY_ANNOTATION_HOOK__("replay-cypress", JSON.stringify(payload));
 }
 
+function addAnnotationWithReferences(
+  testScope: CypressTestScope,
+  event: string,
+  id: string,
+  cmd?: any,
+  log?: any
+) {
+  addAnnotation(testScope, event, {
+    commandVariable: cmd ? "arguments[3]" : undefined,
+    logVariable: log ? "arguments[4]" : undefined,
+    id,
+  });
+}
+
 function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
   return typeof cmd.toJSON === "function";
 }
@@ -299,7 +313,7 @@ export default function register() {
       const id = getReplayId(
         cmd.id || cmd.userInvocationStack || [cmd.name, ...cmd.args].toString()
       );
-      addAnnotation(currentTestScope, "step:enqueue", { commandVariable: "cmd", id });
+      addAnnotationWithReferences(currentTestScope, "step:enqueue", id, cmd);
       handleCypressEvent(currentTestScope, "step:enqueue", "other", {
         id,
         groupId: getReplayId(cmd.chainerId),
@@ -320,10 +334,12 @@ export default function register() {
       lastCommand = cmd;
       lastAssertionCommand = undefined;
 
-      addAnnotation(currentTestScope!, "step:start", {
-        commandVariable: "cmd",
-        id: getReplayId(getCypressId(cmd)),
-      });
+      addAnnotationWithReferences(
+        currentTestScope!,
+        "step:start",
+        getReplayId(getCypressId(cmd)),
+        cmd
+      );
       return handleCypressEvent(currentTestScope!, "step:start", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:start event");
@@ -340,11 +356,13 @@ export default function register() {
         .get("logs")
         .find((l: any) => l.get("name") === cmd.get("name"))
         ?.toJSON();
-      addAnnotation(currentTestScope!, "step:end", {
-        commandVariable: "cmd",
-        logVariable: log ? "log" : undefined,
-        id: getReplayId(getCypressId(cmd)),
-      });
+      addAnnotationWithReferences(
+        currentTestScope!,
+        "step:end",
+        getReplayId(getCypressId(cmd)),
+        cmd,
+        log
+      );
       handleCypressEvent(currentTestScope!, "step:end", "command", toCommandJSON(cmd));
     } catch (e) {
       console.error("Replay: Failed to handle command:end event");
@@ -411,11 +429,7 @@ export default function register() {
         category: "assertion",
         commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
       };
-      addAnnotation(assertionCurrentTest, "step:start", {
-        commandVariable: "lastCommand",
-        logVariable: "log",
-        id: cmd.id,
-      });
+      addAnnotationWithReferences(assertionCurrentTest, "step:start", cmd.id, lastCommand, log);
       handleCypressEvent(assertionCurrentTest, "step:start", "assertion", cmd);
 
       const logChanged = (changedLog: any) => {
@@ -450,11 +464,13 @@ export default function register() {
               ?.find((l: any) => l.get("id") === changedLog.id);
 
             // if an assertion fails, emit step:end for the failed command
-            addAnnotation(assertionCurrentTest, "step:end", {
-              commandVariable: "lastCommand",
-              logVariable: failedCommandLog ? "failedCommandLog" : undefined,
-              id: getReplayId(getCypressId(lastCommand)),
-            });
+            addAnnotationWithReferences(
+              assertionCurrentTest,
+              "step:end",
+              getReplayId(getCypressId(lastCommand)),
+              lastCommand,
+              failedCommandLog
+            );
             handleCypressEvent(
               assertionCurrentTest,
               "step:end",
@@ -463,11 +479,13 @@ export default function register() {
             );
           }
 
-          addAnnotation(assertionCurrentTest, "step:end", {
-            commandVariable: maybeCurrentAssertion ? "maybeCurrentAssertion" : undefined,
-            logVariable: "changedLog",
-            id: changedCmd.id,
-          });
+          addAnnotationWithReferences(
+            assertionCurrentTest,
+            "step:end",
+            changedCmd.id,
+            maybeCurrentAssertion,
+            changedLog
+          );
           handleCypressEvent(assertionCurrentTest, "step:end", "assertion", changedCmd, error);
         } catch (e) {
           console.error("Replay: Failed to handle log:changed event");
