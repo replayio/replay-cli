@@ -12,6 +12,7 @@ import {
   removeAllRecordings,
   updateBrowsers,
   updateMetadata,
+  launchBrowser,
 } from "./main";
 import {
   BrowserName,
@@ -21,8 +22,7 @@ import {
   SourcemapUploadOptions,
   UploadOptions,
 } from "./types";
-import { spawn } from "child_process";
-import { ensurePlaywrightBrowsersInstalled, getPlaywrightBrowserPath } from "./install";
+import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -43,8 +43,9 @@ program
   .action(commandUploadRecording);
 
 program
-  .command("launch <browser> [url]")
-  .description("Launch chromium or gecko")
+  .command("launch [url]")
+  .description("Launch the replay browser")
+  .option("-b, --browser <browser>", "Browser to launch", "chromium")
   .action(commandLaunchBrowser);
 
 program
@@ -162,30 +163,25 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
 }
 
 async function commandLaunchBrowser(
-  browser: string | undefined,
-  url: string = "",
-  opts: CommandLineOptions
+  url: string | undefined,
+  opts: { browser: string | undefined }
 ) {
-  if (!browser || (browser !== "chromium" && browser !== "firefox")) {
-    console.log("Please specify a browser to launch: chromium or firefox");
+  try {
+    const browser = fuzzyBrowserName(opts.browser) || "chromium";
+    assertValidBrowserName(browser);
+
+    await launchBrowser(browser, [url || "about:blank"]);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.error(e.message);
+    } else {
+      console.error("Unexpected error");
+      console.error(e);
+    }
+
     process.exit(1);
   }
 
-  const browserName = browser as BrowserName;
-  await ensurePlaywrightBrowsersInstalled(browserName);
-
-  const execPath = getPlaywrightBrowserPath(browserName);
-  if (!execPath) {
-    console.log("Path could not be found");
-    process.exit(1);
-  }
-
-  const browserArgs = {
-    chromium: ["--no-first-run", url],
-    firefox: [url || "about:blank"],
-  };
-
-  spawn(execPath, browserArgs[browser]);
   process.exit(0);
 }
 

@@ -13,10 +13,13 @@ import {
   getPlaywrightBrowserPath,
   getPuppeteerBrowserPath,
   updateBrowsers,
+  ensureBrowsersInstalled,
+  getExecutablePath,
 } from "./install";
 import { exponentialBackoffRetry, getDirectory, maybeLog } from "./utils";
 import { spawn } from "child_process";
 import {
+  BrowserName,
   ExternalRecordingEntry,
   FilterOptions,
   ListOptions,
@@ -706,6 +709,32 @@ async function updateMetadata({
   }
 }
 
+async function launchBrowser(browserName: BrowserName, args: string[] = []) {
+  const execPath = getExecutablePath(browserName);
+  if (!execPath) {
+    throw new Error(`${browserName} not supported on the current platform`);
+  }
+
+  await ensureBrowsersInstalled(browserName, false);
+
+  const profileDir = path.join(getDirectory(), "runtimes", "profiles", browserName);
+
+  const browserArgs: Record<BrowserName, string[]> = {
+    chromium: [
+      "--no-first-run",
+      "--no-default-browser-check",
+      `--user-data-dir=${profileDir}`,
+      ...args,
+    ],
+    firefox: ["-foreground", ...args],
+  };
+
+  const proc = spawn(execPath, browserArgs[browserName], { detached: true });
+  proc.unref();
+
+  return proc;
+}
+
 export {
   addLocalRecordingMetadata,
   listAllRecordings,
@@ -718,6 +747,7 @@ export {
   removeAllRecordings,
   updateBrowsers,
   updateMetadata,
+  launchBrowser,
   // These methods aren't documented or available via the CLI, and are used by other
   // replay NPM packages.
   ensurePlaywrightBrowsersInstalled,

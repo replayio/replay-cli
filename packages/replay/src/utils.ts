@@ -1,7 +1,7 @@
 import dbg from "debug";
 import path from "path";
 
-import { CommandLineOptions } from "./types";
+import { BrowserName, CommandLineOptions } from "./types";
 
 const debug = dbg("replay:cli");
 
@@ -79,4 +79,23 @@ export async function exponentialBackoffRetry<T>(
   throw Error("ShouldBeUnreachable");
 }
 
-export { defer, maybeLog, getDirectory, isValidUUID };
+function fuzzyBrowserName(browser?: string) {
+  browser = browser?.toLowerCase();
+
+  switch (browser) {
+    case "chrome":
+      return "chromium";
+    case "gecko":
+      return "firefox";
+  }
+
+  return browser;
+}
+
+function assertValidBrowserName(browser?: string): asserts browser is BrowserName {
+  if (!browser || (browser !== "chromium" && browser !== "firefox")) {
+    throw new Error("Unsupported browser: " + browser);
+  }
+}
+
+export { assertValidBrowserName, fuzzyBrowserName, defer, maybeLog, getDirectory, isValidUUID };
