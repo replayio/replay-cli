@@ -20,6 +20,15 @@ npx @replayio/replay <command>
 
 Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
 
+### launch
+
+Launches the Replay browser and starts recording.
+
+Options:
+
+- `[url]`: URL to open on launch
+- `-b, --browser`: Browser to launch - `chromium` (default), `firefox`
+
 ### ls
 
 View information about all known recordings.
@@ -150,6 +159,10 @@ const interface = require("@replayio/replay");
 ```
 
 The interface includes the following members. Options objects can include `directory`, `server`, and `apiKey` properties which behave the same as `--directory`, `--server`, and `--api-key` arguments to the CLI tool, and a `verbose` property which can be set to log the same output as the CLI tool. Any of these properties or the options object themselves can be omitted to use default values.
+
+### launchBrowser(browserName, args)
+
+Equivalent to `replay launch`, launches the browser specified by `browserName` with the provided additional arguments in `args`. Returns a handle to the detached, spawned child process.
 
 ### listAllRecordings(opts)
 

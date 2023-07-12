@@ -257,6 +257,8 @@ async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
 }
 
 export {
+  getExecutablePath,
+  ensureBrowsersInstalled,
   ensurePlaywrightBrowsersInstalled,
   ensurePuppeteerBrowsersInstalled,
   getPlaywrightBrowserPath,

@@ -12,14 +12,17 @@ import {
   removeAllRecordings,
   updateBrowsers,
   updateMetadata,
+  launchBrowser,
 } from "./main";
 import {
+  BrowserName,
   CommandLineOptions,
   FilterOptions,
   MetadataOptions,
   SourcemapUploadOptions,
   UploadOptions,
 } from "./types";
+import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -38,6 +41,12 @@ program
   .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandUploadRecording);
+
+program
+  .command("launch [url]")
+  .description("Launch the replay browser")
+  .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .action(commandLaunchBrowser);
 
 program
   .command("process <id>")
@@ -151,6 +160,29 @@ function commandListAllRecordings(
 async function commandUploadRecording(id: string, opts: CommandLineOptions) {
   const recordingId = await uploadRecording(id, { ...opts, verbose: true });
   process.exit(recordingId ? 0 : 1);
+}
+
+async function commandLaunchBrowser(
+  url: string | undefined,
+  opts: { browser: string | undefined }
+) {
+  try {
+    const browser = fuzzyBrowserName(opts.browser) || "chromium";
+    assertValidBrowserName(browser);
+
+    await launchBrowser(browser, [url || "about:blank"]);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.error(e.message);
+    } else {
+      console.error("Unexpected error");
+      console.error(e);
+    }
+
+    process.exit(1);
+  }
+
+  process.exit(0);
 }
 
 async function commandProcessRecording(id: string, opts: CommandLineOptions) {
