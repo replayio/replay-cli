@@ -1,7 +1,8 @@
 import { listAllRecordings } from "@replayio/replay";
 import { add, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
-import { writeFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import dbg from "debug";
 const uuid = require("uuid");
 
@@ -223,7 +224,12 @@ class ReplayReporter {
 
     debug("onTestBegin: Writing metadata to %s: %o", metadataFilePath, metadata);
 
-    writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
+    try {
+      mkdirSync(dirname(metadataFilePath), { recursive: true });
+      writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
+    } catch (e) {
+      console.error("Failed to initialize Replay metadata", e);
+    }
   }
 
   onTestEnd({
