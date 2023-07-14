@@ -354,7 +354,18 @@ export default function register() {
 
       const log = cmd
         .get("logs")
-        .find((l: any) => l.get("name") === cmd.get("name"))
+        .find((l: any) => {
+          if (cmd.get("name") === "log") {
+            // log commands should only have one log but the name of the log is
+            // the message instead of the command name
+            return true;
+          } else if (cmd.get("name") === "intercept" && l.get("name") === "route") {
+            // the log name for intercept commands is "route" instead of "intercept"
+            return true;
+          }
+
+          return l.get("name") === cmd.get("name");
+        })
         ?.toJSON();
       addAnnotationWithReferences(
         currentTestScope!,

@@ -45,7 +45,8 @@ UPLOAD:
   COMMAND
   ARG --required REPLAY_API_KEY
   RUN npx @replayio/replay ls --json | grep -q id 
-  RUN npx @replayio/replay upload-all --api-key ${REPLAY_API_KEY}
+  RUN npx @replayio/replay upload-all --api-key ${REPLAY_API_KEY} || exit 0
+  RUN npx @replayio/replay ls --all
 
 ci:
   BUILD +lint
