@@ -16,7 +16,7 @@ export interface StepEvent {
   test: string[];
   file: string;
   timestamp: string;
-  testId: number;
+  testId: number | null;
   attempt: number;
   category?: UserActionEvent["data"]["category"];
   hook?: HookKind;
@@ -34,7 +34,7 @@ interface CommandLike {
 
 interface CypressTestScope {
   test: string[];
-  testId: number;
+  testId: number | null;
   attempt: number;
 }
 
@@ -122,7 +122,7 @@ function getCurrentTestScope(): CypressTestScope {
     return {
       test,
       attempt: 1,
-      testId: -1,
+      testId: null,
     };
   }
 
