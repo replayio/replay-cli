@@ -193,7 +193,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
           }
 
           assertCurrentTest(currentTest, step);
-          currentTest.events.main.push(testStep);
+          currentTest.events[step.hook || "main"].push(testStep);
           break;
         case "step:end":
           const isAssert = step.command!.name === "assert";
