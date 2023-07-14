@@ -15,6 +15,7 @@ const EXECUTABLE_PATHS = {
   "darwin:chromium": ["Replay-Chromium.app", "Contents", "MacOS", "Chromium"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
+  "windows:chromium": ["replay-chromium", "chrome.exe"],
 } as const;
 
 function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key: K): string {
@@ -30,6 +31,9 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz";
     case "linux:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "linux-replay-playwright.tar.xz";
+
+    case "windows:chromium":
+      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip";
   }
 
   throw new Error("Unexpected platform");
@@ -90,6 +94,17 @@ async function ensureBrowsersInstalled(
         );
       }
       break;
+    case "win32":
+      if (["all", "chromium"].includes(kind)) {
+        await installReplayBrowser(
+          getBrowserDownloadFileName("windows:chromium"),
+          "replay-chromium",
+          "replay-chromium",
+          force,
+          opts
+        );
+      }
+      break;
   }
 }
 
@@ -115,12 +130,8 @@ function updateBrowsers(opts: Options) {
 
 function getPlatformKey(browserName: BrowserName) {
   const key = `${process.platform}:${browserName}`;
-  switch (key) {
-    case "darwin:firefox":
-    case "linux:firefox":
-    case "darwin:chromium":
-    case "linux:chromium":
-      return key;
+  if (key in EXECUTABLE_PATHS) {
+    return key as keyof typeof EXECUTABLE_PATHS;
   }
 
   return undefined;
