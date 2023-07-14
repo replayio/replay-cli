@@ -129,7 +129,7 @@ function updateBrowsers(opts: Options) {
 }
 
 function getPlatformKey(browserName: BrowserName) {
-  const key = `${"windows"}:${browserName}`;
+  const key = `${process.platform}:${browserName}`;
   if (key in EXECUTABLE_PATHS) {
     return key as keyof typeof EXECUTABLE_PATHS;
   }
