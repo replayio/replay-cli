@@ -73,7 +73,7 @@ driver(
           if (typeof f === "function") {
             f("task", value);
           } else {
-            f[TASK_NAME]?.(value);
+            f[TASK_NAME]?.([value]);
           }
         });
         break;
