@@ -46,7 +46,7 @@ let gLastOrder: number | undefined;
 // This lists cypress commands for which we don't need to track in metadata nor
 // create annotations because they are "internal plumbing" commands that aren't
 // user-facing
-const COMMAND_IGNORE_LIST = ["within-restore", "end-logGroup"];
+const COMMAND_IGNORE_LIST = ["log-restore", "within-restore", "end-logGroup"];
 
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
