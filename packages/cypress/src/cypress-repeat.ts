@@ -106,10 +106,14 @@ export default async function CypressRepeat({
         child.send(runOptions);
         child.on("message", msg => {
           const resp: any = msg.valueOf();
-          if (resp.success) {
-            resolve(resp.data);
+          const { success, data, error } =
+            resp && typeof resp === "string"
+              ? JSON.parse(resp)
+              : { success: false, data: null, error: "No response" };
+          if (success) {
+            resolve(data);
           } else {
-            reject(resp.error);
+            reject(error);
           }
         });
 
