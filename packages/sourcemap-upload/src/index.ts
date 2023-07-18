@@ -10,13 +10,14 @@ import crypto from "crypto";
 import assert from "assert";
 
 import fetch, { Response } from "node-fetch";
+import pMap from "p-map";
 import makeDebug from "debug";
 import glob from "glob";
 import matchAll from "string.prototype.matchall";
 
 const globPromisified = util.promisify(glob);
 
-const debug = makeDebug("recordreplay:sourcemap-upload");
+const debug = makeDebug("replay:sourcemap-upload");
 
 export type MessageLevel = "normal" | "verbose";
 export type LogCallback = (level: MessageLevel, message: string) => void;
@@ -30,6 +31,7 @@ export interface UploadOptions {
   root?: string;
   log?: LogCallback;
   server?: string;
+  concurrency?: number;
 }
 
 export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
@@ -108,6 +110,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     rootPath: path.resolve(cwd, opts.root || ""),
     log: opts.log || (() => undefined),
     apiServer,
+    concurrency: opts.concurrency || 10,
   });
 }
 
@@ -122,6 +125,7 @@ interface NormalizedOptions {
   rootPath: string;
   log: LogCallback;
   apiServer: string;
+  concurrency: number;
 }
 
 interface GeneratedFileEntry {
@@ -193,20 +197,24 @@ async function processSourceMaps(opts: NormalizedOptions) {
     }
   }
 
-  for (const mapToUpload of mapsToUpload) {
-    const { relativePath, absPath } = mapToUpload;
-    debug("Uploading %s", absPath);
-    log("normal", `Uploading ${relativePath}`);
+  await pMap(
+    mapsToUpload,
+    async (mapToUpload) => {
+      const { relativePath, absPath } = mapToUpload;
+      debug("Uploading %s", absPath);
+      log("normal", `Uploading ${relativePath}`);
 
-    if (!dryRun) {
-      await uploadSourcemapToAPI(
-        groupName,
-        apiKey,
-        mapToUpload,
-        opts.apiServer
-      );
-    }
-  }
+      if (!dryRun) {
+        await uploadSourcemapToAPI(
+          groupName,
+          apiKey,
+          mapToUpload,
+          opts.apiServer
+        );
+      }
+    },
+    { concurrency: Math.min(opts.concurrency, 25) }
+  );
 
   debug("Done");
   log(
@@ -310,6 +318,8 @@ async function uploadSourcemapToAPI(
       typeof obj.error === "string" ? obj.error : "Unknown upload error"
     );
   }
+
+  debug("Finished uploading %s", map.absPath);
 }
 
 async function findAndResolveMaps(

@@ -37,6 +37,7 @@ export interface SourcemapUploadOptions {
   quiet?: boolean;
   verbose?: boolean;
   root?: string;
+  batchSize?: number;
 }
 
 export interface MetadataOptions {
