@@ -31,6 +31,7 @@ export interface UploadOptions {
   root?: string;
   log?: LogCallback;
   server?: string;
+  concurrency?: number;
 }
 
 export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
@@ -109,6 +110,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     rootPath: path.resolve(cwd, opts.root || ""),
     log: opts.log || (() => undefined),
     apiServer,
+    concurrency: opts.concurrency || 10,
   });
 }
 
@@ -123,6 +125,7 @@ interface NormalizedOptions {
   rootPath: string;
   log: LogCallback;
   apiServer: string;
+  concurrency: number;
 }
 
 interface GeneratedFileEntry {
@@ -210,7 +213,7 @@ async function processSourceMaps(opts: NormalizedOptions) {
         );
       }
     },
-    { concurrency: 10 }
+    { concurrency: Math.min(opts.concurrency, 25) }
   );
 
   debug("Done");

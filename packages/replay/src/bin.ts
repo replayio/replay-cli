@@ -120,6 +120,7 @@ program
   .option("-i, --ignore <pattern>", "Ignore files that match this pattern", collectIgnorePatterns)
   .option("-q, --quiet", "Silence all stdout logging.")
   .option("-v, --verbose", "Output extra data to stdout when processing files.")
+  .option("--batch-size <batchSize number>", "Number of sourcemaps to upload in parallel (max 25)")
   .option("--root <dirname>", "The base directory to use when computing relative paths")
   .option("--server <address>", "Alternate server to upload sourcemaps to.")
   .arguments("<paths...>")
@@ -224,7 +225,7 @@ async function commandUploadSourcemaps(
   filepaths: Array<string>,
   cliOpts: SourcemapUploadOptions & Pick<CommandLineOptions, "apiKey">
 ): Promise<void> {
-  const { quiet, verbose, apiKey, ...uploadOpts } = cliOpts;
+  const { quiet, verbose, apiKey, batchSize, ...uploadOpts } = cliOpts;
 
   let log: LogCallback | undefined;
   if (!quiet) {
@@ -245,6 +246,7 @@ async function commandUploadSourcemaps(
     filepaths,
     key: apiKey,
     ...uploadOpts,
+    concurrency: batchSize,
     log,
   });
 }
