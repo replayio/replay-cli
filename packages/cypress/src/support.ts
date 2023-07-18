@@ -46,7 +46,7 @@ let gLastOrder: number | undefined;
 // This lists cypress commands for which we don't need to track in metadata nor
 // create annotations because they are "internal plumbing" commands that aren't
 // user-facing
-const COMMAND_IGNORE_LIST = ["within-restore", "end-logGroup"];
+const COMMAND_IGNORE_LIST = ["log-restore", "within-restore", "end-logGroup"];
 
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
@@ -56,12 +56,45 @@ function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue
   return COMMAND_IGNORE_LIST.includes(cmd.name);
 }
 
+function shiftOptions(args: any[]) {
+  if (args[0] && typeof args[0] === "object") {
+    args.shift();
+  }
+}
+
+function popOptions(args: any[], condition = true) {
+  const lastArg = args[args.length - 1];
+  if (condition && lastArg && typeof lastArg === "object") {
+    args.pop();
+  }
+}
+
 function simplifyCommand(cmd?: CommandLike) {
   if (!cmd) {
     return cmd;
   }
 
   let args = cmd.args || [];
+
+  // Remove `options` from args so we don't capture them as command args in
+  // metadata
+  switch (cmd.name) {
+    case "request":
+    case "route":
+    case "stub":
+      break;
+    case "then":
+      shiftOptions(args);
+      break;
+    case "wrap":
+      popOptions(args, args.length === 2);
+      break;
+    case "task":
+      popOptions(args, args.length === 3);
+      break;
+    default:
+      popOptions(args);
+  }
 
   try {
     // simplify the command to omit complex objects that may exist in `args`
