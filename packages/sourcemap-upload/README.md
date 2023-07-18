@@ -12,7 +12,7 @@ comments in the JS to find pairs of sourcemap and JS file.
 ## Debugging
 
 If no sourcemaps are being found, consider running the function with verbose
-mode enabled, or with `DEBUG=recordreplay:sourcemap-upload` set in the environment.
+mode enabled, or with `DEBUG=replay:sourcemap-upload` set in the environment.
 
 Most likely, if sourcemaps are not being found, they either:
 
