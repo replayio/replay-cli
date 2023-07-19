@@ -48,6 +48,7 @@ function onBeforeBrowserLaunch(
     const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
 
     const env: NodeJS.ProcessEnv = {
+      ...launchOptions.env,
       RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
       RECORD_ALL_CONTENT: noRecord ? undefined : "1",
       RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
@@ -56,10 +57,9 @@ function onBeforeBrowserLaunch(
 
     debugEvents("Adding environment variables to browser: %o", env);
 
-    return {
-      ...launchOptions,
-      env,
-    };
+    launchOptions.env = env;
+
+    return launchOptions;
   }
 }
 
