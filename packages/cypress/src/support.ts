@@ -74,7 +74,7 @@ function simplifyCommand(cmd?: CommandLike) {
     return cmd;
   }
 
-  let args = cmd.args || [];
+  let args = cmd.args ? [...cmd.args] : [];
 
   // Remove `options` from args so we don't capture them as command args in
   // metadata
