@@ -79,6 +79,7 @@ function simplifyCommand(cmd?: CommandLike) {
   // Remove `options` from args so we don't capture them as command args in
   // metadata
   switch (cmd.name) {
+    case "intercept":
     case "request":
     case "route":
     case "stub":
