@@ -15,7 +15,7 @@ const EXECUTABLE_PATHS = {
   "darwin:chromium": ["Replay-Chromium.app", "Contents", "MacOS", "Chromium"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
-  "windows:chromium": ["replay-chromium", "chrome.exe"],
+  "win32:chromium": ["replay-chromium", "chrome.exe"],
 } as const;
 
 function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key: K): string {
@@ -32,7 +32,7 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
     case "linux:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "linux-replay-playwright.tar.xz";
 
-    case "windows:chromium":
+    case "win32:chromium":
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip";
   }
 
@@ -97,7 +97,7 @@ async function ensureBrowsersInstalled(
     case "win32":
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
-          getBrowserDownloadFileName("windows:chromium"),
+          getBrowserDownloadFileName("win32:chromium"),
           "replay-chromium",
           "replay-chromium",
           force,
