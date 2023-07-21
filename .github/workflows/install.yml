@@ -22,4 +22,4 @@ jobs:
       - name: Cypress Install
         run: npx @replayio/cypress install
       - name: List Installed Browsers
-        run: node ../scripts/install.js
+        run: node ./.github/scripts/install.js
