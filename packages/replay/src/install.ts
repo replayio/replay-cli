@@ -10,13 +10,15 @@ import { defer, getDirectory, maybeLog } from "./utils";
 
 const debug = dbg("replay:cli:install");
 
-const EXECUTABLE_PATHS = {
+type PlatformKeys = `${typeof process.platform}:${BrowserName}`;
+
+const EXECUTABLE_PATHS: Partial<Record<PlatformKeys, string[]>> = {
   "darwin:firefox": ["firefox", "Nightly.app", "Contents", "MacOS", "firefox"],
   "darwin:chromium": ["Replay-Chromium.app", "Contents", "MacOS", "Chromium"],
   "linux:chromium": ["chrome-linux", "chrome"],
   "linux:firefox": ["firefox", "firefox"],
-  "windows:chromium": ["replay-chromium", "chrome.exe"],
-} as const;
+  "win32:chromium": ["replay-chromium", "chrome.exe"],
+};
 
 function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key: K): string {
   switch (key) {
@@ -32,7 +34,7 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
     case "linux:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "linux-replay-playwright.tar.xz";
 
-    case "windows:chromium":
+    case "win32:chromium":
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip";
   }
 
@@ -97,7 +99,7 @@ async function ensureBrowsersInstalled(
     case "win32":
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
-          getBrowserDownloadFileName("windows:chromium"),
+          getBrowserDownloadFileName("win32:chromium"),
           "replay-chromium",
           "replay-chromium",
           force,
@@ -128,7 +130,7 @@ function updateBrowsers(opts: Options) {
   return ensureBrowsersInstalled("all", true, opts);
 }
 
-function getPlatformKey(browserName: BrowserName) {
+function getPlatformKey(browserName: BrowserName): PlatformKeys | undefined {
   const key = `${process.platform}:${browserName}`;
   if (key in EXECUTABLE_PATHS) {
     return key as keyof typeof EXECUTABLE_PATHS;
@@ -150,7 +152,8 @@ function getExecutablePath(browserName: BrowserName) {
     return null;
   }
 
-  return path.join(getRuntimesDirectory(), ...EXECUTABLE_PATHS[key]);
+  const executablePathParts = EXECUTABLE_PATHS[key];
+  return executablePathParts ? path.join(getRuntimesDirectory(), ...executablePathParts) : null;
 }
 
 /**
