@@ -1,0 +1,20 @@
+name: Build, lint and test
+
+on: [pull_request, workflow_dispatch]
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm run bootstrap
+      - run: npm link ./packages/cypress/dist
+      - run: npx @replayio/cypress install
+        env:
+          DEBUG: replay:*
+      - name: List Installed Browsers
+        run: node -p -e 'fs=require("fs");d=require("path").join(require("./packages/replay/dist/src/utils").getDirectory(),"runtimes");fs.existsSync(d)?fs.readdirSync(d).join("\n"):exit(1)'
