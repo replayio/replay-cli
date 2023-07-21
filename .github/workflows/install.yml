@@ -6,7 +6,7 @@ env:
   DEBUG: replay:*
 
 jobs:
-  lint:
+  install:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
@@ -22,4 +22,4 @@ jobs:
       - name: Cypress Install
         run: npx @replayio/cypress install
       - name: List Installed Browsers
-        run: node -p -e 'fs=require("fs");d=require("path").join(require("./packages/replay/dist/src/utils").getDirectory(),"runtimes");fs.existsSync(d)?fs.readdirSync(d).join("\n"):exit(1)'
+        run: node -p -e "fs=require(\"fs\");d=require(\"path\").join(require(\"./packages/replay/dist/src/utils\").getDirectory(),\"runtimes\");fs.existsSync(d)?fs.readdirSync(d).join(\"\n\"):exit(1)"
