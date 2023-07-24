@@ -4,6 +4,7 @@ import {
   ReplayReporter,
   TestMetadataV2,
   ReporterError,
+  fetchWorkspaceConfig,
 } from "@replayio/test-utils";
 import debug from "debug";
 
@@ -59,12 +60,12 @@ class CypressReporter {
 
   async authenticate(apiKey: string) {
     this.reporter.setApiKey(apiKey);
-    // TODO: we can fetch diagnostics from the cloud later here
-    this.configureDiagnostics();
+    const { env } = await fetchWorkspaceConfig(apiKey);
+    this.configureDiagnostics(env);
   }
 
-  configureDiagnostics() {
-    this.diagnosticConfig = getDiagnosticConfig(this.config);
+  configureDiagnostics(extraEnv?: NodeJS.ProcessEnv) {
+    this.diagnosticConfig = getDiagnosticConfig(this.config, extraEnv);
 
     // Mix diagnostic env into process env so it can be picked up by test
     // metrics and reported to telemetry
