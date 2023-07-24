@@ -23,7 +23,8 @@ async function pingTestMetrics(
     runtime?: string;
     runner?: string;
     result?: string;
-  }
+  },
+  apiKey?: string
 ) {
   if (!shouldReportTestMetrics()) return;
 
@@ -46,10 +47,16 @@ async function pingTestMetrics(
 
   debug(body);
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
   try {
     return await fetch(`${webhookUrl}/api/metrics`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body,
     });
   } catch (e) {

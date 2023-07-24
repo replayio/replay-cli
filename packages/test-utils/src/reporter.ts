@@ -76,10 +76,15 @@ class ReplayReporter {
   runTitle?: string;
   runner: TestRunner;
   errors: ReporterError[] = [];
+  apiKey?: string;
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
+  }
+
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
   }
 
   getResultFromResultCounts(resultCounts: TestRun["resultCounts"]): TestResult {
@@ -311,15 +316,20 @@ class ReplayReporter {
       );
     }
 
-    pingTestMetrics(recordingId, this.baseId, {
-      id: source.path + "#" + source.title,
-      source,
-      approximateDuration,
-      recorded: !!recordingId,
-      runtime: parseRuntime(runtime),
-      runner: this.runner.name,
-      result: result,
-    });
+    pingTestMetrics(
+      recordingId,
+      this.baseId,
+      {
+        id: source.path + "#" + source.title,
+        source,
+        approximateDuration,
+        recorded: !!recordingId,
+        runtime: parseRuntime(runtime),
+        runner: this.runner.name,
+        result: result,
+      },
+      this.apiKey
+    );
 
     return validatedTestMetadata;
   }

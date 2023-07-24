@@ -33,6 +33,25 @@ function warn(...lines: string[]) {
   console.warn("\n%s\n", "".padEnd(terminalWidth, "="));
 }
 
+function getAuthKey(config: Cypress.PluginConfigOptions): string | undefined {
+  return (
+    // migrating away from `RECORD_REPLAY_` to `REPLAY_`
+    config.env.REPLAY_API_KEY ||
+    config.env.RECORD_REPLAY_API_KEY ||
+    process.env.REPLAY_API_KEY ||
+    process.env.RECORD_REPLAY_API_KEY
+  );
+}
+
+function onBeforeRun(config: Cypress.PluginConfigOptions) {
+  async () => {
+    const authKey = getAuthKey(config);
+    if (authKey) {
+      await cypressReporter.authenticate(authKey);
+    }
+  };
+}
+
 function onBeforeBrowserLaunch(
   config: Cypress.PluginConfigOptions,
   browser: Cypress.Browser,
@@ -58,9 +77,9 @@ function onBeforeBrowserLaunch(
     debugEvents("Adding environment variables to browser: %o", env);
 
     launchOptions.env = env;
-
-    return launchOptions;
   }
+
+  return launchOptions;
 }
 
 function onAfterRun() {
@@ -112,9 +131,11 @@ function onReplayTask(value: any) {
 
   return true;
 }
+
 const plugin: Cypress.PluginConfig = (on, config) => {
   cypressReporter = new CypressReporter(config, debug);
 
+  on("before:run", () => onBeforeRun(config));
   on("before:browser:launch", (browser, launchOptions) =>
     onBeforeBrowserLaunch(config, browser, launchOptions)
   );
@@ -185,6 +206,7 @@ export function getCypressReporter() {
 export default plugin;
 export {
   plugin,
+  onBeforeRun,
   onBeforeBrowserLaunch,
   onBeforeSpec,
   onAfterSpec,
