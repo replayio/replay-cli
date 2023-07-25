@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import dbg from "debug";
+import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:config");
 
@@ -64,12 +65,7 @@ async function fetchWorkspaceConfig(apiKey: string) {
       env: features?.testSuites?.env || {},
     };
   } catch (e) {
-    console.warn(
-      "Failed to fetch test suite configuration from replay.io. Continuing with defaults."
-    );
-    if (e instanceof Error) {
-      console.warn(e.message);
-    }
+    warn("Failed to fetch test suite configuration; continuing with defaults", e);
 
     return {
       env: {},

@@ -8,6 +8,7 @@ const uuid = require("uuid");
 
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
+import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -233,7 +234,7 @@ class ReplayReporter {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
     } catch (e) {
-      console.error("Failed to initialize Replay metadata", e);
+      warn("Failed to initialize Replay metadata", e);
     }
   }
 
