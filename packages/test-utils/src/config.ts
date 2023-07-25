@@ -25,43 +25,56 @@ async function query(apiKey: string, name: string, query: string, variables = {}
 }
 
 async function fetchWorkspaceConfig(apiKey: string) {
-  const json = await query(
-    apiKey,
-    "GetWorkspaceConfig",
-    `
-      query GetWorkspaceConfig {
-        auth {
-          workspaces {
-            edges {
-              node {
-                id
-                settings {
-                  features
+  try {
+    const json = await query(
+      apiKey,
+      "GetWorkspaceConfig",
+      `
+        query GetWorkspaceConfig {
+          auth {
+            workspaces {
+              edges {
+                node {
+                  id
+                  settings {
+                    features
+                  }
                 }
               }
             }
           }
-        }
-      }`
-  );
+        }`
+    );
 
-  if (json.errors) {
-    debug("GraphQL failed: %s", json.errors);
-    throw new Error(json.errors[0].message || "Unexpected error");
+    if (json.errors) {
+      debug("GraphQL failed: %s", json.errors);
+      throw new Error(json.errors[0].message || "Unexpected error");
+    }
+
+    const edges = json.data?.auth.workspaces.edges;
+    if (!edges || edges.length !== 1) {
+      debug("Failed to find workspace: %o", json.data);
+      throw new Error("Failed to find a workspace for the given apiKey");
+    }
+
+    debug("Workspace settings: %o", edges[0].node.settings);
+    const features = edges[0].node.settings.features;
+
+    return {
+      env: features?.testSuites?.env || {},
+    };
+  } catch (e) {
+    console.warn(
+      "Failed to fetch test suite configuration from replay.io. Continuing with defaults."
+    );
+    if (e instanceof Error) {
+      console.warn(e.message);
+    }
+
+    return {
+      env: {},
+    };
   }
-
-  const edges = json.data?.auth.workspaces.edges;
-  if (!edges || edges.length !== 1) {
-    debug("Failed to find workspace: %o", json.data);
-    throw new Error("Failed to find a workspace for the given apiKey");
-  }
-
-  debug("Workspace settings: %o", edges[0].node.settings);
-  const features = edges[0].node.settings.features;
-
-  return {
-    env: features?.testSuites?.env || {},
-  };
 }
 
 export { fetchWorkspaceConfig };
