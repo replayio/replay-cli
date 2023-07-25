@@ -33,23 +33,21 @@ function warn(...lines: string[]) {
   console.warn("\n%s\n", "".padEnd(terminalWidth, "="));
 }
 
-function getAuthKey(config: Cypress.PluginConfigOptions): string | undefined {
+function getAuthKey<T extends { env?: { [key: string]: any } }>(config: T): string | undefined {
   return (
     // migrating away from `RECORD_REPLAY_` to `REPLAY_`
-    config.env.REPLAY_API_KEY ||
-    config.env.RECORD_REPLAY_API_KEY ||
+    config.env?.REPLAY_API_KEY ||
+    config.env?.RECORD_REPLAY_API_KEY ||
     process.env.REPLAY_API_KEY ||
     process.env.RECORD_REPLAY_API_KEY
   );
 }
 
-function onBeforeRun(config: Cypress.PluginConfigOptions) {
-  async () => {
-    const authKey = getAuthKey(config);
-    if (authKey) {
-      await cypressReporter.authenticate(authKey);
-    }
-  };
+async function onBeforeRun(details: Cypress.BeforeRunDetails) {
+  const authKey = getAuthKey(details.config);
+  if (authKey) {
+    await cypressReporter.authenticate(authKey);
+  }
 }
 
 function onBeforeBrowserLaunch(
@@ -135,7 +133,7 @@ function onReplayTask(value: any) {
 const plugin: Cypress.PluginConfig = (on, config) => {
   cypressReporter = new CypressReporter(config, debug);
 
-  on("before:run", () => onBeforeRun(config));
+  on("before:run", onBeforeRun);
   on("before:browser:launch", (browser, launchOptions) =>
     onBeforeBrowserLaunch(config, browser, launchOptions)
   );
