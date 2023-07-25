@@ -29,21 +29,20 @@ async function fetchWorkspaceConfig(apiKey: string) {
     apiKey,
     "GetWorkspaceConfig",
     `
-        query GetWorkspaceConfig {
+      query GetWorkspaceConfig {
         auth {
-            workspaces {
+          workspaces {
             edges {
-                node {
+              node {
                 id
                 settings {
-                    features
+                  features
                 }
-                }
+              }
             }
-            }
+          }
         }
-        }
-  `
+      }`
   );
 
   if (json.errors) {
