@@ -135,12 +135,17 @@ function getRepeatCount(stressCount = 10) {
   }
 }
 
-export function getDiagnosticConfig(config: Cypress.PluginConfigOptions): {
+export function getDiagnosticConfig(
+  config: Cypress.PluginConfigOptions,
+  extraEnv: NodeJS.ProcessEnv = {}
+): {
   noRecord: boolean;
   env: NodeJS.ProcessEnv;
 } {
   let noRecord = false;
-  let env: NodeJS.ProcessEnv = {};
+  let env: NodeJS.ProcessEnv = {
+    ...extraEnv,
+  };
 
   const { cypress_repeat_k } = config.env;
   const repeatIndex = cypress_repeat_k ? Number.parseInt(cypress_repeat_k) : undefined;

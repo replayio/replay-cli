@@ -34,8 +34,9 @@ flake:
   ARG --required REPLAY_API_KEY
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
+  ENV REPLAY_API_KEY=${REPLAY_API_KEY}
   RUN npm i && npm link @replayio/cypress
-  RUN npm run start-and-test || exit 0
+  RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps npm run start-and-test || exit 0
   DO +UPLOAD --REPLAY_API_KEY=$REPLAY_API_KEY
 
 e2e:

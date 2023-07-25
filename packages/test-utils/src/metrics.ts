@@ -3,6 +3,7 @@ import os from "os";
 import fetch from "node-fetch";
 import { Test } from "./reporter";
 import { TestMetadataV2 } from "@replayio/replay/metadata/test/v2";
+import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:metrics");
 
@@ -60,7 +61,7 @@ async function pingTestMetrics(
       body,
     });
   } catch (e) {
-    console.log("Failed to send test metrics", e);
+    warn("Failed to send test metrics", e);
   }
 }
 
