@@ -10,7 +10,7 @@ import debug from "debug";
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
-import { getTestsFromResults, groupStepsByTest, mapStateToResult, sortSteps } from "./steps";
+import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
@@ -38,7 +38,7 @@ class CypressReporter {
   steps: StepEvent[] = [];
   selectedBrowser: string | undefined;
   errors: string[] = [];
-  diagnosticConfig: ReturnType<typeof getDiagnosticConfig>;
+  diagnosticConfig: ReturnType<typeof getDiagnosticConfig> = { noRecord: false, env: {} };
 
   constructor(config: Cypress.PluginConfigOptions, debug: debug.Debugger) {
     initFixtureFile();
@@ -54,7 +54,17 @@ class CypressReporter {
     );
     this.debug = debug.extend("reporter");
 
-    this.diagnosticConfig = getDiagnosticConfig(config);
+    this.configureDiagnostics();
+  }
+
+  async authenticate(apiKey: string) {
+    this.reporter.setApiKey(apiKey);
+    // TODO: we can fetch diagnostics from the cloud later here
+    this.configureDiagnostics();
+  }
+
+  configureDiagnostics() {
+    this.diagnosticConfig = getDiagnosticConfig(this.config);
 
     // Mix diagnostic env into process env so it can be picked up by test
     // metrics and reported to telemetry
