@@ -62,6 +62,7 @@ async function ensureBrowsersInstalled(
           getBrowserDownloadFileName("darwin:firefox"),
           "firefox",
           "firefox",
+          { platform: "macOS", arch: process.arch, runtime: "firefox" },
           force,
           opts
         );
@@ -71,6 +72,7 @@ async function ensureBrowsersInstalled(
           getBrowserDownloadFileName("darwin:chromium"),
           process.arch.startsWith("arm") ? "Replay-Chromium-ARM.app" : "Replay-Chromium.app",
           "Replay-Chromium.app",
+          { platform: "macOS", isARM: process.arch.startsWith("arm"), runtime: "chromium" },
           force,
           opts
         );
@@ -82,6 +84,8 @@ async function ensureBrowsersInstalled(
           getBrowserDownloadFileName("linux:firefox"),
           "firefox",
           "firefox",
+          { platform: "linux", isARM: false, runtime: "firefox" },
+
           force,
           opts
         );
@@ -91,6 +95,7 @@ async function ensureBrowsersInstalled(
           getBrowserDownloadFileName("linux:chromium"),
           "replay-chromium",
           "chrome-linux",
+          { platform: "linux", isARM: false, runtime: "chromium" },
           force,
           opts
         );
@@ -102,6 +107,7 @@ async function ensureBrowsersInstalled(
           getBrowserDownloadFileName("win32:chromium"),
           "replay-chromium",
           "replay-chromium",
+          { platform: "windows", isARM: false, runtime: "chromium" },
           force,
           opts
         );
@@ -188,11 +194,43 @@ function getRuntimesDirectory(opts?: Options) {
   return path.join(replayDir, "runtimes");
 }
 
+async function fetchCurrentRelease(metadata: any) {
+  const response = await fetch("https://api.replay.io/v1/releases");
+  const currentReleases = await response.json();
+
+  return currentReleases.find(
+    (release: any) => release.runtime == metadata.runtime && release.platform == metadata.platform
+  );
+}
+
+function getInstalledReleases(metadata: any, opts: Options) {
+  const browserDir = getRuntimesDirectory(opts);
+
+  const releasesPath = path.join(browserDir, "releases.json");
+
+  let installedReleases: any = {};
+  if (fs.existsSync(releasesPath)) {
+    installedReleases = JSON.parse(fs.readFileSync(releasesPath, "utf8"));
+  }
+
+  return installedReleases;
+}
+
+function updateInstalledRelease(metadata: any, release: any, opts: Options) {
+  const browserDir = getRuntimesDirectory(opts);
+  const releasesPath = path.join(browserDir, "releases.json");
+
+  const installedReleases = getInstalledReleases(metadata, opts);
+  installedReleases[`${metadata.runtime}-${metadata.platform}`] = release;
+  fs.writeFileSync(releasesPath, JSON.stringify(installedReleases, null, 2));
+}
+
 // Installs a browser if it isn't already installed.
 async function installReplayBrowser(
   name: string,
   srcName: string,
   dstName: string,
+  metadata: any,
   force = false,
   opts: Options = {}
 ) {
@@ -200,6 +238,16 @@ async function installReplayBrowser(
   const browserDir = getRuntimesDirectory(opts);
   const dstDir = path.join(browserDir, dstName);
   const dstExists = fs.existsSync(dstDir);
+
+  const currentRelease = await fetchCurrentRelease(metadata);
+  const installedReleases = getInstalledReleases(metadata, opts);
+  const installedRelease = installedReleases[`${metadata.runtime}-${metadata.platform}`];
+
+  if (installedRelease?.buildId != currentRelease.buildId) {
+    console.log(`Updating ${name}`);
+    debug("Updating because %s is out of date", name);
+    force = true;
+  }
 
   if (dstExists) {
     if (force) {
@@ -230,6 +278,8 @@ async function installReplayBrowser(
   if (srcName != dstName) {
     fs.renameSync(path.join(browserDir, srcName), path.join(browserDir, dstName));
   }
+
+  updateInstalledRelease(metadata, currentRelease, opts);
 }
 
 async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
