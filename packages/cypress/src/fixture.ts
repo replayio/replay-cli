@@ -1,5 +1,8 @@
 import { writeFileSync, appendFileSync, mkdirSync } from "fs";
 import path from "path";
+import dbg from "debug";
+
+const debug = dbg("replay:cypress:fixture");
 
 function getFixtureFile() {
   return (
@@ -13,7 +16,9 @@ function getFixtureFile() {
 }
 
 export function initFixtureFile() {
+  debug("REPLAY_CYPRESS_UPDATE_FIXTURE: %s", process.env.REPLAY_CYPRESS_UPDATE_FIXTURE);
   if (process.env.REPLAY_CYPRESS_UPDATE_FIXTURE) {
+    debug("Initializing fixture file %s", getFixtureFile());
     try {
       mkdirSync(path.dirname(getFixtureFile()), { recursive: true });
       writeFileSync(getFixtureFile(), "");
