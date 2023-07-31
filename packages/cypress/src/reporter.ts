@@ -161,7 +161,10 @@ class CypressReporter {
       ];
     }
 
-    let testsWithoutSteps: Test[] = getTestsFromResults(result.tests);
+    let testsWithoutSteps = getTestsFromResults(
+      result.tests,
+      this.steps.filter(s => s.event === "test:start")
+    );
     let testsWithSteps: Test[] = [];
 
     try {
@@ -172,6 +175,10 @@ class CypressReporter {
       console.warn(e);
 
       this.reporter.addError(e);
+
+      // return tests without steps otherwise the test-utils reporter will bail
+      // and we'll lose the error altogether.
+      return testsWithoutSteps;
     }
 
     return testsWithSteps;

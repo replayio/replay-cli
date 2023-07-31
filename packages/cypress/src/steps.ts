@@ -57,13 +57,32 @@ function simplifyArgs(args?: any[]) {
   return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
 }
 
-function getTestsFromResults(resultTests: CypressCommandLine.TestResult[]) {
+function getTestsFromResults(
+  resultTests: CypressCommandLine.TestResult[],
+  testStartSteps: StepEvent[]
+) {
+  const startEvents = [...testStartSteps].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  function getIdForTest(result: CypressCommandLine.TestResult) {
+    const startEventIndex = startEvents.findIndex(
+      e => e.test.every((t, i) => result.title[i]) && e.test.length === result.title.length
+    );
+    if (startEventIndex !== -1) {
+      const startEvent = startEvents.splice(startEventIndex, 1)[0];
+      if (startEvent.testId != null) {
+        return startEvent.testId;
+      }
+    }
+  }
+
   const tests = resultTests.flatMap<Test>((result, id) => {
     const scope = [...result.title];
     const title = scope.pop()!;
 
-    return result.attempts.map((a, attemptIndex) => ({
-      id,
+    return result.attempts.map<Test>((a, attemptIndex) => ({
+      id: getIdForTest(result) ?? attemptIndex,
       // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
       approximateDuration: a.duration || (a as any).wallClockDuration || 0,
       attempt: attemptIndex + 1,
