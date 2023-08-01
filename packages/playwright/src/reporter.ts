@@ -125,29 +125,16 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const relativePath = test.titlePath()[2];
-    let playwrightMetadata: Record<string, any> | undefined;
-
-    if (this.captureTestFile) {
-      try {
-        playwrightMetadata = {
-          "x-replay-playwright": {
-            sources: {
-              [relativePath]: readFileSync(test.location.file, "utf8").toString(),
-            },
-          },
-        };
-      } catch (e) {
-        console.warn("Failed to read playwright test source from " + test.location.file);
-        console.warn(e);
-      }
-    }
-
     const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
+    const filenames = new Set<string>();
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
       const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
+      const stack = s.stack?.map(frame => ({
+        ...frame,
+        file: path.relative(process.cwd(), frame.file),
+      }));
       const step: UserActionEvent = {
         data: {
           id: String(i),
@@ -166,8 +153,15 @@ class ReplayPlaywrightReporter implements Reporter {
               }
             : null,
           category: mapTestStepCategory(s),
+          stack,
         },
       };
+
+      if (stack) {
+        for (const frame of stack) {
+          filenames.add(frame.file);
+        }
+      }
 
       if (hook) {
         const hookSteps = hookMap.get(hook) || [];
@@ -175,6 +169,26 @@ class ReplayPlaywrightReporter implements Reporter {
         hookMap.set(hook, hookSteps);
       } else {
         steps.push(step);
+      }
+    }
+
+    const relativePath = test.titlePath()[2];
+    filenames.add(relativePath);
+    let playwrightMetadata: Record<string, any> | undefined;
+
+    if (this.captureTestFile) {
+      try {
+        playwrightMetadata = {
+          "x-replay-playwright": {
+            sources: Object.fromEntries([...filenames].map(filename => [
+              filename,
+              readFileSync(filename, "utf8")
+            ])),
+          },
+        };
+      } catch (e) {
+        console.warn("Failed to read playwright test source from " + test.location.file);
+        console.warn(e);
       }
     }
 

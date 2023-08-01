@@ -24,6 +24,13 @@ const testError = object({
   column: optional(number()),
 });
 
+const stackFrame = object({
+  file: string(),
+  line: number(),
+  column: number(),
+  function: optional(string()),
+});
+
 const userActionEvent = object({
   data: object({
     id: string(),
@@ -35,6 +42,7 @@ const userActionEvent = object({
     }),
     scope: nullable(array(string())),
     error: nullable(testError),
+    stack: optional(array(stackFrame)),
   }),
 });
 
