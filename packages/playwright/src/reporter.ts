@@ -138,6 +138,7 @@ class ReplayPlaywrightReporter implements Reporter {
       const step: UserActionEvent = {
         data: {
           id: String(i),
+          rrId: s.rrId,
           parentId: null,
           command: {
             name: s.title,

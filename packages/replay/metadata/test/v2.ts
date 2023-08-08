@@ -34,6 +34,7 @@ const stackFrame = object({
 const userActionEvent = object({
   data: object({
     id: string(),
+    rrId: optional(string()),
     parentId: nullable(string()),
     category: enums(["assertion", "command", "other"]),
     command: object({
