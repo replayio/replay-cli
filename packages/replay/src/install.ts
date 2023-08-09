@@ -227,6 +227,17 @@ async function installReplayBrowser(
   fs.writeFileSync(path.join(browserDir, name), contents);
   extractBrowserArchive(browserDir, name);
 
+  let resolvedSrcName = srcName;
+  const srcExists = fs.existsSync(path.join(browserDir, srcName));
+  if (!srcExists && srcName === "Replay-Chromium.app") {
+    // Some older Chromium ARM releases use a different name for the executable. So let's try that.
+    resolvedSrcName = "Replay-Chromium-ARM.app";
+    if (!fs.existsSync(path.join(browserDir, resolvedSrcName))) {
+      throw new Error(`Unable to find ${srcName} or ${resolvedSrcName} in ${browserDir}`);
+    }
+    maybeLog(opts.verbose, `Using ${resolvedSrcName} instead of ${srcName}`);
+  }
+
   if (srcName != dstName) {
     fs.renameSync(path.join(browserDir, srcName), path.join(browserDir, dstName));
   }
