@@ -69,7 +69,7 @@ async function ensureBrowsersInstalled(
       if (["all", "chromium"].includes(kind)) {
         await installReplayBrowser(
           getBrowserDownloadFileName("darwin:chromium"),
-          process.arch.startsWith("arm") ? "Replay-Chromium-ARM.app" : "Replay-Chromium.app",
+          "Replay-Chromium.app",
           "Replay-Chromium.app",
           force,
           opts
