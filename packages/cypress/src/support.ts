@@ -367,6 +367,37 @@ export default function register() {
       lastCommand = cmd;
       lastAssertionCommand = undefined;
 
+      function handleCommandLogAdded(newLog: any) {
+        function handleCommandLogChanged(changedLog: any) {
+          if (changedLog.id === newLog.id) {
+            if (changedLog.state === "failed" && changedLog.err) {
+              const err: TestError = {
+                name: changedLog.err.name,
+                message: changedLog.err.message,
+                line: changedLog.codeFrame?.line,
+                column: changedLog.codeFrame?.column,
+              };
+
+              addAnnotationWithReferences(
+                currentTestScope!,
+                "step:end",
+                getReplayId(getCypressId(cmd)),
+                cmd,
+                changedLog
+              );
+              handleCypressEvent(currentTestScope!, "step:end", "command", toCommandJSON(cmd), err);
+            }
+          }
+        }
+
+        if (cmd.get("logs")?.find((l: any) => l.get("id") === newLog.id)) {
+          Cypress.on("log:changed", handleCommandLogChanged);
+          Cypress.off("log:added", handleCommandLogAdded);
+        }
+      }
+
+      Cypress.on("log:added", handleCommandLogAdded);
+
       addAnnotationWithReferences(
         currentTestScope!,
         "step:start",
