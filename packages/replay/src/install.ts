@@ -25,9 +25,12 @@ function getBrowserDownloadFileName<K extends keyof typeof EXECUTABLE_PATHS>(key
     case "darwin:firefox":
       return process.env.RECORD_REPLAY_FIREFOX_DOWNLOAD_FILE || "macOS-replay-playwright.tar.xz";
     case "darwin:chromium":
-      return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || process.arch.startsWith("arm")
-        ? "macOS-replay-chromium-arm.tar.xz"
-        : "macOS-replay-chromium.tar.xz";
+      return (
+        process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE ||
+        (process.arch.startsWith("arm")
+          ? "macOS-replay-chromium-arm.tar.xz"
+          : "macOS-replay-chromium.tar.xz")
+      );
 
     case "linux:chromium":
       return process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz";
