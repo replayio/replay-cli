@@ -46,6 +46,7 @@ program
   .command("launch [url]")
   .description("Launch the replay browser")
   .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .allowUnknownOption()
   .action(commandLaunchBrowser);
 
 program
