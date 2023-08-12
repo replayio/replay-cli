@@ -36,7 +36,7 @@ async function pingTestMetrics(
     recordingId,
     test: {
       ...test,
-      platform: os.platform,
+      platform: os.platform(),
       runId,
       env: {
         disableAsserts: !!process.env.RECORD_REPLAY_DISABLE_ASSERTS,
