@@ -131,6 +131,12 @@ function onReplayTask(value: any) {
 }
 
 const plugin: Cypress.PluginConfig = (on, config) => {
+  debug("Disabled? %s", process.env.CYPRESS_REPLAY_DISABLED);
+
+  if (process.env.CYPRESS_REPLAY_DISABLED) {
+    return config;
+  }
+
   cypressReporter = new CypressReporter(config, debug);
 
   on("before:run", onBeforeRun);
