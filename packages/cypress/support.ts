@@ -1,3 +1,5 @@
 import register from "./src/support";
 
-register();
+if (!Cypress.env("REPLAY_DISABLED")) {
+  register();
+}
