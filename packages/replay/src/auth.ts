@@ -218,13 +218,27 @@ export async function readToken(options: Options = {}) {
   }
 }
 
+async function writeToken(token: string, options: Options = {}) {
+  const tokenPath = getTokenPath(options);
+  await writeFile(
+    tokenPath,
+    JSON.stringify(
+      {
+        "// Docs": "This contains your app.replay.io authentication token. Do not share!",
+        token,
+      },
+      undefined,
+      2
+    ),
+    { encoding: "utf-8" }
+  );
+}
+
 export async function maybeAuthenticateUser(options: Options = {}) {
   try {
     const key = initAuthRequest();
     const token = await pollForToken(key);
-
-    const tokenPath = getTokenPath(options);
-    await writeFile(tokenPath, JSON.stringify({ token }), { encoding: "utf-8" });
+    await writeToken(token);
 
     return true;
   } catch (e) {
