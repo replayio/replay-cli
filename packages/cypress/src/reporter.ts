@@ -13,6 +13,7 @@ import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getDiagnosticConfig } from "./mode";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
+import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 
 type Test = TestMetadataV2.Test;
 type TestRun = TestMetadataV2.TestRun;
@@ -39,6 +40,7 @@ class CypressReporter {
   steps: StepEvent[] = [];
   selectedBrowser: string | undefined;
   errors: string[] = [];
+  featureOptions: string | undefined;
   diagnosticConfig: ReturnType<typeof getDiagnosticConfig> = { noRecord: false, env: {} };
 
   constructor(config: Cypress.PluginConfigOptions, debug: debug.Debugger) {
@@ -56,6 +58,13 @@ class CypressReporter {
     this.debug = debug.extend("reporter");
 
     this.configureDiagnostics();
+
+    this.featureOptions = process.env.CYPRESS_REPLAY_PLUGIN_FEATURES;
+    debug("Features: %o", getFeatures(this.featureOptions));
+  }
+
+  isFeatureEnabled(feature: PluginFeature) {
+    return isFeatureEnabled(this.featureOptions, feature);
   }
 
   async authenticate(apiKey: string) {
