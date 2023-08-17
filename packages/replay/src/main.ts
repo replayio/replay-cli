@@ -560,15 +560,22 @@ async function doViewRecording(
   agent?: any
 ) {
   let recordingId;
-  if (recording.status == "uploaded") {
+  if (recording.status === "crashUploaded") {
+    maybeLog(verbose, "Crash report already uploaded");
+    return true;
+  } else if (recording.status == "uploaded") {
     recordingId = recording.recordingId;
     server = recording.server!;
   } else {
     recordingId = await doUploadRecording(dir, server, recording, verbose, apiKey, agent);
+
     if (!recordingId) {
       return false;
+    } else if (recording.status === "crashed") {
+      return true;
     }
   }
+
   const dispatch = server != "wss://dispatch.replay.io" ? `&dispatch=${server}` : "";
   spawn(openExecutable(), [`https://app.replay.io?id=${recordingId}${dispatch}`]);
   return true;
