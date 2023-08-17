@@ -8,6 +8,7 @@ import chalk from "chalk";
 
 import { TASK_NAME } from "./constants";
 import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
+import { PluginFeature } from "./features";
 
 const debug = dbg("replay:cypress:plugin");
 const debugTask = debug.extend("task");
@@ -131,73 +132,84 @@ function onReplayTask(value: any) {
 }
 
 const plugin: Cypress.PluginConfig = (on, config) => {
-  debug("Disabled? %s", process.env.CYPRESS_REPLAY_DISABLED);
-
-  if (process.env.CYPRESS_REPLAY_DISABLED) {
-    return config;
-  }
-
   cypressReporter = new CypressReporter(config, debug);
 
-  on("before:run", onBeforeRun);
-  on("before:browser:launch", (browser, launchOptions) =>
-    onBeforeBrowserLaunch(config, browser, launchOptions)
-  );
-  on("before:spec", onBeforeSpec);
-  on("after:spec", onAfterSpec);
-  on("after:run", onAfterRun);
-
-  on("task", {
-    // Events are sent to the plugin by the support adapter which runs in the
-    // browser context and has access to `Cypress` and `cy` methods.
-    [TASK_NAME]: onReplayTask,
-  });
-
-  // make sure we have a config object with the keys we need to mutate
-  config = config || {};
-  config.env = config.env || {};
-  config.browsers = config.browsers || [];
-
-  if (config.isTextTerminal) {
-    config.env.NO_COMMAND_LOG =
-      process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
-    debug("Command log enabled? %s", config.env.NO_COMMAND_LOG);
+  if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
+    process.env.RECORD_REPLAY_TEST_METRICS = "0";
   }
 
-  const chromiumPath = getPlaywrightBrowserPath("chromium");
-  if (chromiumPath) {
-    debug("Adding chromium to cypress at %s", chromiumPath);
-    config.browsers = config.browsers.concat({
-      name: "replay-chromium",
-      channel: "stable",
-      family: "chromium",
-      displayName: "Replay",
-      version: "91.0",
-      path: chromiumPath,
-      majorVersion: 91,
-      isHeaded: true,
-      isHeadless: false,
-    });
-  } else {
-    debug("Chromium not supported on this platform", chromiumPath);
+  if (
+    cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
+    cypressReporter.isFeatureEnabled(PluginFeature.Metrics)
+  ) {
+    on("after:spec", onAfterSpec);
   }
 
-  const firefoxPath = getPlaywrightBrowserPath("firefox");
-  if (firefoxPath) {
-    debug("Adding firefox to cypress at %s", chromiumPath);
-    config.browsers = config.browsers.concat({
-      name: "replay-firefox",
-      channel: "stable",
-      family: "firefox",
-      displayName: "Replay",
-      version: "91.0",
-      path: firefoxPath,
-      majorVersion: 91,
-      isHeaded: true,
-      isHeadless: false,
+  if (
+    cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
+    cypressReporter.isFeatureEnabled(PluginFeature.Support)
+  ) {
+    on("task", {
+      // Events are sent to the plugin by the support adapter which runs in the
+      // browser context and has access to `Cypress` and `cy` methods.
+      [TASK_NAME]: onReplayTask,
     });
-  } else {
-    debug("Firefox not supported on this platform", chromiumPath);
+  }
+
+  if (cypressReporter.isFeatureEnabled(PluginFeature.Plugin)) {
+    on("before:run", onBeforeRun);
+    on("before:browser:launch", (browser, launchOptions) =>
+      onBeforeBrowserLaunch(config, browser, launchOptions)
+    );
+    on("before:spec", onBeforeSpec);
+    on("after:run", onAfterRun);
+
+    // make sure we have a config object with the keys we need to mutate
+    config = config || {};
+    config.env = config.env || {};
+    config.browsers = config.browsers || [];
+
+    if (config.isTextTerminal) {
+      config.env.NO_COMMAND_LOG =
+        process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
+      debug("Command log enabled? %s", config.env.NO_COMMAND_LOG);
+    }
+
+    const chromiumPath = getPlaywrightBrowserPath("chromium");
+    if (chromiumPath) {
+      debug("Adding chromium to cypress at %s", chromiumPath);
+      config.browsers = config.browsers.concat({
+        name: "replay-chromium",
+        channel: "stable",
+        family: "chromium",
+        displayName: "Replay",
+        version: "91.0",
+        path: chromiumPath,
+        majorVersion: 91,
+        isHeaded: true,
+        isHeadless: false,
+      });
+    } else {
+      debug("Chromium not supported on this platform", chromiumPath);
+    }
+
+    const firefoxPath = getPlaywrightBrowserPath("firefox");
+    if (firefoxPath) {
+      debug("Adding firefox to cypress at %s", chromiumPath);
+      config.browsers = config.browsers.concat({
+        name: "replay-firefox",
+        channel: "stable",
+        family: "firefox",
+        displayName: "Replay",
+        version: "91.0",
+        path: firefoxPath,
+        majorVersion: 91,
+        isHeaded: true,
+        isHeadless: false,
+      });
+    } else {
+      debug("Firefox not supported on this platform", chromiumPath);
+    }
   }
 
   return config;
