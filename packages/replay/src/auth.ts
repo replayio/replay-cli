@@ -10,6 +10,14 @@ import { Options } from "./types";
 
 const debug = dbg("replay:cli:auth");
 
+function isInternalError(e: unknown): e is { id: string } {
+  if (typeof e === "object" && e && "id" in e) {
+    return typeof (e as any).id === "string";
+  }
+
+  return false;
+}
+
 function getAuthHost() {
   return process.env.REPLAY_AUTH_HOST || "webreplay.us.auth0.com";
 }
@@ -27,7 +35,7 @@ function tokenInfo(token: string) {
 
   let payload;
   try {
-    const decPayload = new Buffer(encPayload, "base64");
+    const decPayload = Buffer.alloc(encPayload.length, encPayload, "base64");
     payload = JSON.parse(new TextDecoder().decode(decPayload));
   } catch (err) {
     debug("Failed to decode token: %s", maskToken(token));
@@ -185,17 +193,22 @@ export async function pollForToken(key: string) {
 
 function getTokenPath(options: Options = {}) {
   const directory = getDirectory(options);
-  return path.join(directory, "profile", "token");
+  return path.join(directory, "profile", "auth.json");
 }
 
 export async function readToken(options: Options = {}) {
   try {
     const tokenPath = getTokenPath(options);
-    const token = await readFile(tokenPath, { encoding: "utf-8" });
+    const tokenJson = await readFile(tokenPath, { encoding: "utf-8" });
+    const { token } = JSON.parse(tokenJson);
 
     if (hasTokenExpired(token)) {
-      await writeFile(tokenPath, "");
+      await writeFile(tokenPath, "{}");
       return;
+    }
+
+    if (typeof token !== "string") {
+      throw new Error("Unexpect token value: " + token);
     }
 
     return token;
@@ -211,13 +224,13 @@ export async function maybeAuthenticateUser(options: Options = {}) {
     const token = await pollForToken(key);
 
     const tokenPath = getTokenPath(options);
-    await writeFile(tokenPath, token, { encoding: "utf-8" });
+    await writeFile(tokenPath, JSON.stringify({ token }), { encoding: "utf-8" });
 
     return true;
   } catch (e) {
     debug("Failed to authenticate user: %o", e);
 
-    if (typeof e === "object" && e && "id" in e) {
+    if (isInternalError(e)) {
       if (e.id === "timeout") {
         console.error("Timed out waiting for browser authentication. Please try again.");
       } else {
