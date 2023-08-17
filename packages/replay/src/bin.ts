@@ -23,6 +23,7 @@ import {
   UploadOptions,
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
+import { maybeAuthenticateUser } from "./auth";
 
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
 program
@@ -134,6 +135,12 @@ program
   .option("--warn", "Warn on initialization error")
   .option("--filter <filter string>", "String to filter recordings")
   .action(commandMetadata);
+
+program
+  .command("login")
+  .description("Log in interactively with your browser")
+  .option("--directory <dir>", "Alternate recording directory.")
+  .action(commandLogin);
 
 program.parseAsync().catch(err => {
   console.log(err);
@@ -254,4 +261,9 @@ async function commandUploadSourcemaps(
 
 async function commandMetadata(opts: MetadataOptions & FilterOptions) {
   await updateMetadata({ ...opts, verbose: true });
+}
+
+async function commandLogin(opts: CommandLineOptions) {
+  const ok = await maybeAuthenticateUser(opts);
+  process.exit(ok ? 0 : 1);
 }
