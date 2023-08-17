@@ -113,7 +113,7 @@ function generateAuthKey() {
 
 function initAuthRequest() {
   const key = generateAuthKey();
-  spawn(openExecutable(), [`https://app.replay.io/api/browser/auth?key=${key}`]);
+  spawn(openExecutable(), [`https://app.replay.io/api/browser/auth?key=${key}&source=cli`]);
 
   return key;
 }
