@@ -12,6 +12,14 @@ function ReplayAddAnnotation([event, id]: string[]) {
   });
 }
 
+function getLastStepId(testInfo: any) {
+  return testInfo._steps[testInfo._steps.length - 1].stepId;
+}
+
+function isReplayAnnotation(params?: any) {
+  return params?.expression?.includes("ReplayAddAnnotation");
+}
+
 const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
 const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
 if (!fixtures) {
@@ -28,37 +36,29 @@ fixtures.push({
       ) => {
         debug("Setting up replay fixture");
         let lastId: string | undefined;
-        let idCounter = 0;
 
-        function getPage() {
-          return page;
+        function addAnnotation(event: string, id?: string) {
+          if (id) {
+            page.evaluate(ReplayAddAnnotation, [event, id]).catch(e => console.error);
+          }
         }
 
         const csiListener: ClientInstrumentationListener = {
           onApiCallBegin: (apiName, params, _stackTrace, _wallTime, userData) => {
-            if (params.expression?.includes("ReplayAddAnnotation")) {
+            if (isReplayAnnotation(params)) {
               return;
             }
 
-            lastId = userData?.userObject?.stepId || (lastId ? `${lastId}+${++idCounter}` : null);
-            if (lastId) {
-              getPage()
-                .evaluate(ReplayAddAnnotation, ["step:start", lastId])
-                .catch(e => console.error);
-            }
+            lastId = getLastStepId(testInfo);
+            addAnnotation("step:start", lastId);
           },
 
           onApiCallEnd: (userData, error) => {
-            if (userData?.userObject?.params?.expression?.includes("ReplayAddAnnotation")) {
+            if (isReplayAnnotation(userData?.userObject?.params)) {
               return;
             }
 
-            const id = userData?.userObject?.stepId || lastId;
-            if (id) {
-              getPage()
-                .evaluate(ReplayAddAnnotation, ["step:end", id])
-                .catch(e => console.error);
-            }
+            addAnnotation("step:end", lastId);
           },
         };
 
