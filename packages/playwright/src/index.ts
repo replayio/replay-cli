@@ -2,6 +2,7 @@ import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./reporter";
+import "./fixture";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
