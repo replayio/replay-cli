@@ -8,6 +8,7 @@ import chalk from "chalk";
 
 import { TASK_NAME } from "./constants";
 import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
+import run from "./run";
 import { PluginFeature } from "./features";
 
 const debug = dbg("replay:cypress:plugin");
@@ -222,6 +223,7 @@ export function getCypressReporter() {
 export default plugin;
 export {
   plugin,
+  run,
   onBeforeRun,
   onBeforeBrowserLaunch,
   onBeforeSpec,

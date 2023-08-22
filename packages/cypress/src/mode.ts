@@ -43,31 +43,37 @@ const diagnosticFlags = [
 ];
 
 export enum ReplayMode {
-  Record,
-  RecordOnRetry,
-  Diagnostics,
-  Stress,
+  Record = "record",
+  RecordOnRetry = "record-on-retry",
+  Diagnostics = "diagnostics",
+  Stress = "stress",
 }
 
 export enum DiagnosticLevel {
-  None,
-  Basic,
-  Full,
+  None = "none",
+  Basic = "basic",
+  Full = "full",
 }
 
-export function configure(options: { mode?: string; level?: string; stressCount?: number }) {
+export function configure(options: {
+  mode: ReplayMode;
+  level?: DiagnosticLevel;
+  stressCount?: number;
+}) {
   // Set this modes into the environment so they can be picked up by the plugin
   process.env.REPLAY_CYPRESS_MODE = options.mode;
-  process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
+  if (options.mode === ReplayMode.Diagnostics && options.level) {
+    process.env.REPLAY_CYPRESS_DIAGNOSTIC_LEVEL = options.level;
+  }
 
   const config = {
-    mode: getReplayMode(),
-    level: getDiagnosticLevel(),
-    repeat: getRepeatCount(options.stressCount),
+    mode: options.mode,
+    level: options.level,
+    repeat: getRepeatCount(options.mode, options.level, options.stressCount),
   };
 
   // configure shared metadata values
-  process.env.RECORD_REPLAY_METADATA_TEST_RUN_MODE = toModeString(config.mode);
+  process.env.RECORD_REPLAY_METADATA_TEST_RUN_MODE = config.mode;
   // set a test run id so all the replays share a run when running in retry modes
   process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID =
     process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || v4();
@@ -75,59 +81,50 @@ export function configure(options: { mode?: string; level?: string; stressCount?
   return config;
 }
 
-function toModeString(mode: ReplayMode) {
-  switch (mode) {
-    case ReplayMode.Record:
-      return "record";
-    case ReplayMode.RecordOnRetry:
-      return "record-on-retry";
-    case ReplayMode.Diagnostics:
-      return "diagnostics";
-    case ReplayMode.Stress:
-      return "stress";
+export function toReplayMode(mode?: string) {
+  if (!mode) {
+    mode = "record";
   }
-}
-
-function getReplayMode(): ReplayMode {
-  const { REPLAY_CYPRESS_MODE: mode } = process.env;
 
   switch (mode) {
-    case "record-on-retry":
-      return ReplayMode.RecordOnRetry;
-    case "diagnostic":
     case "diagnostics":
-      process.env.REPLAY_CYPRESS_MODE = "diagnostics";
-      return ReplayMode.Diagnostics;
+      mode = "diagnostics";
+      break;
+    case "record-on-retry":
+    case "diagnostic":
     case "stress":
-      return ReplayMode.Stress;
+    case "record":
+      break;
+    default:
+      throw new Error("Unexpected mode value: " + mode);
   }
 
-  process.env.REPLAY_CYPRESS_MODE = "record";
-  return ReplayMode.Record;
+  return mode as ReplayMode;
 }
 
-function getDiagnosticLevel(): DiagnosticLevel {
-  const mode = getReplayMode();
-  const { REPLAY_CYPRESS_DIAGNOSTIC_LEVEL: level } = process.env;
+export function toDiagnosticLevel(level?: string) {
+  if (!level) {
+    level = "none";
+  }
 
   switch (level) {
     case "basic":
-      return DiagnosticLevel.Basic;
     case "full":
-      return DiagnosticLevel.Full;
+    case "none":
+      break;
+    default:
+      throw new Error("Unexpected level value: " + level);
   }
 
-  return mode === ReplayMode.Diagnostics ? DiagnosticLevel.Basic : DiagnosticLevel.None;
+  return level as DiagnosticLevel;
 }
 
-function getRepeatCount(stressCount = 10) {
-  const level = getDiagnosticLevel();
-
-  switch (getReplayMode()) {
+function getRepeatCount(mode: ReplayMode, diagnosticLevel?: DiagnosticLevel, stressCount = 10) {
+  switch (mode) {
     case ReplayMode.RecordOnRetry:
       return 2;
     case ReplayMode.Diagnostics:
-      return level === DiagnosticLevel.Basic ? 3 : diagnosticFlags.length + 3;
+      return diagnosticLevel === DiagnosticLevel.Basic ? 3 : diagnosticFlags.length + 3;
     case ReplayMode.Stress:
       return stressCount;
     case ReplayMode.Record:
@@ -149,7 +146,8 @@ export function getDiagnosticConfig(
 
   const { cypress_repeat_k } = config.env;
   const repeatIndex = cypress_repeat_k ? Number.parseInt(cypress_repeat_k) : undefined;
-  const mode = getReplayMode();
+
+  const mode = toReplayMode(process.env.REPLAY_CYPRESS_MODE);
 
   if (mode === ReplayMode.RecordOnRetry) {
     noRecord = repeatIndex === 1;

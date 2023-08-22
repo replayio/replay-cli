@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
+import cypress from "cypress";
+
 import install from "../src/install";
-import { configure, ReplayMode } from "../src/mode";
-import cypressRepeat, { SpecRepeatMode } from "../src/cypress-repeat";
-import { gte } from "semver";
+import { ReplayMode, toDiagnosticLevel, toReplayMode } from "../src/mode";
+import run from "../src/run";
 
 let [, , cmd, ...args] = process.argv;
 
@@ -70,25 +71,18 @@ async function commandRun() {
     break;
   }
 
-  const { repeat, mode } = configure({ mode: modeOpt, level: levelOpt, stressCount: retryCount });
+  try {
+    const mode = toReplayMode(modeOpt);
+    const level = toDiagnosticLevel(levelOpt);
 
-  if (
-    (mode === ReplayMode.Diagnostics || mode === ReplayMode.RecordOnRetry) &&
-    !gte(require("cypress/package.json").version, "10.9.0")
-  ) {
-    console.error("Cypress 10.9 or greater is required for diagnostic or record-on-retry modes");
+    const options = await cypress.cli.parseRunArguments(["cypress", "run", ...args]);
+    const failed = await run({ mode, level, count: retryCount, timeout, ...options });
+
+    process.exit(failed ? 1 : 0);
+  } catch (e: any) {
+    console.error(e.message);
     process.exit(1);
   }
-
-  const failed = await cypressRepeat({
-    repeat,
-    mode: mode === ReplayMode.RecordOnRetry ? SpecRepeatMode.Failed : SpecRepeatMode.All,
-    untilPasses: mode === ReplayMode.RecordOnRetry,
-    args,
-    timeout,
-  });
-
-  process.exit(failed ? 1 : 0);
 }
 
 function help() {
