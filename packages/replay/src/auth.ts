@@ -5,7 +5,7 @@ import { readFile, writeFile } from "fs/promises";
 import path from "path";
 
 import { query } from "./graphql";
-import { getDirectory, openExecutable } from "./utils";
+import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
 
 const debug = dbg("replay:cli:auth");
@@ -111,7 +111,8 @@ function generateAuthKey() {
   return hash.digest("hex").toString();
 }
 
-function initAuthRequest() {
+function initAuthRequest(options: Options = {}) {
+  maybeLog(options.verbose, "🌎 Launching browser to login to replay.io");
   const key = generateAuthKey();
   const server = process.env.REPLAY_APP_SERVER || "https://app.replay.io";
   spawn(openExecutable(), [`${server}/api/browser/auth?key=${key}&source=cli`]);
@@ -165,11 +166,11 @@ async function fetchToken(key: string) {
   return refreshToken;
 }
 
-export async function pollForToken(key: string) {
+export async function pollForToken(key: string, options: Options = {}) {
   let timedOut = false;
   setTimeout(() => {
     timedOut = true;
-  }, 2 * 60 * 1000);
+  }, 60 * 1000);
 
   while (true) {
     if (timedOut) {
@@ -179,6 +180,7 @@ export async function pollForToken(key: string) {
 
     try {
       const refreshToken = await fetchToken(key);
+      maybeLog(options.verbose, "🔑 Fetching token");
 
       return await refresh(refreshToken);
     } catch (e: any) {
@@ -220,6 +222,7 @@ export async function readToken(options: Options = {}) {
 }
 
 async function writeToken(token: string, options: Options = {}) {
+  maybeLog(options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
   await writeFile(
     tokenPath,
@@ -237,9 +240,11 @@ async function writeToken(token: string, options: Options = {}) {
 
 export async function maybeAuthenticateUser(options: Options = {}) {
   try {
-    const key = initAuthRequest();
-    const token = await pollForToken(key);
+    const key = initAuthRequest(options);
+    const token = await pollForToken(key, options);
     await writeToken(token);
+
+    maybeLog(options.verbose, "✅ Authentication complete!");
 
     return true;
   } catch (e) {

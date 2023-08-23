@@ -264,6 +264,9 @@ async function commandMetadata(opts: MetadataOptions & FilterOptions) {
 }
 
 async function commandLogin(opts: CommandLineOptions) {
-  const ok = await maybeAuthenticateUser(opts);
+  const ok = await maybeAuthenticateUser({
+    ...opts,
+    verbose: true,
+  });
   process.exit(ok ? 0 : 1);
 }
