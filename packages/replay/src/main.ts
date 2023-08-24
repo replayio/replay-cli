@@ -682,15 +682,15 @@ async function updateMetadata({
             return await testMetadata.init(md.test || {});
         }
       } catch (e) {
+        debug("Metadata initialization error: %o", e);
         if (!warn) {
-          console.error("Unable to initialize metadata field", v);
-          console.error(e);
-
-          process.exit(1);
+          throw e;
         }
 
-        console.warn("Unable to initialize metadata field", v);
-        console.warn(String(e));
+        console.warn(`Unable to initialize metadata field: "${v}"`);
+        if (e instanceof Error) {
+          console.warn(" ->", e.message);
+        }
       }
 
       return null;

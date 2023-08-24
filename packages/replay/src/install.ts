@@ -5,7 +5,7 @@ import dbg from "debug";
 import fs from "fs";
 import https from "https";
 import path from "path";
-import { BrowserName, Options, Runner, NodeOptions } from "./types";
+import { BrowserName, Options } from "./types";
 import { defer, getDirectory, maybeLog } from "./utils";
 
 const debug = dbg("replay:cli:install");
@@ -235,7 +235,7 @@ async function installReplayBrowser(
   }
 }
 
-async function downloadReplayFile(downloadFile: string, opts: NodeOptions) {
+async function downloadReplayFile(downloadFile: string, opts: Options) {
   const options = {
     host: "static.replay.io",
     port: 443,

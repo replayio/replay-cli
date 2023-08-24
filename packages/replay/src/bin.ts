@@ -1,5 +1,6 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
+import dbg from "debug";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";
 import {
   listAllRecordings,
@@ -15,53 +16,63 @@ import {
   launchBrowser,
 } from "./main";
 import {
-  BrowserName,
-  CommandLineOptions,
   FilterOptions,
   MetadataOptions,
+  Options,
   SourcemapUploadOptions,
   UploadOptions,
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 
+export interface CommandLineOptions extends Options {
+  /**
+   * JSON output
+   */
+  json?: boolean;
+
+  /**
+   * Warn of failures but do not quit with a non-zero exit code
+   */
+  warn?: boolean;
+}
+
+const debug = dbg("replay:cli");
+
+// Create command with global options
+function commandWithGlobalOptions(cmdString: string) {
+  return program
+    .command(cmdString)
+    .option("--warn", "Terminate with a 0 exit code on error")
+    .option("--directory <dir>", "Alternate recording directory")
+    .option("--server <address>", "Alternate server to upload recordings to");
+}
+
 // TODO(dmiller): `--json` should probably be a global option that applies to all commands.
-program
-  .command("ls")
+commandWithGlobalOptions("ls")
   .description("List information about all recordings.")
-  .option("--directory <dir>", "Alternate recording directory.")
   .option("-a, --all", "Include all recordings")
   .option("--json", "Output in JSON format")
   .option("--filter <filter string>", "String to filter recordings")
   .action(commandListAllRecordings);
 
-program
-  .command("upload <id>")
+commandWithGlobalOptions("upload <id>")
   .description("Upload a recording to the remote server.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandUploadRecording);
 
-program
-  .command("launch [url]")
+commandWithGlobalOptions("launch [url]")
   .description("Launch the replay browser")
   .option("-b, --browser <browser>", "Browser to launch", "chromium")
   .allowUnknownOption()
   .action(commandLaunchBrowser);
 
-program
-  .command("process <id>")
+commandWithGlobalOptions("process <id>")
   .description("Upload a recording to the remote server and process it.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandProcessRecording);
 
-program
-  .command("upload-all")
+commandWithGlobalOptions("upload-all")
   .description("Upload all recordings to the remote server.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .option("--filter <filter string>", "String to filter recordings")
   .option("--batch-size <batchSize number>", "Number of recordings to upload in parallel (max 25)")
@@ -71,42 +82,27 @@ program
   )
   .action(commandUploadAllRecordings);
 
-program
-  .command("view <id>")
+commandWithGlobalOptions("view <id>")
   .description("Load the devtools on a recording, uploading it if needed.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandViewRecording);
 
-program
-  .command("view-latest")
+commandWithGlobalOptions("view-latest")
   .description("Load the devtools on the latest recording, uploading it if needed.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .option("--server <address>", "Alternate server to upload recordings to.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandViewLatestRecording);
 
-program
-  .command("rm <id>")
+commandWithGlobalOptions("rm <id>")
   .description("Remove a specific recording.")
-  .option("--directory <dir>", "Alternate recording directory.")
   .action(commandRemoveRecording);
 
-program
-  .command("rm-all")
-  .description("Remove all recordings.")
-  .option("--directory <dir>", "Alternate recording directory.")
-  .action(commandRemoveAllRecordings);
+program.command("rm-all").description("Remove all recordings.").action(commandRemoveAllRecordings);
 
-program
-  .command("update-browsers")
+commandWithGlobalOptions("update-browsers")
   .description("Update browsers used in automation.")
-  .option("--directory <dir>", "Alternate recording directory.")
   .action(commandUpdateBrowsers);
 
-program
-  .command("upload-sourcemaps")
+commandWithGlobalOptions("upload-sourcemaps")
   .requiredOption(
     "-g, --group <name>",
     "The name to group this sourcemap into, e.g. A commit SHA or release version."
@@ -127,8 +123,7 @@ program
   .arguments("<paths...>")
   .action((filepaths, opts) => commandUploadSourcemaps(filepaths, opts));
 
-program
-  .command("metadata")
+commandWithGlobalOptions("metadata")
   .option("--init [metadata]")
   .option("--keys <keys...>", "Metadata keys to initialize")
   .option("--warn", "Warn on initialization error")
@@ -136,7 +131,7 @@ program
   .action(commandMetadata);
 
 program.parseAsync().catch(err => {
-  console.log(err);
+  console.error(err);
   process.exit(1);
 });
 
@@ -148,85 +143,166 @@ function collectIgnorePatterns(value: string, previous: Array<string> = []) {
 }
 
 function commandListAllRecordings(
-  opts: Pick<CommandLineOptions, "directory" | "json"> & FilterOptions
+  opts: Pick<CommandLineOptions, "directory" | "json" | "warn"> & FilterOptions
 ) {
-  const recordings = listAllRecordings({ ...opts, verbose: true });
-  if (opts.json) {
-    console.log(formatAllRecordingsJson(recordings));
-  } else {
-    console.log(formatAllRecordingsHumanReadable(recordings));
+  try {
+    debug("Options", opts);
+
+    const recordings = listAllRecordings({ ...opts, verbose: true });
+    if (opts.json) {
+      console.log(formatAllRecordingsJson(recordings));
+    } else {
+      console.log(formatAllRecordingsHumanReadable(recordings));
+    }
+
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to list all recordings");
+    debug("removeRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
   }
-  process.exit(0);
 }
 
 async function commandUploadRecording(id: string, opts: CommandLineOptions) {
-  const recordingId = await uploadRecording(id, { ...opts, verbose: true });
-  process.exit(recordingId ? 0 : 1);
+  try {
+    debug("Options", opts);
+
+    const recordingId = await uploadRecording(id, { ...opts, verbose: true });
+    process.exit(recordingId || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to upload recording");
+    debug("uploadRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
 async function commandLaunchBrowser(
   url: string | undefined,
-  opts: { browser: string | undefined }
+  opts: Pick<CommandLineOptions, "warn"> & { browser: string | undefined }
 ) {
   try {
+    debug("Options", opts);
+
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
     await launchBrowser(browser, [url || "about:blank"]);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      console.error(e.message);
-    } else {
-      console.error("Unexpected error");
-      console.error(e);
-    }
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to launch browser");
+    debug("launchBrowser error %o", e);
 
-    process.exit(1);
+    process.exit(opts.warn ? 0 : 1);
   }
-
-  process.exit(0);
 }
 
 async function commandProcessRecording(id: string, opts: CommandLineOptions) {
-  const recordingId = await processRecording(id, { ...opts, verbose: true });
-  process.exit(recordingId ? 0 : 1);
+  try {
+    debug("Options", opts);
+
+    const recordingId = await processRecording(id, { ...opts, verbose: true });
+    process.exit(recordingId || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to process recording");
+    debug("processRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
 async function commandUploadAllRecordings(opts: CommandLineOptions & UploadOptions) {
-  const uploadedAll = await uploadAllRecordings({ ...opts, verbose: true });
-  process.exit(uploadedAll ? 0 : 1);
+  try {
+    debug("Options", opts);
+
+    const uploadedAll = await uploadAllRecordings({ ...opts, verbose: true });
+    process.exit(uploadedAll || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to upload all recordings");
+    debug("uploadAllRecordings error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
 async function commandViewRecording(id: string, opts: CommandLineOptions) {
-  const viewed = await viewRecording(id, { ...opts, verbose: true });
-  process.exit(viewed ? 0 : 1);
+  try {
+    debug("Options", opts);
+
+    const viewed = await viewRecording(id, { ...opts, verbose: true });
+    process.exit(viewed || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to view recording");
+    debug("viewRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
 async function commandViewLatestRecording(opts: CommandLineOptions) {
-  const viewed = await viewLatestRecording({ ...opts, verbose: true });
-  process.exit(viewed ? 0 : 1);
+  try {
+    debug("Options", opts);
+
+    const viewed = await viewLatestRecording({ ...opts, verbose: true });
+    process.exit(viewed || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to view recording");
+    debug("viewLatestRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
-function commandRemoveRecording(id: string, opts: Pick<CommandLineOptions, "directory">) {
-  const removed = removeRecording(id, { ...opts, verbose: true });
-  process.exit(removed ? 0 : 1);
+function commandRemoveRecording(id: string, opts: Pick<CommandLineOptions, "directory" | "warn">) {
+  try {
+    debug("Options", opts);
+
+    const removed = removeRecording(id, { ...opts, verbose: true });
+    process.exit(removed || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to remove recording");
+    debug("removeRecording error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
-function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory">) {
-  removeAllRecordings({ ...opts, verbose: true });
-  process.exit(0);
+function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory" | "warn">) {
+  try {
+    debug("Options", opts);
+
+    removeAllRecordings({ ...opts, verbose: true });
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to remove all recordings");
+    debug("removeAllRecordings error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
-async function commandUpdateBrowsers(opts: Pick<CommandLineOptions, "directory">) {
-  await updateBrowsers({ ...opts, verbose: true });
-  process.exit(0);
+async function commandUpdateBrowsers(opts: Pick<CommandLineOptions, "directory" | "warn">) {
+  try {
+    debug("Options", opts);
+
+    await updateBrowsers({ ...opts, verbose: true });
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to updated browsers");
+    debug("updateBrowser error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
 
 async function commandUploadSourcemaps(
   filepaths: Array<string>,
-  cliOpts: SourcemapUploadOptions & Pick<CommandLineOptions, "apiKey">
+  cliOpts: SourcemapUploadOptions & Pick<CommandLineOptions, "apiKey" | "warn">
 ): Promise<void> {
-  const { quiet, verbose, apiKey, batchSize, ...uploadOpts } = cliOpts;
+  debug("Options", cliOpts);
+
+  const { quiet, verbose, apiKey, batchSize, warn, ...uploadOpts } = cliOpts;
 
   let log: LogCallback | undefined;
   if (!quiet) {
@@ -243,15 +319,34 @@ async function commandUploadSourcemaps(
     }
   }
 
-  await uploadSourceMaps({
-    filepaths,
-    key: apiKey,
-    ...uploadOpts,
-    concurrency: batchSize,
-    log,
-  });
+  try {
+    await uploadSourceMaps({
+      filepaths,
+      key: apiKey,
+      ...uploadOpts,
+      concurrency: batchSize,
+      log,
+    });
+
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to upload source maps");
+    debug("uploadSourceMaps error %o", e);
+
+    process.exit(warn ? 0 : 1);
+  }
 }
 
 async function commandMetadata(opts: MetadataOptions & FilterOptions) {
-  await updateMetadata({ ...opts, verbose: true });
+  try {
+    debug("Options", opts);
+
+    await updateMetadata({ ...opts, verbose: true });
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to update recording metadata");
+    debug("updateMetadata error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
