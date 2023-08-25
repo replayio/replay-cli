@@ -5,6 +5,21 @@ import { BrowserName, Options } from "./types";
 
 const debug = dbg("replay:cli");
 
+// Get the executable name to use when opening a URL.
+// It would be nice to use an existing npm package for this,
+// but the obvious choice of "open" didn't actually work on linux
+// when testing...
+export function openExecutable() {
+  switch (process.platform) {
+    case "darwin":
+      return "open";
+    case "linux":
+      return "xdg-open";
+    default:
+      throw new Error("Unsupported platform");
+  }
+}
+
 function defer<T = unknown>() {
   let resolve: (value: T) => void = () => {};
   let reject: (reason?: any) => void = () => {};

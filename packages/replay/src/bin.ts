@@ -23,6 +23,7 @@ import {
   UploadOptions,
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
+import { maybeAuthenticateUser } from "./auth";
 
 export interface CommandLineOptions extends Options {
   /**
@@ -129,6 +130,12 @@ commandWithGlobalOptions("metadata")
   .option("--warn", "Warn on initialization error")
   .option("--filter <filter string>", "String to filter recordings")
   .action(commandMetadata);
+
+program
+  .command("login")
+  .description("Log in interactively with your browser")
+  .option("--directory <dir>", "Alternate recording directory.")
+  .action(commandLogin);
 
 program.parseAsync().catch(err => {
   console.error(err);
@@ -349,4 +356,12 @@ async function commandMetadata(opts: MetadataOptions & FilterOptions) {
 
     process.exit(opts.warn ? 0 : 1);
   }
+}
+
+async function commandLogin(opts: CommandLineOptions) {
+  const ok = await maybeAuthenticateUser({
+    ...opts,
+    verbose: true,
+  });
+  process.exit(ok ? 0 : 1);
 }
