@@ -16,7 +16,7 @@ import {
   ensureBrowsersInstalled,
   getExecutablePath,
 } from "./install";
-import { exponentialBackoffRetry, getDirectory, maybeLog } from "./utils";
+import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
 import { spawn } from "child_process";
 import {
   BrowserName,
@@ -32,6 +32,7 @@ import {
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
+import { readToken } from "./auth";
 export type { BrowserName } from "./types";
 
 const debug = dbg("replay:cli");
@@ -356,6 +357,10 @@ async function doUploadRecording(
     return null;
   }
 
+  if (!apiKey) {
+    apiKey = await readToken({ directory: dir });
+  }
+
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
@@ -471,9 +476,14 @@ async function uploadRecording(id: string, opts: Options = {}) {
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
   const server = getServer(opts);
-  const { apiKey, verbose, agent } = opts;
+  const { verbose, agent } = opts;
+  let apiKey = opts.apiKey;
 
   maybeLog(verbose, `Processing recording ${recordingId}...`);
+
+  if (!apiKey) {
+    apiKey = await readToken(opts);
+  }
 
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
@@ -534,21 +544,6 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
   );
 
   return recordingIds.every(r => r !== null);
-}
-
-// Get the executable name to use when opening a URL.
-// It would be nice to use an existing npm package for this,
-// but the obvious choice of "open" didn't actually work on linux
-// when testing...
-function openExecutable() {
-  switch (process.platform) {
-    case "darwin":
-      return "open";
-    case "linux":
-      return "xdg-open";
-    default:
-      throw new Error("Unsupported platform");
-  }
 }
 
 async function doViewRecording(
