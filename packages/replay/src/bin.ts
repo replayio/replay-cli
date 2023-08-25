@@ -97,7 +97,9 @@ commandWithGlobalOptions("rm <id>")
   .description("Remove a specific recording.")
   .action(commandRemoveRecording);
 
-program.command("rm-all").description("Remove all recordings.").action(commandRemoveAllRecordings);
+commandWithGlobalOptions("rm-all")
+  .description("Remove all recordings.")
+  .action(commandRemoveAllRecordings);
 
 commandWithGlobalOptions("update-browsers")
   .description("Update browsers used in automation.")
@@ -131,8 +133,7 @@ commandWithGlobalOptions("metadata")
   .option("--filter <filter string>", "String to filter recordings")
   .action(commandMetadata);
 
-program
-  .command("login")
+commandWithGlobalOptions("login")
   .description("Log in interactively with your browser")
   .option("--directory <dir>", "Alternate recording directory.")
   .action(commandLogin);
@@ -359,9 +360,16 @@ async function commandMetadata(opts: MetadataOptions & FilterOptions) {
 }
 
 async function commandLogin(opts: CommandLineOptions) {
-  const ok = await maybeAuthenticateUser({
-    ...opts,
-    verbose: true,
-  });
-  process.exit(ok ? 0 : 1);
+  try {
+    const ok = await maybeAuthenticateUser({
+      ...opts,
+      verbose: true,
+    });
+    process.exit(ok || opts.warn ? 0 : 1);
+  } catch (e) {
+    console.error("Failed to login");
+    debug("maybeAuthenticateUser error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
 }
