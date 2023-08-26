@@ -1,3 +1,4 @@
+import dbg from "debug";
 import type {
   FullConfig,
   Reporter,
@@ -19,7 +20,10 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
+import { WebSocketServer } from "ws";
+import { startServer } from "./ws";
 
+const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("../package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
@@ -65,6 +69,15 @@ class ReplayPlaywrightReporter implements Reporter {
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
+  wss: WebSocketServer;
+
+  constructor() {
+    debug("Starting plugin WebSocket server on 52025");
+    this.wss = startServer({
+      port: 52025,
+      onStepStart: o => console.log(">>stepstart", o),
+    });
+  }
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");

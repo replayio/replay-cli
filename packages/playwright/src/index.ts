@@ -3,6 +3,7 @@ import { initMetadataFile } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./reporter";
 import "./fixture";
+import { setServerPort } from "./ws";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -11,6 +12,8 @@ function getDeviceConfig(browserName: BrowserName) {
     ...process.env,
     RECORD_ALL_CONTENT: 1,
   };
+
+  setServerPort(env, 52025);
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
     env.RECORD_ALL_CONTENT = "";

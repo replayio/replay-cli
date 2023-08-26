@@ -1,6 +1,19 @@
 import { Page, TestInfo, test } from "@playwright/test";
 import dbg from "debug";
-import { ClientInstrumentationListener } from "./playwrightTypes";
+import { ClientInstrumentationListener, ParsedStackTrace } from "./playwrightTypes";
+import WebSocket from "ws";
+
+export interface FixtureStepStart {
+  apiName: string;
+  params: Record<string, any>;
+  stackTrace: ParsedStackTrace;
+}
+
+interface FixtureStepStartEvent extends FixtureStepStart {
+  event: "step:start";
+}
+
+export type FixtureEvent = FixtureStepStartEvent;
 
 const debug = dbg("replay:playwright:fixture");
 
@@ -34,6 +47,7 @@ fixtures.push({
         use: () => Promise<void>,
         testInfo: TestInfo
       ) => {
+        const ws = new WebSocket(`ws://localhost:52025`);
         debug("Setting up replay fixture");
         let lastId: string | undefined;
 
@@ -43,11 +57,25 @@ fixtures.push({
           }
         }
 
+        await new Promise<void>((resolve, reject) => {
+          ws.on("open", () => resolve());
+          ws.on("error", () => reject("Socket errored"));
+        });
+
         const csiListener: ClientInstrumentationListener = {
-          onApiCallBegin: (apiName, params, _stackTrace, _wallTime, userData) => {
+          onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
             if (isReplayAnnotation(params)) {
               return;
             }
+
+            ws.send(
+              JSON.stringify({
+                event: "step:start",
+                apiName,
+                params,
+                stackTrace,
+              })
+            );
 
             lastId = getLastStepId(testInfo);
             addAnnotation("step:start", lastId);
@@ -70,7 +98,7 @@ fixtures.push({
 
         clientInstrumentation.removeListener(csiListener);
       },
-      { auto: "all-hooks-included", _title: "Replay fixture" } as any,
+      { auto: true, _title: "Replay.io fixture" },
     ],
   },
   location: {
