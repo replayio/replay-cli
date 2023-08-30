@@ -4,6 +4,7 @@ import { ClientInstrumentationListener, ParsedStackTrace } from "./playwrightTyp
 import WebSocket from "ws";
 
 export interface FixtureStepStart {
+  id: string;
   apiName: string;
   params: Record<string, any>;
   stackTrace: ParsedStackTrace;
@@ -33,77 +34,83 @@ function isReplayAnnotation(params?: any) {
   return params?.expression?.includes("ReplayAddAnnotation");
 }
 
-const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
-const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
-if (!fixtures) {
-  debug("Failed to inject replay fixture");
+async function replayFixture(
+  { playwright, page }: { playwright: any; page: Page },
+  use: () => Promise<void>,
+  testInfo: TestInfo
+) {
+  const ws = new WebSocket(`ws://localhost:52025`);
+  debug("Setting up replay fixture");
+  let currentStepId: string | undefined;
+
+  function addAnnotation(event: string, id?: string) {
+    if (id) {
+      page.evaluate(ReplayAddAnnotation, [event, id]).catch(e => console.error);
+    }
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    ws.on("open", () => resolve());
+    ws.on("error", () => reject("Socket errored"));
+  });
+
+  const csiListener: ClientInstrumentationListener = {
+    onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
+      if (isReplayAnnotation(params)) {
+        return;
+      }
+
+      currentStepId = getLastStepId(testInfo);
+
+      if (!currentStepId) {
+        return;
+      }
+
+      ws.send(
+        JSON.stringify({
+          event: "step:start",
+          id: currentStepId,
+          apiName,
+          params,
+          stackTrace,
+        })
+      );
+
+      addAnnotation("step:start", currentStepId);
+    },
+
+    onApiCallEnd: (userData, error) => {
+      if (isReplayAnnotation(userData?.userObject?.params)) {
+        return;
+      }
+
+      addAnnotation("step:end", currentStepId);
+    },
+  };
+
+  const clientInstrumentation = playwright._instrumentation;
+  clientInstrumentation.addListener(csiListener);
+
+  await use();
+
+  clientInstrumentation.removeListener(csiListener);
 }
 
-fixtures.push({
-  fixtures: {
-    _replay: [
-      async (
-        { playwright, page }: { playwright: any; page: Page },
-        use: () => Promise<void>,
-        testInfo: TestInfo
-      ) => {
-        const ws = new WebSocket(`ws://localhost:52025`);
-        debug("Setting up replay fixture");
-        let lastId: string | undefined;
+if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
+  const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
+  const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
+  if (!fixtures) {
+    debug("Failed to inject replay fixture");
+  }
 
-        function addAnnotation(event: string, id?: string) {
-          if (id) {
-            page.evaluate(ReplayAddAnnotation, [event, id]).catch(e => console.error);
-          }
-        }
-
-        await new Promise<void>((resolve, reject) => {
-          ws.on("open", () => resolve());
-          ws.on("error", () => reject("Socket errored"));
-        });
-
-        const csiListener: ClientInstrumentationListener = {
-          onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
-            if (isReplayAnnotation(params)) {
-              return;
-            }
-
-            ws.send(
-              JSON.stringify({
-                event: "step:start",
-                apiName,
-                params,
-                stackTrace,
-              })
-            );
-
-            lastId = getLastStepId(testInfo);
-            addAnnotation("step:start", lastId);
-          },
-
-          onApiCallEnd: (userData, error) => {
-            if (isReplayAnnotation(userData?.userObject?.params)) {
-              return;
-            }
-
-            addAnnotation("step:end", lastId);
-          },
-        };
-
-        const clientInstrumentation = playwright._instrumentation;
-        clientInstrumentation.addListener(csiListener);
-
-        // @ts-ignore
-        await use();
-
-        clientInstrumentation.removeListener(csiListener);
-      },
-      { auto: true, _title: "Replay.io fixture" },
-    ],
-  },
-  location: {
-    file: "unknown",
-    line: 0,
-    column: 0,
-  },
-});
+  fixtures.push({
+    fixtures: {
+      _replay: [replayFixture, { auto: true, _title: "Replay.io fixture" }],
+    },
+    location: {
+      file: "unknown",
+      line: 0,
+      column: 0,
+    },
+  });
+}

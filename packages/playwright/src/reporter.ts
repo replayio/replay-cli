@@ -22,6 +22,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 import { readFileSync } from "fs";
 import { WebSocketServer } from "ws";
 import { startServer } from "./ws";
+import { FixtureStepStart } from "./fixture";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("../package.json").version;
@@ -70,12 +71,15 @@ class ReplayPlaywrightReporter implements Reporter {
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
   wss: WebSocketServer;
+  fixtureSteps: FixtureStepStart[] = [];
 
   constructor() {
     debug("Starting plugin WebSocket server on 52025");
     this.wss = startServer({
       port: 52025,
-      onStepStart: o => console.log(">>stepstart", o),
+      onStepStart: step => {
+        this.fixtureSteps.push(step);
+      },
     });
   }
 
@@ -157,10 +161,12 @@ class ReplayPlaywrightReporter implements Reporter {
     }
 
     const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
+    let fixtureStepIndex = -1;
     const steps: UserActionEvent[] = [];
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
       const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
+
       const step: UserActionEvent = {
         data: {
           id: String(i),
@@ -181,6 +187,24 @@ class ReplayPlaywrightReporter implements Reporter {
           category: mapTestStepCategory(s),
         },
       };
+
+      const currentFixtureStepIndex = this.fixtureSteps.findIndex(
+        (v, i) => i > fixtureStepIndex && s.title.startsWith(v.apiName)
+      );
+      if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
+        if (currentFixtureStepIndex !== -1) {
+          fixtureStepIndex = currentFixtureStepIndex;
+          const f = this.fixtureSteps[fixtureStepIndex];
+
+          step.data.id = f.id;
+          step.data.command.name = f.apiName;
+          step.data.command.arguments = Object.values(f.params).map(s =>
+            typeof s === "string" ? s : JSON.stringify(s)
+          );
+        } else {
+          continue;
+        }
+      }
 
       if (hook) {
         const hookSteps = hookMap.get(hook) || [];
