@@ -135,6 +135,58 @@ function onReplayTask(value: any) {
 const plugin: Cypress.PluginConfig = (on, config) => {
   cypressReporter = new CypressReporter(config, debug);
 
+  const _on = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
+    const handlers: any = {};
+
+    const singleHandlerEvents = {
+      "after:screenshot": false,
+      "file:preprocessor": false,
+      "dev-server:start": false,
+    };
+
+    return (e, h: any) => {
+      if (e === "task") {
+        base(e, h);
+        return;
+      }
+
+      if (Object.keys(singleHandlerEvents).includes(e)) {
+        const key = e as keyof typeof singleHandlerEvents;
+        if (singleHandlerEvents[key] === true) {
+          throw new Error(`Only 1 handler allowed for ${e}`);
+        }
+
+        singleHandlerEvents[key] = true;
+        base(e as any, h);
+        return;
+      }
+
+      handlers[e] = handlers[e] || [];
+      handlers[e].push(h);
+
+      if (handlers[e].length === 1) {
+        base(e as any, async (...args: any[]) => {
+          if (e === "before:browser:launch") {
+            let [browser, launchOptions] = args;
+            for (const h of handlers[e]) {
+              const currentHandler = h.shift();
+              launchOptions = await currentHandler(browser, launchOptions);
+            }
+
+            return launchOptions;
+          } else {
+            for (const h of handlers[e]) {
+              const currentHandler = h.shift();
+              await currentHandler(...args);
+            }
+          }
+        });
+      }
+    };
+  };
+
+  on = _on(on);
+
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
     process.env.RECORD_REPLAY_TEST_METRICS = "0";
   }
