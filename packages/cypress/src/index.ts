@@ -132,62 +132,60 @@ function onReplayTask(value: any) {
   return true;
 }
 
-const plugin: Cypress.PluginConfig = (on, config) => {
-  cypressReporter = new CypressReporter(config, debug);
+const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
+  const handlers: any = {};
 
-  const _on = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
-    const handlers: any = {};
-
-    const singleHandlerEvents = {
-      "after:screenshot": false,
-      "file:preprocessor": false,
-      "dev-server:start": false,
-    };
-
-    const makeHandlerDispatcher =
-      (e: string) =>
-      async (...args: any[]) => {
-        if (e === "before:browser:launch") {
-          let [browser, launchOptions] = args;
-          for (const currentHandler of handlers[e]) {
-            launchOptions = (await currentHandler(browser, launchOptions)) ?? launchOptions;
-          }
-
-          return launchOptions;
-        } else {
-          for (const currentHandler of handlers[e]) {
-            await currentHandler(...args);
-          }
-        }
-      };
-
-    return (e, h: any) => {
-      if (e === "task") {
-        base(e, h);
-        return;
-      }
-
-      if (Object.keys(singleHandlerEvents).includes(e)) {
-        const key = e as keyof typeof singleHandlerEvents;
-        if (singleHandlerEvents[key] === true) {
-          throw new Error(`Only 1 handler allowed for ${e}`);
-        }
-
-        singleHandlerEvents[key] = true;
-        base(e as any, h);
-        return;
-      }
-
-      handlers[e] = handlers[e] || [];
-      handlers[e].push(h);
-
-      if (handlers[e].length === 1) {
-        base(e as any, makeHandlerDispatcher(e));
-      }
-    };
+  const singleHandlerEvents = {
+    "after:screenshot": false,
+    "file:preprocessor": false,
+    "dev-server:start": false,
   };
 
-  on = _on(on);
+  const makeHandlerDispatcher =
+    (e: string) =>
+    async (...args: any[]) => {
+      if (e === "before:browser:launch") {
+        let [browser, launchOptions] = args;
+        for (const currentHandler of handlers[e]) {
+          launchOptions = (await currentHandler(browser, launchOptions)) ?? launchOptions;
+        }
+
+        return launchOptions;
+      } else {
+        for (const currentHandler of handlers[e]) {
+          await currentHandler(...args);
+        }
+      }
+    };
+
+  return (e, h: any) => {
+    if (e === "task") {
+      base(e, h);
+      return;
+    }
+
+    if (Object.keys(singleHandlerEvents).includes(e)) {
+      const key = e as keyof typeof singleHandlerEvents;
+      if (singleHandlerEvents[key] === true) {
+        throw new Error(`Only 1 handler allowed for ${e}`);
+      }
+
+      singleHandlerEvents[key] = true;
+      base(e as any, h);
+      return;
+    }
+
+    handlers[e] = handlers[e] || [];
+    handlers[e].push(h);
+
+    if (handlers[e].length === 1) {
+      base(e as any, makeHandlerDispatcher(e));
+    }
+  };
+};
+
+const plugin: Cypress.PluginConfig = (on, config) => {
+  cypressReporter = new CypressReporter(config, debug);
 
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
     process.env.RECORD_REPLAY_TEST_METRICS = "0";
@@ -278,6 +276,7 @@ export default plugin;
 export {
   plugin,
   run,
+  cypressOnWrapper as on,
   onBeforeRun,
   onBeforeBrowserLaunch,
   onBeforeSpec,
