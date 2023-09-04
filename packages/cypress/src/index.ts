@@ -144,6 +144,23 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       "dev-server:start": false,
     };
 
+    const makeHandlerDispatcher =
+      (e: string) =>
+      async (...args: any[]) => {
+        if (e === "before:browser:launch") {
+          let [browser, launchOptions] = args;
+          for (const currentHandler of handlers[e]) {
+            launchOptions = (await currentHandler(browser, launchOptions)) ?? launchOptions;
+          }
+
+          return launchOptions;
+        } else {
+          for (const currentHandler of handlers[e]) {
+            await currentHandler(...args);
+          }
+        }
+      };
+
     return (e, h: any) => {
       if (e === "task") {
         base(e, h);
@@ -165,22 +182,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
       handlers[e].push(h);
 
       if (handlers[e].length === 1) {
-        base(e as any, async (...args: any[]) => {
-          if (e === "before:browser:launch") {
-            let [browser, launchOptions] = args;
-            for (const h of handlers[e]) {
-              const currentHandler = h.shift();
-              launchOptions = await currentHandler(browser, launchOptions);
-            }
-
-            return launchOptions;
-          } else {
-            for (const h of handlers[e]) {
-              const currentHandler = h.shift();
-              await currentHandler(...args);
-            }
-          }
-        });
+        base(e as any, makeHandlerDispatcher(e));
       }
     };
   };
