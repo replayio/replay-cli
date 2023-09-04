@@ -276,7 +276,7 @@ export default plugin;
 export {
   plugin,
   run,
-  cypressOnWrapper as on,
+  cypressOnWrapper as wrapOn,
   onBeforeRun,
   onBeforeBrowserLaunch,
   onBeforeSpec,
