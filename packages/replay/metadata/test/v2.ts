@@ -24,19 +24,43 @@ const testError = object({
   column: optional(number()),
 });
 
-const userActionEvent = object({
-  data: object({
-    id: string(),
-    parentId: nullable(string()),
-    category: enums(["assertion", "command", "other"]),
-    command: object({
-      arguments: array(string()),
-      name: string(),
-    }),
-    scope: nullable(array(string())),
-    error: nullable(testError),
-  }),
+const stackFrame = object({
+  file: string(),
+  line: number(),
+  column: number(),
+  function: optional(string()),
 });
+
+const userActionEventData = object({
+  id: string(),
+  rrId: optional(string()),
+  parentId: nullable(string()),
+  category: enums(["assertion", "command", "other"]),
+  command: object({
+    arguments: array(string()),
+    name: string(),
+  }),
+  scope: nullable(array(string())),
+  error: nullable(testError),
+});
+
+const userActionEvent = object({
+  data: userActionEventData,
+});
+
+const userActionEventData_v2_2_0 = assign(
+  userActionEventData,
+  object({
+    stack: optional(array(stackFrame)),
+  })
+);
+
+const userActionEvent_v2_2_0 = assign(
+  userActionEvent,
+  object({
+    data: userActionEventData_v2_2_0,
+  })
+);
 
 const testResult = enums(["failed", "passed", "skipped", "timedOut", "unknown"]);
 
@@ -120,6 +144,19 @@ const test_v2_1_0 = assign(
   })
 );
 
+const test_v2_2_0 = assign(
+  test_v2_1_0,
+  object({
+    events: object({
+      afterAll: array(userActionEvent_v2_2_0),
+      afterEach: array(userActionEvent_v2_2_0),
+      beforeAll: array(userActionEvent_v2_2_0),
+      beforeEach: array(userActionEvent_v2_2_0),
+      main: array(userActionEvent_v2_2_0),
+    }),
+  })
+);
+
 const v2_1_0 = assign(
   v2_0_0,
   object({
@@ -127,15 +164,23 @@ const v2_1_0 = assign(
   })
 );
 
+const v2_2_0 = assign(
+  v2_1_0,
+  object({
+    tests: array(test_v2_2_0),
+  })
+);
+
 export namespace TestMetadataV2 {
-  export type UserActionEvent = Infer<typeof userActionEvent>;
-  export type Test = Infer<typeof test_v2_1_0>;
+  export type UserActionEvent = Infer<typeof userActionEvent_v2_2_0>;
+  export type Test = Infer<typeof test_v2_2_0>;
   export type TestResult = Infer<typeof testResult>;
-  export type TestRun = Infer<typeof v2_1_0>;
+  export type TestRun = Infer<typeof v2_2_0>;
   export type TestError = Infer<typeof testError>;
 }
 
 export default {
+  "2.2.0": v2_2_0,
   "2.1.0": v2_1_0,
   "2.0.0": v2_0_0,
 };
