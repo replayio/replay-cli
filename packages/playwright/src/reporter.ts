@@ -27,9 +27,10 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 function extractErrorMessage(error: TestError) {
-  if (error.message) {
+  const message = removeAnsiCodes(error.message);
+  if (message) {
     // Error message. Set when [Error] (or its subclass) has been thrown.
-    const errorMessageLines = removeAnsiCodes(error.message)!.split("\n");
+    const errorMessageLines = message.split("\n");
     let stackStart = errorMessageLines.findIndex(l => l.startsWith("Call log:"));
     stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
     return errorMessageLines.slice(0, stackStart).join("\n");
