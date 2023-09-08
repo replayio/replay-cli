@@ -133,7 +133,7 @@ class ReplayPlaywrightReporter implements Reporter {
         version: config.version,
         plugin: pluginVersion,
       },
-      "2.2.0"
+      "2.1.0"
     );
     this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
 
@@ -155,6 +155,8 @@ class ReplayPlaywrightReporter implements Reporter {
     let fixtureStepIndex = -1;
     const steps: UserActionEvent[] = [];
     const filenames = new Set<string>();
+    const stacks: Record<string, any> = {};
+
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
       const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
@@ -194,18 +196,20 @@ class ReplayPlaywrightReporter implements Reporter {
             typeof s === "string" ? s : JSON.stringify(s)
           );
 
-          step.data.stack = f.stackTrace.frames.map(frame => ({
+          const stack = f.stackTrace.frames.map(frame => ({
             ...frame,
             file: path.relative(process.cwd(), frame.file),
           }));
+
+          if (stack) {
+            stacks[f.id] = stack;
+
+            for (const frame of stack) {
+              filenames.add(frame.file);
+            }
+          }
         } else {
           continue;
-        }
-      }
-
-      if (step.data.stack) {
-        for (const frame of step.data.stack) {
-          filenames.add(frame.file);
         }
       }
 
@@ -229,6 +233,7 @@ class ReplayPlaywrightReporter implements Reporter {
             sources: Object.fromEntries(
               [...filenames].map(filename => [filename, readFileSync(filename, "utf8")])
             ),
+            stacks,
           },
         };
       } catch (e) {
