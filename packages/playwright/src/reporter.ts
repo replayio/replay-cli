@@ -27,10 +27,19 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 function extractErrorMessage(error: TestError) {
-  const errorMessageLines = removeAnsiCodes(error.message)!.split("\n");
-  let stackStart = errorMessageLines.findIndex(l => l.startsWith("Call log:"));
-  stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
-  return errorMessageLines.slice(0, stackStart).join("\n");
+  const message = removeAnsiCodes(error.message);
+  if (message) {
+    // Error message. Set when [Error] (or its subclass) has been thrown.
+    const errorMessageLines = message.split("\n");
+    let stackStart = errorMessageLines.findIndex(l => l.startsWith("Call log:"));
+    stackStart = stackStart == null || stackStart === -1 ? 10 : Math.min(stackStart, 10);
+    return errorMessageLines.slice(0, stackStart).join("\n");
+  } else if (error.value != null) {
+    // The value that was thrown. Set when anything except the [Error] (or its subclass) has been thrown.
+    return error.value;
+  }
+
+  return "Unknown error";
 }
 
 function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
