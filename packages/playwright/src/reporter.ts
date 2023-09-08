@@ -133,7 +133,7 @@ class ReplayPlaywrightReporter implements Reporter {
         version: config.version,
         plugin: pluginVersion,
       },
-      "2.1.0"
+      "2.2.0"
     );
     this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
 
