@@ -1,7 +1,6 @@
 // Adapted from https://github.com/bahmutov/cypress-repeat
 
 import path from "path";
-import cypress from "cypress";
 import dbg from "debug";
 import { fork } from "child_process";
 import terminate from "terminate";
@@ -57,13 +56,13 @@ export default async function CypressRepeat({
   repeat = 1,
   mode = SpecRepeatMode.All,
   untilPasses = false,
-  args = [],
+  options = {},
   timeout,
 }: {
   repeat?: number;
   mode?: SpecRepeatMode;
   untilPasses?: boolean;
-  args?: string[];
+  options?: Partial<CypressCommandLine.CypressRunOptions>;
   timeout?: number;
 }) {
   const name = "cypress-repeat:";
@@ -78,14 +77,6 @@ export default async function CypressRepeat({
   if (rerunFailedOnly) {
     console.log("%s it only reruns specs which have failed", name);
   }
-
-  const parseArguments = async () => {
-    return await cypress.cli.parseRunArguments(["cypress", "run", ...args]);
-  };
-
-  const options = await parseArguments();
-
-  debug("parsed CLI options %o", options);
 
   const allRunOptions = buildAllRunOptions(repeat, options);
 

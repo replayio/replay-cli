@@ -1,6 +1,6 @@
 {
   "name": "@replayio/test-utils",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Utilities for recording tests with replay.io",
   "main": "src/index.js",
   "scripts": {
@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli#readme",
   "dependencies": {
-    "@replayio/replay": "^0.14.4",
+    "@replayio/replay": "^0.15.0",
     "@types/node-fetch": "^2.6.2",
     "debug": "^4.3.4",
     "node-fetch": "^2.6.7",

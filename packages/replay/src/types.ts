@@ -1,6 +1,6 @@
 export type UnstructuredMetadata = Record<string, unknown>;
 
-export interface CommandLineOptions {
+export interface Options {
   /**
    * Alternate recording directory
    */
@@ -15,19 +15,9 @@ export interface CommandLineOptions {
    * Authentication API Key
    */
   apiKey?: string;
-
-  /**
-   * JSON output
-   */
-  json?: boolean;
-}
-
-export interface NodeOptions {
   verbose?: boolean;
   agent?: any;
 }
-
-export type Options = CommandLineOptions & NodeOptions;
 
 export interface SourcemapUploadOptions {
   group: string;
@@ -57,6 +47,7 @@ export interface ListOptions extends FilterOptions {
 
 export interface UploadOptions extends FilterOptions {
   batchSize?: number;
+  warn?: boolean;
 }
 
 /**

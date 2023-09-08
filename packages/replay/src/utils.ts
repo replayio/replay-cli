@@ -1,9 +1,24 @@
 import dbg from "debug";
 import path from "path";
 
-import { BrowserName, CommandLineOptions } from "./types";
+import { BrowserName, Options } from "./types";
 
 const debug = dbg("replay:cli");
+
+// Get the executable name to use when opening a URL.
+// It would be nice to use an existing npm package for this,
+// but the obvious choice of "open" didn't actually work on linux
+// when testing...
+export function openExecutable() {
+  switch (process.platform) {
+    case "darwin":
+      return "open";
+    case "linux":
+      return "xdg-open";
+    default:
+      throw new Error("Unsupported platform");
+  }
+}
 
 function defer<T = unknown>() {
   let resolve: (value: T) => void = () => {};
@@ -22,7 +37,7 @@ function maybeLog(verbose: boolean | undefined, str: string) {
   }
 }
 
-function getDirectory(opts?: Pick<CommandLineOptions, "directory">) {
+function getDirectory(opts?: Pick<Options, "directory">) {
   const home = process.env.HOME || process.env.USERPROFILE;
   return (
     (opts && opts.directory) || process.env.RECORD_REPLAY_DIRECTORY || path.join(home!, ".replay")
