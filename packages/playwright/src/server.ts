@@ -3,6 +3,7 @@ import WebSocket, { WebSocketServer } from "ws";
 import { FixtureEvent, FixtureStepStart } from "./fixture";
 
 const debug = dbg("replay:playwright:server");
+const debugMessages = debug.extend("messages");
 
 export function startServer({
   port = 0,
@@ -21,7 +22,7 @@ export function startServer({
     ws.on("message", function message(data) {
       try {
         const payload = data.toString("utf-8");
-        debug("Message received %s", payload);
+        debugMessages("Message received %s", payload);
         const { event, ...rest } = JSON.parse(payload) as FixtureEvent;
 
         if (event === "step:start") {
