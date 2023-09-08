@@ -21,7 +21,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 import { WebSocketServer } from "ws";
-import { startServer } from "./ws";
+import { startServer } from "./server";
 import { FixtureStepStart } from "./fixture";
 
 const debug = dbg("replay:playwright:reporter");
