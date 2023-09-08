@@ -101,7 +101,7 @@ function getTestsFromResults(
       error: result.displayError
         ? {
             name: "DisplayError",
-            message: result.displayError.substring(0, result.displayError.indexOf("\n")),
+            message: result.displayError,
           }
         : null,
     }));
