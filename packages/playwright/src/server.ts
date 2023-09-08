@@ -43,10 +43,6 @@ export function startServer({
   return wss;
 }
 
-export function setServerPort(env: NodeJS.ProcessEnv, serverPort: number) {
-  env.REPLAY_PLAYWRIGHT_PLUGIN_SERVER_PORT = String(serverPort);
-}
-
 export function getServerPort(env: NodeJS.ProcessEnv = process.env) {
   if ("REPLAY_PLAYWRIGHT_PLUGIN_SERVER_PORT" in env && env.REPLAY_PLAYWRIGHT_PLUGIN_SERVER_PORT) {
     const port = Number.parseInt(env.REPLAY_PLAYWRIGHT_PLUGIN_SERVER_PORT);
@@ -55,4 +51,6 @@ export function getServerPort(env: NodeJS.ProcessEnv = process.env) {
       return port;
     }
   }
+
+  return 52025;
 }

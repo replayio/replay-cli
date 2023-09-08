@@ -21,7 +21,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 import { WebSocketServer } from "ws";
-import { startServer } from "./server";
+import { getServerPort, startServer } from "./server";
 import { FixtureStepStart } from "./fixture";
 
 const debug = dbg("replay:playwright:reporter");
@@ -83,9 +83,10 @@ class ReplayPlaywrightReporter implements Reporter {
   fixtureSteps: FixtureStepStart[] = [];
 
   constructor() {
-    debug("Starting plugin WebSocket server on 52025");
+    const port = getServerPort();
+    debug(`Starting plugin WebSocket server on ${port}`);
     this.wss = startServer({
-      port: 52025,
+      port,
       onStepStart: step => {
         this.fixtureSteps.push(step);
       },

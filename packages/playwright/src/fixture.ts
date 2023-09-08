@@ -2,6 +2,7 @@ import { Page, TestInfo, test } from "@playwright/test";
 import dbg from "debug";
 import { ClientInstrumentationListener, ParsedStackTrace } from "./playwrightTypes";
 import WebSocket from "ws";
+import { getServerPort } from "./server";
 
 export interface FixtureStepStart {
   id: string;
@@ -39,7 +40,8 @@ async function replayFixture(
   use: () => Promise<void>,
   testInfo: TestInfo
 ) {
-  const ws = new WebSocket(`ws://localhost:52025`);
+  const port = getServerPort();
+  const ws = new WebSocket(`ws://localhost:${port}`);
   debug("Setting up replay fixture");
   let currentStepId: string | undefined;
 
