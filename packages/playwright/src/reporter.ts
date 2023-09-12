@@ -1,4 +1,7 @@
 import dbg from "debug";
+import { readFileSync } from "fs";
+import path from "path";
+import { WebSocketServer } from "ws";
 import type {
   FullConfig,
   Reporter,
@@ -7,8 +10,6 @@ import type {
   TestResult,
   TestStep,
 } from "@playwright/test/reporter";
-import path from "path";
-
 import {
   ReplayReporter,
   ReplayReporterConfig,
@@ -19,8 +20,6 @@ import {
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
-import { readFileSync } from "fs";
-import { WebSocketServer } from "ws";
 import { getServerPort, startServer } from "./server";
 import { FixtureStepStart } from "./fixture";
 
