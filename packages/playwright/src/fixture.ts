@@ -35,7 +35,7 @@ function isReplayAnnotation(params?: any) {
   return params?.expression?.includes("ReplayAddAnnotation");
 }
 
-async function replayFixture(
+export async function replayFixture(
   { playwright, page }: { playwright: any; page: Page },
   use: () => Promise<void>,
   testInfo: TestInfo
@@ -98,11 +98,12 @@ async function replayFixture(
   clientInstrumentation.removeListener(csiListener);
 }
 
-if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
+export function addReplayFixture() {
   const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
   const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
   if (!fixtures) {
     debug("Failed to inject replay fixture");
+    return;
   }
 
   fixtures.push({
@@ -110,9 +111,13 @@ if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
       _replay: [replayFixture, { auto: true, _title: "Replay.io fixture" }],
     },
     location: {
-      file: "unknown",
-      line: 0,
-      column: 0,
+      file: __filename,
+      line: 38,
+      column: 1,
     },
   });
+}
+
+if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
+  addReplayFixture();
 }
