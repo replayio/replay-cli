@@ -248,7 +248,7 @@ const plugin = (
     on("after:spec", (spec, result) => {
       onAfterSpec(spec, result);
 
-      if (options.upload === true) {
+      if (options.upload === true && cypressReporter.isFeatureEnabled(PluginFeature.Upload)) {
         pendingWork.push(startUpload(spec, options));
       }
     });
@@ -271,9 +271,7 @@ const plugin = (
       onBeforeBrowserLaunch(config, browser, launchOptions)
     );
     on("before:spec", onBeforeSpec);
-    on("after:run", () => {
-      onAfterRun();
-    });
+    on("after:run", onAfterRun);
 
     // make sure we have a config object with the keys we need to mutate
     config = config || {};
@@ -306,7 +304,7 @@ const plugin = (
 
     const firefoxPath = getPlaywrightBrowserPath("firefox");
     if (firefoxPath) {
-      debug("Adding firefox to cypress at %s", chromiumPath);
+      debug("Adding firefox to cypress at %s", firefoxPath);
       config.browsers = config.browsers.concat({
         name: "replay-firefox",
         channel: "stable",
@@ -319,7 +317,7 @@ const plugin = (
         isHeadless: false,
       });
     } else {
-      debug("Firefox not supported on this platform", chromiumPath);
+      debug("Firefox not supported on this platform", firefoxPath);
     }
   }
 
