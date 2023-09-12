@@ -121,6 +121,6 @@ export function addReplayFixture() {
   });
 }
 
-if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
-  addReplayFixture();
+export function isFixtureEnabled() {
+  return !!process.env.REPLAY_PLAYWRIGHT_FIXTURE;
 }

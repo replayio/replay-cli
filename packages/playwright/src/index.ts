@@ -2,7 +2,11 @@ import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { getMetadataFilePath } from "./reporter";
-import { addReplayFixture, replayFixture } from "./fixture";
+import { addReplayFixture, isFixtureEnabled, replayFixture } from "./fixture";
+
+if (isFixtureEnabled()) {
+  addReplayFixture();
+}
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);

@@ -21,7 +21,7 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
-import { FixtureStepStart } from "./fixture";
+import { FixtureStepStart, isFixtureEnabled } from "./fixture";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("../package.json").version;
@@ -80,6 +80,8 @@ class ReplayPlaywrightReporter implements Reporter {
   );
   wss: WebSocketServer;
   fixtureSteps: FixtureStepStart[] = [];
+  stacks: Record<string, any> = {};
+  filenames: Set<string> = new Set();
 
   constructor() {
     const port = getServerPort();
@@ -151,11 +153,21 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     let fixtureStepIndex = -1;
+    const findFixtureStepForStep = (step: TestStep) => {
+      const currentFixtureStepIndex = this.fixtureSteps.findIndex(
+        // find the next (i < fixtureStepIndex) command with the same name
+        (v, i) => i > fixtureStepIndex && step.title.startsWith(v.apiName)
+      );
+
+      if (currentFixtureStepIndex !== -1) {
+        fixtureStepIndex = currentFixtureStepIndex;
+        return this.fixtureSteps[fixtureStepIndex];
+      }
+    };
+
+    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
-    const filenames = new Set<string>();
-    const stacks: Record<string, any> = {};
 
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
@@ -182,35 +194,16 @@ class ReplayPlaywrightReporter implements Reporter {
         },
       };
 
-      const currentFixtureStepIndex = this.fixtureSteps.findIndex(
-        (v, i) => i > fixtureStepIndex && s.title.startsWith(v.apiName)
-      );
-      if (process.env.REPLAY_PLAYWRIGHT_FIXTURE) {
-        if (currentFixtureStepIndex !== -1) {
-          fixtureStepIndex = currentFixtureStepIndex;
-          const f = this.fixtureSteps[fixtureStepIndex];
-
-          step.data.id = f.id;
-          step.data.command.name = f.apiName;
-          step.data.command.arguments = Object.values(f.params).map(s =>
-            typeof s === "string" ? s : JSON.stringify(s)
-          );
-
-          const stack = f.stackTrace.frames.map(frame => ({
-            ...frame,
-            file: path.relative(process.cwd(), frame.file),
-          }));
-
-          if (stack) {
-            stacks[f.id] = stack;
-
-            for (const frame of stack) {
-              filenames.add(frame.file);
-            }
-          }
-        } else {
+      if (isFixtureEnabled()) {
+        const fixtureStep = findFixtureStepForStep(s);
+        if (!fixtureStep) {
+          // when using the fixture, only include steps that were emitted from the
+          // fixture
           continue;
         }
+
+        this.updateStepFromFixture(step, fixtureStep);
+        this.addStacksFromFixture(fixtureStep);
       }
 
       if (hook) {
@@ -223,7 +216,7 @@ class ReplayPlaywrightReporter implements Reporter {
     }
 
     const relativePath = test.titlePath()[2];
-    filenames.add(relativePath);
+    this.filenames.add(relativePath);
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
@@ -231,9 +224,9 @@ class ReplayPlaywrightReporter implements Reporter {
         playwrightMetadata = {
           "x-replay-playwright": {
             sources: Object.fromEntries(
-              [...filenames].map(filename => [filename, readFileSync(filename, "utf8")])
+              [...this.filenames].map(filename => [filename, readFileSync(filename, "utf8")])
             ),
-            stacks,
+            stacks: this.stacks,
           },
         };
       } catch (e) {
@@ -271,6 +264,34 @@ class ReplayPlaywrightReporter implements Reporter {
       replayTitle: test.title,
       extraMetadata: playwrightMetadata,
     });
+  }
+
+  updateStepFromFixture(step: UserActionEvent, fixtureStep: FixtureStepStart) {
+    step.data.id = fixtureStep.id;
+    step.data.command.name = fixtureStep.apiName;
+    step.data.command.arguments = this.parseArguments(fixtureStep.apiName, fixtureStep.params);
+  }
+
+  addStacksFromFixture(fixtureStep: FixtureStepStart) {
+    const stack = fixtureStep.stackTrace.frames.map(frame => ({
+      ...frame,
+      file: path.relative(process.cwd(), frame.file),
+    }));
+
+    if (stack) {
+      this.stacks[fixtureStep.id] = stack;
+
+      for (const frame of stack) {
+        this.filenames.add(frame.file);
+      }
+    }
+  }
+
+  parseArguments(_apiName: string, params: any) {
+    // TODO(ryanjduffy): This is messy and needs to be improved before
+    // release. We probably need some per-command handling to generate
+    // meaningful args.
+    return Object.values(params).map(s => (typeof s === "string" ? s : JSON.stringify(s)));
   }
 }
 
