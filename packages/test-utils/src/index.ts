@@ -5,5 +5,6 @@ export { ReporterError } from "./reporter";
 export { pingTestMetrics } from "./metrics";
 export { removeAnsiCodes } from "./terminal";
 export { fetchWorkspaceConfig } from "./config";
+export * from "./logging";
 export { ReplayReporter };
 export { getMetadataFilePath, initMetadataFile } from "./metadata";

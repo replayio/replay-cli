@@ -35,10 +35,13 @@ export interface MetadataOptions {
   keys?: string[];
   warn?: boolean;
   verbose?: boolean;
+  directory?: string;
 }
 
 export interface FilterOptions {
-  filter?: string;
+  filter?:
+    | string
+    | ((recordings: RecordingEntry, index: number, allRecordings: RecordingEntry[]) => boolean);
 }
 
 export interface ListOptions extends FilterOptions {

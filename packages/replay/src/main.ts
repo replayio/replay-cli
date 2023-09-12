@@ -33,7 +33,7 @@ import { add, sanitize, source as sourceMetadata, test as testMetadata } from ".
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
 import { readToken } from "./auth";
-export type { BrowserName } from "./types";
+export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
 
@@ -239,12 +239,17 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
   recording.status = status;
 }
 
-function filterRecordings(recordings: RecordingEntry[], filter?: string) {
+function filterRecordings(recordings: RecordingEntry[], filter?: FilterOptions["filter"]) {
   debug("Recording log contains %d replays", recordings.length);
-  if (filter) {
+  if (typeof filter === "string") {
     debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     recordings = exp.evaluate(recordings) || [];
+
+    debug("Filtering resulted in %d replays", recordings.length);
+  } else if (typeof filter === "function") {
+    debug("Using filter function");
+    recordings = recordings.filter(filter);
 
     debug("Filtering resulted in %d replays", recordings.length);
   }
@@ -661,6 +666,7 @@ async function updateMetadata({
   filter,
   verbose,
   warn,
+  directory,
 }: MetadataOptions & FilterOptions) {
   try {
     let md: any = {};
@@ -694,10 +700,9 @@ async function updateMetadata({
     const data = Object.assign(md, ...keyedObjects);
     const sanitized = await sanitize(data);
 
-    maybeLog(verbose, "Metadata:");
-    maybeLog(verbose, JSON.stringify(sanitized, undefined, 2));
+    debug("Sanitized metadata: %O", sanitized);
 
-    const recordings = filterRecordings(listAllRecordings(), filter);
+    const recordings = listAllRecordings({ directory, filter });
 
     recordings.forEach(r => {
       maybeLog(verbose, `Setting metadata for ${r.id}`);
