@@ -19,11 +19,12 @@ export type FixtureEvent = FixtureStepStartEvent;
 
 const debug = dbg("replay:playwright:fixture");
 
-function ReplayAddAnnotation([event, id]: string[]) {
+function ReplayAddAnnotation([event, id, data]: any) {
   // @ts-ignore
   window.__RECORD_REPLAY_ANNOTATION_HOOK__?.("replay-playwright", {
     event,
     id,
+    data: data ? JSON.parse(data) : undefined,
   });
 }
 
@@ -45,9 +46,11 @@ export async function replayFixture(
   debug("Setting up replay fixture");
   let currentStepId: string | undefined;
 
-  function addAnnotation(event: string, id?: string) {
+  function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
     if (id) {
-      page.evaluate(ReplayAddAnnotation, [event, id]).catch(e => console.error);
+      page
+        .evaluate(ReplayAddAnnotation, [event, id, data ? JSON.stringify(data) : undefined])
+        .catch(e => console.error);
     }
   }
 
@@ -78,7 +81,7 @@ export async function replayFixture(
         })
       );
 
-      addAnnotation("step:start", currentStepId);
+      addAnnotation("step:start", currentStepId, { apiName, params, stackTrace });
     },
 
     onApiCallEnd: (userData, error) => {
