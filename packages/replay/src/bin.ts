@@ -64,6 +64,11 @@ commandWithGlobalOptions("upload <id>")
 commandWithGlobalOptions("launch [url]")
   .description("Launch the replay browser")
   .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .option(
+    "--attach <true|false>",
+    "Whether to attach to the browser process after launching",
+    false
+  )
   .allowUnknownOption()
   .action(commandLaunchBrowser);
 
@@ -188,7 +193,10 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
 
 async function commandLaunchBrowser(
   url: string | undefined,
-  opts: Pick<CommandLineOptions, "warn"> & { browser: string | undefined }
+  opts: Pick<CommandLineOptions, "warn"> & {
+    browser: string | undefined;
+    detached: boolean | undefined;
+  }
 ) {
   try {
     debug("Options", opts);
@@ -196,7 +204,9 @@ async function commandLaunchBrowser(
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
-    await launchBrowser(browser, [url || "about:blank"]);
+    const detached = opts.detached || true;
+
+    await launchBrowser(browser, detached, [url || "about:blank"]);
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
