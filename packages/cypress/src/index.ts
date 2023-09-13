@@ -221,8 +221,7 @@ async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<
       }, {}),
     };
   } catch (e) {
-    console.error("Upload failed for", spec.relative);
-    debug(e);
+    warn(`Upload failed for ${spec.relative}`, e);
 
     return {
       error: e,
