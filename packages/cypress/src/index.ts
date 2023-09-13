@@ -6,6 +6,7 @@ import {
   updateMetadata,
   RecordingEntry,
   uploadAllRecordings,
+  listAllRecordings,
 } from "@replayio/replay";
 import { TestMetadataV2, initMetadataFile, log, warn } from "@replayio/test-utils";
 import dbg from "debug";
@@ -27,9 +28,14 @@ interface PluginOptions {
   directory?: string;
 }
 
+interface UploadResult {
+  error?: unknown;
+  recordings: Record<string, boolean>;
+}
+
 let cypressReporter: CypressReporter;
 let missingSteps = false;
-const pendingWork: Promise<void>[] = [];
+const pendingWork: Promise<UploadResult>[] = [];
 
 function loudWarning(...lines: string[]) {
   const terminalWidth = process.stdout.columns || 80;
@@ -108,11 +114,20 @@ async function onAfterRun() {
 
   if (pendingWork) {
     log("Waiting on pending working");
-    try {
-      await Promise.allSettled(pendingWork);
-    } catch (e) {
-      warn("some things failed", e);
-    }
+    const results = await Promise.allSettled(pendingWork);
+    results.forEach(r => {
+      if (r.status === "fulfilled") {
+        Object.entries(r.value.recordings).forEach(([id, uploaded]) => {
+          if (uploaded) {
+            log(`Uploaded ${id}`);
+          } else {
+            log(`Failed to upload ${id}`);
+          }
+        });
+      } else {
+        warn("Failed to upload", r.reason);
+      }
+    });
     log("Pending work completed");
   }
 }
@@ -155,7 +170,7 @@ function onReplayTask(value: any) {
   return true;
 }
 
-async function startUpload(spec: Cypress.Spec, options: PluginOptions) {
+async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<UploadResult> {
   const filter = (r: RecordingEntry) => {
     const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
     if (testMetadata?.source?.path !== spec.relative) {
@@ -165,17 +180,41 @@ async function startUpload(spec: Cypress.Spec, options: PluginOptions) {
     return options.filter ? options.filter(r) : true;
   };
 
-  await updateMetadata({
-    directory: options.directory,
-    filter,
-    keys: ["source"],
-    warn: true,
-  });
-  await uploadAllRecordings({
-    apiKey: options.apiKey,
-    directory: options.directory,
-    filter,
-  });
+  try {
+    if (process.env.CI) {
+      await updateMetadata({
+        directory: options.directory,
+        filter,
+        keys: ["source"],
+        warn: true,
+      });
+    }
+    await uploadAllRecordings({
+      apiKey: options.apiKey,
+      directory: options.directory,
+      filter,
+    });
+    const recordings = listAllRecordings({
+      all: true,
+      directory: options.directory,
+      filter,
+    });
+
+    return {
+      recordings: recordings.reduce<Record<string, boolean>>((acc, r) => {
+        acc[r.id] = r.status === "uploaded";
+        return acc;
+      }, {}),
+    };
+  } catch (e) {
+    console.error("Upload failed for", spec.relative);
+    debug(e);
+
+    return {
+      error: e,
+      recordings: {},
+    };
+  }
 }
 
 const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
@@ -233,7 +272,7 @@ const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
 const plugin = (
   on: Cypress.PluginEvents,
   config: Cypress.PluginConfigOptions,
-  options: PluginOptions
+  options: PluginOptions = {}
 ) => {
   cypressReporter = new CypressReporter(config, debug);
 
