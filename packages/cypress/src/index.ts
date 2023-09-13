@@ -141,7 +141,11 @@ function onBeforeSpec(spec: Cypress.Spec) {
   cypressReporter.onBeforeSpec(spec);
 }
 
-function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+function onAfterSpec(
+  spec: Cypress.Spec,
+  result: CypressCommandLine.RunResult,
+  options: PluginOptions = {}
+) {
   debugEvents("Handling after:spec %s", spec.relative);
   const metadata = cypressReporter.onAfterSpec(spec, result);
 
@@ -155,6 +159,10 @@ function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     ) {
       missingSteps = true;
     }
+  }
+
+  if (options.upload === true) {
+    pendingWork.push(startUpload(spec, options));
   }
 }
 
@@ -291,13 +299,7 @@ const plugin = (
     cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
     cypressReporter.isFeatureEnabled(PluginFeature.Metrics)
   ) {
-    on("after:spec", (spec, result) => {
-      onAfterSpec(spec, result);
-
-      if (options.upload === true && cypressReporter.isFeatureEnabled(PluginFeature.Upload)) {
-        pendingWork.push(startUpload(spec, options));
-      }
-    });
+    on("after:spec", (spec, result) => onAfterSpec(spec, result, options));
   }
 
   if (

@@ -2,7 +2,6 @@ export enum PluginFeature {
   Plugin = "plugin",
   Support = "support",
   Metrics = "metrics",
-  Upload = "upload",
 }
 
 type PluginFeatureOption = PluginFeature | `no-${PluginFeature}` | "none" | "all";
