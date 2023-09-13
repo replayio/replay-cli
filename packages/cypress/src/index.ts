@@ -26,6 +26,7 @@ interface PluginOptions {
   filter?: (recordings: RecordingEntry) => boolean;
   apiKey?: string;
   directory?: string;
+  initMetadataKeys?: string[];
 }
 
 interface UploadResult {
@@ -36,6 +37,13 @@ interface UploadResult {
 let cypressReporter: CypressReporter;
 let missingSteps = false;
 const pendingWork: Promise<UploadResult>[] = [];
+
+function initPluginOptions(options: PluginOptions = {}): PluginOptions {
+  return {
+    initMetadataKeys: process.env.CI ? ["source"] : undefined,
+    ...options,
+  };
+}
 
 function loudWarning(...lines: string[]) {
   const terminalWidth = process.stdout.columns || 80;
@@ -113,22 +121,18 @@ async function onAfterRun() {
   }
 
   if (pendingWork) {
-    log("Waiting on pending working");
-    const results = await Promise.allSettled(pendingWork);
+    log("Waiting on uploads");
+    const results = await Promise.all(pendingWork);
     results.forEach(r => {
-      if (r.status === "fulfilled") {
-        Object.entries(r.value.recordings).forEach(([id, uploaded]) => {
-          if (uploaded) {
-            log(`Uploaded ${id}`);
-          } else {
-            log(`Failed to upload ${id}`);
-          }
-        });
-      } else {
-        warn("Failed to upload", r.reason);
-      }
+      Object.entries(r.recordings).forEach(([id, uploaded]) => {
+        if (uploaded) {
+          log(`Uploaded ${id}`);
+        } else {
+          log(`Failed to upload ${id}`);
+        }
+      });
     });
-    log("Pending work completed");
+    log("Uploading completed");
   }
 }
 
@@ -181,19 +185,21 @@ async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<
   };
 
   try {
-    if (process.env.CI) {
+    if (options.initMetadataKeys) {
       await updateMetadata({
         directory: options.directory,
         filter,
-        keys: ["source"],
+        keys: options.initMetadataKeys,
         warn: true,
       });
     }
+
     await uploadAllRecordings({
       apiKey: options.apiKey,
       directory: options.directory,
       filter,
     });
+
     const recordings = listAllRecordings({
       all: true,
       directory: options.directory,
@@ -272,8 +278,9 @@ const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
 const plugin = (
   on: Cypress.PluginEvents,
   config: Cypress.PluginConfigOptions,
-  options: PluginOptions = {}
+  options: PluginOptions
 ) => {
+  options = initPluginOptions(options);
   cypressReporter = new CypressReporter(config, debug);
 
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
