@@ -420,8 +420,6 @@ async function doUploadRecording(
 
   await client.connectionEndRecordingUpload(recording.id);
 
-  maybeRemoveAssetFile(recording);
-
   await pMap(
     recording.sourcemaps,
     async (sourcemap: SourceMapEntry) => {
@@ -433,8 +431,6 @@ async function doUploadRecording(
           sourcemap,
           contents
         );
-        maybeRemoveAssetFile(sourcemap);
-        maybeRemoveAssetFile({ path: sourcemap.path.replace(/\.map$/, ".lookup") });
         await pMap(
           sourcemap.originalSources,
           async originalSource => {
@@ -451,8 +447,6 @@ async function doUploadRecording(
               originalSource,
               contents
             );
-
-            maybeRemoveAssetFile(originalSource);
           },
           { concurrency: 5, stopOnError: false }
         );
@@ -462,6 +456,8 @@ async function doUploadRecording(
     },
     { concurrency: 10, stopOnError: false }
   );
+
+  removeRecordingAssets(recording);
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
@@ -644,7 +640,7 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  maybeRemoveAssetFile(recording);
+  removeRecordingAssets(recording);
 
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -662,10 +658,19 @@ function removeRecording(id: string, opts: Options = {}) {
   return true;
 }
 
+function removeRecordingAssets(recording: RecordingEntry) {
+  maybeRemoveAssetFile(recording);
+  recording.sourcemaps.forEach(sm => {
+    maybeRemoveAssetFile(sm);
+    maybeRemoveAssetFile({ path: sm.path.replace(/\.map$/, ".lookup") });
+    sm.originalSources.forEach(maybeRemoveAssetFile);
+  });
+}
+
 function removeAllRecordings(opts = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(maybeRemoveAssetFile);
+  recordings.forEach(removeRecordingAssets);
 
   const file = getRecordingsFile(dir);
   if (fs.existsSync(file)) {
