@@ -610,7 +610,7 @@ function maybeRemoveRecordingFile(recording: RecordingEntry) {
   if (recording.path) {
     try {
       fs.unlinkSync(recording.path);
-    } catch (e) {}
+    } catch (e) { }
   }
 }
 
@@ -711,7 +711,7 @@ async function updateMetadata({
   }
 }
 
-async function launchBrowser(browserName: BrowserName, detached: boolean, args: string[] = []) {
+async function launchBrowser(browserName: BrowserName, attach: boolean = false, args: string[] = []) {
   const execPath = getExecutablePath(browserName);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
@@ -731,7 +731,7 @@ async function launchBrowser(browserName: BrowserName, detached: boolean, args: 
     firefox: ["-foreground", ...args],
   };
 
-  const proc = spawn(execPath, browserArgs[browserName], { detached });
+  const proc = spawn(execPath, browserArgs[browserName], { detached: !attach });
   proc.unref();
 
   return proc;

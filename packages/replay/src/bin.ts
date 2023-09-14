@@ -195,7 +195,7 @@ async function commandLaunchBrowser(
   url: string | undefined,
   opts: Pick<CommandLineOptions, "warn"> & {
     browser: string | undefined;
-    detached: boolean | undefined;
+    attach: boolean | undefined;
   }
 ) {
   try {
@@ -204,9 +204,9 @@ async function commandLaunchBrowser(
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
-    const detached = opts.detached || true;
+    const attach = opts.attach || false;
 
-    await launchBrowser(browser, detached, [url || "about:blank"]);
+    await launchBrowser(browser, attach, [url || "about:blank"]);
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
