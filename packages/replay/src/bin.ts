@@ -177,7 +177,13 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
     debug("Options", opts);
 
     const recordingId = await uploadRecording(id, { ...opts, verbose: true });
-    process.exit(recordingId || opts.warn ? 0 : 1);
+    let removed;
+
+    if (recordingId) {
+      removed = removeRecording(id, { ...opts, verbose: true });
+    }
+
+    process.exit((recordingId && removed) || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to upload recording");
     debug("uploadRecording error %o", e);
