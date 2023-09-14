@@ -433,7 +433,7 @@ async function doUploadRecording(
         );
         await pMap(
           sourcemap.originalSources,
-          async originalSource => {
+          originalSource => {
             debug(
               "Uploading original source %s for sourcemap %s for recording %s",
               originalSource.path,
@@ -441,7 +441,7 @@ async function doUploadRecording(
               recording.id
             );
             const contents = fs.readFileSync(originalSource.path, "utf8");
-            await client.connectionUploadOriginalSource(
+            return client.connectionUploadOriginalSource(
               recordingId,
               sourcemapId,
               originalSource,
