@@ -11,7 +11,6 @@ jobs:
         with:
           repository: replayio-public/flake
           path: e2e-repos/flake
-          ref: ryan/upload-test
       - name: Download latest earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.19/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: build, lint and test
