@@ -322,6 +322,11 @@ function isCommandQueue(cmd: any): cmd is Cypress.CommandQueue {
   return typeof cmd.toJSON === "function";
 }
 
+function getMessageFromLog(log: any) {
+  const message = log.consoleProps.Message || log.consoleProps?.props?.Message;
+  return message ? [message] : [];
+}
+
 export default function register() {
   let lastCommand: Cypress.CommandQueue | undefined;
   let lastAssertionCommand: Cypress.CommandQueue | undefined;
@@ -501,7 +506,7 @@ export default function register() {
         name: log.name,
         id: assertionId,
         groupId: log.chainerId && getReplayId(log.chainerId),
-        args: [log.consoleProps.Message],
+        args: getMessageFromLog(log),
         category: "assertion",
         commandId: lastCommand ? getReplayId(getCypressId(lastCommand)) : undefined,
       };
@@ -522,7 +527,7 @@ export default function register() {
           const changedCmd = {
             ...cmd,
             // Update args which can be updated when an assert resolves
-            args: [changedLog.consoleProps.Message],
+            args: getMessageFromLog(changedLog),
           };
 
           const error = changedLog.err
