@@ -25,7 +25,6 @@ import {
   ListOptions,
   MetadataOptions,
   Options,
-  OriginalSourceEntry,
   RecordingEntry,
   SourceMapEntry,
   UploadOptions,
