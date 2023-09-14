@@ -713,8 +713,8 @@ async function updateMetadata({
 
 async function launchBrowser(
   browserName: BrowserName,
-  attach: boolean = false,
-  args: string[] = []
+  args: string[] = [],
+  attach: boolean = false
 ) {
   const execPath = getExecutablePath(browserName);
   if (!execPath) {
