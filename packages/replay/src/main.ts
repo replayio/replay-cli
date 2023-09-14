@@ -730,7 +730,11 @@ async function updateMetadata({
   }
 }
 
-async function launchBrowser(browserName: BrowserName, args: string[] = []) {
+async function launchBrowser(
+  browserName: BrowserName,
+  args: string[] = [],
+  attach: boolean = false
+) {
   const execPath = getExecutablePath(browserName);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
@@ -750,7 +754,7 @@ async function launchBrowser(browserName: BrowserName, args: string[] = []) {
     firefox: ["-foreground", ...args],
   };
 
-  const proc = spawn(execPath, browserArgs[browserName], { detached: true });
+  const proc = spawn(execPath, browserArgs[browserName], { detached: !attach });
   proc.unref();
 
   return proc;
