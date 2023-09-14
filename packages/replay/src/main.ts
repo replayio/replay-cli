@@ -369,8 +369,8 @@ async function doUploadRecording(
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Crash uploaded: crashed while recording`);
-    maybeLog(verbose, `Recording upload failed: crashed while recording`);
+    maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
+    removeRecordingAssets(recording);
     return recording.id;
   }
 
@@ -455,6 +455,8 @@ async function doUploadRecording(
     },
     { concurrency: 10, stopOnError: false }
   );
+
+  removeRecordingAssets(recording);
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
@@ -611,11 +613,14 @@ async function viewLatestRecording(opts: Options = {}) {
   );
 }
 
-function maybeRemoveRecordingFile(recording: RecordingEntry) {
-  if (recording.path) {
+function maybeRemoveAssetFile<T extends { path?: string }>(asset: T) {
+  if (asset.path) {
     try {
-      fs.unlinkSync(recording.path);
-    } catch (e) {}
+      debug("Removing asset file %s", asset.path);
+      fs.unlinkSync(asset.path);
+    } catch (e) {
+      debug("Failed to remove asset file: %s", e);
+    }
   }
 }
 
@@ -627,7 +632,7 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  maybeRemoveRecordingFile(recording);
+  removeRecordingAssets(recording);
 
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -645,10 +650,19 @@ function removeRecording(id: string, opts: Options = {}) {
   return true;
 }
 
+function removeRecordingAssets(recording: RecordingEntry) {
+  maybeRemoveAssetFile(recording);
+  recording.sourcemaps.forEach(sm => {
+    maybeRemoveAssetFile(sm);
+    maybeRemoveAssetFile({ path: sm.path.replace(/\.map$/, ".lookup") });
+    sm.originalSources.forEach(maybeRemoveAssetFile);
+  });
+}
+
 function removeAllRecordings(opts = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(maybeRemoveRecordingFile);
+  recordings.forEach(removeRecordingAssets);
 
   const file = getRecordingsFile(dir);
   if (fs.existsSync(file)) {
