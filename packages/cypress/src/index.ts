@@ -285,7 +285,7 @@ const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
 const plugin = (
   on: Cypress.PluginEvents,
   config: Cypress.PluginConfigOptions,
-  options: PluginOptions
+  options: PluginOptions = {}
 ) => {
   options = initPluginOptions(options);
   cypressReporter = new CypressReporter(config, debug);
