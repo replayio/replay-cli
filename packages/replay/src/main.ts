@@ -551,13 +551,6 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
     { concurrency: batchSize, stopOnError: false }
   );
 
-  maybeLog(opts.verbose, `Cleaning up uploaded replays`);
-  recordingIds.map(recordingId => {
-    if (recordingId) {
-      removeRecording(recordingId, opts);
-    }
-  });
-
   return recordingIds.every(r => r !== null);
 }
 
