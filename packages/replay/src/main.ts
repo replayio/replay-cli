@@ -25,6 +25,7 @@ import {
   ListOptions,
   MetadataOptions,
   Options,
+  OriginalSourceEntry,
   RecordingEntry,
   SourceMapEntry,
   UploadOptions,
@@ -419,6 +420,8 @@ async function doUploadRecording(
 
   await client.connectionEndRecordingUpload(recording.id);
 
+  maybeRemoveAssetFile(recording);
+
   await pMap(
     recording.sourcemaps,
     async (sourcemap: SourceMapEntry) => {
@@ -430,9 +433,11 @@ async function doUploadRecording(
           sourcemap,
           contents
         );
+        maybeRemoveAssetFile(sourcemap);
+        maybeRemoveAssetFile({ path: sourcemap.path.replace(/\.map$/, ".lookup") });
         await pMap(
           sourcemap.originalSources,
-          originalSource => {
+          async originalSource => {
             debug(
               "Uploading original source %s for sourcemap %s for recording %s",
               originalSource.path,
@@ -440,12 +445,14 @@ async function doUploadRecording(
               recording.id
             );
             const contents = fs.readFileSync(originalSource.path, "utf8");
-            return client.connectionUploadOriginalSource(
+            await client.connectionUploadOriginalSource(
               recordingId,
               sourcemapId,
               originalSource,
               contents
             );
+
+            maybeRemoveAssetFile(originalSource);
           },
           { concurrency: 5, stopOnError: false }
         );
@@ -618,11 +625,14 @@ async function viewLatestRecording(opts: Options = {}) {
   );
 }
 
-function maybeRemoveRecordingFile(recording: RecordingEntry) {
-  if (recording.path) {
+function maybeRemoveAssetFile<T extends { path?: string }>(asset: T) {
+  if (asset.path) {
     try {
-      fs.unlinkSync(recording.path);
-    } catch (e) {}
+      debug("Removing asset file %s", asset.path);
+      fs.unlinkSync(asset.path);
+    } catch (e) {
+      debug("Failed to remove asset file: %s", e);
+    }
   }
 }
 
@@ -634,7 +644,7 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  maybeRemoveRecordingFile(recording);
+  maybeRemoveAssetFile(recording);
 
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -655,7 +665,7 @@ function removeRecording(id: string, opts: Options = {}) {
 function removeAllRecordings(opts = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(maybeRemoveRecordingFile);
+  recordings.forEach(maybeRemoveAssetFile);
 
   const file = getRecordingsFile(dir);
   if (fs.existsSync(file)) {
