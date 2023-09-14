@@ -206,7 +206,7 @@ async function commandLaunchBrowser(
 
     const attach = opts.attach || false;
 
-    await launchBrowser(browser, attach, [url || "about:blank"]);
+    await launchBrowser(browser, [url || "about:blank"], attach);
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
