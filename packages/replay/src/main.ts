@@ -370,8 +370,8 @@ async function doUploadRecording(
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Crash uploaded: crashed while recording`);
-    maybeLog(verbose, `Recording upload failed: crashed while recording`);
+    maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
+    removeRecordingAssets(recording);
     return recording.id;
   }
 
