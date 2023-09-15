@@ -43,6 +43,9 @@ let gLastTest: MochaTest | undefined;
 // it for retries
 let gLastOrder: number | undefined;
 
+let gBuffering = false;
+let gEventBuffer: StepEvent[] = [];
+
 // This lists cypress commands for which we don't need to track in metadata nor
 // create annotations because they are "internal plumbing" commands that aren't
 // user-facing
@@ -208,7 +211,12 @@ const makeEvent = (
     : null),
 });
 
-let eventBuffer: StepEvent[] = [];
+function sendStepsToPlugin(events: StepEvent[]) {
+  for (let i = 0; i < events.length; i += 500) {
+    const partialEvents = events.slice(i, i + 500);
+    cy.task(TASK_NAME, partialEvents, { log: false });
+  }
+}
 
 const handleCypressEvent = (
   testScope: CypressTestScope,
@@ -219,8 +227,13 @@ const handleCypressEvent = (
 ) => {
   if (cmd?.args?.[0] === TASK_NAME) return;
 
-  const arg = makeEvent(testScope, event, category, cmd, error);
-  eventBuffer.push(arg);
+  const stepEvent = makeEvent(testScope, event, category, cmd, error);
+
+  if (gBuffering) {
+    gEventBuffer.push(stepEvent);
+  } else {
+    sendStepsToPlugin([stepEvent]);
+  }
 };
 
 const idMap: Record<string, string> = {};
@@ -582,6 +595,7 @@ export default function register() {
   });
   beforeEach(() => {
     try {
+      gBuffering = true;
       currentTestScope = getCurrentTestScope();
       if (currentTestScope) {
         handleCypressEvent(currentTestScope, "test:start");
@@ -598,9 +612,10 @@ export default function register() {
         addAnnotation(currentTestScope, "test:end");
         handleCypressEvent(currentTestScope, "test:end");
 
-        cy.task(TASK_NAME, eventBuffer, { log: false });
+        sendStepsToPlugin(gEventBuffer);
 
-        eventBuffer = [];
+        gEventBuffer = [];
+        gBuffering = false;
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:end event");
