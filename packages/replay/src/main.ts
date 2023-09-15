@@ -241,7 +241,7 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
 
 function filterRecordings(recordings: RecordingEntry[], filter?: FilterOptions["filter"]) {
   debug("Recording log contains %d replays", recordings.length);
-  if (typeof filter === "string") {
+  if (filter && typeof filter === "string") {
     debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     recordings = exp.evaluate(recordings) || [];
