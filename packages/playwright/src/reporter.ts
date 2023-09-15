@@ -73,13 +73,17 @@ interface ReplayPlaywrightConfig extends ReplayReporterConfig {
   captureTestFile?: boolean;
 }
 
+interface FixtureStep extends FixtureStepStart {
+  error?: Error | undefined;
+}
+
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
   wss: WebSocketServer;
-  fixtureSteps: FixtureStepStart[] = [];
+  fixtureSteps: FixtureStep[] = [];
   stacks: Record<string, any> = {};
   filenames: Set<string> = new Set();
 
@@ -90,6 +94,13 @@ class ReplayPlaywrightReporter implements Reporter {
       port,
       onStepStart: step => {
         this.fixtureSteps.push(step);
+      },
+      onStepEnd: step => {
+        const s = this.fixtureSteps.find(f => f.id === step.id);
+
+        if (s) {
+          s.error = step.error;
+        }
       },
     });
   }
@@ -148,24 +159,7 @@ class ReplayPlaywrightReporter implements Reporter {
     this.reporter?.onTestBegin(this.getSource(test), getMetadataFilePath(testResult.workerIndex));
   }
 
-  onTestEnd(test: TestCase, result: TestResult) {
-    const status = result.status;
-    // skipped tests won't have a reply so nothing to do here
-    if (status === "skipped") return;
-
-    let fixtureStepIndex = -1;
-    const findFixtureStepForStep = (step: TestStep) => {
-      const currentFixtureStepIndex = this.fixtureSteps.findIndex(
-        // find the next (i < fixtureStepIndex) command with the same name
-        (v, i) => i > fixtureStepIndex && step.title.startsWith(v.apiName)
-      );
-
-      if (currentFixtureStepIndex !== -1) {
-        fixtureStepIndex = currentFixtureStepIndex;
-        return this.fixtureSteps[fixtureStepIndex];
-      }
-    };
-
+  getStepsFromResult(result: TestResult) {
     const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
 
@@ -194,18 +188,6 @@ class ReplayPlaywrightReporter implements Reporter {
         },
       };
 
-      if (isFixtureEnabled()) {
-        const fixtureStep = findFixtureStepForStep(s);
-        if (!fixtureStep) {
-          // when using the fixture, only include steps that were emitted from the
-          // fixture
-          continue;
-        }
-
-        this.updateStepFromFixture(step, fixtureStep);
-        this.addStacksFromFixture(fixtureStep);
-      }
-
       if (hook) {
         const hookSteps = hookMap.get(hook) || [];
         hookSteps.push(step);
@@ -214,6 +196,64 @@ class ReplayPlaywrightReporter implements Reporter {
         steps.push(step);
       }
     }
+
+    return {
+      beforeAll: [],
+      afterAll: [],
+      beforeEach: hookMap.get("beforeEach") || [],
+      afterEach: hookMap.get("afterEach") || [],
+      main: steps,
+    };
+  }
+
+  getStepsFromFixture() {
+    const steps: UserActionEvent[] = [];
+
+    this.fixtureSteps.forEach(fixtureStep => {
+      const step: UserActionEvent = {
+        data: {
+          id: fixtureStep.id,
+          parentId: null,
+          command: {
+            name: fixtureStep.apiName,
+            arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
+          },
+          scope: [], // s.titlePath(),
+          error: null,
+          // stepErrorMessage
+          //   ? {
+          //       name: "AssertionError",
+          //       message: stepErrorMessage,
+          //       line: s.location?.line || 0,
+          //       column: s.location?.column || 0,
+          //     }
+          //   : null,
+          category: "other", // mapTestStepCategory(s),
+        },
+      };
+
+      this.addStacksFromFixture(fixtureStep);
+
+      steps.push(step);
+    });
+
+    return {
+      beforeAll: [],
+      afterAll: [],
+      beforeEach: [], // hookMap.get("beforeEach") || [],
+      afterEach: [], // hookMap.get("afterEach") || [],
+      main: steps,
+    };
+  }
+
+  onTestEnd(test: TestCase, result: TestResult) {
+    const status = result.status;
+    // skipped tests won't have a reply so nothing to do here
+    if (status === "skipped") return;
+
+    const events = isFixtureEnabled()
+      ? this.getStepsFromFixture()
+      : this.getStepsFromResult(result);
 
     const relativePath = test.titlePath()[2];
     this.filenames.add(relativePath);
@@ -251,25 +291,13 @@ class ReplayPlaywrightReporter implements Reporter {
                 column: (result.error as any).location?.column || 0,
               }
             : null,
-          events: {
-            beforeAll: [],
-            afterAll: [],
-            beforeEach: hookMap.get("beforeEach") || [],
-            afterEach: hookMap.get("afterEach") || [],
-            main: steps,
-          },
+          events,
         },
       ],
       specFile: relativePath,
       replayTitle: test.title,
       extraMetadata: playwrightMetadata,
     });
-  }
-
-  updateStepFromFixture(step: UserActionEvent, fixtureStep: FixtureStepStart) {
-    step.data.id = fixtureStep.id;
-    step.data.command.name = fixtureStep.apiName;
-    step.data.command.arguments = this.parseArguments(fixtureStep.apiName, fixtureStep.params);
   }
 
   addStacksFromFixture(fixtureStep: FixtureStepStart) {

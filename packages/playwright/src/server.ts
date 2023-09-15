@@ -1,6 +1,6 @@
 import dbg from "debug";
 import WebSocket, { WebSocketServer } from "ws";
-import { FixtureEvent, FixtureStepStart } from "./fixture";
+import { FixtureEvent, FixtureStepEnd, FixtureStepStart } from "./fixture";
 
 const debug = dbg("replay:playwright:server");
 const debugMessages = debug.extend("messages");
@@ -8,9 +8,11 @@ const debugMessages = debug.extend("messages");
 export function startServer({
   port = 0,
   onStepStart,
+  onStepEnd,
 }: {
   port?: number;
   onStepStart?: (stepStart: FixtureStepStart) => void;
+  onStepEnd?: (stepEnd: FixtureStepEnd) => void;
 }) {
   const wss = new WebSocketServer({ port });
 
@@ -23,10 +25,15 @@ export function startServer({
       try {
         const payload = data.toString("utf-8");
         debugMessages("Message received %s", payload);
-        const { event, ...rest } = JSON.parse(payload) as FixtureEvent;
+        const fixtureEvent = JSON.parse(payload) as FixtureEvent;
 
-        if (event === "step:start") {
-          onStepStart?.(rest);
+        switch (fixtureEvent.event) {
+          case "step:start":
+            onStepStart?.(fixtureEvent);
+            break;
+          case "step:end":
+            onStepEnd?.(fixtureEvent);
+            break;
         }
       } catch (e) {
         console.error("[replay.io] Plugin socket error:", e);

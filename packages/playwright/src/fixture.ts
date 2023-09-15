@@ -15,7 +15,16 @@ interface FixtureStepStartEvent extends FixtureStepStart {
   event: "step:start";
 }
 
-export type FixtureEvent = FixtureStepStartEvent;
+export interface FixtureStepEnd {
+  id: string;
+  error: Error | undefined;
+}
+
+interface FixtureStepEndEvent extends FixtureStepEnd {
+  event: "step:end";
+}
+
+export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent;
 
 const debug = dbg("replay:playwright:fixture");
 
@@ -88,6 +97,14 @@ export async function replayFixture(
       if (isReplayAnnotation(userData?.userObject?.params)) {
         return;
       }
+
+      ws.send(
+        JSON.stringify({
+          event: "step:end",
+          id: currentStepId,
+          error,
+        })
+      );
 
       addAnnotation("step:end", currentStepId);
     },
