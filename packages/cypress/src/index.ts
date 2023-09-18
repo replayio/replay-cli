@@ -1,8 +1,14 @@
 /// <reference types="cypress" />
 
 import semver from "semver";
-import { getPlaywrightBrowserPath } from "@replayio/replay";
-import { initMetadataFile } from "@replayio/test-utils";
+import {
+  getPlaywrightBrowserPath,
+  updateMetadata,
+  RecordingEntry,
+  uploadAllRecordings,
+  listAllRecordings,
+} from "@replayio/replay";
+import { TestMetadataV2, initMetadataFile, log, warn } from "@replayio/test-utils";
 import dbg from "debug";
 import chalk from "chalk";
 
@@ -15,10 +21,31 @@ const debug = dbg("replay:cypress:plugin");
 const debugTask = debug.extend("task");
 const debugEvents = debug.extend("events");
 
+interface PluginOptions {
+  upload?: boolean;
+  filter?: (recordings: RecordingEntry) => boolean;
+  apiKey?: string;
+  directory?: string;
+  initMetadataKeys?: string[];
+}
+
+interface UploadResult {
+  error?: unknown;
+  recordings: Record<string, boolean>;
+}
+
 let cypressReporter: CypressReporter;
 let missingSteps = false;
+const pendingWork: Promise<UploadResult>[] = [];
 
-function warn(...lines: string[]) {
+function initPluginOptions(options: PluginOptions = {}): PluginOptions {
+  return {
+    initMetadataKeys: process.env.CI ? ["source"] : undefined,
+    ...options,
+  };
+}
+
+function loudWarning(...lines: string[]) {
   const terminalWidth = process.stdout.columns || 80;
   const packageName = "@replayio/cypress";
 
@@ -82,15 +109,30 @@ function onBeforeBrowserLaunch(
   return launchOptions;
 }
 
-function onAfterRun() {
+async function onAfterRun() {
   if (missingSteps) {
-    warn(
+    loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
       `Did you remember to include ${chalk.magentaBright(
         "@replayio/cypress/support"
       )} in your support file?`
     );
+  }
+
+  if (pendingWork) {
+    log("Waiting on uploads");
+    const results = await Promise.all(pendingWork);
+    results.forEach(r => {
+      Object.entries(r.recordings).forEach(([id, uploaded]) => {
+        if (uploaded) {
+          log(`Uploaded ${id}`);
+        } else {
+          log(`Failed to upload ${id}`);
+        }
+      });
+    });
+    log("Uploading completed");
   }
 }
 
@@ -99,7 +141,11 @@ function onBeforeSpec(spec: Cypress.Spec) {
   cypressReporter.onBeforeSpec(spec);
 }
 
-function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+function onAfterSpec(
+  spec: Cypress.Spec,
+  result: CypressCommandLine.RunResult,
+  options: PluginOptions = {}
+) {
   debugEvents("Handling after:spec %s", spec.relative);
   const metadata = cypressReporter.onAfterSpec(spec, result);
 
@@ -113,6 +159,10 @@ function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     ) {
       missingSteps = true;
     }
+  }
+
+  if (options.upload === true) {
+    pendingWork.push(startUpload(spec, options));
   }
 }
 
@@ -130,6 +180,54 @@ function onReplayTask(value: any) {
   });
 
   return true;
+}
+
+async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<UploadResult> {
+  const filter = (r: RecordingEntry) => {
+    const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
+    if (testMetadata?.source?.path !== spec.relative) {
+      return false;
+    }
+
+    return options.filter ? options.filter(r) : true;
+  };
+
+  try {
+    if (options.initMetadataKeys) {
+      await updateMetadata({
+        directory: options.directory,
+        filter,
+        keys: options.initMetadataKeys,
+        warn: true,
+      });
+    }
+
+    await uploadAllRecordings({
+      apiKey: options.apiKey,
+      directory: options.directory,
+      filter,
+    });
+
+    const recordings = listAllRecordings({
+      all: true,
+      directory: options.directory,
+      filter,
+    });
+
+    return {
+      recordings: recordings.reduce<Record<string, boolean>>((acc, r) => {
+        acc[r.id] = r.status === "uploaded";
+        return acc;
+      }, {}),
+    };
+  } catch (e) {
+    warn(`Upload failed for ${spec.relative}`, e);
+
+    return {
+      error: e,
+      recordings: {},
+    };
+  }
 }
 
 const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
@@ -184,7 +282,12 @@ const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
   };
 };
 
-const plugin: Cypress.PluginConfig = (on, config) => {
+const plugin = (
+  on: Cypress.PluginEvents,
+  config: Cypress.PluginConfigOptions,
+  options: PluginOptions = {}
+) => {
+  options = initPluginOptions(options);
   cypressReporter = new CypressReporter(config, debug);
 
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
@@ -195,7 +298,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
     cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
     cypressReporter.isFeatureEnabled(PluginFeature.Metrics)
   ) {
-    on("after:spec", onAfterSpec);
+    on("after:spec", (spec, result) => onAfterSpec(spec, result, options));
   }
 
   if (
@@ -248,7 +351,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
 
     const firefoxPath = getPlaywrightBrowserPath("firefox");
     if (firefoxPath) {
-      debug("Adding firefox to cypress at %s", chromiumPath);
+      debug("Adding firefox to cypress at %s", firefoxPath);
       config.browsers = config.browsers.concat({
         name: "replay-firefox",
         channel: "stable",
@@ -261,7 +364,7 @@ const plugin: Cypress.PluginConfig = (on, config) => {
         isHeadless: false,
       });
     } else {
-      debug("Firefox not supported on this platform", chromiumPath);
+      debug("Firefox not supported on this platform", firefoxPath);
     }
   }
 

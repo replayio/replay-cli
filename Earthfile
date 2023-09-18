@@ -37,17 +37,10 @@ flake:
   ENV REPLAY_API_KEY=${REPLAY_API_KEY}
   RUN npm i && npm link @replayio/cypress
   RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps npm run start-and-test || exit 0
-  DO +UPLOAD --REPLAY_API_KEY=$REPLAY_API_KEY
+  RUN npx @replayio/replay ls --all
 
 e2e:
   BUILD +flake
-
-UPLOAD:
-  COMMAND
-  ARG --required REPLAY_API_KEY
-  RUN npx @replayio/replay ls --json | grep -q id 
-  RUN npx @replayio/replay upload-all --api-key ${REPLAY_API_KEY} || exit 0
-  RUN npx @replayio/replay ls --all
 
 ci:
   BUILD +lint

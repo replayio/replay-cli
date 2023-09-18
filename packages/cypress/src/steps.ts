@@ -54,7 +54,7 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
 }
 
 function simplifyArgs(args?: any[]) {
-  return args?.map(a => String(a && typeof a === "object" ? {} : a)) || [];
+  return args?.filter(a => !!a && typeof a !== "object").map(a => String(a)) || [];
 }
 
 function getTestsFromResults(

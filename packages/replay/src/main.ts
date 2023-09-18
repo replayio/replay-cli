@@ -33,7 +33,7 @@ import { add, sanitize, source as sourceMetadata, test as testMetadata } from ".
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
 import { readToken } from "./auth";
-export type { BrowserName } from "./types";
+export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
 
@@ -239,12 +239,17 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
   recording.status = status;
 }
 
-function filterRecordings(recordings: RecordingEntry[], filter?: string) {
+function filterRecordings(recordings: RecordingEntry[], filter?: FilterOptions["filter"]) {
   debug("Recording log contains %d replays", recordings.length);
-  if (filter) {
+  if (filter && typeof filter === "string") {
     debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     recordings = exp.evaluate(recordings) || [];
+
+    debug("Filtering resulted in %d replays", recordings.length);
+  } else if (typeof filter === "function") {
+    debug("Using filter function");
+    recordings = recordings.filter(filter);
 
     debug("Filtering resulted in %d replays", recordings.length);
   }
@@ -364,8 +369,8 @@ async function doUploadRecording(
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Crash uploaded: crashed while recording`);
-    maybeLog(verbose, `Recording upload failed: crashed while recording`);
+    maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
+    removeRecordingAssets(recording);
     return recording.id;
   }
 
@@ -450,6 +455,8 @@ async function doUploadRecording(
     },
     { concurrency: 10, stopOnError: false }
   );
+
+  removeRecordingAssets(recording);
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
@@ -606,11 +613,14 @@ async function viewLatestRecording(opts: Options = {}) {
   );
 }
 
-function maybeRemoveRecordingFile(recording: RecordingEntry) {
-  if (recording.path) {
+function maybeRemoveAssetFile<T extends { path?: string }>(asset: T) {
+  if (asset.path) {
     try {
-      fs.unlinkSync(recording.path);
-    } catch (e) {}
+      debug("Removing asset file %s", asset.path);
+      fs.unlinkSync(asset.path);
+    } catch (e) {
+      debug("Failed to remove asset file: %s", e);
+    }
   }
 }
 
@@ -622,7 +632,7 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  maybeRemoveRecordingFile(recording);
+  removeRecordingAssets(recording);
 
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -640,10 +650,19 @@ function removeRecording(id: string, opts: Options = {}) {
   return true;
 }
 
+function removeRecordingAssets(recording: RecordingEntry) {
+  maybeRemoveAssetFile(recording);
+  recording.sourcemaps.forEach(sm => {
+    maybeRemoveAssetFile(sm);
+    maybeRemoveAssetFile({ path: sm.path.replace(/\.map$/, ".lookup") });
+    sm.originalSources.forEach(maybeRemoveAssetFile);
+  });
+}
+
 function removeAllRecordings(opts = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(maybeRemoveRecordingFile);
+  recordings.forEach(removeRecordingAssets);
 
   const file = getRecordingsFile(dir);
   if (fs.existsSync(file)) {
@@ -661,6 +680,7 @@ async function updateMetadata({
   filter,
   verbose,
   warn,
+  directory,
 }: MetadataOptions & FilterOptions) {
   try {
     let md: any = {};
@@ -694,10 +714,9 @@ async function updateMetadata({
     const data = Object.assign(md, ...keyedObjects);
     const sanitized = await sanitize(data);
 
-    maybeLog(verbose, "Metadata:");
-    maybeLog(verbose, JSON.stringify(sanitized, undefined, 2));
+    debug("Sanitized metadata: %O", sanitized);
 
-    const recordings = filterRecordings(listAllRecordings(), filter);
+    const recordings = listAllRecordings({ directory, filter });
 
     recordings.forEach(r => {
       maybeLog(verbose, `Setting metadata for ${r.id}`);
@@ -711,7 +730,11 @@ async function updateMetadata({
   }
 }
 
-async function launchBrowser(browserName: BrowserName, args: string[] = []) {
+async function launchBrowser(
+  browserName: BrowserName,
+  args: string[] = [],
+  attach: boolean = false
+) {
   const execPath = getExecutablePath(browserName);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
@@ -731,7 +754,7 @@ async function launchBrowser(browserName: BrowserName, args: string[] = []) {
     firefox: ["-foreground", ...args],
   };
 
-  const proc = spawn(execPath, browserArgs[browserName], { detached: true });
+  const proc = spawn(execPath, browserArgs[browserName], { detached: !attach });
   proc.unref();
 
   return proc;
