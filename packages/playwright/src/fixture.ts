@@ -45,6 +45,39 @@ function isReplayAnnotation(params?: any) {
   return params?.expression?.includes("ReplayAddAnnotation");
 }
 
+function parseLocation(stack?: string) {
+  const pattern = /\/([^\/]+):(\d+):(\d+)$/;
+  const firstLine = stack?.split("\n").find(l => pattern.test(l));
+  const match = firstLine?.match(pattern);
+
+  if (!match) {
+    return {
+      line: undefined,
+      column: undefined,
+    };
+  }
+
+  return {
+    line: parseInt(match[2]),
+    column: parseInt(match[3]),
+  };
+}
+
+function parseError(error: Error) {
+  if (!error) {
+    return;
+  }
+
+  const location = parseLocation(error.stack);
+
+  return {
+    name: error.name,
+    message: error.message,
+    line: location?.line,
+    column: location?.column,
+  };
+}
+
 export async function replayFixture(
   { playwright, page }: { playwright: any; page: Page },
   use: () => Promise<void>,
@@ -102,7 +135,7 @@ export async function replayFixture(
         JSON.stringify({
           event: "step:end",
           id: currentStepId,
-          error,
+          error: error ? parseError(error) : null,
         })
       );
 

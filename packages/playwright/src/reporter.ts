@@ -206,7 +206,7 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  getStepsFromFixture() {
+  getStepsFromFixture(scope: string[]) {
     const steps: UserActionEvent[] = [];
 
     this.fixtureSteps.forEach(fixtureStep => {
@@ -218,17 +218,9 @@ class ReplayPlaywrightReporter implements Reporter {
             name: fixtureStep.apiName,
             arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
           },
-          scope: [], // s.titlePath(),
-          error: null,
-          // stepErrorMessage
-          //   ? {
-          //       name: "AssertionError",
-          //       message: stepErrorMessage,
-          //       line: s.location?.line || 0,
-          //       column: s.location?.column || 0,
-          //     }
-          //   : null,
-          category: "other", // mapTestStepCategory(s),
+          scope,
+          error: fixtureStep.error || null,
+          category: mapFixtureStepCategory(fixtureStep),
         },
       };
 
@@ -252,7 +244,7 @@ class ReplayPlaywrightReporter implements Reporter {
     if (status === "skipped") return;
 
     const events = isFixtureEnabled()
-      ? this.getStepsFromFixture()
+      ? this.getStepsFromFixture(test.titlePath().slice(3))
       : this.getStepsFromResult(result);
 
     const relativePath = test.titlePath()[2];
