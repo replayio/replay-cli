@@ -1,6 +1,28 @@
 // Types imported from playwright and used by our fixture
 
-import { APIRequestContext, BrowserContext } from "@playwright/test";
+import { APIRequestContext, BrowserContext, TestInfo } from "@playwright/test";
+
+export interface TestInfoInternal extends TestInfo {
+  _addStep?: (data: any, parentStep: any) => TestInfoStep;
+  _onStepEnd?: (step: {
+    testId: string;
+    stepId: string;
+    wallTime: number;
+    error?: {
+      message: string;
+      stack: string;
+    };
+  }) => void;
+}
+
+export interface TestInfoStep {
+  stepId: string;
+  location: StackFrame;
+  category: string;
+  title: string;
+  params?: Record<string, any>;
+  wallTime: number;
+}
 
 export type StackFrame = {
   file: string;

@@ -1,6 +1,11 @@
 import { Page, TestInfo, test } from "@playwright/test";
 import dbg from "debug";
-import { ClientInstrumentationListener, ParsedStackTrace } from "./playwrightTypes";
+import {
+  ClientInstrumentationListener,
+  ParsedStackTrace,
+  TestInfoInternal,
+  TestInfoStep,
+} from "./playwrightTypes";
 import WebSocket from "ws";
 import { getServerPort } from "./server";
 
@@ -63,7 +68,7 @@ function parseLocation(stack?: string) {
   };
 }
 
-function parseError(error: Error) {
+function parseError<T extends { name?: string; message: string; stack?: string }>(error: T) {
   if (!error) {
     return;
   }
@@ -71,11 +76,37 @@ function parseError(error: Error) {
   const location = parseLocation(error.stack);
 
   return {
-    name: error.name,
+    name: error.name || "Error",
     message: error.message,
     line: location?.line,
     column: location?.column,
   };
+}
+
+function maybeMonkeyPatchTestInfo(
+  testInfo: TestInfoInternal,
+  addStepHandler: (step: TestInfoStep) => void,
+  stepEndHandler: TestInfoInternal["_onStepEnd"]
+) {
+  if (testInfo._addStep) {
+    const original = testInfo._addStep.bind(testInfo);
+    testInfo._addStep = (data, parentStep) => {
+      const result = original(data, parentStep);
+      addStepHandler?.(result);
+
+      return result;
+    };
+  }
+
+  if (testInfo._onStepEnd) {
+    const original = testInfo._onStepEnd.bind(testInfo);
+    testInfo._onStepEnd = step => {
+      const result = original(step);
+      stepEndHandler?.(step);
+
+      return result;
+    };
+  }
 }
 
 export async function replayFixture(
@@ -100,6 +131,57 @@ export async function replayFixture(
     ws.on("open", () => resolve());
     ws.on("error", () => reject("Socket errored"));
   });
+
+  const expectSteps = new Map<string, FixtureStepStart>();
+  maybeMonkeyPatchTestInfo(
+    testInfo,
+    function handleAddStep(step) {
+      if (step.category !== "expect") {
+        return;
+      }
+
+      const event: FixtureStepStart = {
+        id: step.stepId,
+        apiName: "expect",
+        params: step.params || {},
+        stackTrace: {
+          apiName: "expect",
+          frameTexts: [],
+          allFrames: step.location ? [step.location] : [],
+          frames: step.location ? [step.location] : [],
+        },
+      };
+
+      expectSteps.set(event.id, event);
+
+      addAnnotation("step:start", event.id, {
+        apiName: event.apiName,
+        params: event.params,
+        stackTrace: event.stackTrace,
+      });
+      ws.send(
+        JSON.stringify({
+          event: "step:start",
+          ...event,
+        })
+      );
+    },
+    function handleStepEnd(step) {
+      const startEvent = expectSteps.get(step.stepId);
+
+      if (startEvent) {
+        ws.send(
+          JSON.stringify({
+            event: "step:end",
+            id: step.stepId,
+            error: step.error ? parseError(step.error) : null,
+          })
+        );
+
+        addAnnotation("step:end", step.stepId);
+      }
+    }
+  );
 
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
