@@ -46,6 +46,14 @@ function extractErrorMessage(error: TestError) {
   return "Unknown error";
 }
 
+function mapFixtureStepCategory(step: FixtureStep): UserActionEvent["data"]["category"] {
+  if (step.apiName.startsWith("expect")) {
+    return "assertion";
+  }
+
+  return "command";
+}
+
 function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
   switch (step.category) {
     case "expect":
@@ -307,11 +315,35 @@ class ReplayPlaywrightReporter implements Reporter {
     }
   }
 
-  parseArguments(_apiName: string, params: any) {
-    // TODO(ryanjduffy): This is messy and needs to be improved before
-    // release. We probably need some per-command handling to generate
-    // meaningful args.
-    return Object.values(params).map(s => (typeof s === "string" ? s : JSON.stringify(s)));
+  parseArguments(apiName: string, params: any) {
+    switch (apiName) {
+      case "page.goto":
+        return [params.url];
+      case "page.evaluate":
+        // TODO(ryanjduffy): This would be nice to improve but it can be nearly
+        // anything so it's not obvious how to simplify it well to an array of
+        // strings.
+        return [];
+      case "locator.getAttribute":
+        return [params.selector, params.name];
+      case "mouse.move":
+        // params = {x: 0, y: 0}
+        return [JSON.stringify(params)];
+      case "locator.hover":
+        return [params.selector, String(params.force)];
+      case "expect.toBeVisible":
+        return [params.selector, params.expression, String(params.isNot)];
+      case "keyboard.type":
+        return [params.text];
+      case "keyboard.down":
+      case "keyboard.up":
+        return [params.key];
+      case "locator.evaluate":
+      case "locator.scrollIntoViewIfNeeded":
+        return [params.selector, params.state];
+      default:
+        return params.selector ? [params.selector] : [];
+    }
   }
 }
 
