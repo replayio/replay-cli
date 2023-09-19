@@ -110,6 +110,9 @@ class ReplayPlaywrightReporter implements Reporter {
           s.error = step.error;
         }
       },
+      onError: error => {
+        this.reporter?.addError(error);
+      },
     });
   }
 

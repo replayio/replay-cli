@@ -1,6 +1,7 @@
 import dbg from "debug";
 import WebSocket, { WebSocketServer } from "ws";
 import { FixtureEvent, FixtureStepEnd, FixtureStepStart } from "./fixture";
+import { ReporterError } from "@replayio/test-utils";
 
 const debug = dbg("replay:playwright:server");
 const debugMessages = debug.extend("messages");
@@ -9,10 +10,12 @@ export function startServer({
   port = 0,
   onStepStart,
   onStepEnd,
+  onError,
 }: {
   port?: number;
   onStepStart?: (stepStart: FixtureStepStart) => void;
   onStepEnd?: (stepEnd: FixtureStepEnd) => void;
+  onError?: (error: ReporterError) => void;
 }) {
   const wss = new WebSocketServer({ port });
 
@@ -33,6 +36,11 @@ export function startServer({
             break;
           case "step:end":
             onStepEnd?.(fixtureEvent);
+            break;
+          case "error":
+            onError?.(
+              new ReporterError(fixtureEvent.code, fixtureEvent.message, fixtureEvent.detail)
+            );
             break;
         }
       } catch (e) {

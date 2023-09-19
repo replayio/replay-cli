@@ -8,6 +8,9 @@ import {
 } from "./playwrightTypes";
 import WebSocket from "ws";
 import { getServerPort } from "./server";
+import { ReporterError, warn } from "@replayio/test-utils";
+import assert from "assert";
+import { Errors } from "./error";
 
 export interface FixtureStepStart {
   id: string;
@@ -29,7 +32,11 @@ interface FixtureStepEndEvent extends FixtureStepEnd {
   event: "step:end";
 }
 
-export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent;
+interface ReporterErrorEvent extends ReporterError {
+  event: "error";
+}
+
+export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent | ReporterErrorEvent;
 
 const debug = dbg("replay:playwright:fixture");
 
@@ -114,10 +121,17 @@ export async function replayFixture(
   use: () => Promise<void>,
   testInfo: TestInfo
 ) {
+  debug("Setting up replay fixture");
+
   const port = getServerPort();
   const ws = new WebSocket(`ws://localhost:${port}`);
-  debug("Setting up replay fixture");
+  const expectSteps = new Set<string>();
   let currentStepId: string | undefined;
+
+  await new Promise<void>((resolve, reject) => {
+    ws.on("open", () => resolve());
+    ws.on("error", () => reject("Socket errored"));
+  });
 
   function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
     if (id) {
@@ -127,12 +141,63 @@ export async function replayFixture(
     }
   }
 
-  await new Promise<void>((resolve, reject) => {
-    ws.on("open", () => resolve());
-    ws.on("error", () => reject("Socket errored"));
-  });
+  function handlePlaywrightEvent(
+    event: "step:start" | "step:end",
+    stepId: string | undefined,
+    params: Record<string, any> | undefined,
+    detail: Record<string, any>
+  ) {
+    try {
+      assert(
+        stepId != null,
+        new ReporterError(Errors.MissingCurrentStep, "No current step for API call end")
+      );
 
-  const expectSteps = new Map<string, FixtureStepStart>();
+      if (
+        // Do not emit replay annotations so we don't enter an infinite loop
+        isReplayAnnotation(params) ||
+        // Some `expect` calls (e.g. `expect.toBeVisible`) are API calls and
+        // will be emitted by both the addStep "hook" and this method. addStep
+        // is called before this so since we've already dispatched a step:start,
+        // we'll skip emitting another here.
+        expectSteps.has(stepId)
+      ) {
+        return;
+      }
+
+      ws.send(
+        JSON.stringify({
+          event: event,
+          id: stepId,
+          ...detail,
+        })
+      );
+
+      addAnnotation(event, stepId, detail);
+    } catch (e) {
+      let reporterError: ReporterError;
+
+      if (e instanceof ReporterError) {
+        reporterError = e;
+      } else if (e instanceof Error) {
+        reporterError = new ReporterError(Errors.UnexpectedError, e.message, { stack: e.stack });
+      } else {
+        reporterError = new ReporterError(Errors.UnexpectedError, "Unknown", { error: e });
+      }
+
+      try {
+        ws.send(
+          JSON.stringify({
+            event: "error",
+            ...reporterError.valueOf(),
+          })
+        );
+      } catch (wsError) {
+        warn("Failed to send error to reporter", wsError);
+      }
+    }
+  }
+
   maybeMonkeyPatchTestInfo(
     testInfo,
     function handleAddStep(step) {
@@ -140,8 +205,9 @@ export async function replayFixture(
         return;
       }
 
-      const event: FixtureStepStart = {
-        id: step.stepId,
+      expectSteps.add(step.stepId);
+
+      handlePlaywrightEvent("step:start", step.stepId, step.params, {
         apiName: "expect",
         params: step.params || {},
         stackTrace: {
@@ -150,78 +216,27 @@ export async function replayFixture(
           allFrames: step.location ? [step.location] : [],
           frames: step.location ? [step.location] : [],
         },
-      };
-
-      expectSteps.set(event.id, event);
-
-      addAnnotation("step:start", event.id, {
-        apiName: event.apiName,
-        params: event.params,
-        stackTrace: event.stackTrace,
       });
-      ws.send(
-        JSON.stringify({
-          event: "step:start",
-          ...event,
-        })
-      );
     },
     function handleStepEnd(step) {
-      const startEvent = expectSteps.get(step.stepId);
-
-      if (startEvent) {
-        ws.send(
-          JSON.stringify({
-            event: "step:end",
-            id: step.stepId,
-            error: step.error ? parseError(step.error) : null,
-          })
-        );
-
-        addAnnotation("step:end", step.stepId);
+      if (expectSteps.has(step.stepId)) {
+        handlePlaywrightEvent("step:end", step.stepId, undefined, {
+          error: step.error ? parseError(step.error) : null,
+        });
       }
     }
   );
 
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
-      if (isReplayAnnotation(params)) {
-        return;
-      }
-
       currentStepId = getLastStepId(testInfo);
-
-      if (!currentStepId) {
-        return;
-      }
-
-      ws.send(
-        JSON.stringify({
-          event: "step:start",
-          id: currentStepId,
-          apiName,
-          params,
-          stackTrace,
-        })
-      );
-
-      addAnnotation("step:start", currentStepId, { apiName, params, stackTrace });
+      handlePlaywrightEvent("step:start", currentStepId, params, { apiName, params, stackTrace });
     },
 
     onApiCallEnd: (userData, error) => {
-      if (isReplayAnnotation(userData?.userObject?.params)) {
-        return;
-      }
-
-      ws.send(
-        JSON.stringify({
-          event: "step:end",
-          id: currentStepId,
-          error: error ? parseError(error) : null,
-        })
-      );
-
-      addAnnotation("step:end", currentStepId);
+      handlePlaywrightEvent("step:end", currentStepId, userData?.userObject?.params, {
+        error: error ? parseError(error) : null,
+      });
     },
   };
 
