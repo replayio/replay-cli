@@ -559,7 +559,8 @@ async function doViewRecording(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: any
+  agent?: any,
+  viewServer?: string
 ) {
   let recordingId;
   if (recording.status === "crashUploaded") {
@@ -577,9 +578,9 @@ async function doViewRecording(
       return true;
     }
   }
-
+  const devtools = viewServer ?? "https://app.replay.io";
   const dispatch = server != "wss://dispatch.replay.io" ? `&dispatch=${server}` : "";
-  spawn(openExecutable(), [`https://app.replay.io?id=${recordingId}${dispatch}`]);
+  spawn(openExecutable(), [`${devtools}?id=${recordingId}${dispatch}`]);
   return true;
 }
 
@@ -609,7 +610,8 @@ async function viewLatestRecording(opts: Options = {}) {
     recordings[recordings.length - 1],
     opts.verbose,
     opts.apiKey,
-    opts.agent
+    opts.agent,
+    opts.viewServer
   );
 }
 
