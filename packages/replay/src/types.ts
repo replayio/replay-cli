@@ -12,6 +12,11 @@ export interface Options {
   server?: string;
 
   /**
+   * Alternate server to use for opening devtools
+   */
+  viewServer?: string;
+
+  /**
    * Authentication API Key
    */
   apiKey?: string;

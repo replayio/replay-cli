@@ -90,11 +90,13 @@ commandWithGlobalOptions("upload-all")
 
 commandWithGlobalOptions("view <id>")
   .description("Load the devtools on a recording, uploading it if needed.")
+  .option("--view-server <view-server>", "Alternate server to view recording from.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandViewRecording);
 
 commandWithGlobalOptions("view-latest")
   .description("Load the devtools on the latest recording, uploading it if needed.")
+  .option("--view-server <view-server>", "Alternate server to view recording from.")
   .option("--api-key <key>", "Authentication API Key")
   .action(commandViewLatestRecording);
 
