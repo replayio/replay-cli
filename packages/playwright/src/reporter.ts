@@ -21,7 +21,7 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
-import { FixtureStepStart, isFixtureEnabled } from "./fixture";
+import { FixtureStepStart, TestIdData, isFixtureEnabled } from "./fixture";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("../package.json").version;
@@ -91,29 +91,47 @@ class ReplayPlaywrightReporter implements Reporter {
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
   wss: WebSocketServer;
-  fixtureSteps: FixtureStep[] = [];
-  stacks: Record<string, any> = {};
-  filenames: Set<string> = new Set();
+  fixtureData: Record<
+    string,
+    { steps: FixtureStep[]; stacks: Record<string, any>; filenames: Set<string> }
+  > = {};
 
   constructor() {
     const port = getServerPort();
     debug(`Starting plugin WebSocket server on ${port}`);
     this.wss = startServer({
       port,
-      onStepStart: step => {
-        this.fixtureSteps.push(step);
+      onStepStart: (test, step) => {
+        const { steps } = this.getFixtureData(test);
+        steps.push(step);
       },
-      onStepEnd: step => {
-        const s = this.fixtureSteps.find(f => f.id === step.id);
+      onStepEnd: (test, step) => {
+        const { steps } = this.getFixtureData(test);
+        const s = steps.find(f => f.id === step.id);
 
         if (s) {
           s.error = step.error;
         }
       },
-      onError: error => {
+      onError: (_test, error) => {
         this.reporter?.addError(error);
       },
     });
+  }
+
+  getFixtureData(test: TestIdData) {
+    const key = this.getTestKey(test);
+    this.fixtureData[key] = this.fixtureData[key] || {
+      steps: [],
+      stacks: {},
+      filenames: new Set(),
+    };
+
+    return this.fixtureData[key];
+  }
+
+  getTestKey(test: TestIdData) {
+    return [test.id, test.attempt, ...test.source.scope, test.source.title].join("-");
   }
 
   getTestId(test: TestCase) {
@@ -217,10 +235,11 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  getStepsFromFixture(scope: string[]) {
+  getStepsFromFixture(test: TestIdData) {
     const steps: UserActionEvent[] = [];
 
-    this.fixtureSteps.forEach(fixtureStep => {
+    const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
+    fixtureSteps?.forEach(fixtureStep => {
       const step: UserActionEvent = {
         data: {
           id: fixtureStep.id,
@@ -229,13 +248,24 @@ class ReplayPlaywrightReporter implements Reporter {
             name: fixtureStep.apiName,
             arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
           },
-          scope,
+          scope: test.source.scope,
           error: fixtureStep.error || null,
           category: mapFixtureStepCategory(fixtureStep),
         },
       };
 
-      this.addStacksFromFixture(fixtureStep);
+      const stack = fixtureStep.stackTrace.frames.map(frame => ({
+        ...frame,
+        file: path.relative(process.cwd(), frame.file),
+      }));
+
+      if (stack) {
+        stacks[fixtureStep.id] = stack;
+
+        for (const frame of stack) {
+          filenames.add(frame.file);
+        }
+      }
 
       steps.push(step);
     });
@@ -254,12 +284,19 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
+    const testMetadata = {
+      id: 0,
+      attempt: result.retry + 1,
+      source: this.getSource(test),
+    };
+
     const events = isFixtureEnabled()
-      ? this.getStepsFromFixture(test.titlePath().slice(3))
+      ? this.getStepsFromFixture(testMetadata)
       : this.getStepsFromResult(result);
 
     const relativePath = test.titlePath()[2];
-    this.filenames.add(relativePath);
+    const { stacks, filenames } = this.getFixtureData(testMetadata);
+    filenames.add(relativePath);
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
@@ -267,9 +304,9 @@ class ReplayPlaywrightReporter implements Reporter {
         playwrightMetadata = {
           "x-replay-playwright": {
             sources: Object.fromEntries(
-              [...this.filenames].map(filename => [filename, readFileSync(filename, "utf8")])
+              [...filenames].map(filename => [filename, readFileSync(filename, "utf8")])
             ),
-            stacks: this.stacks,
+            stacks,
           },
         };
       } catch (e) {
@@ -281,10 +318,8 @@ class ReplayPlaywrightReporter implements Reporter {
     this.reporter?.onTestEnd({
       tests: [
         {
-          id: 0,
-          attempt: 1,
+          ...testMetadata,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          source: this.getSource(test),
           result: (status as any) === "interrupted" ? "unknown" : status,
           error: result.error
             ? {
@@ -301,21 +336,6 @@ class ReplayPlaywrightReporter implements Reporter {
       replayTitle: test.title,
       extraMetadata: playwrightMetadata,
     });
-  }
-
-  addStacksFromFixture(fixtureStep: FixtureStepStart) {
-    const stack = fixtureStep.stackTrace.frames.map(frame => ({
-      ...frame,
-      file: path.relative(process.cwd(), frame.file),
-    }));
-
-    if (stack) {
-      this.stacks[fixtureStep.id] = stack;
-
-      for (const frame of stack) {
-        this.filenames.add(frame.file);
-      }
-    }
   }
 
   parseArguments(apiName: string, params: any) {

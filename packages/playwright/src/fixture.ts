@@ -19,8 +19,18 @@ export interface FixtureStepStart {
   stackTrace: ParsedStackTrace;
 }
 
+export interface TestIdData {
+  id: number;
+  attempt: number;
+  source: {
+    title: string;
+    scope: string[];
+  };
+}
+
 interface FixtureStepStartEvent extends FixtureStepStart {
   event: "step:start";
+  test: TestIdData;
 }
 
 export interface FixtureStepEnd {
@@ -30,10 +40,12 @@ export interface FixtureStepEnd {
 
 interface FixtureStepEndEvent extends FixtureStepEnd {
   event: "step:end";
+  test: TestIdData;
 }
 
 interface ReporterErrorEvent extends ReporterError {
   event: "error";
+  test: TestIdData;
 }
 
 export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent | ReporterErrorEvent;
@@ -133,10 +145,19 @@ export async function replayFixture(
     ws.on("error", () => reject("Socket errored"));
   });
 
+  const testIdData: TestIdData = {
+    id: 0,
+    attempt: testInfo.retry + 1,
+    source: {
+      title: testInfo.title,
+      scope: testInfo.titlePath.slice(3, -1),
+    },
+  };
+
   function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
     if (id) {
       page
-        .evaluate(ReplayAddAnnotation, [event, id, data ? JSON.stringify(data) : undefined])
+        .evaluate(ReplayAddAnnotation, [event, id, JSON.stringify({ ...data, test: testIdData })])
         .catch(e => console.error);
     }
   }
@@ -167,9 +188,10 @@ export async function replayFixture(
 
       ws.send(
         JSON.stringify({
+          ...detail,
           event: event,
           id: stepId,
-          ...detail,
+          test: testIdData,
         })
       );
 
@@ -188,8 +210,9 @@ export async function replayFixture(
       try {
         ws.send(
           JSON.stringify({
-            event: "error",
             ...reporterError.valueOf(),
+            test: testIdData,
+            event: "error",
           })
         );
       } catch (wsError) {
