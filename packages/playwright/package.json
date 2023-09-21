@@ -28,8 +28,10 @@
   "devDependencies": {
     "@playwright/test": "1.19.x",
     "@replay-cli/tsconfig": "workspace:^",
+    "@types/debug": "^4.1.8",
     "@types/node": "^20.11.27",
     "@types/uuid": "^8.3.4",
+    "@types/ws": "^8.5.5",
     "typescript": "^5.4.2"
   },
   "repository": {
@@ -45,7 +47,9 @@
   "dependencies": {
     "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
-    "uuid": "^8.3.2"
+    "debug": "^4.3.4",
+    "uuid": "^8.3.2",
+    "ws": "^8.13.0"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"

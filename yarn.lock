@@ -1440,10 +1440,14 @@ __metadata:
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
+    "@types/debug": "npm:^4.1.8"
     "@types/node": "npm:^20.11.27"
     "@types/uuid": "npm:^8.3.4"
+    "@types/ws": "npm:^8.5.5"
+    debug: "npm:^4.3.4"
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
+    ws: "npm:^8.13.0"
   peerDependencies:
     "@playwright/test": 1.19.x
   bin:
@@ -1636,7 +1640,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/debug@npm:^4.1.5, @types/debug@npm:^4.1.7":
+"@types/debug@npm:^4.1.5, @types/debug@npm:^4.1.7, @types/debug@npm:^4.1.8":
   version: 4.1.12
   resolution: "@types/debug@npm:4.1.12"
   dependencies:
@@ -1829,7 +1833,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ws@npm:^8.5.10":
+"@types/ws@npm:^8.5.10, @types/ws@npm:^8.5.5":
   version: 8.5.10
   resolution: "@types/ws@npm:8.5.10"
   dependencies:
@@ -8464,7 +8468,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.14.2":
+"ws@npm:^8.13.0, ws@npm:^8.14.2":
   version: 8.16.0
   resolution: "ws@npm:8.16.0"
   peerDependencies:
