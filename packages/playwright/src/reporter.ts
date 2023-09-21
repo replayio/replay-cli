@@ -1,3 +1,7 @@
+import dbg from "debug";
+import { readFileSync } from "fs";
+import path from "path";
+import { WebSocketServer } from "ws";
 import type {
   FullConfig,
   Reporter,
@@ -6,8 +10,6 @@ import type {
   TestResult,
   TestStep,
 } from "@playwright/test/reporter";
-import path from "path";
-
 import {
   ReplayReporter,
   ReplayReporterConfig,
@@ -18,8 +20,10 @@ import {
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
-import { readFileSync } from "fs";
+import { getServerPort, startServer } from "./server";
+import { FixtureStepStart, TestIdData, isFixtureEnabled } from "./fixture";
 
+const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("../package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
@@ -40,6 +44,14 @@ function extractErrorMessage(error: TestError) {
   }
 
   return "Unknown error";
+}
+
+function mapFixtureStepCategory(step: FixtureStep): UserActionEvent["data"]["category"] {
+  if (step.apiName.startsWith("expect")) {
+    return "assertion";
+  }
+
+  return "command";
 }
 
 function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
@@ -69,11 +81,58 @@ interface ReplayPlaywrightConfig extends ReplayReporterConfig {
   captureTestFile?: boolean;
 }
 
+interface FixtureStep extends FixtureStepStart {
+  error?: Error | undefined;
+}
+
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter;
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );
+  wss: WebSocketServer;
+  fixtureData: Record<
+    string,
+    { steps: FixtureStep[]; stacks: Record<string, any>; filenames: Set<string> }
+  > = {};
+
+  constructor() {
+    const port = getServerPort();
+    debug(`Starting plugin WebSocket server on ${port}`);
+    this.wss = startServer({
+      port,
+      onStepStart: (test, step) => {
+        const { steps } = this.getFixtureData(test);
+        steps.push(step);
+      },
+      onStepEnd: (test, step) => {
+        const { steps } = this.getFixtureData(test);
+        const s = steps.find(f => f.id === step.id);
+
+        if (s) {
+          s.error = step.error;
+        }
+      },
+      onError: (_test, error) => {
+        this.reporter?.addError(error);
+      },
+    });
+  }
+
+  getFixtureData(test: TestIdData) {
+    const key = this.getTestKey(test);
+    this.fixtureData[key] = this.fixtureData[key] || {
+      steps: [],
+      stacks: {},
+      filenames: new Set(),
+    };
+
+    return this.fixtureData[key];
+  }
+
+  getTestKey(test: TestIdData) {
+    return [test.id, test.attempt, ...test.source.scope, test.source.title].join("-");
+  }
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
@@ -129,34 +188,14 @@ class ReplayPlaywrightReporter implements Reporter {
     this.reporter?.onTestBegin(this.getSource(test), getMetadataFilePath(testResult.workerIndex));
   }
 
-  onTestEnd(test: TestCase, result: TestResult) {
-    const status = result.status;
-    // skipped tests won't have a reply so nothing to do here
-    if (status === "skipped") return;
-
-    const relativePath = test.titlePath()[2];
-    let playwrightMetadata: Record<string, any> | undefined;
-
-    if (this.captureTestFile) {
-      try {
-        playwrightMetadata = {
-          "x-replay-playwright": {
-            sources: {
-              [relativePath]: readFileSync(test.location.file, "utf8").toString(),
-            },
-          },
-        };
-      } catch (e) {
-        console.warn("Failed to read playwright test source from " + test.location.file);
-        console.warn(e);
-      }
-    }
-
+  getStepsFromResult(result: TestResult) {
     const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
+
     for (let [i, s] of result.steps.entries()) {
       const hook = mapTestStepHook(s);
       const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
+
       const step: UserActionEvent = {
         data: {
           id: String(i),
@@ -187,13 +226,100 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
+    return {
+      beforeAll: [],
+      afterAll: [],
+      beforeEach: hookMap.get("beforeEach") || [],
+      afterEach: hookMap.get("afterEach") || [],
+      main: steps,
+    };
+  }
+
+  getStepsFromFixture(test: TestIdData) {
+    const steps: UserActionEvent[] = [];
+
+    const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
+    fixtureSteps?.forEach(fixtureStep => {
+      const step: UserActionEvent = {
+        data: {
+          id: fixtureStep.id,
+          parentId: null,
+          command: {
+            name: fixtureStep.apiName,
+            arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
+          },
+          scope: test.source.scope,
+          error: fixtureStep.error || null,
+          category: mapFixtureStepCategory(fixtureStep),
+        },
+      };
+
+      const stack = fixtureStep.stackTrace.frames.map(frame => ({
+        ...frame,
+        file: path.relative(process.cwd(), frame.file),
+      }));
+
+      if (stack) {
+        stacks[fixtureStep.id] = stack;
+
+        for (const frame of stack) {
+          filenames.add(frame.file);
+        }
+      }
+
+      steps.push(step);
+    });
+
+    return {
+      beforeAll: [],
+      afterAll: [],
+      beforeEach: [], // hookMap.get("beforeEach") || [],
+      afterEach: [], // hookMap.get("afterEach") || [],
+      main: steps,
+    };
+  }
+
+  onTestEnd(test: TestCase, result: TestResult) {
+    const status = result.status;
+    // skipped tests won't have a reply so nothing to do here
+    if (status === "skipped") return;
+
+    const testMetadata = {
+      id: 0,
+      attempt: result.retry + 1,
+      source: this.getSource(test),
+    };
+
+    const events = isFixtureEnabled()
+      ? this.getStepsFromFixture(testMetadata)
+      : this.getStepsFromResult(result);
+
+    const relativePath = test.titlePath()[2];
+    const { stacks, filenames } = this.getFixtureData(testMetadata);
+    filenames.add(relativePath);
+    let playwrightMetadata: Record<string, any> | undefined;
+
+    if (this.captureTestFile) {
+      try {
+        playwrightMetadata = {
+          "x-replay-playwright": {
+            sources: Object.fromEntries(
+              [...filenames].map(filename => [filename, readFileSync(filename, "utf8")])
+            ),
+            stacks,
+          },
+        };
+      } catch (e) {
+        console.warn("Failed to read playwright test source from " + test.location.file);
+        console.warn(e);
+      }
+    }
+
     this.reporter?.onTestEnd({
       tests: [
         {
-          id: 0,
-          attempt: 1,
+          ...testMetadata,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          source: this.getSource(test),
           result: (status as any) === "interrupted" ? "unknown" : status,
           error: result.error
             ? {
@@ -203,13 +329,7 @@ class ReplayPlaywrightReporter implements Reporter {
                 column: (result.error as any).location?.column || 0,
               }
             : null,
-          events: {
-            beforeAll: [],
-            afterAll: [],
-            beforeEach: hookMap.get("beforeEach") || [],
-            afterEach: hookMap.get("afterEach") || [],
-            main: steps,
-          },
+          events,
         },
       ],
       specFile: relativePath,
@@ -220,6 +340,37 @@ class ReplayPlaywrightReporter implements Reporter {
 
   async onEnd() {
     await this.reporter?.onEnd();
+  }
+
+  parseArguments(apiName: string, params: any) {
+    switch (apiName) {
+      case "page.goto":
+        return [params.url];
+      case "page.evaluate":
+        // TODO(ryanjduffy): This would be nice to improve but it can be nearly
+        // anything so it's not obvious how to simplify it well to an array of
+        // strings.
+        return [];
+      case "locator.getAttribute":
+        return [params.selector, params.name];
+      case "mouse.move":
+        // params = {x: 0, y: 0}
+        return [JSON.stringify(params)];
+      case "locator.hover":
+        return [params.selector, String(params.force)];
+      case "expect.toBeVisible":
+        return [params.selector, params.expression, String(params.isNot)];
+      case "keyboard.type":
+        return [params.text];
+      case "keyboard.down":
+      case "keyboard.up":
+        return [params.key];
+      case "locator.evaluate":
+      case "locator.scrollIntoViewIfNeeded":
+        return [params.selector, params.state];
+      default:
+        return params.selector ? [params.selector] : [];
+    }
   }
 }
 
