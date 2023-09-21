@@ -158,7 +158,7 @@ export async function replayFixture(
     if (id) {
       page
         .evaluate(ReplayAddAnnotation, [event, id, JSON.stringify({ ...data, test: testIdData })])
-        .catch(e => console.error);
+        .catch(e => warn("Failed to add annotation", e));
     }
   }
 
