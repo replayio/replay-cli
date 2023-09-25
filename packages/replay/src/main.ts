@@ -370,7 +370,7 @@ async function doUploadRecording(
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
     maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
-    removeRecordingAssets(recording);
+    removeRecordingAssets(recording, { directory: dir });
     return recording.id;
   }
 
@@ -456,7 +456,7 @@ async function doUploadRecording(
     { concurrency: 10, stopOnError: false }
   );
 
-  removeRecordingAssets(recording);
+  removeRecordingAssets(recording, { directory: dir });
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
@@ -615,11 +615,11 @@ async function viewLatestRecording(opts: Options = {}) {
   );
 }
 
-function maybeRemoveAssetFile<T extends { path?: string }>(asset: T) {
-  if (asset.path) {
+function maybeRemoveAssetFile(asset?: string) {
+  if (asset) {
     try {
-      debug("Removing asset file %s", asset.path);
-      fs.unlinkSync(asset.path);
+      debug("Removing asset file %s", asset);
+      fs.unlinkSync(asset);
     } catch (e) {
       debug("Failed to remove asset file: %s", e);
     }
@@ -634,7 +634,7 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  removeRecordingAssets(recording);
+  removeRecordingAssets(recording, opts);
 
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -652,19 +652,40 @@ function removeRecording(id: string, opts: Options = {}) {
   return true;
 }
 
-function removeRecordingAssets(recording: RecordingEntry) {
-  maybeRemoveAssetFile(recording);
+function getRecordingAssetFiles(recording: RecordingEntry) {
+  const assetFiles: string[] = [];
+  if (recording.path) {
+    assetFiles.push(recording.path);
+  }
+
   recording.sourcemaps.forEach(sm => {
-    maybeRemoveAssetFile(sm);
-    maybeRemoveAssetFile({ path: sm.path.replace(/\.map$/, ".lookup") });
-    sm.originalSources.forEach(maybeRemoveAssetFile);
+    assetFiles.push(sm.path);
+    assetFiles.push(sm.path.replace(/\.map$/, ".lookup"));
+    sm.originalSources.forEach(o => assetFiles.push(o.path));
+  });
+
+  return assetFiles;
+}
+
+function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "directory">) {
+  const localRecordings = listAllRecordings({
+    ...opts,
+    filter: r => r.status !== "uploaded" && r.status !== "crashUploaded" && r.id !== recording.id,
+  });
+
+  const localRecordingAssetFiles = new Set(localRecordings.flatMap(getRecordingAssetFiles));
+  const assetFiles = getRecordingAssetFiles(recording);
+  assetFiles.forEach(file => {
+    if (!localRecordingAssetFiles.has(file)) {
+      maybeRemoveAssetFile(file);
+    }
   });
 }
 
 function removeAllRecordings(opts = {}) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(removeRecordingAssets);
+  recordings.forEach(r => removeRecordingAssets(r, opts));
 
   const file = getRecordingsFile(dir);
   if (fs.existsSync(file)) {
