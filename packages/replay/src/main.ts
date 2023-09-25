@@ -344,7 +344,8 @@ async function doUploadRecording(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: any
+  agent?: any,
+  removeAssets: boolean = false
 ) {
   debug("Uploading %s from %s to %s", recording.id, dir, server);
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
@@ -370,7 +371,9 @@ async function doUploadRecording(
     debug("Uploading crash %o", recording);
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
     maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
-    removeRecordingAssets(recording, { directory: dir });
+    if (removeAssets) {
+      removeRecordingAssets(recording, { directory: dir });
+    }
     return recording.id;
   }
 
@@ -456,7 +459,9 @@ async function doUploadRecording(
     { concurrency: 10, stopOnError: false }
   );
 
-  removeRecordingAssets(recording, { directory: dir });
+  if (removeAssets) {
+    removeRecordingAssets(recording, { directory: dir });
+  }
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
   maybeLog(
@@ -478,7 +483,7 @@ async function uploadRecording(id: string, opts: Options = {}) {
     return null;
   }
 
-  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent);
+  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent, true);
 }
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
@@ -546,9 +551,17 @@ async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
 
   const recordingIds: (string | null)[] = await pMap(
     recordings,
-    (r: RecordingEntry) => doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent),
+    (r: RecordingEntry) =>
+      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false),
     { concurrency: batchSize, stopOnError: false }
   );
+
+  recordingIds.forEach(id => {
+    const recording = recordings.find(r => r.id === id);
+    if (!recording) return;
+
+    removeRecordingAssets(recording, opts);
+  });
 
   return recordingIds.every(r => r !== null);
 }
@@ -570,7 +583,7 @@ async function doViewRecording(
     recordingId = recording.recordingId;
     server = recording.server!;
   } else {
-    recordingId = await doUploadRecording(dir, server, recording, verbose, apiKey, agent);
+    recordingId = await doUploadRecording(dir, server, recording, verbose, apiKey, agent, true);
 
     if (!recordingId) {
       return false;
@@ -618,8 +631,10 @@ async function viewLatestRecording(opts: Options = {}) {
 function maybeRemoveAssetFile(asset?: string) {
   if (asset) {
     try {
-      debug("Removing asset file %s", asset);
-      fs.unlinkSync(asset);
+      if (fs.existsSync(asset)) {
+        debug("Removing asset file %s", asset);
+        fs.unlinkSync(asset);
+      }
     } catch (e) {
       debug("Failed to remove asset file: %s", e);
     }
