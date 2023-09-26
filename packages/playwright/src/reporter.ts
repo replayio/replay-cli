@@ -272,7 +272,9 @@ class ReplayPlaywrightReporter implements Reporter {
       };
 
       const stack = fixtureStep.stackTrace.frames.map(frame => ({
-        ...frame,
+        line: frame.line,
+        column: frame.column,
+        functionName: frame.function,
         file: path.relative(process.cwd(), frame.file),
       }));
 
