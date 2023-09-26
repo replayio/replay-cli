@@ -228,8 +228,6 @@ export async function replayFixture(
         return;
       }
 
-      expectSteps.add(step.stepId);
-
       handlePlaywrightEvent("step:start", step.stepId, step.params, {
         apiName: "expect",
         params: step.params || {},
@@ -240,6 +238,8 @@ export async function replayFixture(
           frames: step.location ? [step.location] : [],
         },
       });
+
+      expectSteps.add(step.stepId);
     },
     function handleStepEnd(step) {
       if (expectSteps.has(step.stepId)) {
