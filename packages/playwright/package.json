@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "src/index.js",
   "scripts": {
@@ -41,8 +41,8 @@
     "@replayio/replay": "^0.17.5",
     "@replayio/test-utils": "^1.2.3",
     "debug": "^4.3.4",
-    "ws": "^8.13.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "ws": "^8.13.0"
   },
   "peerDependencies": {
     "@playwright/test": "1.19.x"
