@@ -25,24 +25,28 @@ function readXmlFile(path: string) {
 
     return dom;
   } catch (e) {
-    warn("Failed to read and parse file", e);
+    warn("[junit] Failed to read and parse reporter file", e);
   }
 }
 
 function writeOutputFile(dom: (string | INode)[], outputFile: string) {
-  const updatedContents = dom
-    .filter(isNode)
-    .map(n => {
-      let str = stringify([n]);
-      if (n.tagName.startsWith("?")) {
-        // add \\ before the ? in the tagName to escape it
-        str = str.replace(new RegExp(`</\\${n.tagName}>`), "");
-      }
+  try {
+    const updatedContents = dom
+      .filter(isNode)
+      .map(n => {
+        let str = stringify([n]);
+        if (n.tagName.startsWith("?")) {
+          // add \\ before the ? in the tagName to escape it
+          str = str.replace(new RegExp(`</\\${n.tagName}>`), "");
+        }
 
-      return str;
-    })
-    .join("\n");
-  writeFileSync(outputFile, updatedContents, "utf-8");
+        return str;
+      })
+      .join("\n");
+    writeFileSync(outputFile, updatedContents, "utf-8");
+  } catch (e) {
+    warn("[junit] Failed to update reporter file", e);
+  }
 }
 
 // #endregion
@@ -102,21 +106,26 @@ function addReplayLinkProperty(node: INode, replayUrls: string[]) {
       )
     );
   } catch (e) {
-    warn("Failed to update reporter output file", e);
+    debug("Failed to add replay url to properties: %s", e);
   }
 }
 
 function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
-  const failures = findDescendentsByTagName(node, "failure");
-  debug("Found %d failures to append replay URLs", failures.length);
-  failures.forEach(failure => {
-    if (typeof failure.children[0] !== "string") {
-      debug("<failure> contained a node instead of an error message");
-      return;
-    }
+  try {
+    const failures = findDescendentsByTagName(node, "failure");
+    debug("Found %d failures to append replay URLs", failures.length);
+    failures.forEach(failure => {
+      if (typeof failure.children[0] !== "string") {
+        debug("<failure> contained a node instead of an error message");
+        return;
+      }
 
-    failure.children[0] += "\n\n View in Replay\n" + replayUrls.map(url => ` * ${url}`).join("\n");
-  });
+      failure.children[0] +=
+        "\n\n View in Replay\n" + replayUrls.map(url => ` * ${url}`).join("\n");
+    });
+  } catch (e) {
+    debug("Failed to add replay url to failure output: %s", e);
+  }
 }
 
 // #endregion
@@ -163,47 +172,47 @@ export function updateJUnitReports(
   projectBase: string,
   mochaFile?: string
 ) {
-  debug("Updating JUnit reporter output %o", {
-    specRelativePath,
-    recordings: recordings.map(r => r.id),
-    projectBase,
-    mochaFile,
-  });
+  try {
+    debug("Updating JUnit reporter output %o", {
+      specRelativePath,
+      recordings: recordings.map(r => r.id),
+      projectBase,
+      mochaFile,
+    });
 
-  if (mochaFile && typeof mochaFile !== "string") {
-    warn(
-      "Unsupported reporterOptions configuration",
-      new Error("Expected string for mocha file but received " + typeof mochaFile)
-    );
+    if (mochaFile && typeof mochaFile !== "string") {
+      warn(
+        "Unsupported reporterOptions configuration",
+        new Error("Expected string for mocha file but received " + typeof mochaFile)
+      );
 
-    return;
+      return;
+    }
+
+    const xmlFiles = getPotentialReporterFiles(projectBase, mochaFile);
+    const { xmlFile, dom } = findOutputFileForSpec(specRelativePath, xmlFiles);
+
+    if (!dom) {
+      throw new Error(`Failed to find JUnit reporter output file`);
+    }
+
+    debug("Found matching root suite node for %s", specRelativePath);
+
+    const testSuites = getTestSuitesNode(dom);
+    const rootSuite = getRootSuite(dom);
+
+    if (!rootSuite || !testSuites) {
+      // We've already found these in findOutputFileForSpec but confirming here to
+      // keep TS happy
+      throw new Error(`Failed to find root suite or test suites nodes`);
+    }
+
+    const replayUrls = recordings.map(r => `https://app.replay.io/recording/${r.id}`);
+    addReplayLinkProperty(rootSuite, replayUrls);
+    appendReplayUrlsToFailureNodes(testSuites, replayUrls);
+
+    writeOutputFile(dom, xmlFile);
+  } catch (e) {
+    warn(`[junit] Unexpected reporter error  for ${specRelativePath}`, e);
   }
-
-  const xmlFiles = getPotentialReporterFiles(projectBase, mochaFile);
-  const { xmlFile, dom } = findOutputFileForSpec(specRelativePath, xmlFiles);
-
-  if (!dom) {
-    warn(
-      "JUnit reporter error",
-      new Error(`Failed to find JUnit reporter output file for ${specRelativePath}`)
-    );
-    return;
-  }
-
-  debug("Found matching root suite node for %s", specRelativePath);
-
-  const testSuites = getTestSuitesNode(dom);
-  const rootSuite = getRootSuite(dom);
-
-  if (!rootSuite || !testSuites) {
-    // We've already found these in findOutputFileForSpec but confirming here to
-    // keep TS happy
-    return;
-  }
-
-  const replayUrls = recordings.map(r => `https://app.replay.io/recording/${r.id}`);
-  addReplayLinkProperty(rootSuite, replayUrls);
-  appendReplayUrlsToFailureNodes(testSuites, replayUrls);
-
-  writeOutputFile(dom, xmlFile);
 }
