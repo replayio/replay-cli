@@ -9,6 +9,7 @@ import {
   listAllRecordings,
 } from "@replayio/replay";
 import { TestMetadataV2, initMetadataFile, log, warn } from "@replayio/test-utils";
+import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
 
@@ -16,18 +17,23 @@ import { TASK_NAME } from "./constants";
 import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
 import run from "./run";
 import { PluginFeature } from "./features";
+import { updateJUnitReports } from "./junit";
 
 const debug = dbg("replay:cypress:plugin");
 const debugTask = debug.extend("task");
 const debugEvents = debug.extend("events");
 
-interface PluginOptions {
+export interface PluginOptions {
   upload?: boolean;
   filter?: (recordings: RecordingEntry) => boolean;
   apiKey?: string;
   directory?: string;
   initMetadataKeys?: string[];
 }
+
+export type PluginOptionsWithConfig = PluginOptions & {
+  config?: Cypress.PluginConfigOptions;
+};
 
 interface UploadResult {
   error?: unknown;
@@ -70,6 +76,26 @@ function getAuthKey<T extends { env?: { [key: string]: any } }>(config: T): stri
     process.env.REPLAY_API_KEY ||
     process.env.RECORD_REPLAY_API_KEY
   );
+}
+
+function updateReporters(
+  spec: Cypress.Spec,
+  config: Cypress.PluginConfigOptions,
+  filter: PluginOptions["filter"]
+) {
+  const { reporter, reporterOptions } = config;
+  if (reporter !== "junit") {
+    return;
+  }
+
+  const projectBase = path.dirname(config.configFile);
+  const recordings = listAllRecordings({ filter: getSpecFilter(spec, filter) });
+  debug("Found %d recordings for %s", recordings.length, spec.relative);
+  if (recordings.length === 0) {
+    return;
+  }
+
+  updateJUnitReports(spec.relative, recordings, projectBase, reporterOptions?.mochaFile);
 }
 
 async function onBeforeRun(details: Cypress.BeforeRunDetails) {
@@ -144,7 +170,7 @@ function onBeforeSpec(spec: Cypress.Spec) {
 function onAfterSpec(
   spec: Cypress.Spec,
   result: CypressCommandLine.RunResult,
-  options: PluginOptions = {}
+  options: PluginOptionsWithConfig = {}
 ) {
   debugEvents("Handling after:spec %s", spec.relative);
   const metadata = cypressReporter.onAfterSpec(spec, result);
@@ -159,6 +185,10 @@ function onAfterSpec(
     ) {
       missingSteps = true;
     }
+  }
+
+  if (options.config) {
+    updateReporters(spec, options.config, options.filter);
   }
 
   if (options.upload === true) {
@@ -182,15 +212,19 @@ function onReplayTask(value: any) {
   return true;
 }
 
-async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<UploadResult> {
-  const filter = (r: RecordingEntry) => {
+function getSpecFilter(spec: Cypress.Spec, filter: PluginOptions["filter"]) {
+  return (r: RecordingEntry) => {
     const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
     if (testMetadata?.source?.path !== spec.relative) {
       return false;
     }
 
-    return options.filter ? options.filter(r) : true;
+    return filter ? filter(r) : true;
   };
+}
+
+async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<UploadResult> {
+  const filter = getSpecFilter(spec, options.filter);
 
   try {
     if (options.initMetadataKeys) {
@@ -298,7 +332,7 @@ const plugin = (
     cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
     cypressReporter.isFeatureEnabled(PluginFeature.Metrics)
   ) {
-    on("after:spec", (spec, result) => onAfterSpec(spec, result, options));
+    on("after:spec", (spec, result) => onAfterSpec(spec, result, { ...options, config }));
   }
 
   if (

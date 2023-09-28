@@ -38,6 +38,8 @@ flake:
   RUN npm i && npm link @replayio/cypress
   RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps npm run start-and-test || exit 0
   RUN npx @replayio/replay ls --all
+  RUN echo "JUnit Output"
+  RUN find results -type f -exec grep -l 'adding-spec.ts' {} \; | xargs cat 
 
 e2e:
   BUILD +flake
