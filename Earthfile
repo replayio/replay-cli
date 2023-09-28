@@ -32,11 +32,28 @@ setup:
 flake:
   FROM +setup
   ARG --required REPLAY_API_KEY
+  ARG GITHUB_SHA
+  ARG GITHUB_TOKEN
+  ARG GITHUB_REPOSITORY
+  ARG GITHUB_ACTOR
+  ARG GITHUB_RUN_ID
+  ARG GITHUB_WORKFLOW
+  ARG GITHUB_SERVER_URL
+  ARG GITHUB_REF_NAME
   WORKDIR /usr/build/e2e-repos/flake
   ENV REPLAY_METADATA_TEST_RUN_TITLE="flake"
   ENV REPLAY_API_KEY=${REPLAY_API_KEY}
+  ENV GITHUB_SHA=${GITHUB_SHA}
+  ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+  ENV GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+  ENV GITHUB_ACTOR=${GITHUB_ACTOR}
+  ENV GITHUB_RUN_ID=${GITHUB_RUN_ID}
+  ENV GITHUB_WORKFLOW=${GITHUB_WORKFLOW}
+  ENV GITHUB_SERVER_URL=${GITHUB_SERVER_URL}
+  ENV GITHUB_REF_NAME=${GITHUB_REF_NAME}
+  ENV GITHUB_EVENT_PATH=/usr/build/e2e-repos/flake/github_event
   RUN npm i && npm link @replayio/cypress
-  RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps npm run start-and-test || exit 0
+  RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps,replay:cli:metadata:source npm run start-and-test || exit 0
   RUN npx @replayio/replay ls --all
   RUN echo "JUnit Output"
   RUN find results -type f -exec grep -l 'adding-spec.ts' {} \; | xargs cat 
