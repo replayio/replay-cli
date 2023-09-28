@@ -36,8 +36,8 @@ function writeOutputFile(dom: (string | INode)[], outputFile: string) {
       .map(n => {
         let str = stringify([n]);
         if (n.tagName.startsWith("?")) {
-          // add \\ before the ? in the tagName to escape it
-          str = str.replace(new RegExp(`</\\${n.tagName}>`), "");
+          // replace ></?xml> with ?>
+          str = str.replace(new RegExp(`></\\${n.tagName}>`), "?>");
         }
 
         return str;
