@@ -6,7 +6,7 @@ import {
   ReporterError,
   fetchWorkspaceConfig,
 } from "@replayio/test-utils";
-import debug from "debug";
+import dbg from "debug";
 
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
@@ -14,9 +14,18 @@ import { getDiagnosticConfig } from "./mode";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
+import { RecordingEntry } from "@replayio/replay";
 
 type Test = TestMetadataV2.Test;
-type TestRun = TestMetadataV2.TestRun;
+
+const debug = dbg("replay:cypress:reporter");
+
+export interface PluginOptions {
+  upload?: boolean;
+  filter?: (recordings: RecordingEntry) => boolean;
+  apiKey?: string;
+  directory?: string;
+}
 
 function isStepEvent(value: unknown): value is StepEvent {
   if (
@@ -33,9 +42,9 @@ function isStepEvent(value: unknown): value is StepEvent {
 }
 
 class CypressReporter {
+  public config: Cypress.PluginConfigOptions;
+  public options: PluginOptions;
   reporter: ReplayReporter;
-  config: Cypress.PluginConfigOptions;
-  debug: debug.Debugger;
   startTime: number | undefined;
   steps: StepEvent[] = [];
   selectedBrowser: string | undefined;
@@ -43,10 +52,11 @@ class CypressReporter {
   featureOptions: string | undefined;
   diagnosticConfig: ReturnType<typeof getDiagnosticConfig> = { noRecord: false, env: {} };
 
-  constructor(config: Cypress.PluginConfigOptions, debug: debug.Debugger) {
+  constructor(config: Cypress.PluginConfigOptions, options: PluginOptions) {
     initFixtureFile();
 
     this.config = config;
+    this.options = options;
     this.reporter = new ReplayReporter(
       {
         name: "cypress",
@@ -55,7 +65,6 @@ class CypressReporter {
       },
       "2.1.0"
     );
-    this.debug = debug.extend("reporter");
 
     this.configureDiagnostics();
 
@@ -87,7 +96,13 @@ class CypressReporter {
 
   onLaunchBrowser(browser: string) {
     this.setSelectedBrowser(browser);
-    this.reporter.onTestSuiteBegin(undefined, "CYPRESS_REPLAY_METADATA");
+    this.reporter.onTestSuiteBegin(
+      {
+        apiKey: this.options.apiKey,
+        upload: this.options.upload,
+      },
+      "CYPRESS_REPLAY_METADATA"
+    );
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
@@ -160,7 +175,7 @@ class CypressReporter {
       result.tests.length === 0
     ) {
       const msg = "No test results found for spec " + spec.relative;
-      this.debug(msg);
+      debug(msg);
       this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
       return [

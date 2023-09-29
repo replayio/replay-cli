@@ -1,5 +1,12 @@
-import { RecordingEntry, listAllRecordings } from "@replayio/replay";
-import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
+import { createHash } from "crypto";
+import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
+import {
+  add,
+  test as testMetadata,
+  source as sourceMetadata,
+  source,
+} from "@replayio/replay/metadata";
+import { query } from "@replayio/replay/src/graphql";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
@@ -12,9 +19,24 @@ import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:reporter");
 
+interface TestRunTestInputModel {
+  testId: string;
+  index: number;
+  attempt: number;
+  scope: string[];
+  title: string;
+  sourcePath: string;
+  result: string;
+  error: string | null;
+  duration: number;
+  recordingIds: string[];
+}
+
 export interface ReplayReporterConfig {
   runTitle?: string;
   metadata?: Record<string, any> | string;
+  upload?: boolean;
+  apiKey?: string;
 }
 
 export interface TestRunner {
@@ -66,10 +88,23 @@ export class ReporterError extends Error {
   }
 }
 
-type PendingWork = {
-  type: "recording";
-  recordings: RecordingEntry[];
-};
+type PendingWork =
+  | {
+      type: "recording";
+      recordings: RecordingEntry[];
+    }
+  | {
+      type: "test-run";
+      id: string;
+      phase: "start" | "complete";
+    }
+  | {
+      type: "test-run-tests";
+    }
+  | {
+      type: "upload";
+      result: Record<string, boolean>;
+    };
 
 class ReplayReporter {
   baseId = uuid.validate(
@@ -77,6 +112,7 @@ class ReplayReporter {
   )
     ? process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID
     : uuid.v4();
+  testRunShardId: string | null = null;
   baseMetadata: Record<string, any> | null = null;
   schemaVersion: string;
   runTitle?: string;
@@ -84,10 +120,15 @@ class ReplayReporter {
   errors: ReporterError[] = [];
   apiKey?: string;
   pendingWork: Promise<PendingWork>[] = [];
+  upload = false;
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
+  }
+
+  setUpload(upload: boolean) {
+    this.upload = upload;
   }
 
   setApiKey(apiKey: string) {
@@ -163,6 +204,9 @@ class ReplayReporter {
     // overwritten at runtime
     this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE || config.runTitle;
 
+    this.apiKey = process.env.REPLAY_API_KEY || config.apiKey;
+    this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
+
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
     // We suppress it for the browser process so we can use
     // RECORD_REPLAY_METADATA_FILE but can still use the metadata here which
@@ -222,9 +266,163 @@ class ReplayReporter {
       runner: this.runner,
       baseMetadata: this.baseMetadata,
     });
+
+    if (!this.testRunShardId) {
+      if (this.apiKey) {
+        this.pendingWork.push(this.startTestRunShard());
+      } else {
+        debug("Skipping starting test run: API Key not set");
+      }
+    }
+  }
+
+  async startTestRunShard(): Promise<PendingWork> {
+    let metadata: any = {};
+    try {
+      metadata = await source.init();
+    } catch (e) {
+      debug(
+        "Failed to initialize source metadata to create test run shard: %s",
+        e instanceof Error ? e.message : e
+      );
+    }
+
+    const { REPLAY_METADATA_TEST_RUN_MODE, RECORD_REPLAY_METADATA_TEST_RUN_MODE } = process.env;
+
+    const testRun = {
+      repository: metadata.source?.repository ?? null,
+      title: metadata.source?.repository ?? null,
+      mode: REPLAY_METADATA_TEST_RUN_MODE ?? RECORD_REPLAY_METADATA_TEST_RUN_MODE ?? null,
+      branch: metadata.source?.branch ?? null,
+      pullRequestId: metadata.source?.merge?.id ?? null,
+      pullRequestTitle: metadata.source?.merge?.title ?? null,
+      commitId: metadata.source?.commit?.id ?? null,
+      commitTitle: metadata.source?.commit?.title ?? null,
+      commitUser: metadata.source?.commit?.user ?? null,
+      triggerUrl: metadata.source?.trigger?.url ?? null,
+      triggerUser: metadata.source?.trigger?.user ?? null,
+      triggerReason: metadata.source?.trigger?.workflow ?? null,
+    };
+
+    debug("Creating test run shard for user-key %s", this.baseId);
+
+    const resp = await query(
+      "CreateTestRunShard",
+      `
+        mutation CreateTestRunShard($userKey: String!, $testRun: TestRunShardInput!) {
+          startTestRunShard(input: {
+            userKey: $userKey,
+            testRun: $testRun
+          }) {
+            success
+            testRunShardId
+          }
+        }
+      `,
+      {
+        userKey: this.baseId,
+        testRun,
+      },
+      this.apiKey
+    );
+
+    if (resp.errors) {
+      warn("Failed to start a new test run", new Error(resp.errors[0].message));
+      throw new Error("Failed to start a new test run");
+    }
+
+    this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
+
+    if (!this.testRunShardId) {
+      throw new Error("Unexpected error retrieving test run shard id");
+    }
+
+    debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
+
+    return {
+      type: "test-run",
+      id: this.testRunShardId,
+      phase: "start",
+    };
+  }
+
+  async addTestsToShard(tests: TestRunTestInputModel[]): Promise<PendingWork> {
+    if (!this.testRunShardId) {
+      throw new Error("Unable to add tests to test run: ID not set");
+    }
+
+    debug("Adding %d tests to shard %s", tests.length, this.testRunShardId);
+
+    const resp = await query(
+      "AddTestsToShard",
+      `
+        mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
+          addTestsToShard(input: {
+            testRunShardId: $testRunShardId,
+            tests: $tests
+          }) {
+            success
+          }
+        }
+      `,
+      {
+        testRunShardId: this.testRunShardId,
+        tests,
+      },
+      this.apiKey
+    );
+
+    if (resp.errors) {
+      throw new Error("Unexpected error adding tests to run");
+    }
+
+    debug("Successfully added tests to shard %s", this.testRunShardId);
+
+    return {
+      type: "test-run-tests",
+    };
+  }
+
+  async completeTestRunShard(): Promise<PendingWork> {
+    if (!this.testRunShardId) {
+      throw new Error("Unable to complete test run: ID not set");
+    }
+
+    debug("Marking test run shard %s complete", this.testRunShardId);
+
+    const resp = await query(
+      "CompleteTestRunShard",
+      `
+        mutation CompleteTestRunShard($testRunShardId: String!) {
+          completeTestRunShard(input: {
+            testRunShardId: $testRunShardId
+          }) {
+            success
+          }
+        }
+      `,
+      {
+        testRunShardId: this.testRunShardId,
+      },
+      this.apiKey
+    );
+
+    if (resp.errors) {
+      throw new Error("Unexpected error completing test run shard");
+    }
+
+    debug("Successfully marked test run shard %s complete", this.testRunShardId);
+
+    return {
+      type: "test-run",
+      id: this.testRunShardId,
+      phase: "complete",
+    };
   }
 
   onTestBegin(source?: Test["source"], metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+    debug("onTestBegin: %o", source);
+
     const id = this.getTestId(source);
     this.errors = [];
     const metadata = {
@@ -255,6 +453,8 @@ class ReplayReporter {
     replayTitle?: string;
     extraMetadata?: Record<string, unknown>;
   }) {
+    debug("onTestEnd: %s", specFile);
+
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
@@ -263,6 +463,42 @@ class ReplayReporter {
     }
 
     this.pendingWork.push(this.addMetadata(tests, specFile, replayTitle, extraMetadata));
+  }
+
+  buildTestId(sourcePath: string, test: Test) {
+    return createHash("sha1")
+      .update([sourcePath, test.id, ...test.source.scope, test.source.title].join("-"))
+      .digest("hex");
+  }
+
+  async uploadRecordings(recordings: RecordingEntry[]): Promise<PendingWork> {
+    debug("Starting upload of %d recordings", recordings.length);
+
+    const results = await Promise.allSettled(
+      recordings.map(r => {
+        return uploadRecording(r.id, {
+          apiKey: this.apiKey,
+        });
+      })
+    );
+
+    let uploaded = 0;
+    const result: Record<string, boolean> = {};
+    results.forEach((r, i) => {
+      const success = r.status === "fulfilled" && r.value != null;
+      result[recordings[i].id] = success;
+
+      if (success) {
+        uploaded++;
+      }
+    });
+
+    debug("Successfully uploaded of %d of %d recordings", uploaded, recordings.length);
+
+    return {
+      type: "upload",
+      result,
+    };
   }
 
   async addMetadata(
@@ -330,16 +566,40 @@ class ReplayReporter {
       };
 
       try {
-        const validatedSourceMetadata = sourceMetadata.init();
+        const validatedSourceMetadata = await sourceMetadata.init();
         mergedMetadata = {
           ...mergedMetadata,
           ...validatedSourceMetadata,
         };
       } catch (e) {
-        debug("Failed to generate source metadata", e);
+        debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
       }
 
+      const recordingIds = recordings.map(r => r.id);
+      this.pendingWork.push(
+        this.addTestsToShard(
+          tests.map<TestRunTestInputModel>(t => ({
+            testId: this.buildTestId(source.path, t),
+            index: t.id,
+            attempt: t.attempt,
+            scope: t.source.scope,
+            title: t.source.title,
+            sourcePath: source.path,
+            result: t.result,
+            error: t.error ? t.error.message : null,
+            duration: t.approximateDuration,
+            recordingIds,
+          }))
+        )
+      );
+
       recordings.forEach(rec => add(rec.id, mergedMetadata));
+
+      if (this.upload && this.apiKey) {
+        this.pendingWork.push(this.uploadRecordings(recordings));
+      } else {
+        debug("Skipping upload: %o", { upload: this.upload, apiKey: !!this.apiKey });
+      }
     }
 
     pingTestMetrics(
@@ -360,12 +620,20 @@ class ReplayReporter {
     return {
       type: "recording",
       recordings: listAllRecordings({
+        all: true,
         filter,
       }),
     };
   }
 
   async onEnd() {
+    debug("onEnd");
+    if (this.apiKey) {
+      this.pendingWork.push(this.completeTestRunShard());
+    } else {
+      debug("Skipping completing test run: API Key not set");
+    }
+
     const results = await Promise.allSettled(this.pendingWork);
 
     const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
