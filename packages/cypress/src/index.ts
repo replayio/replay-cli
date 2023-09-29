@@ -28,7 +28,6 @@ export interface PluginOptions {
   filter?: (recordings: RecordingEntry) => boolean;
   apiKey?: string;
   directory?: string;
-  initMetadataKeys?: string[];
 }
 
 export type PluginOptionsWithConfig = PluginOptions & {
@@ -40,15 +39,16 @@ interface UploadResult {
   recordings: Record<string, boolean>;
 }
 
-let cypressReporter: CypressReporter;
+let cypressReporter: CypressReporter | undefined;
 let missingSteps = false;
 const pendingWork: Promise<UploadResult>[] = [];
 
-function initPluginOptions(options: PluginOptions = {}): PluginOptions {
-  return {
-    initMetadataKeys: process.env.CI ? ["source"] : undefined,
-    ...options,
-  };
+function assertReporter(
+  reporter: CypressReporter | undefined
+): asserts reporter is CypressReporter {
+  if (!reporter) {
+    throw new Error("Plugin method called without initializing @replayio/cypress plugin");
+  }
 }
 
 function loudWarning(...lines: string[]) {
@@ -99,6 +99,7 @@ function updateReporters(
 }
 
 async function onBeforeRun(details: Cypress.BeforeRunDetails) {
+  assertReporter(cypressReporter);
   const authKey = getAuthKey(details.config);
   if (authKey) {
     await cypressReporter.authenticate(authKey);
@@ -111,6 +112,7 @@ function onBeforeBrowserLaunch(
   launchOptions: Cypress.BrowserLaunchOptions
 ) {
   debugEvents("Handling before:browser:launch");
+  assertReporter(cypressReporter);
   cypressReporter.onLaunchBrowser(browser.family);
 
   debugEvents("Browser launching: %o", { family: browser.family });
@@ -136,6 +138,29 @@ function onBeforeBrowserLaunch(
 }
 
 async function onAfterRun() {
+  assertReporter(cypressReporter);
+
+  const utilsPendingWork = await cypressReporter.onEnd();
+  utilsPendingWork.forEach(entry => {
+    if (entry.type === "recording") {
+      entry.recordings.forEach(recording => {
+        if (recording.metadata.test) {
+          const tests = (recording.metadata.test as TestMetadataV2.TestRun).tests;
+          const completedTests = tests.filter(t =>
+            ["passed", "failed", "timedOut"].includes(t.result)
+          );
+
+          if (
+            completedTests.length > 0 &&
+            tests.flatMap(t => Object.values(t.events).flat()).length === 0
+          ) {
+            missingSteps = true;
+          }
+        }
+      });
+    }
+  });
+
   if (missingSteps) {
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
@@ -146,6 +171,7 @@ async function onAfterRun() {
     );
   }
 
+  // TODO(ryanjduffy) Move upload to test utils pending work
   if (pendingWork) {
     log("Waiting on uploads");
     const results = await Promise.all(pendingWork);
@@ -164,6 +190,7 @@ async function onAfterRun() {
 
 function onBeforeSpec(spec: Cypress.Spec) {
   debugEvents("Handling before:spec %s", spec.relative);
+  assertReporter(cypressReporter);
   cypressReporter.onBeforeSpec(spec);
 }
 
@@ -173,19 +200,8 @@ function onAfterSpec(
   options: PluginOptionsWithConfig = {}
 ) {
   debugEvents("Handling after:spec %s", spec.relative);
-  const metadata = cypressReporter.onAfterSpec(spec, result);
-
-  if (metadata) {
-    const tests = metadata.test.tests;
-    const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
-
-    if (
-      completedTests.length > 0 &&
-      tests.flatMap(t => Object.values(t.events).flat()).length === 0
-    ) {
-      missingSteps = true;
-    }
-  }
+  assertReporter(cypressReporter);
+  cypressReporter.onAfterSpec(spec, result);
 
   if (options.config) {
     updateReporters(spec, options.config, options.filter);
@@ -198,12 +214,15 @@ function onAfterSpec(
 
 function onReplayTask(value: any) {
   debugTask("Handling %s task", TASK_NAME);
+  assertReporter(cypressReporter);
+  const reporter = cypressReporter;
+
   if (!Array.isArray(value)) return;
 
   value.forEach(v => {
     if (isStepEvent(v)) {
       debugTask("Forwarding event to reporter: %o", v);
-      cypressReporter.addStep(v);
+      reporter.addStep(v);
     } else {
       debugTask("Unexpected %s payload: %o", TASK_NAME, v);
     }
@@ -227,15 +246,6 @@ async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<
   const filter = getSpecFilter(spec, options.filter);
 
   try {
-    if (options.initMetadataKeys) {
-      await updateMetadata({
-        directory: options.directory,
-        filter,
-        keys: options.initMetadataKeys,
-        warn: true,
-      });
-    }
-
     await uploadAllRecordings({
       apiKey: options.apiKey,
       directory: options.directory,
@@ -321,7 +331,6 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
-  options = initPluginOptions(options);
   cypressReporter = new CypressReporter(config, debug);
 
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {

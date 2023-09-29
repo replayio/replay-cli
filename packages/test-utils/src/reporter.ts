@@ -1,5 +1,5 @@
-import { listAllRecordings } from "@replayio/replay";
-import { add, test as testMetadata } from "@replayio/replay/metadata";
+import { RecordingEntry, listAllRecordings } from "@replayio/replay";
+import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
@@ -66,6 +66,11 @@ export class ReporterError extends Error {
   }
 }
 
+type PendingWork = {
+  type: "recording";
+  recordings: RecordingEntry[];
+};
+
 class ReplayReporter {
   baseId = uuid.validate(
     process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID || ""
@@ -78,6 +83,7 @@ class ReplayReporter {
   runner: TestRunner;
   errors: ReporterError[] = [];
   apiKey?: string;
+  pendingWork: Promise<PendingWork>[] = [];
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
@@ -256,16 +262,25 @@ class ReplayReporter {
       return;
     }
 
+    this.pendingWork.push(this.addMetadata(tests, specFile, replayTitle, extraMetadata));
+  }
+
+  async addMetadata(
+    tests: Test[],
+    specFile: string,
+    replayTitle?: string,
+    extraMetadata?: Record<string, unknown>
+  ): Promise<PendingWork> {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
       ...tests.map(test => this.getTestId(test.source)),
       this.getTestId(),
     ])} and $not($exists($v.metadata.test)) }`;
 
-    const recs = listAllRecordings({
+    const recordings = listAllRecordings({
       filter,
     });
 
-    debug("onTestEnd: Found %d recs with filter %s", recs.length, filter);
+    debug("onTestEnd: Found %d recs with filter %s", recordings.length, filter);
 
     const test = tests[0];
     const { approximateDuration, resultCounts } = this.summarizeResults(tests);
@@ -299,22 +314,32 @@ class ReplayReporter {
     let recordingId: string | undefined;
     let runtime: string | undefined;
     let validatedTestMetadata: { test: TestRun } | undefined;
-    if (recs.length > 0) {
-      recordingId = recs[0].id;
-      runtime = recs[0].runtime;
+    if (recordings.length > 0) {
+      recordingId = recordings[0].id;
+      runtime = recordings[0].runtime;
 
       debug("onTestEnd: Adding test metadata to %s", recordingId);
       debug("onTestEnd: Includes %s errors", this.errors.length);
 
       validatedTestMetadata = testMetadata.init(metadata) as { test: TestMetadataV2.TestRun };
 
-      recs.forEach(rec =>
-        add(rec.id, {
-          title: replayTitle || test.source.title,
-          ...extraMetadata,
-          ...validatedTestMetadata,
-        })
-      );
+      let mergedMetadata = {
+        title: replayTitle || test.source.title,
+        ...extraMetadata,
+        ...validatedTestMetadata,
+      };
+
+      try {
+        const validatedSourceMetadata = sourceMetadata.init();
+        mergedMetadata = {
+          ...mergedMetadata,
+          ...validatedSourceMetadata,
+        };
+      } catch (e) {
+        debug("Failed to generate source metadata", e);
+      }
+
+      recordings.forEach(rec => add(rec.id, mergedMetadata));
     }
 
     pingTestMetrics(
@@ -332,7 +357,26 @@ class ReplayReporter {
       this.apiKey
     );
 
-    return validatedTestMetadata;
+    return {
+      type: "recording",
+      recordings: listAllRecordings({
+        filter,
+      }),
+    };
+  }
+
+  async onEnd() {
+    const results = await Promise.allSettled(this.pendingWork);
+
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+
+    if (failures.length > 0) {
+      warn(`Failed to update metadata for ${failures.length} tests`);
+    }
+
+    return results
+      .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
+      .map(r => r.value);
   }
 }
 

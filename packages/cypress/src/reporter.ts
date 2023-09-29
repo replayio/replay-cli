@@ -104,15 +104,16 @@ class CypressReporter {
     this.reporter.onTestBegin(undefined, getMetadataFilePath());
   }
 
-  onAfterSpec(
-    spec: Cypress.Spec,
-    result: CypressCommandLine.RunResult
-  ): { test: TestRun } | undefined {
+  onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     appendToFixtureFile("spec:end", { spec, result });
 
     const tests = this.getTestResults(spec, result);
 
-    return this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
+    this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
+  }
+
+  onEnd() {
+    return this.reporter.onEnd();
   }
 
   getDiagnosticConfig() {
