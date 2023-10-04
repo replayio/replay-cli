@@ -3,6 +3,7 @@ import { TASK_NAME } from "./constants";
 
 declare global {
   interface Window {
+    __RECORD_REPLAY_CYPRESS_SUPPORT_HOOK_INSTALLED__?: true;
     __RECORD_REPLAY_ANNOTATION_HOOK__?: (name: string, value: any) => void;
   }
 }
@@ -344,6 +345,14 @@ export default function register() {
   let lastCommand: Cypress.CommandQueue | undefined;
   let lastAssertionCommand: Cypress.CommandQueue | undefined;
   let currentTestScope: CypressTestScope | undefined;
+
+  if (window.top) {
+    if (window.top.__RECORD_REPLAY_CYPRESS_SUPPORT_HOOK_INSTALLED__) {
+      return;
+    }
+
+    window.top.__RECORD_REPLAY_CYPRESS_SUPPORT_HOOK_INSTALLED__ = true;
+  }
 
   Cypress.on("command:enqueued", cmd => {
     try {
