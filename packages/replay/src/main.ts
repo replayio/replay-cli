@@ -16,7 +16,7 @@ import {
   ensureBrowsersInstalled,
   getExecutablePath,
 } from "./install";
-import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
+import { exponentialBackoffRetry, getDirectory, getServer, maybeLog, openExecutable } from "./utils";
 import { spawn } from "child_process";
 import {
   BrowserName,
@@ -33,6 +33,7 @@ import { add, sanitize, source as sourceMetadata, test as testMetadata } from ".
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import jsonata from "jsonata";
 import { readToken } from "./auth";
+
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
@@ -288,15 +289,6 @@ function uploadSkipReason(recording: RecordingEntry) {
     return "recording not saved to disk";
   }
   return null;
-}
-
-function getServer(opts: Options) {
-  return (
-    opts.server ||
-    process.env.RECORD_REPLAY_SERVER ||
-    process.env.REPLAY_SERVER ||
-    "wss://dispatch.replay.io"
-  );
 }
 
 function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {

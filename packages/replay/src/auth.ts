@@ -2,6 +2,7 @@ import { spawn } from "child_process";
 import { createHash } from "crypto";
 import dbg from "debug";
 import { readFile, writeFile } from "fs/promises";
+import fs from "fs";
 import path from "path";
 
 import { query } from "./graphql";
@@ -224,6 +225,12 @@ export async function readToken(options: Options = {}) {
 async function writeToken(token: string, options: Options = {}) {
   maybeLog(options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
+  const tokenDir = path.dirname(tokenPath);
+
+  if (!fs.existsSync(tokenDir)) {
+    fs.mkdirSync(tokenDir, { recursive: true });
+  }
+
   await writeFile(
     tokenPath,
     JSON.stringify(

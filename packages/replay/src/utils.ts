@@ -21,8 +21,8 @@ export function openExecutable() {
 }
 
 function defer<T = unknown>() {
-  let resolve: (value: T) => void = () => {};
-  let reject: (reason?: any) => void = () => {};
+  let resolve: (value: T) => void = () => { };
+  let reject: (reason?: any) => void = () => { };
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -113,4 +113,14 @@ function assertValidBrowserName(browser?: string): asserts browser is BrowserNam
   }
 }
 
-export { assertValidBrowserName, fuzzyBrowserName, defer, maybeLog, getDirectory, isValidUUID };
+
+function getServer(opts: Options = {}) {
+  return (
+    opts.server ||
+    process.env.RECORD_REPLAY_SERVER ||
+    process.env.REPLAY_SERVER ||
+    "wss://dispatch.replay.io"
+  );
+}
+
+export { assertValidBrowserName, fuzzyBrowserName, defer, maybeLog, getDirectory, getServer, isValidUUID };

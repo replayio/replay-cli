@@ -24,6 +24,7 @@ import {
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 import { maybeAuthenticateUser } from "./auth";
+import { launchLiveBrowser } from "./live";
 
 export interface CommandLineOptions extends Options {
   /**
@@ -71,6 +72,18 @@ commandWithGlobalOptions("launch [url]")
   )
   .allowUnknownOption()
   .action(commandLaunchBrowser);
+
+
+commandWithGlobalOptions("live [url]")
+  .description("Launch the replay browser")
+  .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .option(
+    "--attach <true|false>",
+    "Whether to attach to the browser process after launching",
+    false
+  )
+  .allowUnknownOption()
+  .action(commandLaunchLiveBrowser);
 
 commandWithGlobalOptions("process <id>")
   .description("Upload a recording to the remote server and process it.")
@@ -209,6 +222,31 @@ async function commandLaunchBrowser(
     const attach = opts.attach || false;
 
     await launchBrowser(browser, [url || "about:blank"], attach);
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to launch browser");
+    debug("launchBrowser error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
+}
+
+async function commandLaunchLiveBrowser(
+  url: string | undefined,
+  opts: Pick<CommandLineOptions, "warn"> & {
+    browser: string | undefined;
+    attach: boolean | undefined;
+  }
+) {
+  try {
+    debug("Options", opts);
+
+    const browser = fuzzyBrowserName(opts.browser) || "chromium";
+    assertValidBrowserName(browser);
+
+    const attach = opts.attach || false;
+
+    await launchLiveBrowser(browser, [url || "about:blank"], attach);
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
