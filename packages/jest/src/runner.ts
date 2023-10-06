@@ -85,7 +85,6 @@ const ReplayRunner = async (
   }
 
   function handleResult(test: Circus.TestEntry, passed: boolean) {
-    const title = test.name;
     const errorMessage = getErrorMessage(test.errors);
 
     reporter.onTestEnd({
@@ -117,6 +116,14 @@ const ReplayRunner = async (
 
   const handleTestEventForReplay = (original?: Circus.EventHandler) => {
     const replayHandler: Circus.EventHandler = (event, state) => {
+      if (event.name === "teardown") {
+        return (async () => {
+          await reporter.onEnd();
+
+          original?.(event as any, state);
+        })();
+      }
+
       switch (event.name) {
         case "test_fn_start":
           handleTestStart(event.test);

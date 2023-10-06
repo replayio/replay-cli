@@ -217,6 +217,10 @@ class ReplayPlaywrightReporter implements Reporter {
       extraMetadata: playwrightMetadata,
     });
   }
+
+  async onEnd() {
+    await this.reporter?.onEnd();
+  }
 }
 
 export default ReplayPlaywrightReporter;
