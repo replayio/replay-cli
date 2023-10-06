@@ -61,6 +61,28 @@ type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
   ? TestMetadataV1.TestRun
   : TestMetadataV2.TestRun;
 
+type PendingWorkEntry<V extends string, T = {}> = { type: V; error: Error } | (T & { type: V });
+type TestRunPendingWork = PendingWorkEntry<
+  "test-run",
+  {
+    id: string;
+    phase: "start" | "complete";
+  }
+>;
+type TestRunTestsPendingWork = PendingWorkEntry<"test-run-tests">;
+type UploadPendingWork = PendingWorkEntry<
+  "upload",
+  {
+    recording: RecordingEntry;
+  }
+>;
+type PostTestPendingWork = PendingWorkEntry<"post-test">;
+type PendingWork =
+  | TestRunPendingWork
+  | TestRunTestsPendingWork
+  | UploadPendingWork
+  | PostTestPendingWork;
+
 function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
@@ -87,24 +109,6 @@ export class ReporterError extends Error {
     };
   }
 }
-
-type PendingWork =
-  | {
-      type: "recording";
-      recordings: RecordingEntry[];
-    }
-  | {
-      type: "test-run";
-      id: string;
-      phase: "start" | "complete";
-    }
-  | {
-      type: "test-run-tests";
-    }
-  | {
-      type: "upload";
-      result: Record<string, boolean>;
-    };
 
 class ReplayReporter {
   baseId = uuid.validate(
@@ -276,7 +280,7 @@ class ReplayReporter {
     }
   }
 
-  async startTestRunShard(): Promise<PendingWork> {
+  async startTestRunShard(): Promise<TestRunPendingWork> {
     let metadata: any = {};
     try {
       metadata = await source.init();
@@ -328,13 +332,19 @@ class ReplayReporter {
 
     if (resp.errors) {
       warn("Failed to start a new test run", new Error(resp.errors[0].message));
-      throw new Error("Failed to start a new test run");
+      return {
+        type: "test-run",
+        error: new Error("Failed to start a new test run"),
+      };
     }
 
     this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
 
     if (!this.testRunShardId) {
-      throw new Error("Unexpected error retrieving test run shard id");
+      return {
+        type: "test-run",
+        error: new Error("Unexpected error retrieving test run shard id"),
+      };
     }
 
     debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
@@ -346,9 +356,12 @@ class ReplayReporter {
     };
   }
 
-  async addTestsToShard(tests: TestRunTestInputModel[]): Promise<PendingWork> {
+  async addTestsToShard(tests: TestRunTestInputModel[]): Promise<TestRunTestsPendingWork> {
     if (!this.testRunShardId) {
-      throw new Error("Unable to add tests to test run: ID not set");
+      return {
+        type: "test-run-tests",
+        error: new Error("Unable to add tests to test run: ID not set"),
+      };
     }
 
     debug("Adding %d tests to shard %s", tests.length, this.testRunShardId);
@@ -373,7 +386,10 @@ class ReplayReporter {
     );
 
     if (resp.errors) {
-      throw new Error("Unexpected error adding tests to run");
+      return {
+        type: "test-run-tests",
+        error: new Error("Unexpected error adding tests to run"),
+      };
     }
 
     debug("Successfully added tests to shard %s", this.testRunShardId);
@@ -383,9 +399,12 @@ class ReplayReporter {
     };
   }
 
-  async completeTestRunShard(): Promise<PendingWork> {
+  async completeTestRunShard(): Promise<TestRunPendingWork> {
     if (!this.testRunShardId) {
-      throw new Error("Unable to complete test run: ID not set");
+      return {
+        type: "test-run",
+        error: new Error("Unable to complete test run: ID not set"),
+      };
     }
 
     debug("Marking test run shard %s complete", this.testRunShardId);
@@ -408,7 +427,10 @@ class ReplayReporter {
     );
 
     if (resp.errors) {
-      throw new Error("Unexpected error completing test run shard");
+      return {
+        type: "test-run",
+        error: new Error("Unexpected error completing test run shard"),
+      };
     }
 
     debug("Successfully marked test run shard %s complete", this.testRunShardId);
@@ -462,7 +484,7 @@ class ReplayReporter {
       return;
     }
 
-    this.pendingWork.push(this.addMetadata(tests, specFile, replayTitle, extraMetadata));
+    this.pendingWork.push(this.enqueuePostTestWork(tests, specFile, replayTitle, extraMetadata));
   }
 
   buildTestId(sourcePath: string, test: Test) {
@@ -471,59 +493,59 @@ class ReplayReporter {
       .digest("hex");
   }
 
-  async uploadRecordings(recordings: RecordingEntry[]): Promise<PendingWork> {
-    debug("Starting upload of %d recordings", recordings.length);
+  async uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
+    debug("Starting upload of %s", recording.id);
 
-    const results = await Promise.allSettled(
-      recordings.map(r => {
-        return uploadRecording(r.id, {
-          apiKey: this.apiKey,
-        });
-      })
-    );
+    try {
+      const result = await uploadRecording(recording.id, {
+        apiKey: this.apiKey,
+      });
 
-    let uploaded = 0;
-    const result: Record<string, boolean> = {};
-    results.forEach((r, i) => {
-      const success = r.status === "fulfilled" && r.value != null;
-      result[recordings[i].id] = success;
-
-      if (success) {
-        uploaded++;
+      if (result === null) {
+        return {
+          type: "upload",
+          error: new Error("Upload failed"),
+        };
       }
-    });
 
-    debug("Successfully uploaded of %d of %d recordings", uploaded, recordings.length);
+      debug("Successfully uploaded %s", recording.id);
 
-    return {
-      type: "upload",
-      result,
-    };
+      return {
+        type: "upload",
+        recording,
+      };
+    } catch (e) {
+      debug("upload error: %s", e);
+      return {
+        type: "upload",
+        error: new Error("Failed to upload recording"),
+      };
+    }
   }
 
-  async addMetadata(
-    tests: Test[],
-    specFile: string,
-    replayTitle?: string,
-    extraMetadata?: Record<string, unknown>
-  ): Promise<PendingWork> {
+  getRecordingsForTest(tests: Test[], includeUploaded: boolean) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
       ...tests.map(test => this.getTestId(test.source)),
       this.getTestId(),
     ])} and $not($exists($v.metadata.test)) }`;
 
     const recordings = listAllRecordings({
+      all: includeUploaded,
       filter,
     });
 
-    debug("onTestEnd: Found %d recs with filter %s", recordings.length, filter);
+    debug("Found %d recs with filter %s", recordings.length, filter);
 
+    return recordings;
+  }
+
+  buildTestMetadata(tests: Test[], specFile: string) {
     const test = tests[0];
     const { approximateDuration, resultCounts } = this.summarizeResults(tests);
     const result = this.getResultFromResultCounts(resultCounts);
     const source = {
       path: specFile,
-      title: replayTitle || test.source.title,
+      title: test.source.title,
     };
 
     const metadata: TestRun = {
@@ -547,82 +569,102 @@ class ReplayReporter {
       schemaVersion: this.schemaVersion,
     };
 
-    let recordingId: string | undefined;
-    let runtime: string | undefined;
-    let validatedTestMetadata: { test: TestRun } | undefined;
-    if (recordings.length > 0) {
-      recordingId = recordings[0].id;
-      runtime = recordings[0].runtime;
+    return metadata;
+  }
 
-      debug("onTestEnd: Adding test metadata to %s", recordingId);
-      debug("onTestEnd: Includes %s errors", this.errors.length);
+  async setRecordingMetadata(
+    recordings: RecordingEntry[],
+    testRun: TestRun,
+    replayTitle?: string,
+    extraMetadata?: Record<string, unknown>
+  ) {
+    debug(
+      "setRecordingMetadata: Adding test metadata to %o",
+      recordings.map(r => r.id)
+    );
+    debug("setRecordingMetadata: Includes %s errors", this.errors.length);
 
-      validatedTestMetadata = testMetadata.init(metadata) as { test: TestMetadataV2.TestRun };
+    const validatedTestMetadata = testMetadata.init(testRun) as { test: TestMetadataV2.TestRun };
 
-      let mergedMetadata = {
-        title: replayTitle || test.source.title,
-        ...extraMetadata,
-        ...validatedTestMetadata,
+    let mergedMetadata = {
+      title: replayTitle || testRun.source.title,
+      ...extraMetadata,
+      ...validatedTestMetadata,
+    };
+
+    try {
+      const validatedSourceMetadata = await sourceMetadata.init();
+      mergedMetadata = {
+        ...mergedMetadata,
+        ...validatedSourceMetadata,
       };
+    } catch (e) {
+      debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
+    }
 
+    recordings.forEach(rec => add(rec.id, mergedMetadata));
+  }
+
+  async enqueuePostTestWork(
+    tests: Test[],
+    specFile: string,
+    replayTitle?: string,
+    extraMetadata?: Record<string, unknown>
+  ): Promise<PendingWork> {
+    const recordings = this.getRecordingsForTest(tests, false);
+
+    const recordingIds = recordings.map(r => r.id);
+    this.pendingWork.push(
+      this.addTestsToShard(
+        tests.map<TestRunTestInputModel>(t => ({
+          testId: this.buildTestId(specFile, t),
+          index: t.id,
+          attempt: t.attempt,
+          scope: t.source.scope,
+          title: t.source.title,
+          sourcePath: specFile,
+          result: t.result,
+          error: t.error ? t.error.message : null,
+          duration: t.approximateDuration,
+          recordingIds,
+        }))
+      )
+    );
+
+    const testRun = this.buildTestMetadata(tests, specFile);
+
+    if (recordings.length > 0) {
       try {
-        const validatedSourceMetadata = await sourceMetadata.init();
-        mergedMetadata = {
-          ...mergedMetadata,
-          ...validatedSourceMetadata,
-        };
+        await this.setRecordingMetadata(recordings, testRun, replayTitle, extraMetadata);
+
+        this.pendingWork.push(...recordings.map(r => this.uploadRecording(r)));
       } catch (e) {
-        debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
-      }
-
-      const recordingIds = recordings.map(r => r.id);
-      this.pendingWork.push(
-        this.addTestsToShard(
-          tests.map<TestRunTestInputModel>(t => ({
-            testId: this.buildTestId(source.path, t),
-            index: t.id,
-            attempt: t.attempt,
-            scope: t.source.scope,
-            title: t.source.title,
-            sourcePath: source.path,
-            result: t.result,
-            error: t.error ? t.error.message : null,
-            duration: t.approximateDuration,
-            recordingIds,
-          }))
-        )
-      );
-
-      recordings.forEach(rec => add(rec.id, mergedMetadata));
-
-      if (this.upload && this.apiKey) {
-        this.pendingWork.push(this.uploadRecordings(recordings));
-      } else {
-        debug("Skipping upload: %o", { upload: this.upload, apiKey: !!this.apiKey });
+        debug("post-test error: %s", e);
+        return {
+          type: "post-test",
+          error: new Error("Unexpected error setting metadata and uploading replays"),
+        };
       }
     }
 
+    const firstRecording: RecordingEntry | undefined = recordings[0];
     pingTestMetrics(
-      recordingId,
+      firstRecording?.id,
       this.baseId,
       {
-        id: source.path + "#" + source.title,
-        source,
-        approximateDuration,
-        recorded: !!recordingId,
-        runtime: parseRuntime(runtime),
+        id: testRun.source.path + "#" + testRun.source.title,
+        source: testRun.source,
+        approximateDuration: testRun.approximateDuration,
+        recorded: true,
+        runtime: parseRuntime(firstRecording?.runtime),
         runner: this.runner.name,
-        result: result,
+        result: testRun.result,
       },
       this.apiKey
     );
 
     return {
-      type: "recording",
-      recordings: listAllRecordings({
-        all: true,
-        filter,
-      }),
+      type: "post-test",
     };
   }
 
