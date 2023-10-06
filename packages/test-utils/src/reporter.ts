@@ -1,11 +1,6 @@
 import { createHash } from "crypto";
 import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
-import {
-  add,
-  test as testMetadata,
-  source as sourceMetadata,
-  source,
-} from "@replayio/replay/metadata";
+import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
 import { query } from "@replayio/replay/src/graphql";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync, mkdirSync } from "fs";
@@ -15,7 +10,7 @@ const uuid = require("uuid");
 
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
-import { warn } from "./logging";
+import { log, warn } from "./logging";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -61,7 +56,9 @@ type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
   ? TestMetadataV1.TestRun
   : TestMetadataV2.TestRun;
 
-type PendingWorkEntry<V extends string, T = {}> = { type: V; error: Error } | (T & { type: V });
+type PendingWorkType = "test-run" | "upload" | "test-run-tests" | "post-test";
+type PendingWorkError<K extends PendingWorkType> = { type: K; error: Error };
+type PendingWorkEntry<K extends PendingWorkType, T = {}> = PendingWorkError<K> | (T & { type: K });
 type TestRunPendingWork = PendingWorkEntry<
   "test-run",
   {
@@ -82,6 +79,43 @@ type PendingWork =
   | TestRunTestsPendingWork
   | UploadPendingWork
   | PostTestPendingWork;
+
+function logPendingWorkErrors(errors: PendingWorkError<any>[]) {
+  errors.forEach(e => {
+    warn(`  - ${e.error.message}`);
+  });
+}
+
+function getTestResult(recording: RecordingEntry): TestRun["result"] {
+  const test = recording.metadata.test as TestRun | undefined;
+  return !test ? "unknown" : test.result;
+}
+
+function getTestResultEmoji(recording: RecordingEntry) {
+  const result = getTestResult(recording);
+  switch (result) {
+    case "unknown":
+      return "﹖";
+    case "failed":
+    case "timedOut":
+      return "❌";
+    case "passed":
+      return "✅";
+    case "skipped":
+      return "🤷";
+  }
+}
+
+const resultOrder = ["failed", "timedOut", "passed", "skipped", "unknown"];
+
+function sortRecordingsByResult(recordings: RecordingEntry[]) {
+  return [...recordings].sort((a, b) => {
+    return (
+      resultOrder.indexOf(getTestResult(a)) - resultOrder.indexOf(getTestResult(b)) ||
+      ((a.metadata.title as string) || "").localeCompare((b.metadata.title as string) || "")
+    );
+  });
+}
 
 function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
@@ -283,7 +317,7 @@ class ReplayReporter {
   async startTestRunShard(): Promise<TestRunPendingWork> {
     let metadata: any = {};
     try {
-      metadata = await source.init();
+      metadata = await sourceMetadata.init();
     } catch (e) {
       debug(
         "Failed to initialize source metadata to create test run shard: %s",
@@ -310,12 +344,13 @@ class ReplayReporter {
 
     debug("Creating test run shard for user-key %s", this.baseId);
 
-    const resp = await query(
-      "CreateTestRunShard",
-      `
-        mutation CreateTestRunShard($userKey: String!, $testRun: TestRunShardInput!) {
+    try {
+      const resp = await query(
+        "CreateTestRunShard",
+        `
+        mutation CreateTestRunShard($clientKey: String!, $testRun: TestRunShardInput!) {
           startTestRunShard(input: {
-            userKey: $userKey,
+            clientKey: $clientKey,
             testRun: $testRun
           }) {
             success
@@ -323,37 +358,44 @@ class ReplayReporter {
           }
         }
       `,
-      {
-        userKey: this.baseId,
-        testRun,
-      },
-      this.apiKey
-    );
+        {
+          clientKey: this.baseId,
+          testRun,
+        },
+        this.apiKey
+      );
 
-    if (resp.errors) {
-      warn("Failed to start a new test run", new Error(resp.errors[0].message));
+      if (resp.errors) {
+        resp.errors.forEach((e: any) => debug("GraphQL error start test shard: %o", e));
+        return {
+          type: "test-run",
+          error: new Error("Failed to start a new test run"),
+        };
+      }
+
+      this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
+
+      if (!this.testRunShardId) {
+        return {
+          type: "test-run",
+          error: new Error("Unexpected error retrieving test run shard id"),
+        };
+      }
+
+      debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
+
       return {
         type: "test-run",
-        error: new Error("Failed to start a new test run"),
+        id: this.testRunShardId,
+        phase: "start",
       };
-    }
-
-    this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
-
-    if (!this.testRunShardId) {
+    } catch (e) {
+      debug("start test run error: %s", e);
       return {
         type: "test-run",
-        error: new Error("Unexpected error retrieving test run shard id"),
+        error: new Error("Unexpected error starting test run shard"),
       };
     }
-
-    debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
-
-    return {
-      type: "test-run",
-      id: this.testRunShardId,
-      phase: "start",
-    };
   }
 
   async addTestsToShard(tests: TestRunTestInputModel[]): Promise<TestRunTestsPendingWork> {
@@ -366,9 +408,10 @@ class ReplayReporter {
 
     debug("Adding %d tests to shard %s", tests.length, this.testRunShardId);
 
-    const resp = await query(
-      "AddTestsToShard",
-      `
+    try {
+      const resp = await query(
+        "AddTestsToShard",
+        `
         mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
           addTestsToShard(input: {
             testRunShardId: $testRunShardId,
@@ -378,25 +421,34 @@ class ReplayReporter {
           }
         }
       `,
-      {
-        testRunShardId: this.testRunShardId,
-        tests,
-      },
-      this.apiKey
-    );
+        {
+          testRunShardId: this.testRunShardId,
+          tests,
+        },
+        this.apiKey
+      );
 
-    if (resp.errors) {
+      if (resp.errors) {
+        resp.errors.forEach((e: any) => debug("GraphQL error adding tests to shard: %o", e));
+
+        return {
+          type: "test-run-tests",
+          error: new Error("Unexpected error adding tests to run"),
+        };
+      }
+
+      debug("Successfully added tests to shard %s", this.testRunShardId);
+
       return {
         type: "test-run-tests",
-        error: new Error("Unexpected error adding tests to run"),
+      };
+    } catch (e) {
+      debug("Add tests to run error: %s", e);
+      return {
+        type: "test-run-tests",
+        error: new Error("Unexpecter error adding tests to run"),
       };
     }
-
-    debug("Successfully added tests to shard %s", this.testRunShardId);
-
-    return {
-      type: "test-run-tests",
-    };
   }
 
   async completeTestRunShard(): Promise<TestRunPendingWork> {
@@ -409,9 +461,10 @@ class ReplayReporter {
 
     debug("Marking test run shard %s complete", this.testRunShardId);
 
-    const resp = await query(
-      "CompleteTestRunShard",
-      `
+    try {
+      const resp = await query(
+        "CompleteTestRunShard",
+        `
         mutation CompleteTestRunShard($testRunShardId: String!) {
           completeTestRunShard(input: {
             testRunShardId: $testRunShardId
@@ -420,26 +473,34 @@ class ReplayReporter {
           }
         }
       `,
-      {
-        testRunShardId: this.testRunShardId,
-      },
-      this.apiKey
-    );
+        {
+          testRunShardId: this.testRunShardId,
+        },
+        this.apiKey
+      );
 
-    if (resp.errors) {
+      if (resp.errors) {
+        resp.errors.forEach((e: any) => debug("GraphQL error completing test shard: %o", e));
+        return {
+          type: "test-run",
+          error: new Error("Unexpected error completing test run shard"),
+        };
+      }
+
+      debug("Successfully marked test run shard %s complete", this.testRunShardId);
+
       return {
         type: "test-run",
-        error: new Error("Unexpected error completing test run shard"),
+        id: this.testRunShardId,
+        phase: "complete",
+      };
+    } catch (e) {
+      debug("complete test run shard error: %s", e);
+      return {
+        type: "test-run",
+        error: new Error("Unexpecter error completing test run shard"),
       };
     }
-
-    debug("Successfully marked test run shard %s complete", this.testRunShardId);
-
-    return {
-      type: "test-run",
-      id: this.testRunShardId,
-      phase: "complete",
-    };
   }
 
   onTestBegin(source?: Test["source"], metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
@@ -510,9 +571,11 @@ class ReplayReporter {
 
       debug("Successfully uploaded %s", recording.id);
 
+      const recordings = listAllRecordings({ filter: r => r.id === recording.id, all: true });
+
       return {
         type: "upload",
-        recording,
+        recording: recordings[0],
       };
     } catch (e) {
       debug("upload error: %s", e);
@@ -668,7 +731,7 @@ class ReplayReporter {
     };
   }
 
-  async onEnd() {
+  async onEnd(): Promise<PendingWork[]> {
     debug("onEnd");
     if (this.apiKey) {
       this.pendingWork.push(this.completeTestRunShard());
@@ -676,17 +739,71 @@ class ReplayReporter {
       debug("Skipping completing test run: API Key not set");
     }
 
-    const results = await Promise.allSettled(this.pendingWork);
-
-    const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
-
-    if (failures.length > 0) {
-      warn(`Failed to update metadata for ${failures.length} tests`);
+    if (this.pendingWork.length === 0) {
+      return [];
     }
 
-    return results
+    log("🕑 Completing some outstanding work ...");
+
+    const completedWork = await Promise.allSettled(this.pendingWork);
+
+    const failures = completedWork.filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected"
+    );
+
+    if (failures.length > 0) {
+      warn(`Encountered unexpected errors while processing replays:`);
+      failures.forEach(f => warn(`  ${f.reason}`));
+    }
+
+    const results = completedWork
       .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
       .map(r => r.value);
+
+    const errors = {
+      "post-test": [] as PendingWorkError<"post-test">[],
+      "test-run": [] as PendingWorkError<"test-run">[],
+      "test-run-tests": [] as PendingWorkError<"test-run-tests">[],
+      upload: [] as PendingWorkError<"upload">[],
+    };
+    let uploads: RecordingEntry[] = [];
+    for (const r of results) {
+      if ("error" in r) {
+        errors[r.type].push(r as any);
+      } else {
+        if (r.type === "upload") {
+          uploads.push(r.recording);
+        }
+      }
+    }
+
+    if (errors["post-test"].length > 0 || errors["upload"].length > 0) {
+      warn(
+        `❌ We encountered some unexpected errors processing your recordings and ${
+          uploads.length > 0 ? "some were not uploaded.`" : "was unable to upload them."
+        }`
+      );
+      logPendingWorkErrors(errors["post-test"]);
+      logPendingWorkErrors(errors["upload"]);
+    }
+
+    if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
+      warn("❌ We encountered some unexpected errors creating your tests on replay.io");
+      logPendingWorkErrors(errors["test-run-tests"]);
+      logPendingWorkErrors(errors["test-run"]);
+    }
+
+    if (uploads.length > 0) {
+      log(`🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+
+      const sortedUploads = sortRecordingsByResult(uploads);
+      sortedUploads.forEach(r => {
+        log(`${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`);
+        log(`   ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`);
+      });
+    }
+
+    return results;
   }
 }
 

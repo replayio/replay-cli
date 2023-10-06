@@ -121,8 +121,9 @@ async function onAfterRun() {
 
   const utilsPendingWork = await cypressReporter.onEnd();
   utilsPendingWork.forEach(entry => {
-    if (entry.type === "recording") {
-      entry.recordings.forEach(recording => {
+    if (entry.type === "upload") {
+      if ("recording" in entry) {
+        const recording = entry.recording;
         if (recording.metadata.test) {
           const tests = (recording.metadata.test as TestMetadataV2.TestRun).tests;
           const completedTests = tests.filter(t =>
@@ -136,7 +137,7 @@ async function onAfterRun() {
             missingSteps = true;
           }
         }
-      });
+      }
     }
   });
 
