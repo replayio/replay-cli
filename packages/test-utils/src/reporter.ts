@@ -80,10 +80,12 @@ type PendingWork =
   | UploadPendingWork
   | PostTestPendingWork;
 
+function getErrorMessage(e: unknown) {
+  return e && typeof e === "object" && "message" in e ? (e.message as string) : "Unknown Error";
+}
+
 function logPendingWorkErrors(errors: PendingWorkError<any>[]) {
-  errors.forEach(e => {
-    warn(`  - ${e.error.message}`);
-  });
+  return errors.map(e => `   - ${e.error.message}`);
 }
 
 function getTestResult(recording: RecordingEntry): TestRun["result"] {
@@ -393,7 +395,7 @@ class ReplayReporter {
       debug("start test run error: %s", e);
       return {
         type: "test-run",
-        error: new Error("Unexpected error starting test run shard"),
+        error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(e)}`),
       };
     }
   }
@@ -446,7 +448,7 @@ class ReplayReporter {
       debug("Add tests to run error: %s", e);
       return {
         type: "test-run-tests",
-        error: new Error("Unexpecter error adding tests to run"),
+        error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
       };
     }
   }
@@ -498,7 +500,7 @@ class ReplayReporter {
       debug("complete test run shard error: %s", e);
       return {
         type: "test-run",
-        error: new Error("Unexpecter error completing test run shard"),
+        error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
       };
     }
   }
@@ -581,7 +583,7 @@ class ReplayReporter {
       debug("upload error: %s", e);
       return {
         type: "upload",
-        error: new Error("Failed to upload recording"),
+        error: new Error(`Failed to upload recording: ${getErrorMessage(e)}`),
       };
     }
   }
@@ -676,23 +678,27 @@ class ReplayReporter {
   ): Promise<PendingWork> {
     const recordings = this.getRecordingsForTest(tests, false);
 
-    const recordingIds = recordings.map(r => r.id);
-    this.pendingWork.push(
-      this.addTestsToShard(
-        tests.map<TestRunTestInputModel>(t => ({
-          testId: this.buildTestId(specFile, t),
-          index: t.id,
-          attempt: t.attempt,
-          scope: t.source.scope,
-          title: t.source.title,
-          sourcePath: specFile,
-          result: t.result,
-          error: t.error ? t.error.message : null,
-          duration: t.approximateDuration,
-          recordingIds,
-        }))
-      )
-    );
+    if (this.testRunShardId) {
+      const recordingIds = recordings.map(r => r.id);
+      this.pendingWork.push(
+        this.addTestsToShard(
+          tests.map<TestRunTestInputModel>(t => ({
+            testId: this.buildTestId(specFile, t),
+            index: t.id,
+            attempt: t.attempt,
+            scope: t.source.scope,
+            title: t.source.title,
+            sourcePath: specFile,
+            result: t.result,
+            error: t.error ? t.error.message : null,
+            duration: t.approximateDuration,
+            recordingIds,
+          }))
+        )
+      );
+    } else {
+      debug("Skipping adding tests to test run: test run shard ID not found");
+    }
 
     const testRun = this.buildTestMetadata(tests, specFile);
 
@@ -705,7 +711,7 @@ class ReplayReporter {
         debug("post-test error: %s", e);
         return {
           type: "post-test",
-          error: new Error("Unexpected error setting metadata and uploading replays"),
+          error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
         };
       }
     }
@@ -734,7 +740,11 @@ class ReplayReporter {
   async onEnd(): Promise<PendingWork[]> {
     debug("onEnd");
     if (this.apiKey) {
-      this.pendingWork.push(this.completeTestRunShard());
+      if (this.testRunShardId) {
+        this.pendingWork.push(this.completeTestRunShard());
+      } else {
+        debug("Skipping completing test run: test run shard ID not found");
+      }
     } else {
       debug("Skipping completing test run: API Key not set");
     }
@@ -745,6 +755,7 @@ class ReplayReporter {
 
     log("🕑 Completing some outstanding work ...");
 
+    const output: string[] = [];
     const completedWork = await Promise.allSettled(this.pendingWork);
 
     const failures = completedWork.filter(
@@ -752,8 +763,8 @@ class ReplayReporter {
     );
 
     if (failures.length > 0) {
-      warn(`Encountered unexpected errors while processing replays:`);
-      failures.forEach(f => warn(`  ${f.reason}`));
+      output.push("Encountered unexpected errors while processing replays");
+      failures.forEach(f => output.push(`  ${f.reason}`));
     }
 
     const results = completedWork
@@ -778,35 +789,35 @@ class ReplayReporter {
     }
 
     if (errors["post-test"].length > 0 || errors["upload"].length > 0) {
-      warn(
-        `❌ We encountered some unexpected errors processing your recordings and ${
+      output.push(
+        `\n❌ We encountered some unexpected errors processing your recordings and ${
           uploads.length > 0 ? "some were not uploaded.`" : "was unable to upload them."
         }`
       );
-      logPendingWorkErrors(errors["post-test"]);
-      logPendingWorkErrors(errors["upload"]);
+      output.push(...logPendingWorkErrors(errors["post-test"]));
+      output.push(...logPendingWorkErrors(errors["upload"]));
     }
 
     if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
-      warn("❌ We encountered some unexpected errors creating your tests on replay.io");
-      logPendingWorkErrors(errors["test-run-tests"]);
-      logPendingWorkErrors(errors["test-run"]);
+      output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
+      output.push(...logPendingWorkErrors(errors["test-run-tests"]));
+      output.push(...logPendingWorkErrors(errors["test-run"]));
     }
 
     if (uploads.length > 0) {
-      const output = [`🚀 Successfully uploaded ${uploads.length} recordings:`];
+      output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
       const sortedUploads = sortRecordingsByResult(uploads);
       sortedUploads.forEach(r => {
         output.push(
-          `${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+          `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
         );
         output.push(
-          `   ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+          `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
         );
       });
-
-      log(output.join("\n"));
     }
+
+    log(output.join("\n"));
 
     return results;
   }
