@@ -794,13 +794,18 @@ class ReplayReporter {
     }
 
     if (uploads.length > 0) {
-      log(`🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-
+      const output = [`🚀 Successfully uploaded ${uploads.length} recordings:`];
       const sortedUploads = sortRecordingsByResult(uploads);
       sortedUploads.forEach(r => {
-        log(`${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`);
-        log(`   ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`);
+        output.push(
+          `${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+        );
+        output.push(
+          `   ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+        );
       });
+
+      log(output.join("\n"));
     }
 
     return results;
