@@ -167,10 +167,6 @@ class ReplayReporter {
     this.schemaVersion = schemaVersion;
   }
 
-  setUpload(upload: boolean) {
-    this.upload = upload;
-  }
-
   setApiKey(apiKey: string) {
     this.apiKey = apiKey;
   }
@@ -244,7 +240,7 @@ class ReplayReporter {
     // overwritten at runtime
     this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE || config.runTitle;
 
-    this.apiKey = process.env.REPLAY_API_KEY || config.apiKey;
+    this.apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY || config.apiKey;
     this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
@@ -305,6 +301,8 @@ class ReplayReporter {
       runTitle: this.runTitle,
       runner: this.runner,
       baseMetadata: this.baseMetadata,
+      upload: this.upload,
+      hasApiKey: !!this.apiKey,
     });
 
     if (!this.testRunShardId) {
@@ -706,7 +704,9 @@ class ReplayReporter {
       try {
         await this.setRecordingMetadata(recordings, testRun, replayTitle, extraMetadata);
 
-        this.pendingWork.push(...recordings.map(r => this.uploadRecording(r)));
+        if (this.upload) {
+          this.pendingWork.push(...recordings.map(r => this.uploadRecording(r)));
+        }
       } catch (e) {
         debug("post-test error: %s", e);
         return {
@@ -754,6 +754,7 @@ class ReplayReporter {
     }
 
     log("🕑 Completing some outstanding work ...");
+    debug("Outstanding tasks: %d", this.pendingWork.length);
 
     const output: string[] = [];
     const completedWork = await Promise.allSettled(this.pendingWork);
