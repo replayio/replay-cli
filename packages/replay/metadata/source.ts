@@ -190,7 +190,8 @@ const versions: () => Record<number, Struct> = () => ({
         "RECORD_REPLAY_METADATA_SOURCE_BRANCH",
         "GITHUB_REF_NAME",
         "BUILDKITE_BRANCH",
-        "CIRCLE_BRANCH"
+        "CIRCLE_BRANCH",
+        "SEMAPHORE_GIT_PR_BRANCH"
       )
     ),
     commit: defaultObject({
@@ -198,7 +199,8 @@ const versions: () => Record<number, Struct> = () => ({
         "RECORD_REPLAY_METADATA_SOURCE_COMMIT_ID",
         "GITHUB_SHA",
         "BUILDKITE_COMMIT",
-        "CIRCLE_SHA1"
+        "CIRCLE_SHA1",
+        "SEMAPHORE_GIT_SHA"
       ),
       title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE")),
       url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL")),
@@ -221,7 +223,8 @@ const versions: () => Record<number, Struct> = () => ({
           "RECORD_REPLAY_METADATA_SOURCE_TRIGGER_WORKFLOW",
           "GITHUB_RUN_ID",
           "BUILDKITE_BUILD_NUMBER",
-          "CIRCLE_BUILD_NUM"
+          "CIRCLE_BUILD_NUM",
+          "SEMAPHORE_WORKFLOW_ID"
         )
       ),
       url: optional(
@@ -233,7 +236,11 @@ const versions: () => Record<number, Struct> = () => ({
               env.GITHUB_REPOSITORY
             }/actions/runs/${env.GITHUB_RUN_ID}`,
           "BUILDKITE_BUILD_URL",
-          "CIRCLE_BUILD_URL"
+          "CIRCLE_BUILD_URL",
+          env =>
+            env.SEMAPHORE_ORGANIZATION_URL &&
+            env.SEMAPHORE_WORKFLOW_ID &&
+            `${env.SEMAPHORE_ORGANIZATION_URL}/workflows/${env.SEMAPHORE_WORKFLOW_ID}`
         )
       ),
     }),
@@ -242,10 +249,13 @@ const versions: () => Record<number, Struct> = () => ({
         envString(
           "RECORD_REPLAY_METADATA_SOURCE_MERGE_ID",
           "BUILDKITE_PULL_REQUEST",
-          getCircleCIMergeId
+          getCircleCIMergeId,
+          "SEMAPHORE_GIT_PR_NUMBER"
         )
       ),
-      title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE")),
+      title: optional(
+        envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE", "SEMAPHORE_GIT_PR_NAME")
+      ),
       url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_URL")),
       user: optional(envString("RECORD_REPLAY_METADATA_SOURCE_MERGE_USER")),
     }),
@@ -254,7 +264,8 @@ const versions: () => Record<number, Struct> = () => ({
         "RECORD_REPLAY_METADATA_SOURCE_PROVIDER",
         env => env.GITHUB_WORKFLOW && "github",
         "BUILDKITE_PIPELINE_PROVIDER",
-        getCircleCISourceControlProvider
+        getCircleCISourceControlProvider,
+        "SEMAPHORE_GIT_PROVIDER"
       )
     ),
     repository: optional(
@@ -262,7 +273,8 @@ const versions: () => Record<number, Struct> = () => ({
         "RECORD_REPLAY_METADATA_SOURCE_REPOSITORY",
         "GITHUB_REPOSITORY",
         env => env.BUILDKITE_REPO?.match(/.*:(.*)\.git/)?.[1],
-        getCircleCIRepository
+        getCircleCIRepository,
+        "SEMAPHORE_GIT_REPO_SLUG"
       )
     ),
     version: defaulted(number(), () => 1),
