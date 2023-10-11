@@ -1,47 +1,26 @@
 /// <reference types="cypress" />
 
 import semver from "semver";
-import {
-  getPlaywrightBrowserPath,
-  updateMetadata,
-  RecordingEntry,
-  uploadAllRecordings,
-  listAllRecordings,
-} from "@replayio/replay";
+import { getPlaywrightBrowserPath, RecordingEntry, listAllRecordings } from "@replayio/replay";
 import { TestMetadataV2, initMetadataFile, log, warn } from "@replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
 
 import { TASK_NAME } from "./constants";
-import CypressReporter, { getMetadataFilePath, isStepEvent } from "./reporter";
+import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import run from "./run";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
+
+export type { PluginOptions } from "./reporter";
 
 const debug = dbg("replay:cypress:plugin");
 const debugTask = debug.extend("task");
 const debugEvents = debug.extend("events");
 
-export interface PluginOptions {
-  upload?: boolean;
-  filter?: (recordings: RecordingEntry) => boolean;
-  apiKey?: string;
-  directory?: string;
-}
-
-export type PluginOptionsWithConfig = PluginOptions & {
-  config?: Cypress.PluginConfigOptions;
-};
-
-interface UploadResult {
-  error?: unknown;
-  recordings: Record<string, boolean>;
-}
-
 let cypressReporter: CypressReporter | undefined;
 let missingSteps = false;
-const pendingWork: Promise<UploadResult>[] = [];
 
 function assertReporter(
   reporter: CypressReporter | undefined
@@ -107,7 +86,6 @@ async function onBeforeRun(details: Cypress.BeforeRunDetails) {
 }
 
 function onBeforeBrowserLaunch(
-  config: Cypress.PluginConfigOptions,
   browser: Cypress.Browser,
   launchOptions: Cypress.BrowserLaunchOptions
 ) {
@@ -117,6 +95,7 @@ function onBeforeBrowserLaunch(
 
   debugEvents("Browser launching: %o", { family: browser.family });
 
+  const config = cypressReporter.config;
   if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
     const diagnosticConfig = cypressReporter.getDiagnosticConfig();
     const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
@@ -142,22 +121,16 @@ async function onAfterRun() {
 
   const utilsPendingWork = await cypressReporter.onEnd();
   utilsPendingWork.forEach(entry => {
-    if (entry.type === "recording") {
-      entry.recordings.forEach(recording => {
-        if (recording.metadata.test) {
-          const tests = (recording.metadata.test as TestMetadataV2.TestRun).tests;
-          const completedTests = tests.filter(t =>
-            ["passed", "failed", "timedOut"].includes(t.result)
-          );
+    if (entry.type === "upload" && "recording" in entry && entry.recording.metadata.test) {
+      const tests = (entry.recording.metadata.test as TestMetadataV2.TestRun).tests;
+      const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
 
-          if (
-            completedTests.length > 0 &&
-            tests.flatMap(t => Object.values(t.events).flat()).length === 0
-          ) {
-            missingSteps = true;
-          }
-        }
-      });
+      if (
+        completedTests.length > 0 &&
+        tests.flatMap(t => Object.values(t.events).flat()).length === 0
+      ) {
+        missingSteps = true;
+      }
     }
   });
 
@@ -170,22 +143,6 @@ async function onAfterRun() {
       )} in your support file?`
     );
   }
-
-  // TODO(ryanjduffy) Move upload to test utils pending work
-  if (pendingWork) {
-    log("Waiting on uploads");
-    const results = await Promise.all(pendingWork);
-    results.forEach(r => {
-      Object.entries(r.recordings).forEach(([id, uploaded]) => {
-        if (uploaded) {
-          log(`Uploaded ${id}`);
-        } else {
-          log(`Failed to upload ${id}`);
-        }
-      });
-    });
-    log("Uploading completed");
-  }
 }
 
 function onBeforeSpec(spec: Cypress.Spec) {
@@ -194,22 +151,12 @@ function onBeforeSpec(spec: Cypress.Spec) {
   cypressReporter.onBeforeSpec(spec);
 }
 
-function onAfterSpec(
-  spec: Cypress.Spec,
-  result: CypressCommandLine.RunResult,
-  options: PluginOptionsWithConfig = {}
-) {
+function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
   debugEvents("Handling after:spec %s", spec.relative);
   assertReporter(cypressReporter);
   cypressReporter.onAfterSpec(spec, result);
 
-  if (options.config) {
-    updateReporters(spec, options.config, options.filter);
-  }
-
-  if (options.upload === true) {
-    pendingWork.push(startUpload(spec, options));
-  }
+  updateReporters(spec, cypressReporter.config, cypressReporter.options.filter);
 }
 
 function onReplayTask(value: any) {
@@ -240,38 +187,6 @@ function getSpecFilter(spec: Cypress.Spec, filter: PluginOptions["filter"]) {
 
     return filter ? filter(r) : true;
   };
-}
-
-async function startUpload(spec: Cypress.Spec, options: PluginOptions): Promise<UploadResult> {
-  const filter = getSpecFilter(spec, options.filter);
-
-  try {
-    await uploadAllRecordings({
-      apiKey: options.apiKey,
-      directory: options.directory,
-      filter,
-    });
-
-    const recordings = listAllRecordings({
-      all: true,
-      directory: options.directory,
-      filter,
-    });
-
-    return {
-      recordings: recordings.reduce<Record<string, boolean>>((acc, r) => {
-        acc[r.id] = r.status === "uploaded";
-        return acc;
-      }, {}),
-    };
-  } catch (e) {
-    warn(`Upload failed for ${spec.relative}`, e);
-
-    return {
-      error: e,
-      recordings: {},
-    };
-  }
 }
 
 const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
@@ -331,7 +246,7 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
-  cypressReporter = new CypressReporter(config, debug);
+  cypressReporter = new CypressReporter(config, options);
 
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
     process.env.RECORD_REPLAY_TEST_METRICS = "0";
@@ -341,7 +256,7 @@ const plugin = (
     cypressReporter.isFeatureEnabled(PluginFeature.Plugin) ||
     cypressReporter.isFeatureEnabled(PluginFeature.Metrics)
   ) {
-    on("after:spec", (spec, result) => onAfterSpec(spec, result, { ...options, config }));
+    on("after:spec", onAfterSpec);
   }
 
   if (
@@ -357,9 +272,7 @@ const plugin = (
 
   if (cypressReporter.isFeatureEnabled(PluginFeature.Plugin)) {
     on("before:run", onBeforeRun);
-    on("before:browser:launch", (browser, launchOptions) =>
-      onBeforeBrowserLaunch(config, browser, launchOptions)
-    );
+    on("before:browser:launch", onBeforeBrowserLaunch);
     on("before:spec", onBeforeSpec);
     on("after:run", onAfterRun);
 

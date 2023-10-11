@@ -2,12 +2,12 @@ import dbg from "debug";
 
 const debug = dbg("replay:cli:graphql");
 
-export async function query(name: string, query: string, variables = {}) {
+export async function query(name: string, query: string, variables = {}, apiKey?: string) {
   const options = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-    },
+    } as Record<string, string>,
     body: JSON.stringify({
       query,
       name,
@@ -15,8 +15,12 @@ export async function query(name: string, query: string, variables = {}) {
     }),
   };
 
+  if (apiKey) {
+    options.headers.Authorization = `Bearer ${apiKey.trim()}`;
+  }
+
   const server = process.env.REPLAY_API_SERVER || "https://api.replay.io";
-  debug("Querying %s graphql endpoint", server);
+  debug("Querying %s over %s graphql endpoint", name, server);
   const result = await fetch(`${server}/v1/graphql`, options);
 
   const json = await result.json();

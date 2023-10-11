@@ -291,7 +291,12 @@ function uploadSkipReason(recording: RecordingEntry) {
 }
 
 function getServer(opts: Options) {
-  return opts.server || process.env.RECORD_REPLAY_SERVER || "wss://dispatch.replay.io";
+  return (
+    opts.server ||
+    process.env.RECORD_REPLAY_SERVER ||
+    process.env.REPLAY_SERVER ||
+    "wss://dispatch.replay.io"
+  );
 }
 
 function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {

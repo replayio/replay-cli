@@ -1,5 +1,5 @@
 export function log(message: string) {
-  console.log("[replay.io]:", message);
+  message.split("\n").forEach(m => console.log("[replay.io]:", m));
 }
 
 export function warn(message: string, e?: unknown) {
