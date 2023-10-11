@@ -328,6 +328,8 @@ class ReplayReporter {
     const { REPLAY_METADATA_TEST_RUN_MODE, RECORD_REPLAY_METADATA_TEST_RUN_MODE } = process.env;
 
     const testRun = {
+      runnerName: this.runner.name,
+      runnerVersion: this.runner.version,
       repository: metadata.source?.repository ?? null,
       title: metadata.source?.repository ?? null,
       mode: REPLAY_METADATA_TEST_RUN_MODE ?? RECORD_REPLAY_METADATA_TEST_RUN_MODE ?? null,
