@@ -69,7 +69,7 @@ function updateReporters(
   }
 
   const projectBase = path.dirname(config.configFile);
-  const recordings = listAllRecordings({ filter: getSpecFilter(spec, filter) });
+  const recordings = listAllRecordings({ all: true, filter: getSpecFilter(spec, filter) });
   debug("Found %d recordings for %s", recordings.length, spec.relative);
   if (recordings.length === 0) {
     return;
