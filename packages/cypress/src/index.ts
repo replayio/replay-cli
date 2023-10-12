@@ -123,8 +123,19 @@ async function onAfterRun() {
   const utilsPendingWork = await cypressReporter.onEnd();
   utilsPendingWork.forEach(entry => {
     if (entry.type === "upload" && "recording" in entry && entry.recording.metadata.test) {
-      const tests = (entry.recording.metadata.test as TestMetadataV2.TestRun).tests;
+      const testRun = entry.recording.metadata.test as TestMetadataV2.TestRun;
+      const tests = testRun.tests;
       const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
+
+      if (cypressReporter) {
+        const spec: Cypress.Spec = {
+          name: testRun.source.title,
+          relative: testRun.source.path,
+          absolute: testRun.source.path,
+        };
+
+        updateReporters(spec, cypressReporter.config, cypressReporter.options.filter);
+      }
 
       if (
         completedTests.length > 0 &&
@@ -156,8 +167,6 @@ function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
   debugEvents("Handling after:spec %s", spec.relative);
   assertReporter(cypressReporter);
   cypressReporter.onAfterSpec(spec, result);
-
-  updateReporters(spec, cypressReporter.config, cypressReporter.options.filter);
 }
 
 function onReplayTask(value: any) {
