@@ -58,7 +58,7 @@ function getAuthKey<T extends { env?: { [key: string]: any } }>(config: T): stri
 }
 
 function updateReporters(
-  spec: Cypress.Spec,
+  relativePath: string,
   config: Cypress.PluginConfigOptions,
   filter: PluginOptions["filter"]
 ) {
@@ -69,13 +69,13 @@ function updateReporters(
   }
 
   const projectBase = path.dirname(config.configFile);
-  const recordings = listAllRecordings({ all: true, filter: getSpecFilter(spec, filter) });
-  debug("Found %d recordings for %s", recordings.length, spec.relative);
+  const recordings = listAllRecordings({ all: true, filter: getSpecFilter(relativePath, filter) });
+  debug("Found %d recordings for %s", recordings.length, relativePath);
   if (recordings.length === 0) {
     return;
   }
 
-  updateJUnitReports(spec.relative, recordings, projectBase, reporterOptions?.mochaFile);
+  updateJUnitReports(relativePath, recordings, projectBase, reporterOptions?.mochaFile);
 }
 
 async function onBeforeRun(details: Cypress.BeforeRunDetails) {
@@ -128,13 +128,11 @@ async function onAfterRun() {
       const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
 
       if (cypressReporter) {
-        const spec: Cypress.Spec = {
-          name: testRun.source.title,
-          relative: testRun.source.path,
-          absolute: testRun.source.path,
-        };
-
-        updateReporters(spec, cypressReporter.config, cypressReporter.options.filter);
+        updateReporters(
+          testRun.source.path,
+          cypressReporter.config,
+          cypressReporter.options.filter
+        );
       }
 
       if (
@@ -188,10 +186,10 @@ function onReplayTask(value: any) {
   return true;
 }
 
-function getSpecFilter(spec: Cypress.Spec, filter: PluginOptions["filter"]) {
+function getSpecFilter(relativePath: string, filter: PluginOptions["filter"]) {
   return (r: RecordingEntry) => {
     const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
-    if (testMetadata?.source?.path !== spec.relative) {
+    if (testMetadata?.source?.path !== relativePath) {
       return false;
     }
 
