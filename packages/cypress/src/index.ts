@@ -58,23 +58,24 @@ function getAuthKey<T extends { env?: { [key: string]: any } }>(config: T): stri
 }
 
 function updateReporters(
-  spec: Cypress.Spec,
+  relativePath: string,
   config: Cypress.PluginConfigOptions,
   filter: PluginOptions["filter"]
 ) {
   const { reporter, reporterOptions } = config;
+  debug("updateReporter: %o", { reporter, reporterOptions });
   if (reporter !== "junit") {
     return;
   }
 
   const projectBase = path.dirname(config.configFile);
-  const recordings = listAllRecordings({ filter: getSpecFilter(spec, filter) });
-  debug("Found %d recordings for %s", recordings.length, spec.relative);
+  const recordings = listAllRecordings({ all: true, filter: getSpecFilter(relativePath, filter) });
+  debug("Found %d recordings for %s", recordings.length, relativePath);
   if (recordings.length === 0) {
     return;
   }
 
-  updateJUnitReports(spec.relative, recordings, projectBase, reporterOptions?.mochaFile);
+  updateJUnitReports(relativePath, recordings, projectBase, reporterOptions?.mochaFile);
 }
 
 async function onBeforeRun(details: Cypress.BeforeRunDetails) {
@@ -122,8 +123,17 @@ async function onAfterRun() {
   const utilsPendingWork = await cypressReporter.onEnd();
   utilsPendingWork.forEach(entry => {
     if (entry.type === "upload" && "recording" in entry && entry.recording.metadata.test) {
-      const tests = (entry.recording.metadata.test as TestMetadataV2.TestRun).tests;
+      const testRun = entry.recording.metadata.test as TestMetadataV2.TestRun;
+      const tests = testRun.tests;
       const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
+
+      if (cypressReporter) {
+        updateReporters(
+          testRun.source.path,
+          cypressReporter.config,
+          cypressReporter.options.filter
+        );
+      }
 
       if (
         completedTests.length > 0 &&
@@ -155,8 +165,6 @@ function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
   debugEvents("Handling after:spec %s", spec.relative);
   assertReporter(cypressReporter);
   cypressReporter.onAfterSpec(spec, result);
-
-  updateReporters(spec, cypressReporter.config, cypressReporter.options.filter);
 }
 
 function onReplayTask(value: any) {
@@ -178,10 +186,10 @@ function onReplayTask(value: any) {
   return true;
 }
 
-function getSpecFilter(spec: Cypress.Spec, filter: PluginOptions["filter"]) {
+function getSpecFilter(relativePath: string, filter: PluginOptions["filter"]) {
   return (r: RecordingEntry) => {
     const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
-    if (testMetadata?.source?.path !== spec.relative) {
+    if (testMetadata?.source?.path !== relativePath) {
       return false;
     }
 
