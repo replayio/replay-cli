@@ -1,6 +1,6 @@
 {
   "name": "@replayio/puppeteer",
-  "version": "0.1.68",
+  "version": "0.1.69",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "src/index.js",
   "scripts": {
@@ -34,8 +34,8 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/puppeteer/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.17.3",
-    "@replayio/test-utils": "^1.1.10"
+    "@replayio/replay": "^0.17.4",
+    "@replayio/test-utils": "^1.2.0"
   },
   "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40"
 }
