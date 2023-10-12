@@ -63,6 +63,7 @@ function updateReporters(
   filter: PluginOptions["filter"]
 ) {
   const { reporter, reporterOptions } = config;
+  debug("updateReporter: %o", { reporter, reporterOptions });
   if (reporter !== "junit") {
     return;
   }
