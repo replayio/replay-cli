@@ -17,6 +17,7 @@ import {
   TestMetadataV2,
   getMetadataFilePath as getMetadataFilePathBase,
   TestIdContext,
+  warn,
 } from "@replayio/test-utils";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
@@ -309,7 +310,7 @@ class ReplayPlaywrightReporter implements Reporter {
 
     const relativePath = test.titlePath()[2];
     const { stacks, filenames } = this.getFixtureData(testMetadata);
-    filenames.add(relativePath);
+    filenames.add(test.location.file);
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
@@ -323,8 +324,7 @@ class ReplayPlaywrightReporter implements Reporter {
           },
         };
       } catch (e) {
-        console.warn("Failed to read playwright test source from " + test.location.file);
-        console.warn(e);
+        warn("Failed to read playwright test sources", e);
       }
     }
 
