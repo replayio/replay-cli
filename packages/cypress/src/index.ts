@@ -1,8 +1,8 @@
 /// <reference types="cypress" />
 
 import semver from "semver";
-import { getPlaywrightBrowserPath, RecordingEntry, listAllRecordings } from "@replayio/replay";
-import { TestMetadataV2, initMetadataFile, log, warn } from "@replayio/test-utils";
+import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
+import { TestMetadataV2, initMetadataFile } from "@replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
@@ -59,8 +59,8 @@ function getAuthKey<T extends { env?: { [key: string]: any } }>(config: T): stri
 
 function updateReporters(
   relativePath: string,
-  config: Cypress.PluginConfigOptions,
-  filter: PluginOptions["filter"]
+  recordings: RecordingEntry[],
+  config: Cypress.PluginConfigOptions
 ) {
   const { reporter, reporterOptions } = config;
   debug("updateReporter: %o", { reporter, reporterOptions });
@@ -69,8 +69,6 @@ function updateReporters(
   }
 
   const projectBase = path.dirname(config.configFile);
-  const recordings = listAllRecordings({ all: true, filter: getSpecFilter(relativePath, filter) });
-  debug("Found %d recordings for %s", recordings.length, relativePath);
   if (recordings.length === 0) {
     return;
   }
@@ -122,17 +120,18 @@ async function onAfterRun() {
 
   const utilsPendingWork = await cypressReporter.onEnd();
   utilsPendingWork.forEach(entry => {
-    if (entry.type === "upload" && "recording" in entry && entry.recording.metadata.test) {
-      const testRun = entry.recording.metadata.test as TestMetadataV2.TestRun;
-      const tests = testRun.tests;
+    if (entry.type === "post-test" && !("error" in entry)) {
+      const {
+        testRun: {
+          tests,
+          source: { path },
+        },
+        recordings,
+      } = entry;
       const completedTests = tests.filter(t => ["passed", "failed", "timedOut"].includes(t.result));
 
       if (cypressReporter) {
-        updateReporters(
-          testRun.source.path,
-          cypressReporter.config,
-          cypressReporter.options.filter
-        );
+        updateReporters(path, recordings, cypressReporter.config);
       }
 
       if (

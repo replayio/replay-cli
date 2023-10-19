@@ -73,7 +73,13 @@ type UploadPendingWork = PendingWorkEntry<
     recording: RecordingEntry;
   }
 >;
-type PostTestPendingWork = PendingWorkEntry<"post-test">;
+type PostTestPendingWork = PendingWorkEntry<
+  "post-test",
+  {
+    recordings: RecordingEntry[];
+    testRun: TestRun;
+  }
+>;
 type PendingWork =
   | TestRunPendingWork
   | TestRunTestsPendingWork
@@ -736,6 +742,8 @@ class ReplayReporter {
 
     return {
       type: "post-test",
+      recordings,
+      testRun,
     };
   }
 
