@@ -31,6 +31,7 @@
     "@types/node": "^16.11.39",
     "@types/semver": "^7.3.13",
     "@types/uuid": "^9.0.1",
+    "@types/ws": "^8.5.8",
     "cypress": "^10.9.0"
   },
   "dependencies": {
@@ -41,7 +42,8 @@
     "semver": "^7.5.2",
     "terminate": "^2.6.1",
     "txml": "^3.2.5",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "ws": "^8.14.2"
   },
   "peerDependencies": {
     "cypress": ">=5.3.0"

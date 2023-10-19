@@ -1,9 +1,10 @@
 import * as readline from "node:readline";
 import { existsSync, createReadStream } from "fs";
+import WebSocket from "ws";
 import path from "node:path";
 
 import plugin, { getCypressReporter } from "../src/index";
-import { TASK_NAME } from "../src/constants";
+import { CONNECT_TASK_NAME } from "../src/constants";
 
 async function driver(
   callback: (type: string, value: any) => void,
@@ -46,40 +47,52 @@ const emitter = (name: string, cb: EmitterCallback) => {
 };
 
 plugin(emitter as any, { version: "0.0.0", browsers: [], env: {} } as any);
-driver(
-  (type, value) => {
-    let DateNow: any = undefined;
-    switch (type) {
-      case "spec:start":
-        events["before:spec"]?.forEach(f => {
-          if (typeof f !== "function") return;
 
-          // monkey-patch the "current time" from the spec:start msg into
-          // Date.now() and restore it after the fact
-          DateNow = Date.now;
-          Date.now = () => value.startTime;
-          f(value.spec);
-          Date.now = DateNow;
-        });
-        break;
-      case "spec:end":
-        events["after:spec"]?.forEach(f => {
-          if (typeof f !== "function") return;
-          f(value.spec, value.result);
-        });
-        break;
-      case "task":
-        events[type]?.forEach(f => {
-          if (typeof f === "function") {
-            f("task", value);
-          } else {
-            f[TASK_NAME]?.([value]);
-          }
-        });
-        break;
-    }
-  },
-  { delay: 0, file: process.argv[2] }
-).then(() => {
+const connector = events["task"][0];
+if (typeof connector === "function") {
+  console.error("Unexpected task listener");
+  process.exit(1);
+}
+
+(async () => {
+  const { port } = await (connector[CONNECT_TASK_NAME](undefined) as Promise<{ port: number }>);
+
+  const ws = new WebSocket(`ws://0.0.0.0:${port}`);
+  await new Promise(resolve => {
+    ws.onopen = resolve;
+  });
+
+  await driver(
+    (type, value) => {
+      let DateNow: any = undefined;
+      switch (type) {
+        case "spec:start":
+          events["before:spec"]?.forEach(f => {
+            if (typeof f !== "function") return;
+
+            // monkey-patch the "current time" from the spec:start msg into
+            // Date.now() and restore it after the fact
+            DateNow = Date.now;
+            Date.now = () => value.startTime;
+            f(value.spec);
+            Date.now = DateNow;
+          });
+          break;
+        case "spec:end":
+          events["after:spec"]?.forEach(f => {
+            if (typeof f !== "function") return;
+            f(value.spec, value.result);
+          });
+          break;
+        case "task":
+          ws.send(JSON.stringify({ events: [value] }));
+          break;
+      }
+    },
+    { delay: 0, file: process.argv[2] }
+  );
+
   console.log("done");
-});
+  ws.close();
+  process.exit(0);
+})();
