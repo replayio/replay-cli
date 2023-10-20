@@ -22,12 +22,16 @@ export async function createServer() {
   return new Promise<{ server: WebSocketServer; port: number }>(resolve => {
     server.listen(
       {
-        port: 0,
-        host: "0.0.0.0",
+        // Pick any available port unless set by user
+        port: process.env.REPLAY_CYPRESS_SOCKET_PORT
+          ? Number.parseInt(process.env.REPLAY_CYPRESS_SOCKET_PORT)
+          : 0,
+        // Explicitly use ipv4 unless set by user
+        host: process.env.REPLAY_CYPRESS_SOCKET_HOST || "0.0.0.0",
       },
       () => {
-        const port = (server.address() as AddressInfo).port;
-        debug("Listening on %d", port);
+        const { address, port } = server.address() as AddressInfo;
+        debug("Listening on %s on port %d", address, port);
         resolve({ server: wss, port });
       }
     );

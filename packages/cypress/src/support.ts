@@ -215,6 +215,10 @@ const makeEvent = (
 });
 
 function sendStepsToPlugin(events: StepEvent[]) {
+  // If the connection to the server hasn't been initialized yet but we do have
+  // a port returned from the plugin, initialize it. Once the socket is open,
+  // send all buffered events and stop buffering so all future events are sent
+  // immediately.
   if (!gPluginServer && gServerPort != null) {
     gPluginServer = new WebSocket(`ws://localhost:${gServerPort}`);
     gPluginServer.onopen = () => {
@@ -224,6 +228,9 @@ function sendStepsToPlugin(events: StepEvent[]) {
   }
 
   if (gBuffering || !gPluginServer) {
+    // Checking gBuffering should be sufficient since it isn't set to false
+    // until the socket is open but for completeness (and to make TS happy) we
+    // buffer when gPluginServer is unset too
     gEventBuffer.push(...events);
   } else {
     gPluginServer.send(JSON.stringify({ events }));
