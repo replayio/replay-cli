@@ -2,16 +2,18 @@
 
 import semver from "semver";
 import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
-import { TestMetadataV2, initMetadataFile } from "@replayio/test-utils";
+import { TestMetadataV2, initMetadataFile, warn } from "@replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
 
-import { TASK_NAME } from "./constants";
+import { CONNECT_TASK_NAME } from "./constants";
 import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import run from "./run";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
+import { StepEvent } from "./support";
+import { createServer } from "./server";
 
 export type { PluginOptions } from "./reporter";
 
@@ -167,7 +169,7 @@ function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
 }
 
 function onReplayTask(value: any) {
-  debugTask("Handling %s task", TASK_NAME);
+  debugTask("Handling task: %o", value);
   assertReporter(cypressReporter);
   const reporter = cypressReporter;
 
@@ -178,7 +180,7 @@ function onReplayTask(value: any) {
       debugTask("Forwarding event to reporter: %o", v);
       reporter.addStep(v);
     } else {
-      debugTask("Unexpected %s payload: %o", TASK_NAME, v);
+      debugTask("Unexpected payload: %o", v);
     }
   });
 
@@ -255,6 +257,32 @@ const plugin = (
 ) => {
   cypressReporter = new CypressReporter(config, options);
 
+  const portPromise = createServer().then(({ server: wss, port }) => {
+    wss.on("connection", function connection(ws) {
+      debug("Connection established");
+
+      ws.on("close", () => {
+        debug("WebSocket closed");
+      });
+
+      ws.on("error", e => {
+        warn("WebSocket error", e);
+      });
+
+      ws.on("message", function message(data) {
+        try {
+          const payload = data.toString("utf-8");
+          const obj = JSON.parse(payload) as { events: StepEvent[] };
+          onReplayTask(obj.events);
+        } catch (e) {
+          warn("Error parsing message from test", e);
+        }
+      });
+    });
+
+    return port;
+  });
+
   if (!cypressReporter.isFeatureEnabled(PluginFeature.Metrics)) {
     process.env.RECORD_REPLAY_TEST_METRICS = "0";
   }
@@ -271,9 +299,13 @@ const plugin = (
     cypressReporter.isFeatureEnabled(PluginFeature.Support)
   ) {
     on("task", {
-      // Events are sent to the plugin by the support adapter which runs in the
-      // browser context and has access to `Cypress` and `cy` methods.
-      [TASK_NAME]: onReplayTask,
+      [CONNECT_TASK_NAME]: async value => {
+        debug("Test client connecting to websocket server");
+        const port = await portPromise;
+
+        debug("Returning port %d", port);
+        return { port };
+      },
     });
   }
 
@@ -349,5 +381,4 @@ export {
   onAfterSpec,
   onAfterRun,
   getMetadataFilePath,
-  TASK_NAME as REPLAY_TASK_NAME,
 };

@@ -1,5 +1,5 @@
 import type { TestMetadataV2 } from "@replayio/test-utils";
-import { TASK_NAME } from "./constants";
+import { CONNECT_TASK_NAME } from "./constants";
 
 declare global {
   interface Window {
@@ -44,8 +44,10 @@ let gLastTest: MochaTest | undefined;
 // it for retries
 let gLastOrder: number | undefined;
 
-let gBuffering = false;
+let gBuffering = true;
 let gEventBuffer: StepEvent[] = [];
+let gServerPort: number | undefined;
+let gPluginServer: WebSocket | undefined;
 
 // This lists cypress commands for which we don't need to track in metadata nor
 // create annotations because they are "internal plumbing" commands that aren't
@@ -213,9 +215,25 @@ const makeEvent = (
 });
 
 function sendStepsToPlugin(events: StepEvent[]) {
-  for (let i = 0; i < events.length; i += 500) {
-    const partialEvents = events.slice(i, i + 500);
-    cy.task(TASK_NAME, partialEvents, { log: false });
+  // If the connection to the server hasn't been initialized yet but we do have
+  // a port returned from the plugin, initialize it. Once the socket is open,
+  // send all buffered events and stop buffering so all future events are sent
+  // immediately.
+  if (!gPluginServer && gServerPort != null) {
+    gPluginServer = new WebSocket(`ws://localhost:${gServerPort}`);
+    gPluginServer.onopen = () => {
+      gPluginServer!.send(JSON.stringify({ events: gEventBuffer }));
+      gBuffering = false;
+    };
+  }
+
+  if (gBuffering || !gPluginServer) {
+    // Checking gBuffering should be sufficient since it isn't set to false
+    // until the socket is open but for completeness (and to make TS happy) we
+    // buffer when gPluginServer is unset too
+    gEventBuffer.push(...events);
+  } else {
+    gPluginServer.send(JSON.stringify({ events }));
   }
 }
 
@@ -226,15 +244,10 @@ const handleCypressEvent = (
   cmd?: CommandLike,
   error?: TestError
 ) => {
-  if (cmd?.args?.[0] === TASK_NAME) return;
+  if (cmd?.args?.[0] === CONNECT_TASK_NAME) return;
 
   const stepEvent = makeEvent(testScope, event, category, cmd, error);
-
-  if (gBuffering) {
-    gEventBuffer.push(stepEvent);
-  } else {
-    sendStepsToPlugin([stepEvent]);
-  }
+  sendStepsToPlugin([stepEvent]);
 };
 
 const idMap: Record<string, string> = {};
@@ -602,9 +615,20 @@ export default function register() {
       console.error(e);
     }
   });
+
+  before(() => {
+    if (gServerPort == null) {
+      cy.task(CONNECT_TASK_NAME, null, { log: false }).then(v => {
+        if (v && typeof v === "object" && "port" in v && typeof v.port === "number") {
+          gServerPort = v.port;
+        } else {
+          cy.log("[replay.io] Received unexpected response when connecting to plugin");
+        }
+      });
+    }
+  });
   beforeEach(() => {
     try {
-      gBuffering = true;
       currentTestScope = getCurrentTestScope();
       if (currentTestScope) {
         handleCypressEvent(currentTestScope, "test:start");
@@ -620,11 +644,6 @@ export default function register() {
       if (currentTestScope) {
         addAnnotation(currentTestScope, "test:end");
         handleCypressEvent(currentTestScope, "test:end");
-
-        sendStepsToPlugin(gEventBuffer);
-
-        gEventBuffer = [];
-        gBuffering = false;
       }
     } catch (e) {
       console.error("Replay: Failed to handle test:end event");
