@@ -1,4 +1,5 @@
 import dbg from "debug";
+import fetch from "node-fetch";
 
 const debug = dbg("replay:cli:graphql");
 
