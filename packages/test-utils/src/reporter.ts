@@ -16,6 +16,7 @@ const debug = dbg("replay:test-utils:reporter");
 
 interface TestRunTestInputModel {
   testId: string;
+  runnerGroupId: string | null;
   index: number;
   attempt: number;
   scope: string[];
@@ -538,11 +539,13 @@ class ReplayReporter {
     specFile,
     replayTitle,
     extraMetadata,
+    runnerGroupKey,
   }: {
     tests: Test[];
     specFile: string;
     replayTitle?: string;
     extraMetadata?: Record<string, unknown>;
+    runnerGroupKey?: string;
   }) {
     debug("onTestEnd: %s", specFile);
 
@@ -553,13 +556,19 @@ class ReplayReporter {
       return;
     }
 
-    this.pendingWork.push(this.enqueuePostTestWork(tests, specFile, replayTitle, extraMetadata));
+    this.pendingWork.push(
+      this.enqueuePostTestWork(tests, specFile, runnerGroupKey, replayTitle, extraMetadata)
+    );
   }
 
   buildTestId(sourcePath: string, test: Test) {
-    return createHash("sha1")
-      .update([sourcePath, test.id, ...test.source.scope, test.source.title].join("-"))
-      .digest("hex");
+    return this.generateOpaqueId(
+      [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
+    );
+  }
+
+  generateOpaqueId(contents: string) {
+    return createHash("sha1").update(contents).digest("hex");
   }
 
   async uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
@@ -679,27 +688,33 @@ class ReplayReporter {
   async enqueuePostTestWork(
     tests: Test[],
     specFile: string,
+    runnerGroupKey?: string,
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ): Promise<PendingWork> {
+    const runnerGroupId = runnerGroupKey ? this.generateOpaqueId(runnerGroupKey) : null;
     const recordings = this.getRecordingsForTest(tests, false);
 
     if (this.testRunShardId) {
       const recordingIds = recordings.map(r => r.id);
       this.pendingWork.push(
         this.addTestsToShard(
-          tests.map<TestRunTestInputModel>(t => ({
-            testId: this.buildTestId(specFile, t),
-            index: t.id,
-            attempt: t.attempt,
-            scope: t.source.scope,
-            title: t.source.title,
-            sourcePath: specFile,
-            result: t.result,
-            error: t.error ? t.error.message : null,
-            duration: t.approximateDuration,
-            recordingIds,
-          }))
+          tests.map<TestRunTestInputModel>(t => {
+            const testId = this.buildTestId(specFile, t);
+            return {
+              testId,
+              runnerGroupId: runnerGroupId,
+              index: t.id,
+              attempt: t.attempt,
+              scope: t.source.scope,
+              title: t.source.title,
+              sourcePath: specFile,
+              result: t.result,
+              error: t.error ? t.error.message : null,
+              duration: t.approximateDuration,
+              recordingIds,
+            };
+          })
         )
       );
     } else {
