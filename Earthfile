@@ -21,13 +21,13 @@ setup:
   RUN apt update && apt install xz-utils
   RUN npx @replayio/playwright install
   # download binary openssl packages from Impish builds
-  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/openssl_1.1.1f-1ubuntu2.19_amd64.deb
-  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1f-1ubuntu2.19_amd64.deb
-  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb
+  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/openssl_1.1.1f-1ubuntu2.20_amd64.deb
+  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1f-1ubuntu2.20_amd64.deb
+  RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.20_amd64.deb
   # install downloaded binary packages
-  RUN dpkg -i libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb
-  RUN dpkg -i libssl-dev_1.1.1f-1ubuntu2.19_amd64.deb
-  RUN dpkg -i openssl_1.1.1f-1ubuntu2.19_amd64.deb
+  RUN dpkg -i libssl1.1_1.1.1f-1ubuntu2.20_amd64.deb
+  RUN dpkg -i libssl-dev_1.1.1f-1ubuntu2.20_amd64.deb
+  RUN dpkg -i openssl_1.1.1f-1ubuntu2.20_amd64.deb
 
 flake:
   FROM +setup
