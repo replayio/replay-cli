@@ -124,7 +124,12 @@ class CypressReporter {
 
     const tests = this.getTestResults(spec, result);
 
-    this.reporter.onTestEnd({ tests, replayTitle: spec.relative, specFile: spec.relative });
+    this.reporter.onTestEnd({
+      tests,
+      replayTitle: spec.relative,
+      specFile: spec.relative,
+      runnerGroupKey: spec.relative,
+    });
   }
 
   onEnd() {
