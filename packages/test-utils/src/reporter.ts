@@ -33,6 +33,7 @@ export interface ReplayReporterConfig {
   metadata?: Record<string, any> | string;
   upload?: boolean;
   apiKey?: string;
+  filter?: (r: RecordingEntry) => boolean;
 }
 
 export interface TestRunner {
@@ -168,6 +169,7 @@ class ReplayReporter {
   apiKey?: string;
   pendingWork: Promise<PendingWork>[] = [];
   upload = false;
+  filter?: (r: RecordingEntry) => boolean;
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
@@ -249,6 +251,7 @@ class ReplayReporter {
 
     this.apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY || config.apiKey;
     this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
+    this.filter = config.filter;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
     // We suppress it for the browser process so we can use
@@ -310,6 +313,7 @@ class ReplayReporter {
       baseMetadata: this.baseMetadata,
       upload: this.upload,
       hasApiKey: !!this.apiKey,
+      hasFilter: !!this.filter,
     });
 
     if (!this.testRunShardId) {
@@ -683,6 +687,12 @@ class ReplayReporter {
     }
 
     recordings.forEach(rec => add(rec.id, mergedMetadata));
+
+    // Re-fetch recordings so we have the most recent metadata
+    const allRecordings = listAllRecordings({ all: true });
+    return allRecordings.filter(recordingWithMetadata =>
+      recordings.some(r => r.id === recordingWithMetadata.id)
+    );
   }
 
   async enqueuePostTestWork(
@@ -725,10 +735,19 @@ class ReplayReporter {
 
     if (recordings.length > 0) {
       try {
-        await this.setRecordingMetadata(recordings, testRun, replayTitle, extraMetadata);
+        const recordingsWithMetadata = await this.setRecordingMetadata(
+          recordings,
+          testRun,
+          replayTitle,
+          extraMetadata
+        );
 
         if (this.upload) {
-          this.pendingWork.push(...recordings.map(r => this.uploadRecording(r)));
+          this.pendingWork.push(
+            ...recordingsWithMetadata
+              .filter(r => (this.filter ? this.filter(r) : true))
+              .map(r => this.uploadRecording(r))
+          );
         }
       } catch (e) {
         debug("post-test error: %s", e);

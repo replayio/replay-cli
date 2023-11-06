@@ -5,6 +5,7 @@ import {
   TestMetadataV2,
   ReporterError,
   fetchWorkspaceConfig,
+  ReplayReporterConfig,
 } from "@replayio/test-utils";
 import dbg from "debug";
 
@@ -14,18 +15,12 @@ import { getDiagnosticConfig } from "./mode";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
-import { RecordingEntry } from "@replayio/replay";
 
 type Test = TestMetadataV2.Test;
 
 const debug = dbg("replay:cypress:reporter");
 
-export interface PluginOptions {
-  upload?: boolean;
-  filter?: (recordings: RecordingEntry) => boolean;
-  apiKey?: string;
-  directory?: string;
-}
+export type PluginOptions = ReplayReporterConfig;
 
 function isStepEvent(value: unknown): value is StepEvent {
   if (
@@ -96,13 +91,7 @@ class CypressReporter {
 
   onLaunchBrowser(browser: string) {
     this.setSelectedBrowser(browser);
-    this.reporter.onTestSuiteBegin(
-      {
-        apiKey: this.options.apiKey,
-        upload: this.options.upload,
-      },
-      "CYPRESS_REPLAY_METADATA"
-    );
+    this.reporter.onTestSuiteBegin(this.options, "CYPRESS_REPLAY_METADATA");
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
