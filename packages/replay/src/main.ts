@@ -27,7 +27,7 @@ import {
   Options,
   RecordingEntry,
   SourceMapEntry,
-  UploadOptions,
+  UploadAllOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
@@ -239,22 +239,35 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
   recording.status = status;
 }
 
-function filterRecordings(recordings: RecordingEntry[], filter?: FilterOptions["filter"]) {
+export function filterRecordings(
+  recordings: RecordingEntry[],
+  filter?: FilterOptions["filter"],
+  includeCrashes?: boolean
+) {
+  let filteredRecordings = recordings;
   debug("Recording log contains %d replays", recordings.length);
   if (filter && typeof filter === "string") {
     debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
-    recordings = exp.evaluate(recordings) || [];
+    filteredRecordings = exp.evaluate(recordings) || [];
 
-    debug("Filtering resulted in %d replays", recordings.length);
+    debug("Filtering resulted in %d replays", filteredRecordings.length);
   } else if (typeof filter === "function") {
     debug("Using filter function");
-    recordings = recordings.filter(filter);
+    filteredRecordings = recordings.filter(filter);
 
-    debug("Filtering resulted in %d replays", recordings.length);
+    debug("Filtering resulted in %d replays", filteredRecordings.length);
   }
 
-  return recordings;
+  if (includeCrashes) {
+    recordings.forEach(r => {
+      if (r.status === "crashed" && !filteredRecordings.includes(r)) {
+        filteredRecordings.push(r);
+      }
+    });
+  }
+
+  return filteredRecordings;
 }
 
 // Convert a recording into a format for listing.
@@ -531,11 +544,11 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
+async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
-  const recordings = filterRecordings(allRecordings, opts.filter);
+  const recordings = filterRecordings(allRecordings, opts.filter, !opts.excludeCrashes);
 
   if (recordings.length === 0) {
     if (opts.filter && allRecordings.length > 0) {

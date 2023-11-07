@@ -53,9 +53,10 @@ export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
 
-export interface UploadOptions extends FilterOptions {
+export interface UploadAllOptions extends FilterOptions {
   batchSize?: number;
   warn?: boolean;
+  excludeCrashes?: boolean;
 }
 
 /**

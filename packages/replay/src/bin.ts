@@ -20,7 +20,7 @@ import {
   MetadataOptions,
   Options,
   SourcemapUploadOptions,
-  UploadOptions,
+  UploadAllOptions,
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 import { maybeAuthenticateUser } from "./auth";
@@ -82,10 +82,7 @@ commandWithGlobalOptions("upload-all")
   .option("--api-key <key>", "Authentication API Key")
   .option("--filter <filter string>", "String to filter recordings")
   .option("--batch-size <batchSize number>", "Number of recordings to upload in parallel (max 25)")
-  .option(
-    "--include-in-progress",
-    "Upload all recordings, including ones with an in progress status"
-  )
+  .option("--exclude-crashes", "Do not upload crash reports which are always uploaded by default")
   .action(commandUploadAllRecordings);
 
 commandWithGlobalOptions("view <id>")
@@ -232,7 +229,7 @@ async function commandProcessRecording(id: string, opts: CommandLineOptions) {
   }
 }
 
-async function commandUploadAllRecordings(opts: CommandLineOptions & UploadOptions) {
+async function commandUploadAllRecordings(opts: CommandLineOptions & UploadAllOptions) {
   try {
     debug("Options", opts);
 
