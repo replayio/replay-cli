@@ -776,16 +776,20 @@ async function updateMetadata({
 async function launchBrowser(
   browserName: BrowserName,
   args: string[] = [],
-  attach: boolean = false
+  attach: boolean = false,
+  opts?: Options
 ) {
-  const execPath = getExecutablePath(browserName);
+  const execPath = getExecutablePath(browserName, opts);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
   }
 
-  await ensureBrowsersInstalled(browserName, false);
+  if (!fs.existsSync(execPath)) {
+    maybeLog(opts?.verbose, `Installing ${browserName}`);
+    await ensureBrowsersInstalled(browserName, false, opts);
+  }
 
-  const profileDir = path.join(getDirectory(), "runtimes", "profiles", browserName);
+  const profileDir = path.join(getDirectory(opts), "runtimes", "profiles", browserName);
 
   const browserArgs: Record<BrowserName, string[]> = {
     chromium: [
@@ -797,7 +801,10 @@ async function launchBrowser(
     firefox: ["-foreground", ...args],
   };
 
-  const proc = spawn(execPath, browserArgs[browserName], { detached: !attach });
+  const proc = spawn(execPath, browserArgs[browserName], {
+    detached: !attach,
+    env: { ...process.env, RECORD_REPLAY_DIRECTORY: opts?.directory },
+  });
   proc.unref();
 
   return proc;
