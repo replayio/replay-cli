@@ -29,7 +29,7 @@ describe("filterRecordings", () => {
       },
     ];
 
-    const filtered = filterRecordings(recordings, r => r.id === "3");
+    const filtered = filterRecordings(recordings, r => r.id === "3", false);
     expect(filtered).toHaveLength(1);
   });
   it("inclues crash reports when includeCrashes is set", () => {

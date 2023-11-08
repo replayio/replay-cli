@@ -552,6 +552,18 @@ async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
   const recordings = filterRecordings(allRecordings, opts.filter, opts.includeCrashes);
 
+  if (
+    allRecordings.some(r => r.status === "crashed") &&
+    !recordings.some(r => r.status === "crashed") &&
+    opts.filter &&
+    !opts.includeCrashes
+  ) {
+    maybeLog(
+      opts.verbose,
+      `\n⚠️ Warning: Some crash reports were created but will not be uploaded because of the provided filter. Add --include-crashes to upload crash reports.\n`
+    );
+  }
+
   if (recordings.length === 0) {
     if (opts.filter && allRecordings.length > 0) {
       maybeLog(opts.verbose, `No replays matched the provided filter`);
