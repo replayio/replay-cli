@@ -241,8 +241,8 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
 
 export function filterRecordings(
   recordings: RecordingEntry[],
-  filter?: FilterOptions["filter"],
-  includeCrashes?: boolean
+  filter: FilterOptions["filter"],
+  includeCrashes: FilterOptions["includeCrashes"]
 ) {
   let filteredRecordings = recordings;
   debug("Recording log contains %d replays", recordings.length);
@@ -282,13 +282,15 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   const recordings = readRecordings(dir);
 
   if (opts.all) {
-    return filterRecordings(recordings, opts.filter).map(listRecording);
+    return filterRecordings(recordings, opts.filter, opts.includeCrashes).map(listRecording);
   }
 
   const uploadableRecordings = recordings.filter(recording =>
     ["onDisk", "startedWrite", "crashed"].includes(recording.status)
   );
-  return filterRecordings(uploadableRecordings, opts.filter).map(listRecording);
+  return filterRecordings(uploadableRecordings, opts.filter, opts.includeCrashes).map(
+    listRecording
+  );
 }
 
 function uploadSkipReason(recording: RecordingEntry) {
@@ -548,7 +550,7 @@ async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
-  const recordings = filterRecordings(allRecordings, opts.filter, !opts.excludeCrashes);
+  const recordings = filterRecordings(allRecordings, opts.filter, opts.includeCrashes);
 
   if (recordings.length === 0) {
     if (opts.filter && allRecordings.length > 0) {
@@ -734,6 +736,7 @@ async function updateMetadata({
   init: metadata,
   keys = [],
   filter,
+  includeCrashes,
   verbose,
   warn,
   directory,
@@ -772,7 +775,7 @@ async function updateMetadata({
 
     debug("Sanitized metadata: %O", sanitized);
 
-    const recordings = listAllRecordings({ directory, filter });
+    const recordings = listAllRecordings({ directory, filter, includeCrashes });
 
     recordings.forEach(r => {
       maybeLog(verbose, `Setting metadata for ${r.id}`);

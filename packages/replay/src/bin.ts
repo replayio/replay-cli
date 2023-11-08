@@ -54,6 +54,7 @@ commandWithGlobalOptions("ls")
   .option("-a, --all", "Include all recordings")
   .option("--json", "Output in JSON format")
   .option("--filter <filter string>", "String to filter recordings")
+  .option("--include-crashes", "Always include crash reports")
   .action(commandListAllRecordings);
 
 commandWithGlobalOptions("upload <id>")
@@ -82,7 +83,7 @@ commandWithGlobalOptions("upload-all")
   .option("--api-key <key>", "Authentication API Key")
   .option("--filter <filter string>", "String to filter recordings")
   .option("--batch-size <batchSize number>", "Number of recordings to upload in parallel (max 25)")
-  .option("--exclude-crashes", "Do not upload crash reports which are always uploaded by default")
+  .option("--include-crashes", "Always include crash reports")
   .action(commandUploadAllRecordings);
 
 commandWithGlobalOptions("view <id>")

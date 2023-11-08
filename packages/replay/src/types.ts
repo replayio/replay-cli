@@ -47,6 +47,7 @@ export interface FilterOptions {
   filter?:
     | string
     | ((recordings: RecordingEntry, index: number, allRecordings: RecordingEntry[]) => boolean);
+  includeCrashes?: boolean;
 }
 
 export interface ListOptions extends FilterOptions {
@@ -56,7 +57,6 @@ export interface ListOptions extends FilterOptions {
 export interface UploadAllOptions extends FilterOptions {
   batchSize?: number;
   warn?: boolean;
-  excludeCrashes?: boolean;
 }
 
 /**
