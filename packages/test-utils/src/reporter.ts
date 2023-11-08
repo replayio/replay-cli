@@ -783,16 +783,6 @@ class ReplayReporter {
 
   async onEnd(): Promise<PendingWork[]> {
     debug("onEnd");
-    if (this.apiKey) {
-      if (this.testRunShardId) {
-        this.pendingWork.push(this.completeTestRunShard());
-      } else {
-        debug("Skipping completing test run: test run shard ID not found");
-      }
-    } else {
-      debug("Skipping completing test run: API Key not set");
-    }
-
     if (this.pendingWork.length === 0) {
       return [];
     }
@@ -802,6 +792,26 @@ class ReplayReporter {
 
     const output: string[] = [];
     const completedWork = await Promise.allSettled(this.pendingWork);
+
+    if (this.apiKey) {
+      if (this.testRunShardId) {
+        // In the rare case that a test suite has no tests (or very brief
+        // tests?), onEnd will likely be called before the request to create the
+        // shard completes so we have to wait on all the pending work before we
+        // can complete the shard. This is also probably better from a UX
+        // standpoint because the shard won't be completed until uploading
+        // completes so we will report a more accurate status to the user. In
+        // order to handle the result of this command like the rest, we use
+        // `allSettled` and push the results onto the completedWork array so all
+        // responses are handled together.
+        const postSettledWork = await Promise.allSettled([this.completeTestRunShard()]);
+        completedWork.push(...postSettledWork);
+      } else {
+        debug("Skipping completing test run: test run shard ID not found");
+      }
+    } else {
+      debug("Skipping completing test run: API Key not set");
+    }
 
     const failures = completedWork.filter(
       (r): r is PromiseRejectedResult => r.status === "rejected"
