@@ -16,6 +16,7 @@ import {
   launchBrowser,
 } from "./main";
 import {
+  BrowserName,
   FilterOptions,
   MetadataOptions,
   Options,
@@ -110,6 +111,7 @@ commandWithGlobalOptions("rm-all")
 
 commandWithGlobalOptions("update-browsers")
   .description("Update browsers used in automation.")
+  .arguments("<browsers...>")
   .action(commandUpdateBrowsers);
 
 commandWithGlobalOptions("upload-sourcemaps")
@@ -302,11 +304,14 @@ function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory" |
   }
 }
 
-async function commandUpdateBrowsers(opts: Pick<CommandLineOptions, "directory" | "warn">) {
+async function commandUpdateBrowsers(
+  browsers: string[],
+  opts: Pick<CommandLineOptions, "directory" | "warn">
+) {
   try {
     debug("Options", opts);
 
-    await updateBrowsers({ ...opts, verbose: true });
+    await updateBrowsers({ ...opts, browsers: browsers.map(fuzzyBrowserName), verbose: true });
     process.exit(0);
   } catch (e) {
     console.error("Failed to updated browsers");

@@ -129,8 +129,14 @@ function ensurePuppeteerBrowsersInstalled(kind: BrowserName | "all" = "all", opt
   return ensureBrowsersInstalled("chromium", false, opts);
 }
 
-function updateBrowsers(opts: Options) {
-  return ensureBrowsersInstalled("all", true, opts);
+async function updateBrowsers(opts: Options & { browsers?: BrowserName[] }) {
+  if (opts.browsers) {
+    for (const browserName of opts.browsers) {
+      await ensureBrowsersInstalled(browserName, true, opts);
+    }
+  } else {
+    return ensureBrowsersInstalled("all", true, opts);
+  }
 }
 
 function getPlatformKey(browserName: BrowserName): PlatformKeys | undefined {

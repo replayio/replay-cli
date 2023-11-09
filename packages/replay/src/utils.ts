@@ -94,7 +94,7 @@ export async function exponentialBackoffRetry<T>(
   throw Error("ShouldBeUnreachable");
 }
 
-function fuzzyBrowserName(browser?: string) {
+function fuzzyBrowserName(browser?: string): BrowserName {
   browser = browser?.toLowerCase();
 
   switch (browser) {
@@ -104,7 +104,7 @@ function fuzzyBrowserName(browser?: string) {
       return "firefox";
   }
 
-  return browser;
+  return browser as BrowserName;
 }
 
 function assertValidBrowserName(browser?: string): asserts browser is BrowserName {
