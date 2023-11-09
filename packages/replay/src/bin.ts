@@ -197,7 +197,7 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
 
 async function commandLaunchBrowser(
   url: string | undefined,
-  opts: Pick<CommandLineOptions, "warn"> & {
+  opts: Pick<CommandLineOptions, "warn" | "directory"> & {
     browser: string | undefined;
     attach: boolean | undefined;
   }
@@ -210,7 +210,7 @@ async function commandLaunchBrowser(
 
     const attach = opts.attach || false;
 
-    await launchBrowser(browser, [url || "about:blank"], attach);
+    await launchBrowser(browser, [url || "about:blank"], attach, { ...opts, verbose: true });
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");

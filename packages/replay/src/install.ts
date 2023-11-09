@@ -148,7 +148,7 @@ function getPlatformKey(browserName: BrowserName): PlatformKeys | undefined {
   return undefined;
 }
 
-function getExecutablePath(browserName: BrowserName) {
+function getExecutablePath(browserName: BrowserName, opts?: Options) {
   const overridePathKey = `REPLAY_${browserName.toUpperCase()}_EXECUTABLE_PATH`;
   const overridePath = process.env[overridePathKey];
   if (overridePath) {
@@ -162,7 +162,7 @@ function getExecutablePath(browserName: BrowserName) {
   }
 
   const executablePathParts = EXECUTABLE_PATHS[key];
-  return executablePathParts ? path.join(getRuntimesDirectory(), ...executablePathParts) : null;
+  return executablePathParts ? path.join(getRuntimesDirectory(opts), ...executablePathParts) : null;
 }
 
 /**
@@ -205,7 +205,7 @@ async function installReplayBrowser(
   force = false,
   opts: Options = {}
 ) {
-  const replayDir = getDirectory();
+  const replayDir = getDirectory(opts);
   const browserDir = getRuntimesDirectory(opts);
   const dstDir = path.join(browserDir, dstName);
   const dstExists = fs.existsSync(dstDir);
