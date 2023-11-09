@@ -27,7 +27,7 @@ import {
   Options,
   RecordingEntry,
   SourceMapEntry,
-  UploadOptions,
+  UploadAllOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import { generateDefaultTitle } from "./generateDefaultTitle";
@@ -239,22 +239,35 @@ function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"
   recording.status = status;
 }
 
-function filterRecordings(recordings: RecordingEntry[], filter?: FilterOptions["filter"]) {
+export function filterRecordings(
+  recordings: RecordingEntry[],
+  filter: FilterOptions["filter"],
+  includeCrashes: FilterOptions["includeCrashes"]
+) {
+  let filteredRecordings = recordings;
   debug("Recording log contains %d replays", recordings.length);
   if (filter && typeof filter === "string") {
     debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
-    recordings = exp.evaluate(recordings) || [];
+    filteredRecordings = exp.evaluate(recordings) || [];
 
-    debug("Filtering resulted in %d replays", recordings.length);
+    debug("Filtering resulted in %d replays", filteredRecordings.length);
   } else if (typeof filter === "function") {
     debug("Using filter function");
-    recordings = recordings.filter(filter);
+    filteredRecordings = recordings.filter(filter);
 
-    debug("Filtering resulted in %d replays", recordings.length);
+    debug("Filtering resulted in %d replays", filteredRecordings.length);
   }
 
-  return recordings;
+  if (includeCrashes) {
+    recordings.forEach(r => {
+      if (r.status === "crashed" && !filteredRecordings.includes(r)) {
+        filteredRecordings.push(r);
+      }
+    });
+  }
+
+  return filteredRecordings;
 }
 
 // Convert a recording into a format for listing.
@@ -269,13 +282,15 @@ function listAllRecordings(opts: Options & ListOptions = {}) {
   const recordings = readRecordings(dir);
 
   if (opts.all) {
-    return filterRecordings(recordings, opts.filter).map(listRecording);
+    return filterRecordings(recordings, opts.filter, opts.includeCrashes).map(listRecording);
   }
 
   const uploadableRecordings = recordings.filter(recording =>
     ["onDisk", "startedWrite", "crashed"].includes(recording.status)
   );
-  return filterRecordings(uploadableRecordings, opts.filter).map(listRecording);
+  return filterRecordings(uploadableRecordings, opts.filter, opts.includeCrashes).map(
+    listRecording
+  );
 }
 
 function uploadSkipReason(recording: RecordingEntry) {
@@ -531,11 +546,23 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & UploadOptions = {}) {
+async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
-  const recordings = filterRecordings(allRecordings, opts.filter);
+  const recordings = filterRecordings(allRecordings, opts.filter, opts.includeCrashes);
+
+  if (
+    allRecordings.some(r => r.status === "crashed") &&
+    !recordings.some(r => r.status === "crashed") &&
+    opts.filter &&
+    !opts.includeCrashes
+  ) {
+    maybeLog(
+      opts.verbose,
+      `\n⚠️ Warning: Some crash reports were created but will not be uploaded because of the provided filter. Add --include-crashes to upload crash reports.\n`
+    );
+  }
 
   if (recordings.length === 0) {
     if (opts.filter && allRecordings.length > 0) {
@@ -721,6 +748,7 @@ async function updateMetadata({
   init: metadata,
   keys = [],
   filter,
+  includeCrashes,
   verbose,
   warn,
   directory,
@@ -759,7 +787,7 @@ async function updateMetadata({
 
     debug("Sanitized metadata: %O", sanitized);
 
-    const recordings = listAllRecordings({ directory, filter });
+    const recordings = listAllRecordings({ directory, filter, includeCrashes });
 
     recordings.forEach(r => {
       maybeLog(verbose, `Setting metadata for ${r.id}`);
