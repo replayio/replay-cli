@@ -109,7 +109,7 @@ commandWithGlobalOptions("rm-all")
 
 commandWithGlobalOptions("update-browsers")
   .description("Update browsers used in automation.")
-  .arguments("<browsers...>")
+  .arguments("[<browsers...>]")
   .action(commandUpdateBrowsers);
 
 commandWithGlobalOptions("upload-sourcemaps")
