@@ -832,8 +832,11 @@ async function launchBrowser(
   const proc = spawn(execPath, browserArgs[browserName], {
     detached: !attach,
     env: { ...process.env, RECORD_REPLAY_DIRECTORY: opts?.directory },
+    stdio: "inherit"
   });
-  proc.unref();
+  if (!attach) {
+    proc.unref();
+  }
 
   return proc;
 }
