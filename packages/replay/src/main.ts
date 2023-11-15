@@ -832,8 +832,25 @@ async function launchBrowser(
   const proc = spawn(execPath, browserArgs[browserName], {
     detached: !attach,
     env: { ...process.env, RECORD_REPLAY_DIRECTORY: opts?.directory },
+    stdio: "inherit"
   });
-  proc.unref();
+  if (!attach) {
+    proc.unref();
+  }
+  else {
+    // Wait for the browser process to finish.
+    await new Promise<void>((resolve, reject) => {
+      proc.on("error", reject);
+      proc.on("exit", (code, signal) => {
+        if (code || signal) {
+          reject(new Error(`Process failed code=${code}, signal=${signal}`));
+        }
+        else {
+          resolve();
+        }
+      });
+  });
+  }
 
   return proc;
 }
