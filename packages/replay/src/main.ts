@@ -829,9 +829,20 @@ async function launchBrowser(
     firefox: ["-foreground", ...args],
   };
 
+  const envArgs: Record<BrowserName, Record<string, string>> = {
+    chromium: {
+      RECORD_ALL_CONTENT: "1"
+    },
+    firefox: {}
+  }
+
   const proc = spawn(execPath, browserArgs[browserName], {
     detached: !attach,
-    env: { ...process.env, RECORD_REPLAY_DIRECTORY: opts?.directory },
+    env: {
+      ...process.env,
+      ...envArgs[browserName],
+      RECORD_REPLAY_DIRECTORY: opts?.directory,
+    },
     stdio: "inherit"
   });
   if (!attach) {
@@ -849,7 +860,7 @@ async function launchBrowser(
           resolve();
         }
       });
-  });
+    });
   }
 
   return proc;
