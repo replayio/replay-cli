@@ -829,34 +829,25 @@ async function launchBrowser(
     firefox: ["-foreground", ...args],
   };
 
-  const envArgs: Record<BrowserName, Record<string, string>> = {
-    chromium: {
-      RECORD_ALL_CONTENT: "1"
-    },
-    firefox: {}
-  }
-
   const proc = spawn(execPath, browserArgs[browserName], {
     detached: !attach,
     env: {
       ...process.env,
-      ...envArgs[browserName],
+      RECORD_ALL_CONTENT: "1",
       RECORD_REPLAY_DIRECTORY: opts?.directory,
     },
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (!attach) {
     proc.unref();
-  }
-  else {
+  } else {
     // Wait for the browser process to finish.
     await new Promise<void>((resolve, reject) => {
       proc.on("error", reject);
       proc.on("exit", (code, signal) => {
         if (code || signal) {
           reject(new Error(`Process failed code=${code}, signal=${signal}`));
-        }
-        else {
+        } else {
           resolve();
         }
       });
