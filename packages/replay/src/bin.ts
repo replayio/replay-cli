@@ -108,7 +108,7 @@ commandWithGlobalOptions("rm-all")
   .action(commandRemoveAllRecordings);
 
 commandWithGlobalOptions("update-browsers")
-  .description("Update browsers used in automation.")
+  .description("Update your installed Replay runtimes. Optional argument: Comma-separated list of replay runtimes. Possible values: chromium,firefox.\n  Node not yet supported.")
   .arguments("[<browsers...>]")
   .action(commandUpdateBrowsers);
 
@@ -303,13 +303,13 @@ function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory" |
 }
 
 async function commandUpdateBrowsers(
-  browsers: string[],
+  browsers: string,
   opts: Pick<CommandLineOptions, "directory" | "warn">
 ) {
   try {
     debug("Options", opts);
 
-    await updateBrowsers({ ...opts, browsers: browsers.map(fuzzyBrowserName), verbose: true });
+    await updateBrowsers({ ...opts, browsers: browsers?.split(",").map(fuzzyBrowserName), verbose: true });
     process.exit(0);
   } catch (e) {
     console.error("Failed to updated browsers");
