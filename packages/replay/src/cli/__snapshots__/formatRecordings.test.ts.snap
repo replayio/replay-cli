@@ -1,19 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`formatAllRecordingsHumanReadable formats one basic recording 1`] = `
-"ID  Status  Title  Created At
-1   onDisk         2020-01-01T00:00:00.000Z"
+"ID  Status  Title  Created
+1   onDisk         2 days ago"
 `;
 
 exports[`formatAllRecordingsHumanReadable sorts recording by createTime, most recent recording first 1`] = `
-"ID  Status  Title           Created At
-2   onDisk  Replay of test  2020-01-02T00:00:00.000Z
-1   onDisk  Replay of test  2020-01-01T00:00:00.000Z"
+"ID  Status  Title           Created
+2   onDisk  Replay of test  1 day ago
+1   onDisk  Replay of test  2 days ago"
 `;
 
 exports[`formatAllRecordingsHumanReadable uses the metadata title when it exists 1`] = `
-"ID  Status  Title             Created At
-1   onDisk  A Node Recording  2020-01-01T00:00:00.000Z"
+"ID  Status  Title             Created
+1   onDisk  A Node Recording  2 days ago"
 `;
 
 exports[`formatAllReordingsJson matches snapshot 1`] = `
