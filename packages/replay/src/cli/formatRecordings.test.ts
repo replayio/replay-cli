@@ -2,6 +2,15 @@ import { ExternalRecordingEntry } from "../types";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./formatRecordings";
 
 describe("formatAllRecordingsHumanReadable", () => {
+  let now = Date.now;
+  beforeEach(() => {
+    Date.now = jest.fn(() => new Date("2020-01-03").getTime());
+  });
+
+  afterEach(() => {
+    Date.now = now;
+  });
+
   it("formats one basic recording", () => {
     const recordings: ExternalRecordingEntry[] = [
       {
