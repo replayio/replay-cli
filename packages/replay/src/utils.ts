@@ -95,7 +95,7 @@ export async function exponentialBackoffRetry<T>(
 }
 
 function fuzzyBrowserName(browser?: string): BrowserName {
-  browser = browser?.toLowerCase();
+  browser = browser?.toLowerCase()?.trim();
 
   switch (browser) {
     case "chrome":
