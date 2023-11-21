@@ -270,13 +270,33 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     });
   });
 
-  // If a test fails in the beforeAll hook phase, Cypress will mark the first
-  // test as failed and the rest as unknown. For consistency, try to detect this
-  // first case and set it to unknown as well.
   tests.forEach(t => {
+    // If a test fails in the beforeAll hook phase, Cypress will mark the first
+    // test as failed and the rest as unknown. For consistency, try to detect this
+    // first case and set it to unknown as well.
     if (t.result === "failed" && t.events.main.length === 0) {
       if (!steps.some(s => s.event === "test:start" && isTestForStep(t, s))) {
         t.result = "unknown";
+      }
+    }
+
+    // Cypress doesn't always bubble up step errors to the test so if a test
+    // failed and it is missing an error, we find the last error and set that on
+    // the test
+    if (t.result === "failed" && t.error == null) {
+      const phases: (keyof Test["events"])[] = [
+        "afterAll",
+        "afterEach",
+        "main",
+        "beforeEach",
+        "beforeAll",
+      ];
+      for (const phase of phases) {
+        const stepWithError = t.events[phase].reverse().find(t => t.data.error);
+        if (stepWithError) {
+          t.error = stepWithError.data.error;
+          break;
+        }
       }
     }
   });
