@@ -6,14 +6,11 @@ import {
   object,
   optional,
   string,
-  define,
   nullable,
   Infer,
   assign,
-  omit,
   record,
 } from "superstruct";
-const isUuid = require("is-uuid");
 
 import { firstEnvValueOf } from "../env";
 
