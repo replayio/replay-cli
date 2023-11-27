@@ -88,7 +88,7 @@ const v2_0_0 = object({
   run: defaulted(
     object({
       id: defaulted(
-        define("uuid", (v: any) => isUuid.v4(v)),
+        string(),
         firstEnvValueOf(
           "REPLAY_METADATA_TEST_RUN_ID",
           "RECORD_REPLAY_METADATA_TEST_RUN_ID",

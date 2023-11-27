@@ -155,11 +155,11 @@ export class ReporterError extends Error {
 }
 
 class ReplayReporter {
-  baseId = uuid.validate(
-    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID || ""
-  )
-    ? process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID || process.env.RECORD_REPLAY_TEST_RUN_ID
-    : uuid.v4();
+  baseId =
+    process.env.REPLAY_METADATA_TEST_RUN_ID ||
+    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID ||
+    process.env.RECORD_REPLAY_TEST_RUN_ID ||
+    uuid.v4();
   testRunShardId: string | null = null;
   baseMetadata: Record<string, any> | null = null;
   schemaVersion: string;
