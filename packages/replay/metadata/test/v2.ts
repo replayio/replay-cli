@@ -6,14 +6,11 @@ import {
   object,
   optional,
   string,
-  define,
   nullable,
   Infer,
   assign,
-  omit,
   record,
 } from "superstruct";
-const isUuid = require("is-uuid");
 
 import { firstEnvValueOf } from "../env";
 
@@ -88,7 +85,7 @@ const v2_0_0 = object({
   run: defaulted(
     object({
       id: defaulted(
-        define("uuid", (v: any) => isUuid.v4(v)),
+        string(),
         firstEnvValueOf(
           "REPLAY_METADATA_TEST_RUN_ID",
           "RECORD_REPLAY_METADATA_TEST_RUN_ID",
