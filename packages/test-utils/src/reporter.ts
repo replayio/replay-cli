@@ -247,7 +247,11 @@ class ReplayReporter {
   parseConfig(config: ReplayReporterConfig = {}, metadataKey?: string) {
     // always favor environment variables over config so the config can be
     // overwritten at runtime
-    this.runTitle = process.env.RECORD_REPLAY_TEST_RUN_TITLE || config.runTitle;
+    this.runTitle =
+      process.env.REPLAY_METADATA_TEST_RUN_TITLE ||
+      process.env.RECORD_REPLAY_TEST_RUN_TITLE ||
+      process.env.RECORD_REPLAY_METADATA_TEST_RUN_TITLE ||
+      config.runTitle;
 
     this.apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY || config.apiKey;
     this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
