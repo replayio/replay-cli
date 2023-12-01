@@ -110,6 +110,10 @@ function addReplayLinkProperty(node: INode, replayUrls: string[]) {
   }
 }
 
+function escapeForXml(content: string) {
+  return content.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+}
+
 function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
   try {
     const failures = findDescendentsByTagName(node, "failure");
@@ -120,8 +124,11 @@ function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
         return;
       }
 
-      failure.children[0] +=
-        "\n\n View in Replay\n" + replayUrls.map(url => ` * ${url}`).join("\n");
+      const output = `${failure.children[0]}\n\nView in Replay\n${replayUrls
+        .map(url => ` * ${url}`)
+        .join("\n")}`;
+
+      failure.children[0] = escapeForXml(output);
     });
   } catch (e) {
     debug("Failed to add replay url to failure output: %s", e);
