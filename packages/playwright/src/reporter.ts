@@ -356,7 +356,8 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   parseArguments(apiName: string, params: any) {
-    if (!params) {
+    debug("Arguments: %s %o", apiName, params);
+    if (!params || typeof params !== "object") {
       return [];
     }
 
