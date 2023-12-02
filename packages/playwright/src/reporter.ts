@@ -362,6 +362,10 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   parseArguments(apiName: string, params: any) {
+    if (!params) {
+      return [];
+    }
+
     switch (apiName) {
       case "page.goto":
         return [params.url];
