@@ -18,6 +18,7 @@ import {
 import {
   BrowserName,
   FilterOptions,
+  LaunchOptions,
   MetadataOptions,
   Options,
   SourcemapUploadOptions,
@@ -73,6 +74,17 @@ commandWithGlobalOptions("launch [url]")
   )
   .allowUnknownOption()
   .action(commandLaunchBrowser);
+
+commandWithGlobalOptions("record [url]")
+  .description("Launch the replay browser and start recording")
+  .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .option(
+    "--attach <true|false>",
+    "Whether to attach to the browser process after launching",
+    false
+  )
+  .allowUnknownOption()
+  .action(commandLaunchBrowserAndRecord);
 
 commandWithGlobalOptions("process <id>")
   .description("Upload a recording to the remote server and process it.")
@@ -197,10 +209,7 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
 
 async function commandLaunchBrowser(
   url: string | undefined,
-  opts: Pick<CommandLineOptions, "warn" | "directory"> & {
-    browser: string | undefined;
-    attach: boolean | undefined;
-  }
+  opts: Pick<CommandLineOptions, "warn" | "directory"> & LaunchOptions
 ) {
   try {
     debug("Options", opts);
@@ -208,9 +217,27 @@ async function commandLaunchBrowser(
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
-    const attach = opts.attach || false;
+    await launchBrowser(browser, [url || "about:blank"], false, { ...opts, verbose: true });
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to launch browser");
+    debug("launchBrowser error %o", e);
 
-    await launchBrowser(browser, [url || "about:blank"], attach, { ...opts, verbose: true });
+    process.exit(opts.warn ? 0 : 1);
+  }
+}
+
+async function commandLaunchBrowserAndRecord(
+  url: string | undefined,
+  opts: Pick<CommandLineOptions, "warn" | "directory"> & LaunchOptions
+) {
+  try {
+    debug("Options", opts);
+
+    const browser = fuzzyBrowserName(opts.browser) || "chromium";
+    assertValidBrowserName(browser);
+
+    await launchBrowser(browser, [url || "about:blank"], true, { ...opts, verbose: true });
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");

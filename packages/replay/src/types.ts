@@ -50,6 +50,11 @@ export interface FilterOptions {
   includeCrashes?: boolean;
 }
 
+export interface LaunchOptions {
+  browser?: string;
+  attach?: boolean;
+}
+
 export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
