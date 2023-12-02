@@ -71,6 +71,12 @@ function getCircleCIMergeId(env: NodeJS.ProcessEnv) {
   }
 }
 
+function getBuildkiteMessage(env: NodeJS.ProcessEnv) {
+  if (env.BUILDKITE_SOURCE === "webhook") {
+    return env.BUILDKITE_MESSAGE;
+  }
+}
+
 let gGitHubEvent: Record<string, any> | null = null;
 function getGitHubMergeId(env: NodeJS.ProcessEnv) {
   const { GITHUB_EVENT_PATH } = env;
@@ -202,7 +208,7 @@ const versions: () => Record<number, Struct> = () => ({
         "CIRCLE_SHA1",
         "SEMAPHORE_GIT_SHA"
       ),
-      title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE")),
+      title: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE", getBuildkiteMessage)),
       url: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL")),
       user: optional(envString("RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER")),
     }),
