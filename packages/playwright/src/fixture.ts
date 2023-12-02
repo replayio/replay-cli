@@ -253,7 +253,11 @@ export async function replayFixture(
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
       currentStepId = getLastStepId(testInfo);
-      handlePlaywrightEvent("step:start", currentStepId, params, { apiName, params, stackTrace });
+      handlePlaywrightEvent("step:start", currentStepId, params, {
+        apiName,
+        params: params ?? {},
+        stackTrace,
+      });
     },
 
     onApiCallEnd: (userData, error) => {
