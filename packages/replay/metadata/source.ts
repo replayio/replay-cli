@@ -77,6 +77,10 @@ function getBuildkiteMessage(env: NodeJS.ProcessEnv) {
   }
 }
 
+function getBuildkiteRepository(env: NodeJS.ProcessEnv) {
+  return env.BUILDKITE_REPO?.match(/.*:(.*)\.git/)?.[1];
+}
+
 let gGitHubEvent: Record<string, any> | null = null;
 
 function readGithubEvent(env: NodeJS.ProcessEnv) {
@@ -202,6 +206,27 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
   }
 }
 
+function buildTestRunId(repository: string | undefined, runId: string | undefined) {
+  if (repository && runId) {
+    return `${repository}--${runId}`;
+  }
+}
+
+function getTestRunIdFromEnvironment(env: NodeJS.ProcessEnv) {
+  const userTestRunId =
+    process.env.REPLAY_METADATA_TEST_RUN_ID ||
+    process.env.RECORD_REPLAY_METADATA_TEST_RUN_ID ||
+    process.env.RECORD_REPLAY_TEST_RUN_ID;
+
+  let ciTestRunId =
+    buildTestRunId(process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID) ||
+    buildTestRunId(process.env.CIRCLE_PROJECT_REPONAME, process.env.CIRCLE_WORKFLOW_ID) ||
+    buildTestRunId(getBuildkiteRepository(process.env), process.env.BUILDKITE_BUILD_ID) ||
+    buildTestRunId(process.env.SEMAPHORE_GIT_REPO_SLUG, process.env.SEMAPHORE_WORKFLOW_ID);
+
+  return userTestRunId || ciTestRunId;
+}
+
 const versions: () => Record<number, Struct> = () => ({
   1: object({
     branch: optional(
@@ -241,8 +266,8 @@ const versions: () => Record<number, Struct> = () => ({
         envString(
           "RECORD_REPLAY_METADATA_SOURCE_TRIGGER_WORKFLOW",
           "GITHUB_RUN_ID",
-          "BUILDKITE_BUILD_NUMBER",
-          "CIRCLE_BUILD_NUM",
+          "BUILDKITE_BUILD_ID",
+          "CIRCLE_WORKFLOW_ID",
           "SEMAPHORE_WORKFLOW_ID"
         )
       ),
@@ -291,7 +316,7 @@ const versions: () => Record<number, Struct> = () => ({
       envString(
         "RECORD_REPLAY_METADATA_SOURCE_REPOSITORY",
         "GITHUB_REPOSITORY",
-        env => env.BUILDKITE_REPO?.match(/.*:(.*)\.git/)?.[1],
+        getBuildkiteRepository,
         getCircleCIRepository,
         "SEMAPHORE_GIT_REPO_SLUG"
       )
@@ -360,4 +385,4 @@ async function init(data: UnstructuredMetadata = {}) {
   }
 }
 
-export { validate, init };
+export { validate, init, getTestRunIdFromEnvironment };
