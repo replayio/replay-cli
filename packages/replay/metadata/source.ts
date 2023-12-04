@@ -78,7 +78,8 @@ function getBuildkiteMessage(env: NodeJS.ProcessEnv) {
 }
 
 let gGitHubEvent: Record<string, any> | null = null;
-function getGitHubMergeId(env: NodeJS.ProcessEnv) {
+
+function readGithubEvent(env: NodeJS.ProcessEnv) {
   const { GITHUB_EVENT_PATH } = env;
   if (!GITHUB_EVENT_PATH) {
     debug("No github event file specified.");
@@ -99,11 +100,23 @@ function getGitHubMergeId(env: NodeJS.ProcessEnv) {
       debug("Using previously read Github event file");
     }
 
-    if (gGitHubEvent?.pull_request?.number) {
-      return String(gGitHubEvent.pull_request.number);
-    }
+    return gGitHubEvent;
   } catch (e) {
     debug("Failed to read pull request number from event: %s", e);
+  }
+}
+
+function getGitHubMergeId(env: NodeJS.ProcessEnv) {
+  const event = readGithubEvent(env);
+  if (event?.pull_request?.number) {
+    return String(event.pull_request.number);
+  }
+}
+
+function getGitHubMergeSHA(env: NodeJS.ProcessEnv) {
+  const event = readGithubEvent(env);
+  if (event?.pull_request?.head?.sha) {
+    return event.pull_request.head.sha;
   }
 }
 
@@ -300,7 +313,10 @@ async function expandEnvironment() {
 
   try {
     if (GITHUB_SHA && GITHUB_REPOSITORY) {
-      await expandCommitMetadataFromGitHub(GITHUB_REPOSITORY, GITHUB_SHA);
+      await expandCommitMetadataFromGitHub(
+        GITHUB_REPOSITORY,
+        getGitHubMergeSHA(process.env) ?? GITHUB_SHA
+      );
       debug("Merge ID:", getGitHubMergeId(process.env));
       await expandMergeMetadataFromGitHub(GITHUB_REPOSITORY, getGitHubMergeId(process.env));
     } else if (CIRCLECI) {
