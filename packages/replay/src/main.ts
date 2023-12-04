@@ -831,13 +831,21 @@ async function launchBrowser(
     firefox: ["-foreground", ...args],
   };
 
+  const env = {
+    ...process.env,
+  };
+
+  if (record) {
+    env.RECORD_ALL_CONTENT = "1";
+  }
+
+  if (opts?.directory) {
+    env.RECORD_REPLAY_DIRECTORY = opts?.directory;
+  }
+
   const proc = spawn(execPath, browserArgs[browserName], {
     detached: !opts?.attach,
-    env: {
-      RECORD_ALL_CONTENT: record ? "1" : "",
-      ...process.env,
-      RECORD_REPLAY_DIRECTORY: opts?.directory,
-    },
+    env,
     stdio: "inherit",
   });
   if (!opts?.attach) {
