@@ -24,6 +24,7 @@ import {
   BrowserName,
   ExternalRecordingEntry,
   FilterOptions,
+  LaunchOptions,
   ListOptions,
   MetadataOptions,
   Options,
@@ -806,9 +807,10 @@ async function updateMetadata({
 async function launchBrowser(
   browserName: BrowserName,
   args: string[] = [],
-  attach: boolean = false,
-  opts?: Options
+  record: boolean = false,
+  opts?: Options & LaunchOptions
 ) {
+  debug("launchBrowser: %s %o %s %o", browserName, args, record, opts);
   const execPath = getExecutablePath(browserName, opts);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
@@ -831,16 +833,24 @@ async function launchBrowser(
     firefox: ["-foreground", ...args],
   };
 
+  const env = {
+    ...process.env,
+  };
+
+  if (record) {
+    env.RECORD_ALL_CONTENT = "1";
+  }
+
+  if (opts?.directory) {
+    env.RECORD_REPLAY_DIRECTORY = opts?.directory;
+  }
+
   const proc = spawn(execPath, browserArgs[browserName], {
-    detached: !attach,
-    env: {
-      ...process.env,
-      RECORD_ALL_CONTENT: "1",
-      RECORD_REPLAY_DIRECTORY: opts?.directory,
-    },
+    detached: !opts?.attach,
+    env,
     stdio: "inherit",
   });
-  if (!attach) {
+  if (!opts?.attach) {
     proc.unref();
   } else {
     // Wait for the browser process to finish.
