@@ -206,12 +206,8 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
   }
 }
 
-function buildTestRunId(
-  ciEnv: string | undefined,
-  repository: string | undefined,
-  runId: string | undefined
-) {
-  if (ciEnv) {
+function buildTestRunId(repository: string | undefined, runId: string | undefined) {
+  if (repository && runId) {
     return `${repository}--${runId}`;
   }
 }
@@ -223,22 +219,10 @@ function getTestRunIdFromEnvironment(env: NodeJS.ProcessEnv) {
     process.env.RECORD_REPLAY_TEST_RUN_ID;
 
   let ciTestRunId =
-    buildTestRunId(process.env.GITHUB, process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID) ||
-    buildTestRunId(
-      process.env.CIRCLECI,
-      process.env.CIRCLE_PROJECT_REPONAME,
-      process.env.CIRCLE_WORKFLOW_ID
-    ) ||
-    buildTestRunId(
-      process.env.BUILDKITE,
-      getBuildkiteRepository(process.env),
-      process.env.BUILDKITE_BUILD_ID
-    ) ||
-    buildTestRunId(
-      process.env.SEMAPHORE,
-      process.env.SEMAPHORE_GIT_REPO_SLUG,
-      process.env.SEMAPHORE_WORKFLOW_ID
-    );
+    buildTestRunId(process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID) ||
+    buildTestRunId(process.env.CIRCLE_PROJECT_REPONAME, process.env.CIRCLE_WORKFLOW_ID) ||
+    buildTestRunId(getBuildkiteRepository(process.env), process.env.BUILDKITE_BUILD_ID) ||
+    buildTestRunId(process.env.SEMAPHORE_GIT_REPO_SLUG, process.env.SEMAPHORE_WORKFLOW_ID);
 
   return userTestRunId || ciTestRunId;
 }
