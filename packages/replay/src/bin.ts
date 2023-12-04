@@ -14,6 +14,7 @@ import {
   updateBrowsers,
   updateMetadata,
   launchBrowser,
+  version,
 } from "./main";
 import {
   BrowserName,
@@ -146,6 +147,11 @@ commandWithGlobalOptions("login")
   .description("Log in interactively with your browser")
   .option("--directory <dir>", "Alternate recording directory.")
   .action(commandLogin);
+
+commandWithGlobalOptions("version")
+  .description("Returns the current version of the CLI")
+  .option("--json", "Output in JSON format")
+  .action(commandVersion);
 
 program.parseAsync().catch(err => {
   console.error(err);
@@ -390,6 +396,28 @@ async function commandLogin(opts: CommandLineOptions) {
   } catch (e) {
     console.error("Failed to login");
     debug("maybeAuthenticateUser error %o", e);
+
+    process.exit(opts.warn ? 0 : 1);
+  }
+}
+
+async function commandVersion(opts: CommandLineOptions) {
+  try {
+    const versionInfo = await version();
+
+    if (opts.json) {
+      console.log(JSON.stringify(versionInfo));
+    } else {
+      const { version, update, latest } = versionInfo;
+      console.log(`\n@replayio/replay version ${version}`);
+      if (update) {
+        console.log(`A newer version (${latest}) of the Replay CLI is available`);
+      }
+    }
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to get version information");
+    debug("commandVersion error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
   }
