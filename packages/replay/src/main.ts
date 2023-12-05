@@ -63,18 +63,40 @@ function getBuildRuntime(buildId: string) {
   return match ? match[1] : "unknown";
 }
 
+const RECORDING_LOG_KIND = [
+  "createRecording",
+  "addMetadata",
+  "writeStarted",
+  "sourcemapAdded",
+  "originalSourceAdded",
+  "writeFinished",
+  "uploadStarted",
+  "uploadFinished",
+  "recordingUnusable",
+  "crashed",
+  "crashData",
+  "crashUploaded",
+] as const;
+
+interface RecordingLogEntry {
+  [key: string]: any;
+  kind: typeof RECORDING_LOG_KIND[number];
+}
+
 function readRecordings(dir: string, includeHidden = false) {
   const recordings: RecordingEntry[] = [];
-  const lines = readRecordingFile(dir);
-  for (const line of lines) {
-    let obj;
-    try {
-      obj = JSON.parse(line);
-    } catch (e) {
-      // Ignore lines that aren't valid JSON.
-      continue;
-    }
+  const lines = readRecordingFile(dir)
+    .map(line => {
+      try {
+        return JSON.parse(line) as RecordingLogEntry;
+      } catch {
+        return null;
+      }
+    })
+    .filter((o): o is RecordingLogEntry => o != null)
+    .sort((a, b) => RECORDING_LOG_KIND.indexOf(a.kind) - RECORDING_LOG_KIND.indexOf(b.kind));
 
+  for (const obj of lines) {
     switch (obj.kind) {
       case "createRecording": {
         const { id, timestamp, buildId } = obj;
