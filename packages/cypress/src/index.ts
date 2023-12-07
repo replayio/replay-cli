@@ -334,9 +334,9 @@ const plugin = (
         channel: "stable",
         family: "chromium",
         displayName: "Replay",
-        version: "91.0",
+        version: "108.0",
         path: chromiumPath,
-        majorVersion: 91,
+        majorVersion: 108,
         isHeaded: true,
         isHeadless: false,
       });
