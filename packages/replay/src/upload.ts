@@ -5,6 +5,9 @@ import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
+import dbg from "debug";
+
+const debug = dbg("replay:cli:upload");
 
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
@@ -136,11 +139,16 @@ class ReplayClient {
 
   async uploadRecording(path: string, uploadLink: string, size: number) {
     const file = fs.createReadStream(path);
-    await fetch(uploadLink, {
+    const resp = await fetch(uploadLink, {
       method: "PUT",
       headers: { "Content-Length": size.toString() },
       body: file,
     });
+
+    if (resp.status !== 200) {
+      debug(await resp.text());
+      throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
+    }
   }
 
   async connectionEndRecordingUpload(recordingId: string) {
