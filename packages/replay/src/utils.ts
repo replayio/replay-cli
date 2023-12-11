@@ -80,7 +80,7 @@ export async function exponentialBackoffRetry<T>(
   while (currentAttempt <= MAX_ATTEMPTS) {
     currentAttempt++;
     try {
-      return fn();
+      return await fn();
     } catch (e) {
       if (onFail) {
         onFail(e);
