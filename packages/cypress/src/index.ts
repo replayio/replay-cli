@@ -165,7 +165,7 @@ function onBeforeSpec(spec: Cypress.Spec) {
 function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
   debugEvents("Handling after:spec %s", spec.relative);
   assertReporter(cypressReporter);
-  cypressReporter.onAfterSpec(spec, result);
+  return cypressReporter.onAfterSpec(spec, result);
 }
 
 function onReplayTask(value: any) {
