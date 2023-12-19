@@ -17,10 +17,10 @@ import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 
 type Test = TestMetadataV2.Test;
+export type PluginOptions = ReplayReporterConfig;
 
 const debug = dbg("replay:cypress:reporter");
-
-export type PluginOptions = ReplayReporterConfig;
+const MAX_WAIT = 20_000;
 
 function isStepEvent(value: unknown): value is StepEvent {
   if (
@@ -108,9 +108,26 @@ class CypressReporter {
     this.reporter.onTestBegin(undefined, getMetadataFilePath());
   }
 
-  onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
+  async waitForStableStepCount() {
+    let currentCount = this.getStepCount();
+    const startTime = Date.now();
+    while (Date.now() < startTime + MAX_WAIT) {
+      debug("Waiting for stable step count: %d", currentCount);
+      const previousCount = currentCount;
+      await new Promise(resolve => setTimeout(resolve, 250));
+      currentCount = this.getStepCount();
+
+      if (previousCount === currentCount) {
+        debug("Step count stable at %d after %s ms", Date.now() - startTime);
+        break;
+      }
+    }
+  }
+
+  async onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
     appendToFixtureFile("spec:end", { spec, result });
 
+    await this.waitForStableStepCount();
     const tests = this.getTestResults(spec, result);
 
     this.reporter.onTestEnd({
@@ -140,6 +157,10 @@ class CypressReporter {
   addStep(step: StepEvent) {
     appendToFixtureFile("task", step);
     this.steps.push(step);
+  }
+
+  getStepCount() {
+    return this.steps.length;
   }
 
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {

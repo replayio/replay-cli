@@ -7,7 +7,7 @@ import plugin, { getCypressReporter } from "../src/index";
 import { CONNECT_TASK_NAME } from "../src/constants";
 
 async function driver(
-  callback: (type: string, value: any) => void,
+  callback: (type: string, value: any) => Promise<void>,
   {
     file = path.resolve(__dirname, "./fixtures/fixture.log"),
     delay = 100,
@@ -23,7 +23,7 @@ async function driver(
     for await (const line of rl) {
       try {
         const json = JSON.parse(line);
-        callback(json.type, json.value);
+        await callback(json.type, json.value);
       } catch (e) {
         console.error("Error parsing JSON");
         console.error(e);
@@ -39,7 +39,7 @@ async function driver(
   }
 }
 
-type EmitterCallback = ((...args: any[]) => void) | Record<string, (value: any) => any>;
+type EmitterCallback = ((...args: any[]) => Promise<void>) | Record<string, (value: any) => any>;
 const events: Record<string, EmitterCallback[]> = {};
 const emitter = (name: string, cb: EmitterCallback) => {
   events[name] = events[name] || [];
@@ -63,7 +63,7 @@ if (typeof connector === "function") {
   });
 
   await driver(
-    (type, value) => {
+    async (type, value) => {
       let DateNow: any = undefined;
       switch (type) {
         case "spec:start":
@@ -79,10 +79,10 @@ if (typeof connector === "function") {
           });
           break;
         case "spec:end":
-          events["after:spec"]?.forEach(f => {
+          for (const f of events["after:spec"]) {
             if (typeof f !== "function") return;
-            f(value.spec, value.result);
-          });
+            await f(value.spec, value.result);
+          }
           break;
         case "task":
           ws.send(JSON.stringify({ events: [value] }));
