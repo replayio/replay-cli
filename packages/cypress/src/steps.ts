@@ -67,7 +67,7 @@ function getTestsFromResults(
 
   function getIdForTest(result: CypressCommandLine.TestResult) {
     const startEventIndex = startEvents.findIndex(
-      e => e.test.every((t, i) => result.title[i]) && e.test.length === result.title.length
+      e => e.test.every((t, i) => t === result.title[i]) && e.test.length === result.title.length
     );
     if (startEventIndex !== -1) {
       const startEvent = startEvents.splice(startEventIndex, 1)[0];
