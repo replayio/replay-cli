@@ -14,6 +14,7 @@ import {
   removeAnsiCodes,
   TestMetadataV2,
   getMetadataFilePath as getMetadataFilePathBase,
+  TestIdContext,
 } from "@replayio/test-utils";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
@@ -108,6 +109,13 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
+  getTestIdContext(test: TestCase, testResult: TestResult): TestIdContext {
+    return {
+      ...this.getSource(test),
+      attempt: testResult.retry + 1,
+    };
+  }
+
   onBegin(config: FullConfig) {
     const cfg = this.parseConfig(config);
     this.reporter = new ReplayReporter(
@@ -126,7 +134,10 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter?.onTestBegin(this.getSource(test), getMetadataFilePath(testResult.workerIndex));
+    this.reporter?.onTestBegin(
+      this.getTestIdContext(test, testResult),
+      getMetadataFilePath(testResult.workerIndex)
+    );
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -191,7 +202,7 @@ class ReplayPlaywrightReporter implements Reporter {
       tests: [
         {
           id: 0,
-          attempt: 1,
+          attempt: result.retry + 1,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
           source: this.getSource(test),
           result: (status as any) === "interrupted" ? "unknown" : status,

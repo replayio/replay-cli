@@ -6,6 +6,7 @@ import {
   removeAnsiCodes,
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
+  TestIdContext,
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
@@ -62,6 +63,14 @@ const ReplayRunner = async (
     };
   }
 
+  function getTestIdContext(test: Circus.TestEntry): TestIdContext {
+    const source = getSource(test);
+    return {
+      ...source,
+      attempt: test.invocations,
+    };
+  }
+
   function getWorkerIndex() {
     return +(process.env.JEST_WORKER_ID || 0);
   }
@@ -73,7 +82,7 @@ const ReplayRunner = async (
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getSource(test), getMetadataFilePath(getWorkerIndex()));
+    reporter.onTestBegin(getTestIdContext(test), getMetadataFilePath(getWorkerIndex()));
   }
 
   function getErrorMessage(errors: any[]) {
