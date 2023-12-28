@@ -13,6 +13,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 type HookKind = "beforeAll" | "beforeEach" | "afterEach" | "afterAll";
 
 export interface StepEvent {
+  index: number;
   event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end";
   test: string[];
   file: string;
@@ -44,6 +45,7 @@ let gLastTest: MochaTest | undefined;
 // it for retries
 let gLastOrder: number | undefined;
 
+let gStepId = 0;
 let gBuffering = true;
 let gEventBuffer: StepEvent[] = [];
 let gServerPort: number | undefined;
@@ -198,6 +200,7 @@ const makeEvent = (
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
+  index: gStepId++,
   event,
   file: Cypress.spec.relative,
   testId: testScope.testId,
@@ -214,7 +217,7 @@ const makeEvent = (
     : null),
 });
 
-function sendStepsToPlugin(events: StepEvent[]) {
+function sendStepToPlugin(event: StepEvent) {
   // If the connection to the server hasn't been initialized yet but we do have
   // a port returned from the plugin, initialize it. Once the socket is open,
   // send all buffered events and stop buffering so all future events are sent
@@ -231,9 +234,9 @@ function sendStepsToPlugin(events: StepEvent[]) {
     // Checking gBuffering should be sufficient since it isn't set to false
     // until the socket is open but for completeness (and to make TS happy) we
     // buffer when gPluginServer is unset too
-    gEventBuffer.push(...events);
+    gEventBuffer.push(event);
   } else {
-    gPluginServer.send(JSON.stringify({ events }));
+    gPluginServer.send(JSON.stringify({ events: [event] }));
   }
 }
 
@@ -247,7 +250,7 @@ const handleCypressEvent = (
   if (cmd?.args?.[0] === CONNECT_TASK_NAME) return;
 
   const stepEvent = makeEvent(testScope, event, category, cmd, error);
-  sendStepsToPlugin([stepEvent]);
+  sendStepToPlugin(stepEvent);
 };
 
 const idMap: Record<string, string> = {};
