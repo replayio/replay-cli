@@ -62,16 +62,19 @@ function handleReplayConnectResponse(v: unknown) {
   }
 }
 
+function isReplayConnectCallbackCommand(cmd: Cypress.EnqueuedCommand) {
+  return (
+    cmd.name === "then" && Array.isArray(cmd.args) && cmd.args[0] === handleReplayConnectResponse
+  );
+}
+
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
     cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
   }
 
-  if (
-    cmd.name === "then" &&
-    Array.isArray(cmd.args) &&
-    cmd.args[0] === handleReplayConnectResponse
-  ) {
+  if (isReplayConnectCallbackCommand(cmd)) {
+    // We don't want to track the `then` callback from our replay-connect task
     return true;
   }
 
