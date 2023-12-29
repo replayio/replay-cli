@@ -11,6 +11,7 @@ const uuid = require("uuid");
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { log, warn } from "./logging";
+import { buildTestId, generateOpaqueId } from "./testId";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -565,16 +566,6 @@ class ReplayReporter {
     );
   }
 
-  buildTestId(sourcePath: string, test: Test) {
-    return this.generateOpaqueId(
-      [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
-    );
-  }
-
-  generateOpaqueId(contents: string) {
-    return createHash("sha1").update(contents).digest("hex");
-  }
-
   async uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
     debug("Starting upload of %s", recording.id);
 
@@ -702,31 +693,31 @@ class ReplayReporter {
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ): Promise<PendingWork> {
-    const runnerGroupId = runnerGroupKey ? this.generateOpaqueId(runnerGroupKey) : null;
+    const runnerGroupId = runnerGroupKey ? await generateOpaqueId(runnerGroupKey) : null;
     const recordings = this.getRecordingsForTest(tests, false);
 
     if (this.testRunShardId) {
       const recordingIds = recordings.map(r => r.id);
-      this.pendingWork.push(
-        this.addTestsToShard(
-          tests.map<TestRunTestInputModel>(t => {
-            const testId = this.buildTestId(specFile, t);
-            return {
-              testId,
-              runnerGroupId: runnerGroupId,
-              index: t.id,
-              attempt: t.attempt,
-              scope: t.source.scope,
-              title: t.source.title,
-              sourcePath: specFile,
-              result: t.result,
-              error: t.error ? t.error.message : null,
-              duration: t.approximateDuration,
-              recordingIds,
-            };
-          })
-        )
+      const testInputs = await Promise.all(
+        tests.map<Promise<TestRunTestInputModel>>(async t => {
+          const testId = await buildTestId(specFile, t);
+          return {
+            testId,
+            runnerGroupId: runnerGroupId,
+            index: t.id,
+            attempt: t.attempt,
+            scope: t.source.scope,
+            title: t.source.title,
+            sourcePath: specFile,
+            result: t.result,
+            error: t.error ? t.error.message : null,
+            duration: t.approximateDuration,
+            recordingIds,
+          };
+        })
       );
+
+      this.pendingWork.push(this.addTestsToShard(testInputs));
     } else {
       debug("Skipping adding tests to test run: test run shard ID not found");
     }
