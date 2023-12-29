@@ -54,9 +54,28 @@ let gPluginServer: WebSocket | undefined;
 // user-facing
 const COMMAND_IGNORE_LIST = ["log-restore", "within-restore", "end-logGroup"];
 
+function handleReplayConnectResponse(v: unknown) {
+  if (v && typeof v === "object" && "port" in v && typeof v.port === "number") {
+    gServerPort = v.port;
+  } else {
+    cy.log("[replay.io] Received unexpected response when connecting to plugin");
+  }
+}
+
+function isReplayConnectCallbackCommand(cmd: Cypress.EnqueuedCommand) {
+  return (
+    cmd.name === "then" && Array.isArray(cmd.args) && cmd.args[0] === handleReplayConnectResponse
+  );
+}
+
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
     cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+  }
+
+  if (isReplayConnectCallbackCommand(cmd)) {
+    // We don't want to track the `then` callback from our replay-connect task
+    return true;
   }
 
   return COMMAND_IGNORE_LIST.includes(cmd.name);
@@ -618,13 +637,7 @@ export default function register() {
 
   before(() => {
     if (gServerPort == null) {
-      cy.task(CONNECT_TASK_NAME, null, { log: false }).then(v => {
-        if (v && typeof v === "object" && "port" in v && typeof v.port === "number") {
-          gServerPort = v.port;
-        } else {
-          cy.log("[replay.io] Received unexpected response when connecting to plugin");
-        }
-      });
+      cy.task(CONNECT_TASK_NAME, null, { log: false }).then(handleReplayConnectResponse);
     }
   });
   beforeEach(() => {
