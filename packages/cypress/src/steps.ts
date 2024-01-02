@@ -61,9 +61,7 @@ function getTestsFromResults(
   resultTests: CypressCommandLine.TestResult[],
   testStartSteps: StepEvent[]
 ) {
-  const startEvents = [...testStartSteps].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+  const startEvents = sortSteps(testStartSteps);
 
   function getIdForTest(result: CypressCommandLine.TestResult) {
     const startEventIndex = startEvents.findIndex(
@@ -118,16 +116,7 @@ function getTestsFromResults(
 
 function sortSteps(steps: StepEvent[]) {
   // The steps can come in out of order but are sortable by timestamp
-  const sortedSteps = [...steps].sort((a, b) => {
-    const tsCompare = a.timestamp.localeCompare(b.timestamp);
-    if (tsCompare === 0) {
-      return toEventOrder(a) - toEventOrder(b);
-    }
-
-    return tsCompare;
-  });
-
-  return sortedSteps;
+  return [...steps].sort((a, b) => a.index - b.index);
 }
 
 function isTestForStep(test: Test, step: StepEvent) {
