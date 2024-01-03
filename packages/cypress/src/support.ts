@@ -38,18 +38,22 @@ interface CypressTestScope {
   test: string[];
   testId: number | null;
   attempt: number;
-  v2:
-    | {
-        scope: string[];
-        title: string;
-        attempt: number;
-        index: number;
-        testId: string;
-      }
-    | {
-        scope: string[];
-        hook: string;
-      };
+  v2: CypressMainTestScope | CypressHookTestScope;
+}
+
+interface CypressMainTestScope {
+  scope: string[];
+  title: string;
+  attempt: number;
+  index: number;
+  testId: string;
+}
+
+// beforeAll/afterAll hooks are not associated with a particular test nor
+// attempt so this interface omits those members
+interface CypressHookTestScope {
+  scope: string[];
+  hook: string;
 }
 
 let gLastTest: MochaTest | undefined;
@@ -523,7 +527,7 @@ export default function register() {
       console.error(e);
     }
   });
-  Cypress.on("log:added", async log => {
+  Cypress.on("log:added", log => {
     const assertionCurrentTest = currentTestScope;
 
     if (!assertionCurrentTest) {

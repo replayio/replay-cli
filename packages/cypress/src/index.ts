@@ -12,7 +12,7 @@ import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from
 import run from "./run";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
-import { StepEvent } from "./support";
+import type { StepEvent } from "./support";
 import { createServer } from "./server";
 
 export type { PluginOptions } from "./reporter";
