@@ -29,6 +29,12 @@ interface TestRunTestInputModel {
   recordingIds: string[];
 }
 
+export interface TestIdContext {
+  title: string;
+  scope: string[];
+  attempt: number;
+}
+
 export interface ReplayReporterConfig {
   runTitle?: string;
   metadata?: Record<string, any> | string;
@@ -233,12 +239,12 @@ class ReplayReporter {
     return { approximateDuration, resultCounts };
   }
 
-  getTestId(source?: Test["source"]) {
+  getTestId(source?: TestIdContext) {
     if (!source) {
       return this.baseId;
     }
 
-    return `${this.baseId}-${[...source.scope, source.title].join("-")}`;
+    return `${this.baseId}-${[...source.scope, source.title].join("-")}-${source.attempt}`;
   }
 
   parseConfig(config: ReplayReporterConfig = {}, metadataKey?: string) {
@@ -517,10 +523,13 @@ class ReplayReporter {
     }
   }
 
-  onTestBegin(source?: Test["source"], metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
-    debug("onTestBegin: %o", source);
+  onTestBegin(
+    testIdContext?: TestIdContext,
+    metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)
+  ) {
+    debug("onTestBegin: %o", testIdContext);
 
-    const id = this.getTestId(source);
+    const id = this.getTestId(testIdContext);
     this.errors = [];
     const metadata = {
       ...(this.baseMetadata || {}),
@@ -600,7 +609,12 @@ class ReplayReporter {
 
   getRecordingsForTest(tests: Test[], includeUploaded: boolean) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
-      ...tests.map(test => this.getTestId(test.source)),
+      ...tests.map(test =>
+        this.getTestId({
+          ...test.source,
+          attempt: test.attempt,
+        })
+      ),
       this.getTestId(),
     ])} and $not($exists($v.metadata.test)) }`;
 

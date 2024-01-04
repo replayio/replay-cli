@@ -14,6 +14,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 type HookKind = "beforeAll" | "beforeEach" | "afterEach" | "afterAll";
 
 export interface StepEvent {
+  index: number;
   event: "step:enqueue" | "step:start" | "step:end" | "test:start" | "test:end";
   test: string[];
   file: string;
@@ -61,6 +62,7 @@ let gLastTest: MochaTest | undefined;
 // it for retries
 let gLastOrder: number | undefined;
 
+let gStepId = 0;
 let gBuffering = true;
 let gEventBuffer: StepEvent[] = [];
 let gServerPort: number | undefined;
@@ -71,9 +73,28 @@ let gPluginServer: WebSocket | undefined;
 // user-facing
 const COMMAND_IGNORE_LIST = ["log-restore", "within-restore", "end-logGroup"];
 
+function handleReplayConnectResponse(v: unknown) {
+  if (v && typeof v === "object" && "port" in v && typeof v.port === "number") {
+    gServerPort = v.port;
+  } else {
+    cy.log("[replay.io] Received unexpected response when connecting to plugin");
+  }
+}
+
+function isReplayConnectCallbackCommand(cmd: Cypress.EnqueuedCommand) {
+  return (
+    cmd.name === "then" && Array.isArray(cmd.args) && cmd.args[0] === handleReplayConnectResponse
+  );
+}
+
 function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
     cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+  }
+
+  if (isReplayConnectCallbackCommand(cmd)) {
+    // We don't want to track the `then` callback from our replay-connect task
+    return true;
   }
 
   return COMMAND_IGNORE_LIST.includes(cmd.name);
@@ -238,6 +259,7 @@ const makeEvent = (
   cmd?: CommandLike,
   error?: TestError
 ): StepEvent => ({
+  index: gStepId++,
   event,
   file: Cypress.spec.relative,
   testId: testScope.testId,
@@ -254,7 +276,7 @@ const makeEvent = (
     : null),
 });
 
-function sendStepsToPlugin(events: StepEvent[]) {
+function sendStepToPlugin(event: StepEvent) {
   // If the connection to the server hasn't been initialized yet but we do have
   // a port returned from the plugin, initialize it. Once the socket is open,
   // send all buffered events and stop buffering so all future events are sent
@@ -271,9 +293,9 @@ function sendStepsToPlugin(events: StepEvent[]) {
     // Checking gBuffering should be sufficient since it isn't set to false
     // until the socket is open but for completeness (and to make TS happy) we
     // buffer when gPluginServer is unset too
-    gEventBuffer.push(...events);
+    gEventBuffer.push(event);
   } else {
-    gPluginServer.send(JSON.stringify({ events }));
+    gPluginServer.send(JSON.stringify({ events: [event] }));
   }
 }
 
@@ -287,7 +309,7 @@ const handleCypressEvent = (
   if (cmd?.args?.[0] === CONNECT_TASK_NAME) return;
 
   const stepEvent = makeEvent(testScope, event, category, cmd, error);
-  sendStepsToPlugin([stepEvent]);
+  sendStepToPlugin(stepEvent);
 };
 
 const idMap: Record<string, string> = {};
@@ -665,13 +687,7 @@ export default function register() {
 
   before(() => {
     if (gServerPort == null) {
-      cy.task(CONNECT_TASK_NAME, null, { log: false }).then(v => {
-        if (v && typeof v === "object" && "port" in v && typeof v.port === "number") {
-          gServerPort = v.port;
-        } else {
-          cy.log("[replay.io] Received unexpected response when connecting to plugin");
-        }
-      });
+      cy.task(CONNECT_TASK_NAME, null, { log: false }).then(handleReplayConnectResponse);
     }
   });
   beforeEach(async () => {
