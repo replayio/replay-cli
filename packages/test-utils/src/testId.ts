@@ -1,10 +1,14 @@
 import type { Test } from "./reporter";
 
-export function buildTestId(
+export async function buildTestId(
   sourcePath: string,
   test: Pick<Test, "id" | "source">
-): Promise<string> {
-  return generateOpaqueId([sourcePath, test.id, ...test.source.scope, test.source.title].join("-"));
+): Promise<string | null> {
+  const id = await generateOpaqueId(
+    [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
+  );
+
+  return id;
 }
 
 export async function generateOpaqueId(contents: string): Promise<string> {
