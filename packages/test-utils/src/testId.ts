@@ -3,7 +3,7 @@ import type { Test } from "./reporter";
 export async function buildTestId(
   sourcePath: string,
   test: Pick<Test, "id" | "source">
-): Promise<string | null> {
+): Promise<string> {
   const id = await generateOpaqueId(
     [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
   );
