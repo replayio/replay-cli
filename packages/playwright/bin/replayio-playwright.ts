@@ -32,7 +32,7 @@ Provides utilities to support using Replay (https://replay.io) with Playwright
 
 Available commands:
 
-  - install [all | firefox | chromium]
+  - install [all | chromium]
     Installs all or the specified Replay browser
   `);
 }

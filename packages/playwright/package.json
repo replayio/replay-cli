@@ -20,7 +20,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@playwright/test": "1.19.x",
+    "@playwright/test": "^1.40.1",
     "@types/debug": "^4.1.8",
     "@types/node": "^18.16.1",
     "@types/uuid": "^8.3.4",
@@ -45,7 +45,7 @@
     "ws": "^8.13.0"
   },
   "peerDependencies": {
-    "@playwright/test": "1.19.x"
+    "@playwright/test": "1.x"
   },
   "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40"
 }
