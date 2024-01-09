@@ -18,10 +18,7 @@ function getDeviceConfig(browserName: BrowserName) {
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
     env.RECORD_ALL_CONTENT = "";
-    if (browserName === "chromium") {
-      // Setting an invalid path for chromium will disable recording
-      env.RECORD_REPLAY_DRIVER = __filename;
-    }
+    env.RECORD_REPLAY_DRIVER = __filename;
   }
 
   // When TEST_WORKER_INDEX is set, this is being run in the context of a
@@ -55,9 +52,6 @@ export function getExecutablePath(browserName: BrowserName) {
 }
 
 export const devices = {
-  get "Replay Firefox"() {
-    return getDeviceConfig("firefox");
-  },
   get "Replay Chromium"() {
     return getDeviceConfig("chromium");
   },
