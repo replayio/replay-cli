@@ -26,7 +26,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "1.19.x",
+    "@playwright/test": "^1.40.1",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.8",
     "@types/node": "^20.11.27",
@@ -52,6 +52,6 @@
     "ws": "^8.13.0"
   },
   "peerDependencies": {
-    "@playwright/test": "1.19.x"
+    "@playwright/test": "1.x"
   }
 }
