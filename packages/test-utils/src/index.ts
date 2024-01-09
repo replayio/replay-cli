@@ -6,6 +6,7 @@ export type {
   ReplayReporterConfig,
   TestIdContext,
 } from "./reporter";
+export { buildTestId } from "./testId";
 export { ReporterError } from "./reporter";
 export { pingTestMetrics } from "./metrics";
 export { removeAnsiCodes } from "./terminal";

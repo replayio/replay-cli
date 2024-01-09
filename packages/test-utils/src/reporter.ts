@@ -11,6 +11,7 @@ const uuid = require("uuid");
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { log, warn } from "./logging";
+import { buildTestId, generateOpaqueId } from "./testId";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -574,16 +575,6 @@ class ReplayReporter {
     );
   }
 
-  buildTestId(sourcePath: string, test: Test) {
-    return this.generateOpaqueId(
-      [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
-    );
-  }
-
-  generateOpaqueId(contents: string) {
-    return createHash("sha1").update(contents).digest("hex");
-  }
-
   async uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
     debug("Starting upload of %s", recording.id);
 
@@ -716,15 +707,19 @@ class ReplayReporter {
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ): Promise<PendingWork> {
-    const runnerGroupId = runnerGroupKey ? this.generateOpaqueId(runnerGroupKey) : null;
-    const recordings = this.getRecordingsForTest(tests, false);
+    try {
+      const runnerGroupId = runnerGroupKey ? await generateOpaqueId(runnerGroupKey) : null;
+      const recordings = this.getRecordingsForTest(tests, false);
 
-    if (this.testRunShardId) {
-      const recordingIds = recordings.map(r => r.id);
-      this.pendingWork.push(
-        this.addTestsToShard(
-          tests.map<TestRunTestInputModel>(t => {
-            const testId = this.buildTestId(specFile, t);
+      if (this.testRunShardId) {
+        const recordingIds = recordings.map(r => r.id);
+        const testInputs = await Promise.all(
+          tests.map<Promise<TestRunTestInputModel>>(async t => {
+            const testId = await buildTestId(specFile, t);
+            if (!testId) {
+              throw new Error("Failed to generate test id for test");
+            }
+
             return {
               testId,
               runnerGroupId: runnerGroupId,
@@ -739,16 +734,16 @@ class ReplayReporter {
               recordingIds,
             };
           })
-        )
-      );
-    } else {
-      debug("Skipping adding tests to test run: test run shard ID not found");
-    }
+        );
 
-    const testRun = this.buildTestMetadata(tests, specFile);
+        this.pendingWork.push(this.addTestsToShard(testInputs));
+      } else {
+        debug("Skipping adding tests to test run: test run shard ID not found");
+      }
 
-    if (recordings.length > 0) {
-      try {
+      const testRun = this.buildTestMetadata(tests, specFile);
+
+      if (recordings.length > 0) {
         const recordingsWithMetadata = await this.setRecordingMetadata(
           recordings,
           testRun,
@@ -763,36 +758,36 @@ class ReplayReporter {
               .map(r => this.uploadRecording(r))
           );
         }
-      } catch (e) {
-        debug("post-test error: %s", e);
-        return {
-          type: "post-test",
-          error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
-        };
       }
+
+      const firstRecording: RecordingEntry | undefined = recordings[0];
+      pingTestMetrics(
+        firstRecording?.id,
+        this.baseId,
+        {
+          id: testRun.source.path + "#" + testRun.source.title,
+          source: testRun.source,
+          approximateDuration: testRun.approximateDuration,
+          recorded: true,
+          runtime: parseRuntime(firstRecording?.runtime),
+          runner: this.runner.name,
+          result: testRun.result,
+        },
+        this.apiKey
+      );
+
+      return {
+        type: "post-test",
+        recordings,
+        testRun,
+      };
+    } catch (e) {
+      debug("post-test error: %s", e);
+      return {
+        type: "post-test",
+        error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
+      };
     }
-
-    const firstRecording: RecordingEntry | undefined = recordings[0];
-    pingTestMetrics(
-      firstRecording?.id,
-      this.baseId,
-      {
-        id: testRun.source.path + "#" + testRun.source.title,
-        source: testRun.source,
-        approximateDuration: testRun.approximateDuration,
-        recorded: true,
-        runtime: parseRuntime(firstRecording?.runtime),
-        runner: this.runner.name,
-        result: testRun.result,
-      },
-      this.apiKey
-    );
-
-    return {
-      type: "post-test",
-      recordings,
-      testRun,
-    };
   }
 
   async onEnd(): Promise<PendingWork[]> {

@@ -1,3 +1,4 @@
+import { buildTestId } from "@replayio/test-utils/src/testId";
 import type { TestMetadataV2 } from "@replayio/test-utils";
 import { CONNECT_TASK_NAME } from "./constants";
 
@@ -38,6 +39,22 @@ interface CypressTestScope {
   test: string[];
   testId: number | null;
   attempt: number;
+  v2: CypressMainTestScope | CypressHookTestScope;
+}
+
+interface CypressMainTestScope {
+  scope: string[];
+  title: string;
+  attempt: number;
+  index: number;
+  testId: string;
+}
+
+// beforeAll/afterAll hooks are not associated with a particular test nor
+// attempt so this interface omits those members
+interface CypressHookTestScope {
+  scope: string[];
+  hook: string;
 }
 
 let gLastTest: MochaTest | undefined;
@@ -165,7 +182,7 @@ function simplifyCommand(cmd?: CommandLike) {
   };
 }
 
-function getCurrentTestScope(): CypressTestScope {
+async function getCurrentTestScope(): Promise<CypressTestScope> {
   const mochaTest = (cy as any).state("test");
   const mochaOrder = mochaTest?.order;
   let order = 0;
@@ -184,32 +201,55 @@ function getCurrentTestScope(): CypressTestScope {
       test,
       attempt: 1,
       testId: null,
+      v2: {
+        hook,
+        scope: test,
+      },
     };
   }
+
+  let titlePath: string[] = [];
+  let title: string;
 
   if (Cypress.currentTest) {
-    return {
-      test: Cypress.currentTest.titlePath,
+    title = Cypress.currentTest.title;
+    titlePath = Cypress.currentTest.titlePath;
+  } else {
+    // Cypress < 8 logic
+    const mochaRunner = (Cypress as any).mocha?.getRunner();
+
+    if (!mochaRunner) {
+      throw new Error(`Cypress version ${Cypress.version || "(unknown)"} is not supported`);
+    }
+
+    let currentTest: MochaTest = (gLastTest = mochaRunner.test || gLastTest);
+    title = currentTest.title;
+    while (currentTest?.title) {
+      titlePath.unshift(currentTest.title);
+      currentTest = currentTest.parent;
+    }
+  }
+
+  const partialTest = {
+    id: order,
+    source: {
+      title: title,
+      scope: titlePath.slice(0, -1),
+    },
+  };
+
+  return {
+    test: titlePath,
+    testId: order,
+    attempt,
+    v2: {
+      title: partialTest.source.title,
+      scope: partialTest.source.scope,
       attempt,
-      testId: order,
-    };
-  }
-
-  // Cypress < 8 logic
-  const mochaRunner = (Cypress as any).mocha?.getRunner();
-
-  if (!mochaRunner) {
-    throw new Error(`Cypress version ${Cypress.version || "(unknown)"} is not supported`);
-  }
-
-  let currentTest: MochaTest = (gLastTest = mochaRunner.test || gLastTest);
-  const titlePath = [];
-  while (currentTest?.title) {
-    titlePath.unshift(currentTest.title);
-    currentTest = currentTest.parent;
-  }
-
-  return { test: titlePath, testId: order, attempt };
+      testId: await buildTestId(Cypress.spec.relative, partialTest),
+      index: order,
+    },
+  };
 }
 
 const makeEvent = (
@@ -395,9 +435,11 @@ export default function register() {
         return;
       }
 
-      // in cypress open, beforeEach isn't called so fetch the current test here
-      // as a fallback
-      currentTestScope = getCurrentTestScope();
+      // in cypress open, beforeEach isn't called so we may not have a current
+      // test scope
+      if (!currentTestScope) {
+        return;
+      }
 
       // Sometimes, cmd is an instance of Cypress.CommandQueue but we can loosely
       // covert it using its toJSON method (which is typed wrong so we have to
@@ -508,7 +550,12 @@ export default function register() {
     }
   });
   Cypress.on("log:added", log => {
-    const assertionCurrentTest = currentTestScope || getCurrentTestScope();
+    const assertionCurrentTest = currentTestScope;
+
+    if (!assertionCurrentTest) {
+      return;
+    }
+
     try {
       if (log.name === "new url") {
         addAnnotation(assertionCurrentTest, "event:navigation", {
@@ -643,9 +690,9 @@ export default function register() {
       cy.task(CONNECT_TASK_NAME, null, { log: false }).then(handleReplayConnectResponse);
     }
   });
-  beforeEach(() => {
+  beforeEach(async () => {
     try {
-      currentTestScope = getCurrentTestScope();
+      currentTestScope = await getCurrentTestScope();
       if (currentTestScope) {
         handleCypressEvent(currentTestScope, "test:start");
         addAnnotation(currentTestScope, "test:start");
