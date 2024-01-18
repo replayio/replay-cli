@@ -168,11 +168,11 @@ class RecordingUploadError extends Error {
 
   constructor(message?: string, interiorError?: any) {
     super(message);
-    this.name = 'RecordingUploadError';
+    this.name = "RecordingUploadError";
     this.interiorError = interiorError;
     Object.setPrototypeOf(this, new.target.prototype); // Restore error prototype chain.
   }
-} 
+}
 
 function handleUploadingError(err: string, strict: boolean, interiorError?: any) {
   debug(err);
@@ -194,7 +194,7 @@ async function doUploadRecording(
   apiKey?: string,
   agent?: any,
   removeAssets: boolean = false,
-  strict: boolean = false,
+  strict: boolean = false
 ) {
   debug("Uploading %s from %s to %s", recording.id, dir, server);
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
@@ -299,7 +299,11 @@ async function doUploadRecording(
           { concurrency: 5, stopOnError: false }
         );
       } catch (e) {
-        handleUploadingError(`Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`, strict, e);
+        handleUploadingError(
+          `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
+          strict,
+          e
+        );
       }
     },
     { concurrency: 10, stopOnError: false }
@@ -329,7 +333,16 @@ async function uploadRecording(id: string, opts: Options = {}) {
     return null;
   }
 
-  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent, true, opts.strict);
+  return doUploadRecording(
+    dir,
+    server,
+    recording,
+    opts.verbose,
+    opts.apiKey,
+    opts.agent,
+    true,
+    opts.strict
+  );
 }
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
