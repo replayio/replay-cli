@@ -1,7 +1,7 @@
-import { createHash } from "crypto";
 import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
 import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
 import { query } from "@replayio/replay/src/graphql";
+import { exponentialBackoffRetry } from "@replayio/replay/src/utils";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
@@ -136,6 +136,11 @@ function sortRecordingsByResult(recordings: RecordingEntry[]) {
 
 function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
+}
+
+function throwGraphqlErrors(operation: string; errors: any) {
+  errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
+  throw new Error(`GraphQL Errors: ${errors.map(getErrorMessage).join(", ")}`);
 }
 
 export class ReporterError extends Error {
@@ -365,42 +370,40 @@ class ReplayReporter {
     debug("Creating test run shard for user-key %s", this.baseId);
 
     try {
-      const resp = await query(
-        "CreateTestRunShard",
-        `
-        mutation CreateTestRunShard($clientKey: String!, $testRun: TestRunShardInput!) {
-          startTestRunShard(input: {
-            clientKey: $clientKey,
-            testRun: $testRun
-          }) {
-            success
-            testRunShardId
+      await exponentialBackoffRetry(async () => {
+        const resp = await query(
+          "CreateTestRunShard",
+          `
+          mutation CreateTestRunShard($clientKey: String!, $testRun: TestRunShardInput!) {
+            startTestRunShard(input: {
+              clientKey: $clientKey,
+              testRun: $testRun
+            }) {
+              success
+              testRunShardId
+            }
           }
+        `,
+          {
+            clientKey: this.baseId,
+            testRun,
+          },
+          this.apiKey
+        );
+
+        if (resp.errors) {
+          throwGraphqlErrors("CreateTestRunShard", resp.errors);
         }
-      `,
-        {
-          clientKey: this.baseId,
-          testRun,
-        },
-        this.apiKey
-      );
 
-      if (resp.errors) {
-        resp.errors.forEach((e: any) => debug("GraphQL error start test shard: %o", e));
-        return {
-          type: "test-run",
-          error: new Error("Failed to start a new test run"),
-        };
-      }
+        this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
 
-      this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
-
-      if (!this.testRunShardId) {
-        return {
-          type: "test-run",
-          error: new Error("Unexpected error retrieving test run shard id"),
-        };
-      }
+        if (!this.testRunShardId) {
+          return {
+            type: "test-run",
+            error: new Error("Unexpected error retrieving test run shard id"),
+          };
+        }
+      });
 
       debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
 
@@ -429,33 +432,30 @@ class ReplayReporter {
     debug("Adding %d tests to shard %s", tests.length, this.testRunShardId);
 
     try {
-      const resp = await query(
-        "AddTestsToShard",
-        `
-        mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
-          addTestsToShard(input: {
-            testRunShardId: $testRunShardId,
-            tests: $tests
-          }) {
-            success
+      await exponentialBackoffRetry(async () => {
+        const resp = await query(
+          "AddTestsToShard",
+          `
+          mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
+            addTestsToShard(input: {
+              testRunShardId: $testRunShardId,
+              tests: $tests
+            }) {
+              success
+            }
           }
+        `,
+          {
+            testRunShardId: this.testRunShardId,
+            tests,
+          },
+          this.apiKey
+        );
+
+        if (resp.errors) {
+          throwGraphqlErrors("AddTestsToShard", resp.errors);
         }
-      `,
-        {
-          testRunShardId: this.testRunShardId,
-          tests,
-        },
-        this.apiKey
-      );
-
-      if (resp.errors) {
-        resp.errors.forEach((e: any) => debug("GraphQL error adding tests to shard: %o", e));
-
-        return {
-          type: "test-run-tests",
-          error: new Error("Unexpected error adding tests to run"),
-        };
-      }
+      });
 
       debug("Successfully added tests to shard %s", this.testRunShardId);
 
@@ -482,9 +482,10 @@ class ReplayReporter {
     debug("Marking test run shard %s complete", this.testRunShardId);
 
     try {
-      const resp = await query(
-        "CompleteTestRunShard",
-        `
+      await exponentialBackoffRetry(async () => {
+        const resp = await query(
+          "CompleteTestRunShard",
+          `
         mutation CompleteTestRunShard($testRunShardId: String!) {
           completeTestRunShard(input: {
             testRunShardId: $testRunShardId
@@ -493,19 +494,16 @@ class ReplayReporter {
           }
         }
       `,
-        {
-          testRunShardId: this.testRunShardId,
-        },
-        this.apiKey
-      );
+          {
+            testRunShardId: this.testRunShardId,
+          },
+          this.apiKey
+        );
 
-      if (resp.errors) {
-        resp.errors.forEach((e: any) => debug("GraphQL error completing test shard: %o", e));
-        return {
-          type: "test-run",
-          error: new Error("Unexpected error completing test run shard"),
-        };
-      }
+        if (resp.errors) {
+          throwGraphqlErrors("CompleteTestRunShard", resp.errors);
+        }
+      });
 
       debug("Successfully marked test run shard %s complete", this.testRunShardId);
 
