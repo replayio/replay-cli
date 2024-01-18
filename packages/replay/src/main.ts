@@ -163,6 +163,29 @@ async function doUploadCrash(
   client.closeConnection();
 }
 
+class RecordingUploadError extends Error {
+  interiorError?: any;
+
+  constructor(message?: string, interiorError?: any) {
+    super(message);
+    this.name = 'RecordingUploadError';
+    this.interiorError = interiorError;
+    Object.setPrototypeOf(this, new.target.prototype); // Restore error prototype chain.
+  }
+} 
+
+function handleUploadingError(err: string, strict: boolean, interiorError?: any) {
+  debug(err);
+
+  if (interiorError) {
+    debug(interiorError);
+  }
+
+  if (strict) {
+    throw new RecordingUploadError(err, interiorError);
+  }
+}
+
 async function doUploadRecording(
   dir: string,
   server: string,
@@ -170,7 +193,8 @@ async function doUploadRecording(
   verbose?: boolean,
   apiKey?: string,
   agent?: any,
-  removeAssets: boolean = false
+  removeAssets: boolean = false,
+  strict: boolean = false,
 ) {
   debug("Uploading %s from %s to %s", recording.id, dir, server);
   maybeLog(verbose, `Starting upload for ${recording.id}...`);
@@ -183,8 +207,7 @@ async function doUploadRecording(
 
   const reason = uploadSkipReason(recording);
   if (reason) {
-    maybeLog(verbose, `Upload failed: ${reason}`);
-
+    handleUploadingError(reason, strict);
     return null;
   }
 
@@ -207,8 +230,7 @@ async function doUploadRecording(
   debug("Uploading recording %o", recording);
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(verbose, `Upload failed: can't connect to server ${server}`);
-
+    handleUploadingError(`Cannot connect to server ${server}`, strict);
     return null;
   }
 
@@ -226,8 +248,7 @@ async function doUploadRecording(
     try {
       await client.setRecordingMetadata(recordingId, metadata);
     } catch (e) {
-      console.warn("Failed to set recording metadata");
-      console.warn(e);
+      handleUploadingError(`Failed to set recording metadata ${e}`, strict, e);
     }
   }
 
@@ -278,7 +299,7 @@ async function doUploadRecording(
           { concurrency: 5, stopOnError: false }
         );
       } catch (e) {
-        maybeLog(verbose, `can't upload sourcemap ${sourcemap.path} from disk: ${e}`);
+        handleUploadingError(`Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`, strict, e);
       }
     },
     { concurrency: 10, stopOnError: false }
@@ -308,7 +329,7 @@ async function uploadRecording(id: string, opts: Options = {}) {
     return null;
   }
 
-  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent, true);
+  return doUploadRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent, true, opts.strict);
 }
 
 async function processUploadedRecording(recordingId: string, opts: Options) {

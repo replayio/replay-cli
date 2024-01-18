@@ -22,6 +22,11 @@ export interface Options {
   apiKey?: string;
   verbose?: boolean;
   agent?: any;
+
+  /**
+   * Fail the recording upload if any part of the upload fails.
+   */
+  strict?: boolean;
 }
 
 export interface SourcemapUploadOptions {
