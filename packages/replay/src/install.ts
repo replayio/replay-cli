@@ -1,7 +1,7 @@
 // Manage installation of browsers for other NPM packages.
 
 import { spawnSync } from "child_process";
-import dbg from "debug";
+import dbg from "./debug";
 import fs from "fs";
 import https from "https";
 import path from "path";
