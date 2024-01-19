@@ -55,7 +55,7 @@ export default function debug(namespace: string) {
 
 export function printLogPath() {
   if (logPath && fs.existsSync(logPath)) {
-    console.error("Additional logs available in", logPath);
+    console.error("\n📄 Additional logs available in", logPath, "\n");
   }
 }
 
