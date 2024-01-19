@@ -141,7 +141,9 @@ function parseRuntime(runtime?: string) {
 
 function throwGraphqlErrors(operation: string, errors: any) {
   errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
-  throw new Error(`GraphQL Errors: ${errors.map(getErrorMessage).join(", ")}`);
+  throw new Error(
+    `GraphQL request for ${operation} failed (${errors.map(getErrorMessage).join(", ")})`
+  );
 }
 
 export class ReporterError extends Error {
