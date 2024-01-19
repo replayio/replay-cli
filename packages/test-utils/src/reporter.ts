@@ -12,6 +12,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { log, warn } from "./logging";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { ExternalRecordingEntry } from "@replayio/replay/src/types";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -173,6 +174,7 @@ class ReplayReporter {
   pendingWork: Promise<PendingWork>[] = [];
   upload = false;
   filter?: (r: RecordingEntry) => boolean;
+  recordingsToUpload: ExternalRecordingEntry[] = [];
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
@@ -546,6 +548,8 @@ class ReplayReporter {
     } catch (e) {
       warn("Failed to initialize Replay metadata", e);
     }
+
+    this.enqueueUpload();
   }
 
   onTestEnd({
@@ -752,11 +756,7 @@ class ReplayReporter {
         );
 
         if (this.upload) {
-          this.pendingWork.push(
-            ...recordingsWithMetadata
-              .filter(r => (this.filter ? this.filter(r) : true))
-              .map(r => this.uploadRecording(r))
-          );
+          this.recordingsToUpload.push(...recordingsWithMetadata);
         }
       }
 
@@ -790,8 +790,36 @@ class ReplayReporter {
     }
   }
 
+  async enqueueUpload() {
+    if (this.recordingsToUpload.length) {
+      const recordings = [...this.recordingsToUpload];
+      this.recordingsToUpload = [];
+
+      this.pendingWork.push(
+        ...recordings
+          .filter(r => (this.filter ? this.filter(r) : true))
+          .map(r => this.uploadRecording(r))
+      );
+    }
+  }
+
   async onEnd(): Promise<PendingWork[]> {
     debug("onEnd");
+
+    if (this.upload) {
+      let timeout = 2000;
+      if (process.env.REPLAY_UPLOAD_DELAY) {
+        const userTimeout = Number.parseInt(process.env.REPLAY_UPLOAD_DELAY);
+        if (!isNaN(userTimeout)) {
+          timeout = userTimeout;
+        }
+        debug("REPLAY_UPLOAD_DELAY value %d using %d", userTimeout, timeout);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, timeout));
+      this.enqueueUpload();
+    }
+
     if (this.pendingWork.length === 0) {
       return [];
     }
