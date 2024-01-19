@@ -1,6 +1,6 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
-import dbg from "debug";
+import dbg, { printLogPath } from "./debug";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";
 import {
   listAllRecordings,
@@ -17,7 +17,6 @@ import {
   version,
 } from "./main";
 import {
-  BrowserName,
   FilterOptions,
   LaunchOptions,
   MetadataOptions,
@@ -193,6 +192,7 @@ function commandListAllRecordings(
     process.exit(0);
   } catch (e) {
     console.error("Failed to list all recordings");
+    printLogPath();
     debug("removeRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -204,9 +204,14 @@ async function commandUploadRecording(id: string, opts: CommandLineOptions) {
     debug("Options", opts);
 
     const recordingId = await uploadRecording(id, { ...opts, verbose: true });
+    if (!recordingId) {
+      printLogPath();
+    }
+
     process.exit(recordingId || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to upload recording");
+    printLogPath();
     debug("uploadRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -227,6 +232,7 @@ async function commandLaunchBrowser(
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
+    printLogPath();
     debug("launchBrowser error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -247,6 +253,7 @@ async function commandLaunchBrowserAndRecord(
     process.exit(0);
   } catch (e) {
     console.error("Failed to launch browser");
+    printLogPath();
     debug("launchBrowser error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -258,9 +265,14 @@ async function commandProcessRecording(id: string, opts: CommandLineOptions) {
     debug("Options", opts);
 
     const recordingId = await processRecording(id, { ...opts, verbose: true });
+    if (!recordingId) {
+      printLogPath();
+    }
+
     process.exit(recordingId || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to process recording");
+    printLogPath();
     debug("processRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -275,6 +287,7 @@ async function commandUploadAllRecordings(opts: CommandLineOptions & UploadAllOp
     process.exit(uploadedAll || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to upload all recordings");
+    printLogPath();
     debug("uploadAllRecordings error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -289,6 +302,7 @@ async function commandViewRecording(id: string, opts: CommandLineOptions) {
     process.exit(viewed || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to view recording");
+    printLogPath();
     debug("viewRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -300,9 +314,14 @@ async function commandViewLatestRecording(opts: CommandLineOptions) {
     debug("Options", opts);
 
     const viewed = await viewLatestRecording({ ...opts, verbose: true });
+    if (!viewed) {
+      printLogPath();
+    }
+
     process.exit(viewed || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to view recording");
+    printLogPath();
     debug("viewLatestRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -317,6 +336,7 @@ function commandRemoveRecording(id: string, opts: Pick<CommandLineOptions, "dire
     process.exit(removed || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to remove recording");
+    printLogPath();
     debug("removeRecording error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -331,6 +351,7 @@ function commandRemoveAllRecordings(opts: Pick<CommandLineOptions, "directory" |
     process.exit(0);
   } catch (e) {
     console.error("Failed to remove all recordings");
+    printLogPath();
     debug("removeAllRecordings error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -352,6 +373,7 @@ async function commandUpdateBrowsers(
     process.exit(0);
   } catch (e) {
     console.error("Failed to updated browsers");
+    printLogPath();
     debug("updateBrowser error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -404,6 +426,7 @@ async function commandMetadata(opts: MetadataOptions & FilterOptions) {
     debug("Options", opts);
 
     await updateMetadata({ ...opts, verbose: true });
+    printLogPath();
     process.exit(0);
   } catch (e) {
     console.error("Failed to update recording metadata");
@@ -422,6 +445,7 @@ async function commandLogin(opts: CommandLineOptions) {
     process.exit(ok || opts.warn ? 0 : 1);
   } catch (e) {
     console.error("Failed to login");
+    printLogPath();
     debug("maybeAuthenticateUser error %o", e);
 
     process.exit(opts.warn ? 0 : 1);
@@ -444,6 +468,7 @@ async function commandVersion(opts: CommandLineOptions) {
     process.exit(0);
   } catch (e) {
     console.error("Failed to get version information");
+    printLogPath();
     debug("commandVersion error %o", e);
 
     process.exit(opts.warn ? 0 : 1);

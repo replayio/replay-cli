@@ -1,4 +1,4 @@
-import dbg from "debug";
+import dbg from "./debug";
 import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";
@@ -31,6 +31,7 @@ import {
   RecordingEntry,
   SourceMapEntry,
   UploadAllOptions,
+  UploadOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import jsonata from "jsonata";
@@ -174,8 +175,13 @@ class RecordingUploadError extends Error {
   }
 }
 
-function handleUploadingError(err: string, strict: boolean, interiorError?: any) {
-  debug(err);
+function handleUploadingError(
+  err: string,
+  strict: boolean,
+  verbose?: boolean,
+  interiorError?: any
+) {
+  maybeLog(verbose, `Upload failed: ${err}`);
 
   if (interiorError) {
     debug(interiorError);
@@ -207,7 +213,7 @@ async function doUploadRecording(
 
   const reason = uploadSkipReason(recording);
   if (reason) {
-    handleUploadingError(reason, strict);
+    handleUploadingError(reason, strict, verbose);
     return null;
   }
 
@@ -230,7 +236,7 @@ async function doUploadRecording(
   debug("Uploading recording %o", recording);
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    handleUploadingError(`Cannot connect to server ${server}`, strict);
+    handleUploadingError(`Cannot connect to server ${server}`, strict, verbose);
     return null;
   }
 
@@ -248,7 +254,7 @@ async function doUploadRecording(
     try {
       await client.setRecordingMetadata(recordingId, metadata);
     } catch (e) {
-      handleUploadingError(`Failed to set recording metadata ${e}`, strict, e);
+      handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
     }
   }
 
@@ -302,6 +308,7 @@ async function doUploadRecording(
         handleUploadingError(
           `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
           strict,
+          verbose,
           e
         );
       }
@@ -322,7 +329,7 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: Options = {}) {
+async function uploadRecording(id: string, opts: UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
@@ -385,7 +392,7 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
+async function uploadAllRecordings(opts: UploadAllOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
@@ -423,7 +430,7 @@ async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const recordingIds: (string | null)[] = await pMap(
     recordings,
     (r: RecordingEntry) =>
-      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false),
+      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false, opts.strict),
     { concurrency: batchSize, stopOnError: false }
   );
 
