@@ -1,4 +1,4 @@
-import dbg from "debug";
+import dbg from "./debug";
 import WebSocket from "ws";
 import { Options } from "./types";
 import { defer } from "./utils";

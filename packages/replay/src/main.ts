@@ -1,4 +1,4 @@
-import dbg from "debug";
+import dbg from "./debug";
 import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";

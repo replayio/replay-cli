@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { createHash } from "crypto";
-import dbg from "debug";
+import dbg from "./debug";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
 
@@ -38,8 +38,7 @@ function tokenInfo(token: string) {
     const decPayload = Buffer.alloc(encPayload.length, encPayload, "base64");
     payload = JSON.parse(new TextDecoder().decode(decPayload));
   } catch (err) {
-    debug("Failed to decode token: %s", maskToken(token));
-    debug(err);
+    debug("Failed to decode token: %s %e", maskToken(token), err);
     return null;
   }
 

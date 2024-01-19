@@ -5,7 +5,7 @@ import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import dbg from "debug";
+import dbg from "./debug";
 
 const debug = dbg("replay:cli:upload");
 

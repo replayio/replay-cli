@@ -1,6 +1,6 @@
 import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
 import { program } from "commander";
-import dbg from "debug";
+import dbg from "./debug";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";
 import {
   listAllRecordings,
