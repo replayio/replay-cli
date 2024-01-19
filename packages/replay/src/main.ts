@@ -174,8 +174,13 @@ class RecordingUploadError extends Error {
   }
 }
 
-function handleUploadingError(err: string, strict: boolean, interiorError?: any) {
-  debug(err);
+function handleUploadingError(
+  err: string,
+  strict: boolean,
+  verbose?: boolean,
+  interiorError?: any
+) {
+  maybeLog(verbose, `Upload failed: ${err}`);
 
   if (interiorError) {
     debug(interiorError);
@@ -207,7 +212,7 @@ async function doUploadRecording(
 
   const reason = uploadSkipReason(recording);
   if (reason) {
-    handleUploadingError(reason, strict);
+    handleUploadingError(reason, strict, verbose);
     return null;
   }
 
@@ -230,7 +235,7 @@ async function doUploadRecording(
   debug("Uploading recording %o", recording);
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    handleUploadingError(`Cannot connect to server ${server}`, strict);
+    handleUploadingError(`Cannot connect to server ${server}`, strict, verbose);
     return null;
   }
 
@@ -248,7 +253,7 @@ async function doUploadRecording(
     try {
       await client.setRecordingMetadata(recordingId, metadata);
     } catch (e) {
-      handleUploadingError(`Failed to set recording metadata ${e}`, strict, e);
+      handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
     }
   }
 
@@ -302,6 +307,7 @@ async function doUploadRecording(
         handleUploadingError(
           `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
           strict,
+          verbose,
           e
         );
       }
