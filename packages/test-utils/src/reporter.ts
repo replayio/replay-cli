@@ -139,7 +139,7 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function throwGraphqlErrors(operation: string; errors: any) {
+function throwGraphqlErrors(operation: string, errors: any) {
   errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
   throw new Error(`GraphQL Errors: ${errors.map(getErrorMessage).join(", ")}`);
 }
@@ -411,7 +411,7 @@ class ReplayReporter {
 
       return {
         type: "test-run",
-        id: this.testRunShardId,
+        id: this.testRunShardId!,
         phase: "start",
       };
     } catch (e) {
