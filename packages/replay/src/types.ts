@@ -22,11 +22,6 @@ export interface Options {
   apiKey?: string;
   verbose?: boolean;
   agent?: any;
-
-  /**
-   * Fail the recording upload if any part of the upload fails.
-   */
-  strict?: boolean;
 }
 
 export interface SourcemapUploadOptions {
@@ -64,7 +59,14 @@ export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
 
-export interface UploadAllOptions extends FilterOptions {
+export interface UploadOptions extends Options {
+  /**
+   * Fail the recording upload if any part of the upload fails.
+   */
+  strict?: boolean;
+}
+
+export interface UploadAllOptions extends FilterOptions, UploadOptions {
   batchSize?: number;
   warn?: boolean;
 }

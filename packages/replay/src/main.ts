@@ -31,6 +31,7 @@ import {
   RecordingEntry,
   SourceMapEntry,
   UploadAllOptions,
+  UploadOptions,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import jsonata from "jsonata";
@@ -322,7 +323,7 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: Options = {}) {
+async function uploadRecording(id: string, opts: UploadOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
@@ -385,7 +386,7 @@ async function processRecording(id: string, opts: Options = {}) {
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
+async function uploadAllRecordings(opts: UploadAllOptions = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
@@ -423,7 +424,7 @@ async function uploadAllRecordings(opts: Options & UploadAllOptions = {}) {
   const recordingIds: (string | null)[] = await pMap(
     recordings,
     (r: RecordingEntry) =>
-      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false),
+      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false, opts.strict),
     { concurrency: batchSize, stopOnError: false }
   );
 
