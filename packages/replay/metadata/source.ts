@@ -117,7 +117,7 @@ function getGitHubMergeId(env: NodeJS.ProcessEnv) {
   }
 }
 
-function getGitHubMergeSHA(env: NodeJS.ProcessEnv) {
+function getGitHubMergeSHA(env: NodeJS.ProcessEnv): string | undefined {
   const event = readGithubEvent(env);
   if (event?.pull_request?.head?.sha) {
     return event.pull_request.head.sha;
@@ -146,6 +146,10 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
       : undefined,
   });
 
+  // override the SHA if passed because it might be the SHA from the github
+  // event rather than GITHUB_SHA. we update this regardless of our ability to
+  // fetch the details because that can fail due to a missing token.
+  process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_ID = sha;
   if (resp.status === 200) {
     const json = resp.json;
     process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE =
@@ -338,12 +342,12 @@ async function expandEnvironment() {
 
   try {
     if (GITHUB_SHA && GITHUB_REPOSITORY) {
-      await expandCommitMetadataFromGitHub(
-        GITHUB_REPOSITORY,
-        getGitHubMergeSHA(process.env) ?? GITHUB_SHA
-      );
-      debug("Merge ID:", getGitHubMergeId(process.env));
-      await expandMergeMetadataFromGitHub(GITHUB_REPOSITORY, getGitHubMergeId(process.env));
+      const sha = getGitHubMergeSHA(process.env) ?? GITHUB_SHA;
+      const mergeId = getGitHubMergeId(process.env);
+      debug("GitHub context $0", { mergeId, sha });
+
+      await expandCommitMetadataFromGitHub(GITHUB_REPOSITORY, sha);
+      await expandMergeMetadataFromGitHub(GITHUB_REPOSITORY, mergeId);
     } else if (CIRCLECI) {
       const repo = getCircleCIRepository(process.env);
       const provider = getCircleCISourceControlProvider(process.env);
