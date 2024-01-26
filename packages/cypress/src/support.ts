@@ -282,7 +282,9 @@ function sendStepToPlugin(event: StepEvent) {
   // send all buffered events and stop buffering so all future events are sent
   // immediately.
   if (!gPluginServer && gServerPort != null) {
-    gPluginServer = new WebSocket(`ws://localhost:${gServerPort}`);
+    gPluginServer = new WebSocket(
+      `ws://${Cypress.env("REPLAY_SOCKET_PORT") ?? "0.0.0.0"}:${gServerPort}`
+    );
     gPluginServer.onopen = () => {
       gPluginServer!.send(JSON.stringify({ events: gEventBuffer }));
       gBuffering = false;
