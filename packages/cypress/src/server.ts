@@ -20,20 +20,21 @@ export async function createServer() {
   });
 
   return new Promise<{ server: WebSocketServer; port: number }>(resolve => {
-    server.listen(
-      {
-        // Pick any available port unless set by user
-        port: process.env.REPLAY_CYPRESS_SOCKET_PORT
-          ? Number.parseInt(process.env.REPLAY_CYPRESS_SOCKET_PORT)
-          : 0,
-        // Explicitly use ipv4 unless set by user
-        host: process.env.REPLAY_CYPRESS_SOCKET_HOST || "0.0.0.0",
-      },
-      () => {
-        const { address, port } = server.address() as AddressInfo;
-        debug("Listening on %s on port %d", address, port);
-        resolve({ server: wss, port });
-      }
-    );
+    const config = {
+      // Pick any available port unless set by user
+      port: process.env.CYPRESS_REPLAY_SOCKET_PORT
+        ? Number.parseInt(process.env.CYPRESS_REPLAY_SOCKET_PORT)
+        : 0,
+      // Explicitly use ipv4 unless set by user
+      host: process.env.CYPRESS_REPLAY_SOCKET_HOST || "0.0.0.0",
+    };
+
+    debug("Server config: %o", config);
+
+    server.listen(config, () => {
+      const { address, port } = server.address() as AddressInfo;
+      debug("Listening on %s on port %d", address, port);
+      resolve({ server: wss, port });
+    });
   });
 }
