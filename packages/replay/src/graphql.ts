@@ -1,5 +1,6 @@
 import dbg from "./debug";
 import fetch from "node-fetch";
+import { getUserAgent } from "./utils";
 
 const debug = dbg("replay:cli:graphql");
 
@@ -8,6 +9,7 @@ export async function query(name: string, query: string, variables = {}, apiKey?
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "User-Agent": getUserAgent(),
     } as Record<string, string>,
     body: JSON.stringify({
       query,

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";
 import { compare } from "semver";
+import { getCurrentVersion } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -697,8 +698,7 @@ async function launchBrowser(
 }
 
 async function version() {
-  const pkg = require(path.join(__dirname, "../package.json"));
-  const v = pkg.version;
+  const version = getCurrentVersion();
   let update = false;
   let latest: string | null = null;
 
@@ -706,7 +706,7 @@ async function version() {
     const data = await getPackument({ name: "@replayio/replay" });
     latest = data.distTags.latest;
 
-    if (compare(v, latest) < 0) {
+    if (compare(version, latest) < 0) {
       update = true;
     }
   } catch (e) {
@@ -714,9 +714,9 @@ async function version() {
   }
 
   return {
-    version: v,
+    version,
     update,
-    latest: latest,
+    latest,
   };
 }
 
