@@ -8,7 +8,7 @@
     "if:source": "npm run if:exists -- src/index.ts",
     "if:dist": "npm run if:exists -- src/index.js",
     "prepare": "npm run if:source -- npm run build",
-    "install": "npm run if:dist -- node ./bin/replayio-puppeteer first-run",
+    "install": "node ./bin/replayio-puppeteer first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
