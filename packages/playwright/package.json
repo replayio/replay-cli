@@ -24,7 +24,7 @@
     "@types/debug": "^4.1.8",
     "@types/node": "^18.16.1",
     "@types/uuid": "^8.3.4",
-    "@types/ws": "^8.5.5",
+    "@types/ws": "^8.5.10",
     "typescript": "4.6.x"
   },
   "repository": {
@@ -47,5 +47,5 @@
   "peerDependencies": {
     "@playwright/test": "1.x"
   },
-  "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40"
+  "gitHead": "2bc3e5abc6a02b65688c3110f5bac1941afe3b0e"
 }
