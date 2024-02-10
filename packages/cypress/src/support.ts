@@ -182,7 +182,7 @@ function simplifyCommand(cmd?: CommandLike) {
   };
 }
 
-async function getCurrentTestScope(): Promise<CypressTestScope> {
+function getCurrentTestScope(): CypressTestScope {
   const mochaTest = (cy as any).state("test");
   const mochaOrder = mochaTest?.order;
   let order = 0;
@@ -246,7 +246,7 @@ async function getCurrentTestScope(): Promise<CypressTestScope> {
       title: partialTest.source.title,
       scope: partialTest.source.scope,
       attempt,
-      testId: await buildTestId(Cypress.spec.relative, partialTest),
+      testId: buildTestId(Cypress.spec.relative, partialTest),
       index: order,
     },
   };
@@ -282,9 +282,7 @@ function sendStepToPlugin(event: StepEvent) {
   // send all buffered events and stop buffering so all future events are sent
   // immediately.
   if (!gPluginServer && gServerPort != null) {
-    gPluginServer = new WebSocket(
-      `ws://${Cypress.env("REPLAY_SOCKET_PORT") ?? "0.0.0.0"}:${gServerPort}`
-    );
+    gPluginServer = new WebSocket(`ws://localhost:${gServerPort}`);
     gPluginServer.onopen = () => {
       gPluginServer!.send(JSON.stringify({ events: gEventBuffer }));
       gBuffering = false;
@@ -437,11 +435,9 @@ export default function register() {
         return;
       }
 
-      // in cypress open, beforeEach isn't called so we may not have a current
-      // test scope
-      if (!currentTestScope) {
-        return;
-      }
+      // in cypress open, beforeEach isn't called so fetch the current test here
+      // as a fallback
+      currentTestScope = getCurrentTestScope();
 
       // Sometimes, cmd is an instance of Cypress.CommandQueue but we can loosely
       // covert it using its toJSON method (which is typed wrong so we have to
@@ -552,11 +548,7 @@ export default function register() {
     }
   });
   Cypress.on("log:added", log => {
-    const assertionCurrentTest = currentTestScope;
-
-    if (!assertionCurrentTest) {
-      return;
-    }
+    const assertionCurrentTest = currentTestScope || getCurrentTestScope();
 
     try {
       if (log.name === "new url") {
@@ -694,7 +686,7 @@ export default function register() {
   });
   beforeEach(async () => {
     try {
-      currentTestScope = await getCurrentTestScope();
+      currentTestScope = getCurrentTestScope();
       if (currentTestScope) {
         handleCypressEvent(currentTestScope, "test:start");
         addAnnotation(currentTestScope, "test:start");
