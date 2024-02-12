@@ -1,26 +1,31 @@
 import type { Test } from "./reporter";
+import sha1 from "sha-1";
 
-export async function buildTestId(
-  sourcePath: string,
-  test: Pick<Test, "id" | "source">
-): Promise<string> {
-  const id = await generateOpaqueId(
+export function buildTestId(sourcePath: string, test: Pick<Test, "id" | "source">): string {
+  const id = generateOpaqueId(
     [sourcePath, test.id, ...test.source.scope, test.source.title].join("-")
   );
 
   return id;
 }
 
-export async function generateOpaqueId(contents: string): Promise<string> {
-  if (globalThis.crypto) {
-    // In the browser, use the global crypto obj to generate the sha-1 hash
-    const enc = new TextEncoder();
-    const hash = await crypto.subtle.digest("SHA-1", enc.encode(contents));
-    return Array.from(new Uint8Array(hash))
-      .map(v => v.toString(16).padStart(2, "0"))
-      .join("");
+const gIdCache = new Map<string, string>();
+
+export function generateOpaqueId(contents: string): string {
+  if (gIdCache.has(contents)) {
+    return gIdCache.get(contents)!;
+  }
+
+  let id: string;
+  if (globalThis.window) {
+    // in the browser, we're using this sync sha-1 lib because the built-in
+    // crypto is async which causes problems with Cypress
+    id = sha1(contents);
   } else {
     // In node, rely on the crypto package instead
-    return require("crypto").createHash("sha1").update(contents).digest("hex");
+    id = require("crypto").createHash("sha1").update(contents).digest("hex");
   }
+
+  gIdCache.set(contents, id);
+  return id;
 }
