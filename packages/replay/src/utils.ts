@@ -113,4 +113,27 @@ function assertValidBrowserName(browser?: string): asserts browser is BrowserNam
   }
 }
 
-export { assertValidBrowserName, fuzzyBrowserName, defer, maybeLog, getDirectory, isValidUUID };
+function getCurrentVersion() {
+  const pkg = require(path.join(__dirname, "../package.json"));
+  return pkg.version;
+}
+
+function getNameAndVersion() {
+  const pkg = require(path.join(__dirname, "../package.json"));
+  return `${pkg.name}/${pkg.version}`;
+}
+
+function getUserAgent() {
+  return getNameAndVersion();
+}
+
+export {
+  assertValidBrowserName,
+  fuzzyBrowserName,
+  defer,
+  maybeLog,
+  getDirectory,
+  isValidUUID,
+  getCurrentVersion,
+  getUserAgent,
+};

@@ -2,7 +2,7 @@ import fs from "fs";
 import crypto from "crypto";
 import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import { defer, maybeLog, isValidUUID } from "./utils";
+import { defer, maybeLog, isValidUUID, getUserAgent } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg from "./debug";
@@ -141,7 +141,7 @@ class ReplayClient {
     const file = fs.createReadStream(path);
     const resp = await fetch(uploadLink, {
       method: "PUT",
-      headers: { "Content-Length": size.toString() },
+      headers: { "Content-Length": size.toString(), "User-Agent": getUserAgent() },
       body: file,
     });
 

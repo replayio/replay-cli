@@ -32,6 +32,7 @@ export interface UploadOptions {
   log?: LogCallback;
   server?: string;
   concurrency?: number;
+  userAgentAddition?: string;
 }
 
 export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
@@ -110,6 +111,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     rootPath: path.resolve(cwd, opts.root || ""),
     log: opts.log || (() => undefined),
     apiServer,
+    userAgentAddition: opts.userAgentAddition,
     concurrency: opts.concurrency || 10,
   });
 }
@@ -125,6 +127,7 @@ interface NormalizedOptions {
   rootPath: string;
   log: LogCallback;
   apiServer: string;
+  userAgentAddition?: string;
   concurrency: number;
 }
 
@@ -209,7 +212,8 @@ async function processSourceMaps(opts: NormalizedOptions) {
           groupName,
           apiKey,
           mapToUpload,
-          opts.apiServer
+          opts.apiServer,
+          opts.userAgentAddition
         );
       }
     },
@@ -230,6 +234,7 @@ type PutOptions = {
   apiKey: string;
   map: SourceMapToUpload;
   apiServer: string;
+  userAgentAddition?: string;
 };
 
 async function sendUploadPUT(opts: PutOptions): Promise<Response> {
@@ -238,6 +243,7 @@ async function sendUploadPUT(opts: PutOptions): Promise<Response> {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${opts.apiKey}`,
+      "User-Agent": getUserAgent(opts.userAgentAddition),
       "X-Replay-SourceMap-Group": opts.groupName,
       "X-Replay-SourceMap-Filename": opts.map.relativePath,
       "X-Replay-SourceMap-ContentHash": `sha256:${opts.map.generatedFileHash}`,
@@ -267,7 +273,8 @@ async function uploadSourcemapToAPI(
   groupName: string,
   apiKey: string,
   map: SourceMapToUpload,
-  apiServer: string
+  apiServer: string,
+  userAgentAddition?: string
 ) {
   let response;
   try {
@@ -276,6 +283,7 @@ async function uploadSourcemapToAPI(
       apiKey,
       map,
       apiServer,
+      userAgentAddition,
     });
   } catch (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -481,4 +489,14 @@ async function listAllFiles(
     });
   }
   return [];
+}
+
+function getNameAndVersion() {
+  const pkg = require(path.join(__dirname, "../package.json"));
+  return `${pkg.name}/${pkg.version}`;
+}
+
+function getUserAgent(userAgentAddition?: string) {
+  const addition = userAgentAddition ? `${userAgentAddition} ` : "";
+  return `${addition}${getNameAndVersion()}`;
 }

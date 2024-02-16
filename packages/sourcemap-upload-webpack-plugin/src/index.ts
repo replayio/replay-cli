@@ -7,6 +7,7 @@ import {
   LogCallback,
 } from "@replayio/sourcemap-upload";
 import assert from "assert";
+import path from "path";
 
 export interface PluginOptions extends UploadOptions {
   logLevel?: "quiet" | "normal" | "verbose";
@@ -43,6 +44,7 @@ export default class ReplaySourceMapUploadWebpackPlugin {
     this.options = {
       ...restOpts,
       log,
+      userAgentAddition: getNameAndVersion(),
     };
   }
 
@@ -67,4 +69,9 @@ export default class ReplaySourceMapUploadWebpackPlugin {
       }
     });
   }
+}
+
+function getNameAndVersion() {
+  const pkg = require(path.join(__dirname, "../package.json"));
+  return `${pkg.name}/${pkg.version}`;
 }

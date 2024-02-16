@@ -32,7 +32,7 @@ describe("filterRecordings", () => {
     const filtered = filterRecordings(recordings, r => r.id === "3", false);
     expect(filtered).toHaveLength(1);
   });
-  it("inclues crash reports when includeCrashes is set", () => {
+  it("includes crash reports when includeCrashes is set", () => {
     const recordings: RecordingEntry[] = [
       {
         status: "crashed",
