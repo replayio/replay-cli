@@ -88,7 +88,7 @@ export async function exponentialBackoffRetry<T>(
       if (currentAttempt == MAX_ATTEMPTS) {
         throw e;
       }
-      waitForTime(backoff(currentAttempt));
+      await waitForTime(backoff(currentAttempt));
     }
   }
   throw Error("ShouldBeUnreachable");
