@@ -110,10 +110,6 @@ function getTestResult(recording: RecordingEntry): TestRun["result"] {
 }
 
 function getTestResultEmoji(recording: RecordingEntry) {
-  if (recording.status === "crashUploaded") {
-    return "☠️";
-  }
-
   const result = getTestResult(recording);
   switch (result) {
     case "unknown":
@@ -901,22 +897,28 @@ class ReplayReporter {
     }
 
     if (uploads.length > 0) {
-      output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-      const sortedUploads = sortRecordingsByResult(uploads);
-      sortedUploads.forEach(r => {
-        if (r.status === "uploaded" || r.status === "crashUploaded") {
+      const uploaded = uploads.filter(u => u.status === "uploaded");
+      const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+      if (uploaded.length > 0) {
+        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+        const sortedUploads = sortRecordingsByResult(uploads);
+        sortedUploads.forEach(r => {
           output.push(
             `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
           );
-          if (r.status === "uploaded") {
-            output.push(
-              `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-            );
-          } else {
-            output.push(`      Browser crashed while recording. Report uploaded to replay.\n`);
-          }
-        }
-      });
+          output.push(
+            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+          );
+        });
+      }
+
+      if (crashed.length > 0) {
+        output.push(
+          `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
+        );
+        output.push(`  The Replay team has been notified.`);
+      }
     }
 
     log(output.join("\n"));
