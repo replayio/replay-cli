@@ -110,6 +110,10 @@ function getTestResult(recording: RecordingEntry): TestRun["result"] {
 }
 
 function getTestResultEmoji(recording: RecordingEntry) {
+  if (recording.status === "crashUploaded") {
+    return "☠️";
+  }
+
   const result = getTestResult(recording);
   switch (result) {
     case "unknown":
@@ -900,12 +904,18 @@ class ReplayReporter {
       output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
       const sortedUploads = sortRecordingsByResult(uploads);
       sortedUploads.forEach(r => {
-        output.push(
-          `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
-        );
-        output.push(
-          `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-        );
+        if (r.status === "uploaded" || r.status === "crashUploaded") {
+          output.push(
+            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+          );
+          if (r.status === "uploaded") {
+            output.push(
+              `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+            );
+          } else {
+            output.push(`      Browser crashed while recording. Report uploaded to replay.\n`);
+          }
+        }
       });
     }
 
