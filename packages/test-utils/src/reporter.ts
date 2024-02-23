@@ -897,16 +897,28 @@ class ReplayReporter {
     }
 
     if (uploads.length > 0) {
-      output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-      const sortedUploads = sortRecordingsByResult(uploads);
-      sortedUploads.forEach(r => {
+      const uploaded = uploads.filter(u => u.status === "uploaded");
+      const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+      if (uploaded.length > 0) {
+        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+        const sortedUploads = sortRecordingsByResult(uploads);
+        sortedUploads.forEach(r => {
+          output.push(
+            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+          );
+          output.push(
+            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+          );
+        });
+      }
+
+      if (crashed.length > 0) {
         output.push(
-          `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+          `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
         );
-        output.push(
-          `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-        );
-      });
+        output.push(`  The Replay team has been notified.`);
+      }
     }
 
     log(output.join("\n"));
