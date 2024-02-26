@@ -70,15 +70,13 @@ function geometricBackoff(iteration: number): number {
   return 2 ** iteration * 100 + jitter();
 }
 
-function linearBackoff(iteration: number): number {
-  return iteration * 100 + jitter();
+function linearBackoff(): number {
+  return 100 + jitter();
 }
 
 const MAX_ATTEMPTS = 5;
 
-// exponentialBackoffRetry
-
-async function exponentialRetry<T>(
+async function retry<T>(
   fn: () => Promise<T>,
   backOffStrategy: (iteration: number) => number,
   onFail?: (e: unknown) => void
@@ -105,14 +103,14 @@ export async function exponentialBackoffRetry<T>(
   fn: () => Promise<T>,
   onFail?: (e: unknown) => void
 ): Promise<T> {
-  return exponentialRetry(fn, geometricBackoff, onFail);
+  return retry(fn, geometricBackoff, onFail);
 }
 
 export async function linearBackoffRetry<T>(
   fn: () => Promise<T>,
   onFail?: (e: unknown) => void
 ): Promise<T> {
-  return exponentialRetry(fn, linearBackoff, onFail);
+  return retry(fn, linearBackoff, onFail);
 }
 
 export async function concurrentWithRetry<Result>(
