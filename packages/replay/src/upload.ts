@@ -2,15 +2,9 @@ import fs from "fs";
 import path from "path";
 import { Worker } from "worker_threads";
 import crypto from "crypto";
+import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import {
-  defer,
-  maybeLog,
-  isValidUUID,
-  exponentialBackoffRetry,
-  getUserAgent,
-  concurrentWithRetry,
-} from "./utils";
+import { defer, maybeLog, isValidUUID, getUserAgent, concurrentWithRetry } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg from "./debug";
@@ -186,6 +180,7 @@ class ReplayClient {
   }
 
   async uploadRecordingInParts(path: string, partUploadLinks: string[], partSize: number) {
+    // TODO: Can we not use this? It can use high memory
     const fileBuffer = fs.readFileSync(path);
     const tasks = partUploadLinks.map((url, index) => async () => {
       const partNumber = index + 1;
