@@ -245,12 +245,14 @@ async function doUploadRecording(
   const metadata = recording.metadata
     ? await client.buildRecordingMetadata(recording.metadata, { verbose })
     : null;
-  const { recordingId, uploadLink } = await client.connectionBeginRecordingUpload(
-    recording.id,
-    recording.buildId!,
-    size
-  );
-  debug(`Created remote recording ${recordingId}`);
+  const multiPartChunkSize = 5 * 1024 * 1024;
+  const { recordingId, uploadLink, uploadId, partLinks } =
+    await client.connectionBeginRecordingUpload(
+      recording.id,
+      recording.buildId!,
+      size,
+      multiPartChunkSize
+    );
   if (metadata) {
     try {
       await client.setRecordingMetadata(recordingId, metadata);
@@ -264,16 +266,25 @@ async function doUploadRecording(
     recordingId,
   });
 
-  await exponentialBackoffRetry(
-    () => client.uploadRecording(recording.path!, uploadLink, size),
-    e => {
-      debug("Upload failed with error:  %j", e);
-    }
-  );
+  if (process.env.REPLAY_MULTIPART_UPLOAD) {
+    const eTags = await client.uploadRecordingInParts(
+      recording.path!,
+      partLinks,
+      multiPartChunkSize
+    );
+    await client.connectionEndRecordingUpload(recording.id, uploadId, eTags);
+  } else {
+    await exponentialBackoffRetry(
+      () => client.uploadRecording(recording.path!, uploadLink, size),
+      e => {
+        debug("Upload failed with error:  %j", e);
+      }
+    );
 
-  debug("%s: Uploaded %d bytes", recordingId, size);
+    debug("%s: Uploaded %d bytes", recordingId, size);
 
-  await client.connectionEndRecordingUpload(recording.id);
+    await client.connectionEndRecordingUpload(recording.id);
+  }
 
   await pMap(
     recording.sourcemaps,

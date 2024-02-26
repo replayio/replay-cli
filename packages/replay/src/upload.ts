@@ -1,8 +1,16 @@
 import fs from "fs";
+import path from "path";
+import { Worker } from "worker_threads";
 import crypto from "crypto";
-import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import { defer, maybeLog, isValidUUID, getUserAgent } from "./utils";
+import {
+  defer,
+  maybeLog,
+  isValidUUID,
+  exponentialBackoffRetry,
+  getUserAgent,
+  concurrentWithRetry,
+} from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg from "./debug";
@@ -49,12 +57,20 @@ class ReplayClient {
     return this.clientReady.promise;
   }
 
-  async connectionBeginRecordingUpload(id: string, buildId: string, size: number) {
+  async connectionBeginRecordingUpload(
+    id: string,
+    buildId: string,
+    size: number,
+    multiPartChunkSize: number
+  ) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const { recordingId, uploadLink } = await this.client.sendCommand<{
+    const { recordingId, uploadLink, uploadId, partLinks } = await this.client.sendCommand<{
       recordingId: string;
       uploadLink: string;
+      uploadId: string;
+      partLinks: string[];
+      multiPartChunkSize: number;
     }>("Internal.beginRecordingUpload", {
       buildId,
       // 3/22/2022: Older builds use integers instead of UUIDs for the recording
@@ -62,8 +78,9 @@ class ReplayClient {
       // uploading recordings to the backend.
       recordingId: isValidUUID(id) ? id : undefined,
       recordingSize: size,
+      multiPartChunkSize,
     });
-    return { recordingId, uploadLink };
+    return { recordingId, uploadLink, uploadId, partLinks };
   }
 
   async buildRecordingMetadata(
@@ -151,12 +168,51 @@ class ReplayClient {
     }
   }
 
-  async connectionEndRecordingUpload(recordingId: string) {
+  async uploadPart(link: string, part: any, size: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      console.log("Stating worker");
+      const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
+
+      worker.on("message", resolve);
+      worker.on("error", reject);
+      worker.on("exit", code => {
+        if (code !== 0) {
+          reject(new Error(`Worker stopped with exit code ${code}`));
+        }
+      });
+
+      worker.postMessage({ link, part, size });
+    });
+  }
+
+  async uploadRecordingInParts(path: string, partUploadLinks: string[], partSize: number) {
+    const fileBuffer = fs.readFileSync(path);
+    const tasks = partUploadLinks.map((url, index) => async () => {
+      const partNumber = index + 1;
+      const start = index * partSize;
+      const end = Math.min(start + partSize, fileBuffer.length);
+      const partData = fileBuffer.slice(start, end);
+
+      debug(`Uploading part`, partNumber);
+      return this.uploadPart(url, partData, partData.length);
+    });
+
+    const results = await concurrentWithRetry(tasks, 4);
+
+    return results;
+  }
+
+  async connectionEndRecordingUpload(recordingId: string, uploadId?: string, eTags?: string[]) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    await this.client.sendCommand<{ recordingId: string }>("Internal.endRecordingUpload", {
-      recordingId,
-    });
+    await this.client.sendCommand<{ recordingId: string; uploadId: string; partETags: string[] }>(
+      "Internal.endRecordingUpload",
+      {
+        recordingId,
+        uploadId,
+        partETags: eTags,
+      }
+    );
   }
 
   async connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {

@@ -66,14 +66,21 @@ function jitter(): number {
 }
 
 // Returns backoff timeouts (in ms) in a geometric progression, and with jitter.
-function backoff(iteration: number): number {
+function geometricBackoff(iteration: number): number {
   return 2 ** iteration * 100 + jitter();
+}
+
+function linearBackoff(iteration: number): number {
+  return iteration * 100 + jitter();
 }
 
 const MAX_ATTEMPTS = 5;
 
-export async function exponentialBackoffRetry<T>(
-  fn: () => T,
+// exponentialBackoffRetry
+
+async function exponentialRetry<T>(
+  fn: () => Promise<T>,
+  backOffStrategy: (iteration: number) => number,
   onFail?: (e: unknown) => void
 ): Promise<T> {
   let currentAttempt = 0;
@@ -88,10 +95,62 @@ export async function exponentialBackoffRetry<T>(
       if (currentAttempt == MAX_ATTEMPTS) {
         throw e;
       }
-      await waitForTime(backoff(currentAttempt));
+      await waitForTime(backOffStrategy(currentAttempt));
     }
   }
   throw Error("ShouldBeUnreachable");
+}
+
+export async function exponentialBackoffRetry<T>(
+  fn: () => Promise<T>,
+  onFail?: (e: unknown) => void
+): Promise<T> {
+  return exponentialRetry(fn, geometricBackoff, onFail);
+}
+
+export async function linearBackoffRetry<T>(
+  fn: () => Promise<T>,
+  onFail?: (e: unknown) => void
+): Promise<T> {
+  return exponentialRetry(fn, linearBackoff, onFail);
+}
+
+export async function concurrentWithRetry<Result>(
+  tasks: (() => Promise<Result>)[],
+  concurrencyLimit: number = 4,
+  retryFn: (
+    task: () => Promise<Result>,
+    errHandler?: (e: unknown) => void
+  ) => Promise<Result> = linearBackoffRetry
+): Promise<Result[]> {
+  let activePromise: Promise<Result>[] = [];
+  let results: Result[] = [];
+
+  for (let i = 0; i < tasks.length; i++) {
+    if (activePromise.length < concurrencyLimit) {
+      const taskPromise = retryFn(tasks[i]);
+      activePromise.push(taskPromise);
+
+      taskPromise
+        .then((result: Result) => {
+          results[i] = result;
+        })
+        .catch((error: Error) => {
+          throw error;
+        })
+        .finally(() => {
+          activePromise = activePromise.filter(p => p !== taskPromise);
+        });
+    }
+
+    if (activePromise.length >= concurrencyLimit) {
+      await Promise.race(activePromise);
+    }
+  }
+
+  await Promise.all(activePromise);
+
+  return results;
 }
 
 function fuzzyBrowserName(browser?: string): BrowserName {
