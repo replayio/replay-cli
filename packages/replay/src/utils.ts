@@ -121,32 +121,32 @@ export async function concurrentWithRetry<Result>(
     errHandler?: (e: unknown) => void
   ) => Promise<Result> = linearBackoffRetry
 ): Promise<Result[]> {
-  let activePromise: Promise<Result>[] = [];
+  let activePromises: Promise<void>[] = [];
   let results: Result[] = [];
 
-  for (let i = 0; i < tasks.length; i++) {
-    if (activePromise.length < concurrencyLimit) {
-      const taskPromise = retryFn(tasks[i]);
-      activePromise.push(taskPromise);
+  const executeTask = async (taskIndex: number) => {
+    const result = await retryFn(tasks[taskIndex], (e: unknown) =>
+      console.log("Task", taskIndex, "failed. Will be retried.", e)
+    );
+    console.log("Task", taskIndex, "completed", result);
+    results[taskIndex] = result;
+  };
 
-      taskPromise
-        .then((result: Result) => {
-          results[i] = result;
-        })
-        .catch((error: Error) => {
-          throw error;
-        })
-        .finally(() => {
-          activePromise = activePromise.filter(p => p !== taskPromise);
-        });
-    }
-
-    if (activePromise.length >= concurrencyLimit) {
-      await Promise.race(activePromise);
+  let taskIndex = 0;
+  while (taskIndex < tasks.length) {
+    if (activePromises.length < concurrencyLimit) {
+      console.log("Queuing task", taskIndex);
+      const taskPromise = executeTask(taskIndex).finally(() => {
+        activePromises = activePromises.filter(promise => promise !== taskPromise);
+      });
+      activePromises.push(taskPromise);
+      taskIndex++;
+    } else {
+      await Promise.race(activePromises);
     }
   }
 
-  await Promise.all(activePromise);
+  await Promise.all(activePromises);
 
   return results;
 }
