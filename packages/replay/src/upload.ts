@@ -4,10 +4,11 @@ import { Worker } from "worker_threads";
 import crypto from "crypto";
 import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import { defer, maybeLog, isValidUUID, getUserAgent, concurrentWithRetry } from "./utils";
+import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg from "./debug";
+import pMap from "p-map";
 
 const debug = dbg("replay:cli:upload");
 
@@ -182,17 +183,21 @@ class ReplayClient {
   async uploadRecordingInParts(path: string, partUploadLinks: string[], partSize: number) {
     // TODO: Can we not use this? It can use high memory
     const fileBuffer = fs.readFileSync(path);
-    const tasks = partUploadLinks.map((url, index) => async () => {
-      const partNumber = index + 1;
-      const start = index * partSize;
-      const end = Math.min(start + partSize, fileBuffer.length);
-      const partData = fileBuffer.slice(start, end);
+    const results = await pMap(
+      partUploadLinks,
+      async (url, index) => {
+        return linearBackoffRetry(async () => {
+          const partNumber = index + 1;
+          const start = index * partSize;
+          const end = Math.min(start + partSize, fileBuffer.length);
+          const partData = fileBuffer.slice(start, end);
 
-      debug(`Uploading part`, partNumber);
-      return this.uploadPart(url, partData, partData.length);
-    });
-
-    const results = await concurrentWithRetry(tasks, 4);
+          debug(`Uploading part`, partNumber);
+          return this.uploadPart(url, partData, partData.length);
+        });
+      },
+      { concurrency: 4 }
+    );
 
     return results;
   }

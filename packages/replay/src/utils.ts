@@ -113,44 +113,6 @@ export async function linearBackoffRetry<T>(
   return retry(fn, linearBackoff, onFail);
 }
 
-export async function concurrentWithRetry<Result>(
-  tasks: (() => Promise<Result>)[],
-  concurrencyLimit: number = 4,
-  retryFn: (
-    task: () => Promise<Result>,
-    errHandler?: (e: unknown) => void
-  ) => Promise<Result> = linearBackoffRetry
-): Promise<Result[]> {
-  let activePromises: Promise<void>[] = [];
-  let results: Result[] = [];
-
-  const executeTask = async (taskIndex: number) => {
-    const result = await retryFn(tasks[taskIndex], (e: unknown) =>
-      console.log("Task", taskIndex, "failed. Will be retried.", e)
-    );
-    console.log("Task", taskIndex, "completed", result);
-    results[taskIndex] = result;
-  };
-
-  let taskIndex = 0;
-  while (taskIndex < tasks.length) {
-    if (activePromises.length < concurrencyLimit) {
-      console.log("Queuing task", taskIndex);
-      const taskPromise = executeTask(taskIndex).finally(() => {
-        activePromises = activePromises.filter(promise => promise !== taskPromise);
-      });
-      activePromises.push(taskPromise);
-      taskIndex++;
-    } else {
-      await Promise.race(activePromises);
-    }
-  }
-
-  await Promise.all(activePromises);
-
-  return results;
-}
-
 function fuzzyBrowserName(browser?: string): BrowserName {
   browser = browser?.toLowerCase()?.trim();
 
