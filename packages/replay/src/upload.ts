@@ -52,7 +52,24 @@ class ReplayClient {
     return this.clientReady.promise;
   }
 
-  async connectionBeginRecordingUpload(
+  async connectionBeginRecordingUpload(id: string, buildId: string, size: number) {
+    if (!this.client) throw new Error("Protocol client is not initialized");
+
+    const { recordingId, uploadLink } = await this.client.sendCommand<{
+      recordingId: string;
+      uploadLink: string;
+    }>("Internal.beginRecordingUpload", {
+      buildId,
+      // 3/22/2022: Older builds use integers instead of UUIDs for the recording
+      // IDs written to disk. These are not valid to use as recording IDs when
+      // uploading recordings to the backend.
+      recordingId: isValidUUID(id) ? id : undefined,
+      recordingSize: size,
+    });
+    return { recordingId, uploadLink };
+  }
+
+  async connectionBeginRecordingMultipartUpload(
     id: string,
     buildId: string,
     size: number,
@@ -60,13 +77,12 @@ class ReplayClient {
   ) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const { recordingId, uploadLink, uploadId, partLinks } = await this.client.sendCommand<{
+    const { recordingId, uploadId, partLinks } = await this.client.sendCommand<{
       recordingId: string;
-      uploadLink: string;
       uploadId: string;
       partLinks: string[];
       multiPartChunkSize: number;
-    }>("Internal.beginRecordingUpload", {
+    }>("Internal.beginRecordingMultipartUpload", {
       buildId,
       // 3/22/2022: Older builds use integers instead of UUIDs for the recording
       // IDs written to disk. These are not valid to use as recording IDs when
@@ -75,7 +91,7 @@ class ReplayClient {
       recordingSize: size,
       multiPartChunkSize,
     });
-    return { recordingId, uploadLink, uploadId, partLinks };
+    return { recordingId, uploadId, partLinks };
   }
 
   async buildRecordingMetadata(
@@ -210,15 +226,27 @@ class ReplayClient {
     return results;
   }
 
-  async connectionEndRecordingUpload(recordingId: string, uploadId?: string, eTags?: string[]) {
+  async connectionEndRecordingUpload(recordingId: string) {
+    if (!this.client) throw new Error("Protocol client is not initialized");
+
+    await this.client.sendCommand<{ recordingId: string }>("Internal.endRecordingUpload", {
+      recordingId,
+    });
+  }
+
+  async connectionEndRecordingMultipartUpload(
+    recordingId: string,
+    uploadId: string,
+    eTags: string[]
+  ) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
     await this.client.sendCommand<{ recordingId: string; uploadId: string; partETags: string[] }>(
-      "Internal.endRecordingUpload",
+      "Internal.endRecordingMultipartUpload",
       {
         recordingId,
         uploadId,
-        partETags: eTags,
+        partIds: eTags,
       }
     );
   }
