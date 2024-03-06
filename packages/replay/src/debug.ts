@@ -7,7 +7,7 @@ import { getDirectory } from "./utils";
 const debugDebug = dbg("replay:cli:debug");
 
 const logDirPath = path.join(getDirectory(), "logs");
-let logPath = path.join(
+export let logPath = path.join(
   logDirPath,
   "cli-" +
     new Date()
@@ -26,7 +26,7 @@ function init() {
 }
 
 let size = 0;
-export default function debug(namespace: string) {
+export default function debug(namespace: string, pathToLog: string = logPath) {
   size = Math.max(size, namespace.length);
   const d = dbg(namespace);
 
@@ -37,7 +37,7 @@ export default function debug(namespace: string) {
   return (formatter: string, ...args: any[]) => {
     d(formatter, ...args);
 
-    if (logPath) {
+    if (pathToLog) {
       try {
         const output = util
           .format(formatter, ...args)
@@ -45,7 +45,7 @@ export default function debug(namespace: string) {
           .map((l, i) => (i === 0 ? l : "".padStart(size + 3, " ") + l))
           .join("\n");
         const prefix = `[${namespace}] `.padStart(size + 3, " ");
-        fs.appendFileSync(logPath, `${prefix}${output}\n`);
+        fs.appendFileSync(pathToLog, `${prefix}${output}\n`);
       } catch (e) {
         debugDebug("Failed to write log %o", e);
       }

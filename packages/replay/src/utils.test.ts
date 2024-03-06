@@ -36,6 +36,18 @@ describe("exponentialBackoffRetry", () => {
 
     expect(failingFunction).toHaveBeenCalledTimes(3);
   });
+
+  it("respects the maxTries parameter by retrying only the specified number of times", async () => {
+    const mockFn = jest.fn();
+    mockFn.mockRejectedValue(new Error("Expected failure"));
+
+    const maxTries = 3;
+
+    await expect(exponentialBackoffRetry(mockFn, undefined, maxTries)).rejects.toThrow(
+      "Expected failure"
+    );
+    expect(mockFn).toHaveBeenCalledTimes(maxTries);
+  });
 });
 
 describe("linearBackoffRetry", () => {

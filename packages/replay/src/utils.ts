@@ -79,10 +79,12 @@ const MAX_ATTEMPTS = 5;
 async function retry<T>(
   fn: () => Promise<T>,
   backOffStrategy: (iteration: number) => number,
-  onFail?: (e: unknown) => void
+  onFail?: (e: unknown) => void,
+  maxTries?: number
 ): Promise<T> {
+  const maxAttempts = maxTries || MAX_ATTEMPTS;
   let currentAttempt = 0;
-  while (currentAttempt <= MAX_ATTEMPTS) {
+  while (currentAttempt <= maxAttempts) {
     currentAttempt++;
     try {
       return await fn();
@@ -90,7 +92,7 @@ async function retry<T>(
       if (onFail) {
         onFail(e);
       }
-      if (currentAttempt == MAX_ATTEMPTS) {
+      if (currentAttempt == maxAttempts) {
         throw e;
       }
       await waitForTime(backOffStrategy(currentAttempt));
@@ -101,16 +103,18 @@ async function retry<T>(
 
 export async function exponentialBackoffRetry<T>(
   fn: () => Promise<T>,
-  onFail?: (e: unknown) => void
+  onFail?: (e: unknown) => void,
+  maxTries?: number
 ): Promise<T> {
-  return retry(fn, geometricBackoff, onFail);
+  return retry(fn, geometricBackoff, onFail, maxTries);
 }
 
 export async function linearBackoffRetry<T>(
   fn: () => Promise<T>,
-  onFail?: (e: unknown) => void
+  onFail?: (e: unknown) => void,
+  maxTries?: number
 ): Promise<T> {
-  return retry(fn, linearBackoff, onFail);
+  return retry(fn, linearBackoff, onFail, maxTries);
 }
 
 function fuzzyBrowserName(browser?: string): BrowserName {

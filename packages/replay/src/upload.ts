@@ -7,7 +7,7 @@ import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import dbg from "./debug";
+import dbg, { logPath } from "./debug";
 import pMap from "p-map";
 
 const debug = dbg("replay:cli:upload");
@@ -163,9 +163,12 @@ class ReplayClient {
     }
   }
 
-  async uploadPart(link: string, part: any, size: number): Promise<string> {
+  async uploadPart(
+    link: string,
+    partMeta: { filePath: string; start: number; end: number },
+    size: number
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
-      console.log("Stating worker");
       const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
 
       worker.on("message", resolve);
@@ -176,27 +179,32 @@ class ReplayClient {
         }
       });
 
-      worker.postMessage({ link, part, size });
+      worker.postMessage({ link, partMeta, size, logPath });
     });
   }
 
-  async uploadRecordingInParts(path: string, partUploadLinks: string[], partSize: number) {
-    // TODO: Can we not use this? It can use high memory
-    const fileBuffer = fs.readFileSync(path);
+  async uploadRecordingInParts(filePath: string, partUploadLinks: string[], partSize: number) {
+    const stats = fs.statSync(filePath);
+    const totalSize = stats.size;
     const results = await pMap(
       partUploadLinks,
       async (url, index) => {
-        return linearBackoffRetry(async () => {
-          const partNumber = index + 1;
-          const start = index * partSize;
-          const end = Math.min(start + partSize, fileBuffer.length);
-          const partData = fileBuffer.slice(start, end);
+        return linearBackoffRetry(
+          async () => {
+            const partNumber = index + 1;
+            const start = index * partSize;
+            const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
 
-          debug(`Uploading part`, partNumber);
-          return this.uploadPart(url, partData, partData.length);
-        });
+            debug(`Uploading part`, partNumber);
+            return this.uploadPart(url, { filePath, start, end }, end - start + 1);
+          },
+          e => {
+            debug(`Failed to upload part ${index + 1}. Will be retried: %o`, e);
+          },
+          10
+        );
       },
-      { concurrency: 4 }
+      { concurrency: 10 }
     );
 
     return results;
