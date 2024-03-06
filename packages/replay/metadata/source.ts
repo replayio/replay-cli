@@ -296,7 +296,10 @@ const versions: () => Record<number, Struct> = () => ({
       id: optional(
         envString(
           "RECORD_REPLAY_METADATA_SOURCE_MERGE_ID",
-          "BUILDKITE_PULL_REQUEST",
+          env =>
+            env.BUILDKITE_PULL_REQUEST && env.BUILDKITE_PULL_REQUEST !== "false"
+              ? env.BUILDKITE_PULL_REQUEST
+              : undefined,
           getCircleCIMergeId,
           "SEMAPHORE_GIT_PR_NUMBER"
         )
