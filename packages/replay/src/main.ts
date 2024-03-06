@@ -259,16 +259,17 @@ async function doUploadRecording(
 
   let recordingId: string;
   if (process.env.REPLAY_MULTIPART_UPLOAD) {
-    const multiPartChunkSize = 5 * 1024 * 1024;
+    const requestPartChunkSize = parseInt(process.env.REPLAY_MULTIPART_UPLOAD, 10) ?? undefined;
     const {
       recordingId: generatedId,
       uploadId,
       partLinks,
+      chunkSize,
     } = await client.connectionBeginRecordingMultipartUpload(
       recording.id,
       recording.buildId!,
       size,
-      multiPartChunkSize
+      requestPartChunkSize
     );
     recordingId = generatedId;
     setMetadata(recordingId, metadata);
@@ -276,11 +277,7 @@ async function doUploadRecording(
       server,
       recordingId,
     });
-    const eTags = await client.uploadRecordingInParts(
-      recording.path!,
-      partLinks,
-      multiPartChunkSize
-    );
+    const eTags = await client.uploadRecordingInParts(recording.path!, partLinks, chunkSize);
 
     await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
   } else {

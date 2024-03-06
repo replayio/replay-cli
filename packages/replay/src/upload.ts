@@ -73,15 +73,15 @@ class ReplayClient {
     id: string,
     buildId: string,
     size: number,
-    multiPartChunkSize: number
+    multiPartChunkSize?: number
   ) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
-    const { recordingId, uploadId, partLinks } = await this.client.sendCommand<{
+    const { recordingId, uploadId, chunkSize, partLinks } = await this.client.sendCommand<{
       recordingId: string;
       uploadId: string;
       partLinks: string[];
-      multiPartChunkSize: number;
+      chunkSize: number;
     }>("Internal.beginRecordingMultipartUpload", {
       buildId,
       // 3/22/2022: Older builds use integers instead of UUIDs for the recording
@@ -89,9 +89,9 @@ class ReplayClient {
       // uploading recordings to the backend.
       recordingId: isValidUUID(id) ? id : undefined,
       recordingSize: size,
-      multiPartChunkSize,
+      chunkSize: multiPartChunkSize,
     });
-    return { recordingId, uploadId, partLinks };
+    return { recordingId, uploadId, chunkSize, partLinks };
   }
 
   async buildRecordingMetadata(
