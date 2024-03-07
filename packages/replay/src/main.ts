@@ -259,7 +259,8 @@ async function doUploadRecording(
 
   let recordingId: string;
   if (process.env.REPLAY_MULTIPART_UPLOAD) {
-    const requestPartChunkSize = parseInt(process.env.REPLAY_MULTIPART_UPLOAD, 10) ?? undefined;
+    const requestPartChunkSize =
+      parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
     const {
       recordingId: generatedId,
       uploadId,
