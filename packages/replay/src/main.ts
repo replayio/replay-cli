@@ -194,6 +194,8 @@ function handleUploadingError(
   }
 }
 
+const MIN_MULTIPART_UPLOAD_SIZE = 5 * 1024 * 1024;
+
 async function doUploadRecording(
   dir: string,
   server: string,
@@ -258,7 +260,7 @@ async function doUploadRecording(
   };
 
   let recordingId: string;
-  if (process.env.REPLAY_MULTIPART_UPLOAD) {
+  if (size > MIN_MULTIPART_UPLOAD_SIZE && process.env.REPLAY_MULTIPART_UPLOAD) {
     const requestPartChunkSize =
       parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
     const {
