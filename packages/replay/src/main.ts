@@ -194,13 +194,99 @@ function handleUploadingError(
   }
 }
 
+async function validateMetadata(
+  client: ReplayClient,
+  metadata: Record<string, unknown> | null,
+  verbose: boolean | undefined
+): Promise<RecordingMetadata | null> {
+  return metadata ? await client.buildRecordingMetadata(metadata, { verbose }) : null;
+}
+
+async function setMetadata(
+  client: ReplayClient,
+  recordingId: string,
+  metadata: RecordingMetadata | null,
+  strict: boolean,
+  verbose: boolean
+) {
+  if (metadata) {
+    try {
+      await client.setRecordingMetadata(recordingId, metadata);
+    } catch (e) {
+      handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
+    }
+  }
+}
+
 const MIN_MULTIPART_UPLOAD_SIZE = 5 * 1024 * 1024;
+async function multipartUploadRecording(
+  server: string,
+  client: ReplayClient,
+  dir: string,
+  recording: RecordingEntry,
+  metadata: RecordingMetadata | null,
+  size: number,
+  strict: boolean,
+  verbose: boolean
+) {
+  const requestPartChunkSize =
+    parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
+  const { recordingId, uploadId, partLinks, chunkSize } =
+    await client.connectionBeginRecordingMultipartUpload(
+      recording.id,
+      recording.buildId!,
+      size,
+      requestPartChunkSize
+    );
+  setMetadata(client, recordingId, metadata, strict, verbose);
+  addRecordingEvent(dir, "uploadStarted", recording.id, {
+    server,
+    recordingId,
+  });
+  const eTags = await client.uploadRecordingInParts(recording.path!, partLinks, chunkSize);
+
+  await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
+  return recordingId;
+}
+
+async function directUploadRecording(
+  server: string,
+  client: ReplayClient,
+  dir: string,
+  recording: RecordingEntry,
+  metadata: RecordingMetadata | null,
+  size: number,
+  strict: boolean,
+  verbose: boolean
+) {
+  const { recordingId, uploadLink } = await client.connectionBeginRecordingUpload(
+    recording.id,
+    recording.buildId!,
+    size
+  );
+  setMetadata(client, recordingId, metadata, strict, verbose);
+  addRecordingEvent(dir, "uploadStarted", recording.id, {
+    server,
+    recordingId,
+  });
+  await exponentialBackoffRetry(
+    () => client.uploadRecording(recording.path!, uploadLink, size),
+    e => {
+      debug("Upload failed with error:  %j", e);
+    }
+  );
+
+  debug("%s: Uploaded %d bytes", recordingId, size);
+
+  await client.connectionEndRecordingUpload(recording.id);
+  return recordingId;
+}
 
 async function doUploadRecording(
   dir: string,
   server: string,
   recording: RecordingEntry,
-  verbose?: boolean,
+  verbose: boolean = false,
   apiKey?: string,
   agent?: any,
   removeAssets: boolean = false,
@@ -245,66 +331,31 @@ async function doUploadRecording(
   }
 
   // validate metadata before uploading so invalid data can block the upload
-  const metadata = recording.metadata
-    ? await client.buildRecordingMetadata(recording.metadata, { verbose })
-    : null;
-
-  const setMetadata = async (recordingId: string, metadata: RecordingMetadata | null) => {
-    if (metadata) {
-      try {
-        await client.setRecordingMetadata(recordingId, metadata);
-      } catch (e) {
-        handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
-      }
-    }
-  };
+  const metadata = await validateMetadata(client, recording.metadata, verbose);
 
   let recordingId: string;
   if (size > MIN_MULTIPART_UPLOAD_SIZE && process.env.REPLAY_MULTIPART_UPLOAD) {
-    const requestPartChunkSize =
-      parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
-    const {
-      recordingId: generatedId,
-      uploadId,
-      partLinks,
-      chunkSize,
-    } = await client.connectionBeginRecordingMultipartUpload(
-      recording.id,
-      recording.buildId!,
+    recordingId = await multipartUploadRecording(
+      server,
+      client,
+      dir,
+      recording,
+      metadata,
       size,
-      requestPartChunkSize
+      strict,
+      verbose
     );
-    recordingId = generatedId;
-    setMetadata(recordingId, metadata);
-    addRecordingEvent(dir, "uploadStarted", recording.id, {
-      server,
-      recordingId,
-    });
-    const eTags = await client.uploadRecordingInParts(recording.path!, partLinks, chunkSize);
-
-    await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
   } else {
-    const { recordingId: generatedId, uploadLink } = await client.connectionBeginRecordingUpload(
-      recording.id,
-      recording.buildId!,
-      size
-    );
-    recordingId = generatedId;
-    setMetadata(recordingId, metadata);
-    addRecordingEvent(dir, "uploadStarted", recording.id, {
+    recordingId = await directUploadRecording(
       server,
-      recordingId,
-    });
-    await exponentialBackoffRetry(
-      () => client.uploadRecording(recording.path!, uploadLink, size),
-      e => {
-        debug("Upload failed with error:  %j", e);
-      }
+      client,
+      dir,
+      recording,
+      metadata,
+      size,
+      strict,
+      verbose
     );
-
-    debug("%s: Uploaded %d bytes", recordingId, size);
-
-    await client.connectionEndRecordingUpload(recording.id);
   }
 
   await pMap(
