@@ -42,7 +42,7 @@ parentPort.on(
       throw new Error("Must be run as a worker");
     }
 
-    debug(`Uploading chunk size: ${size}`);
+    debug("Uploading chunk %o", { filePath, size, start, end });
 
     const stream = fs.createReadStream(filePath, { start, end });
     const resp = await fetch(link, {
@@ -65,7 +65,7 @@ parentPort.on(
     }
 
     const etag = resp.headers.get("etag");
-    debug(`Etag received: ${etag}`);
+    debug("Etag received %o", { etag, filePath, size, start, end });
 
     parentPort.postMessage(etag);
   }
