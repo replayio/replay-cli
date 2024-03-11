@@ -9,6 +9,8 @@ import { Agent as HttpsAgent } from "https";
 import { getUserAgent } from "./utils";
 import dbg from "./debug";
 
+// After adding support for agent options, merge the agent options with the default options here
+// https://linear.app/replay/issue/SCS-2034/take-agentoptions-rather-than-agent-instance
 const agentConfig: AgentOptions = {
   keepAlive: true,
   maxSockets: 500,
