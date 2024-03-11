@@ -66,18 +66,25 @@ function jitter(): number {
 }
 
 // Returns backoff timeouts (in ms) in a geometric progression, and with jitter.
-function backoff(iteration: number): number {
+function geometricBackoff(iteration: number): number {
   return 2 ** iteration * 100 + jitter();
+}
+
+function linearBackoff(): number {
+  return 100 + jitter();
 }
 
 const MAX_ATTEMPTS = 5;
 
-export async function exponentialBackoffRetry<T>(
-  fn: () => T,
-  onFail?: (e: unknown) => void
+async function retry<T>(
+  fn: () => Promise<T>,
+  backOffStrategy: (iteration: number) => number,
+  onFail?: (e: unknown) => void,
+  maxTries?: number
 ): Promise<T> {
+  const maxAttempts = maxTries || MAX_ATTEMPTS;
   let currentAttempt = 0;
-  while (currentAttempt <= MAX_ATTEMPTS) {
+  while (currentAttempt <= maxAttempts) {
     currentAttempt++;
     try {
       return await fn();
@@ -85,13 +92,29 @@ export async function exponentialBackoffRetry<T>(
       if (onFail) {
         onFail(e);
       }
-      if (currentAttempt == MAX_ATTEMPTS) {
+      if (currentAttempt == maxAttempts) {
         throw e;
       }
-      await waitForTime(backoff(currentAttempt));
+      await waitForTime(backOffStrategy(currentAttempt));
     }
   }
   throw Error("ShouldBeUnreachable");
+}
+
+export async function exponentialBackoffRetry<T>(
+  fn: () => Promise<T>,
+  onFail?: (e: unknown) => void,
+  maxTries?: number
+): Promise<T> {
+  return retry(fn, geometricBackoff, onFail, maxTries);
+}
+
+export async function linearBackoffRetry<T>(
+  fn: () => Promise<T>,
+  onFail?: (e: unknown) => void,
+  maxTries?: number
+): Promise<T> {
+  return retry(fn, linearBackoff, onFail, maxTries);
 }
 
 function fuzzyBrowserName(browser?: string): BrowserName {

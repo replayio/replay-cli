@@ -1,11 +1,14 @@
 import fs from "fs";
+import path from "path";
+import { Worker } from "worker_threads";
 import crypto from "crypto";
 import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import { defer, maybeLog, isValidUUID, getUserAgent } from "./utils";
+import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
 import { sanitize as sanitizeMetadata } from "../metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import dbg from "./debug";
+import dbg, { logPath } from "./debug";
+import pMap from "p-map";
 
 const debug = dbg("replay:cli:upload");
 
@@ -64,6 +67,31 @@ class ReplayClient {
       recordingSize: size,
     });
     return { recordingId, uploadLink };
+  }
+
+  async connectionBeginRecordingMultipartUpload(
+    id: string,
+    buildId: string,
+    size: number,
+    multiPartChunkSize?: number
+  ) {
+    if (!this.client) throw new Error("Protocol client is not initialized");
+
+    const { recordingId, uploadId, chunkSize, partLinks } = await this.client.sendCommand<{
+      recordingId: string;
+      uploadId: string;
+      partLinks: string[];
+      chunkSize: number;
+    }>("Internal.beginRecordingMultipartUpload", {
+      buildId,
+      // 3/22/2022: Older builds use integers instead of UUIDs for the recording
+      // IDs written to disk. These are not valid to use as recording IDs when
+      // uploading recordings to the backend.
+      recordingId: isValidUUID(id) ? id : undefined,
+      recordingSize: size,
+      chunkSize: multiPartChunkSize,
+    });
+    return { recordingId, uploadId, chunkSize, partLinks };
   }
 
   async buildRecordingMetadata(
@@ -151,12 +179,82 @@ class ReplayClient {
     }
   }
 
+  async uploadPart(
+    link: string,
+    partMeta: { filePath: string; start: number; end: number },
+    size: number
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
+
+      worker.on("message", resolve);
+      worker.on("error", reject);
+      worker.on("exit", code => {
+        if (code !== 0) {
+          reject(new Error(`Worker stopped with exit code ${code}`));
+        }
+      });
+
+      worker.postMessage({ link, partMeta, size, logPath });
+    });
+  }
+
+  async uploadRecordingInParts(filePath: string, partUploadLinks: string[], partSize: number) {
+    const stats = fs.statSync(filePath);
+    const totalSize = stats.size;
+    const results = await pMap(
+      partUploadLinks,
+      async (url, index) => {
+        return linearBackoffRetry(
+          async () => {
+            const partNumber = index + 1;
+            const start = index * partSize;
+            const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
+
+            debug("Uploading part %o", {
+              partNumber,
+              start,
+              end,
+              totalSize,
+              partSize,
+            });
+            return this.uploadPart(url, { filePath, start, end }, end - start + 1);
+          },
+          e => {
+            debug(`Failed to upload part ${index + 1}. Will be retried: %o`, e);
+          },
+          10
+        );
+      },
+      { concurrency: 10 }
+    );
+
+    return results;
+  }
+
   async connectionEndRecordingUpload(recordingId: string) {
     if (!this.client) throw new Error("Protocol client is not initialized");
 
     await this.client.sendCommand<{ recordingId: string }>("Internal.endRecordingUpload", {
       recordingId,
     });
+  }
+
+  async connectionEndRecordingMultipartUpload(
+    recordingId: string,
+    uploadId: string,
+    eTags: string[]
+  ) {
+    if (!this.client) throw new Error("Protocol client is not initialized");
+
+    await this.client.sendCommand<{ recordingId: string; uploadId: string; partETags: string[] }>(
+      "Internal.endRecordingMultipartUpload",
+      {
+        recordingId,
+        uploadId,
+        partIds: eTags,
+      }
+    );
   }
 
   async connectionUploadSourcemap(recordingId: string, metadata: SourceMapEntry, content: string) {
