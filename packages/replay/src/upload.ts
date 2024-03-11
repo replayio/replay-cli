@@ -211,7 +211,13 @@ class ReplayClient {
             const start = index * partSize;
             const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
 
-            debug(`Uploading part`, partNumber);
+            debug("Uploading part %o", {
+              partNumber,
+              start,
+              end,
+              totalSize,
+              partSize,
+            });
             return this.uploadPart(url, { filePath, start, end }, end - start + 1);
           },
           e => {
