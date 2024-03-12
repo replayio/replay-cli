@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
 import { createHash } from "crypto";
 import dbg from "./debug";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 import { query } from "./graphql";
@@ -195,7 +195,7 @@ export async function pollForToken(key: string, options: Options = {}) {
 
 function getTokenPath(options: Options = {}) {
   const directory = getDirectory(options);
-  return path.join(directory, "profile", "auth.json");
+  return path.resolve(path.join(directory, "profile", "auth.json"));
 }
 
 export async function readToken(options: Options = {}) {
@@ -223,6 +223,7 @@ export async function readToken(options: Options = {}) {
 async function writeToken(token: string, options: Options = {}) {
   maybeLog(options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
+  await mkdir(path.dirname(tokenPath), { recursive: true });
   await writeFile(
     tokenPath,
     JSON.stringify(
