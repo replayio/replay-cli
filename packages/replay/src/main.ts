@@ -44,6 +44,7 @@ import {
   removeRecordingFromLog,
   addRecordingEvent,
 } from "./recordingLog";
+import { ProtocolError } from "./client";
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
@@ -334,28 +335,38 @@ async function doUploadRecording(
   const metadata = await validateMetadata(client, recording.metadata, verbose);
 
   let recordingId: string;
-  if (size > MIN_MULTIPART_UPLOAD_SIZE && process.env.REPLAY_MULTIPART_UPLOAD) {
-    recordingId = await multipartUploadRecording(
-      server,
-      client,
-      dir,
-      recording,
-      metadata,
-      size,
+  try {
+    if (size > MIN_MULTIPART_UPLOAD_SIZE && process.env.REPLAY_MULTIPART_UPLOAD) {
+      recordingId = await multipartUploadRecording(
+        server,
+        client,
+        dir,
+        recording,
+        metadata,
+        size,
+        strict,
+        verbose
+      );
+    } else {
+      recordingId = await directUploadRecording(
+        server,
+        client,
+        dir,
+        recording,
+        metadata,
+        size,
+        strict,
+        verbose
+      );
+    }
+  } catch (err) {
+    handleUploadingError(
+      err instanceof ProtocolError ? err.protocolMessage : String(err),
       strict,
-      verbose
+      verbose,
+      err
     );
-  } else {
-    recordingId = await directUploadRecording(
-      server,
-      client,
-      dir,
-      recording,
-      metadata,
-      size,
-      strict,
-      verbose
-    );
+    return null;
   }
 
   await pMap(
