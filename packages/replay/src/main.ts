@@ -212,7 +212,12 @@ async function setMetadata(
 ) {
   if (metadata) {
     try {
-      await client.setRecordingMetadata(recordingId, metadata);
+      await exponentialBackoffRetry(
+        () => client.setRecordingMetadata(recordingId, metadata),
+        e => {
+          debug("Failed to set recording metadata. Will be retried:  %j", e);
+        }
+      );
     } catch (e) {
       handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
     }
@@ -273,7 +278,7 @@ async function directUploadRecording(
   await exponentialBackoffRetry(
     () => client.uploadRecording(recording.path!, uploadLink, size),
     e => {
-      debug("Upload failed with error:  %j", e);
+      debug("Upload failed with error. Will be retried:  %j", e);
     }
   );
 
