@@ -35,6 +35,7 @@
   "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40",
   "devDependencies": {
     "@types/debug": "^4.1.7",
-    "@types/node-fetch": "^2.6.2"
+    "@types/node-fetch": "^2.6.2",
+    "typescript": "^5.4.2"
   }
 }
