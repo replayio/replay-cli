@@ -1,0 +1,14 @@
+diff --git a/build/index.d.ts b/build/index.d.ts
+index 28c4291a052a16ae45954b48ee56c5aa74b83120..b2e71e49ec9962f0088739cacf995ade9bb4614c 100644
+--- a/build/index.d.ts
++++ b/build/index.d.ts
+@@ -325,7 +325,8 @@ export declare interface JestEnvironmentConfig {
+ }
+ 
+ export declare interface JestImportMeta extends ImportMeta {
+-  jest: Jest;
++  // it creates cnflicts between mismatched Jest versions in the repo
++  // jest: Jest;
+ }
+ 
+ export declare type Module = NodeModule;

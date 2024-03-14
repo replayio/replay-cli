@@ -920,19 +920,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jest/environment@npm:^27.5.1":
-  version: 27.5.1
-  resolution: "@jest/environment@npm:27.5.1"
-  dependencies:
-    "@jest/fake-timers": "npm:^27.5.1"
-    "@jest/types": "npm:^27.5.1"
-    "@types/node": "npm:*"
-    jest-mock: "npm:^27.5.1"
-  checksum: 10c0/50e40b4f0a351a83f21af03c5cffd9f061729aee8f73131dbb32b39838c575a89d313e946ded91c08e16cf58ff470d74d6b3a48f664cec5c70a946aff45310b3
-  languageName: node
-  linkType: hard
-
-"@jest/environment@npm:^28.1.3":
+"@jest/environment@npm:28.1.3":
   version: 28.1.3
   resolution: "@jest/environment@npm:28.1.3"
   dependencies:
@@ -941,6 +929,18 @@ __metadata:
     "@types/node": "npm:*"
     jest-mock: "npm:^28.1.3"
   checksum: 10c0/910b8863f300e0627c8f7bf6280fe51da25060e72ac1179d959cce74907b048e64042ad192800259a037dc52faa2e361e778a94df223cf1b17a315e5eec5471e
+  languageName: node
+  linkType: hard
+
+"@jest/environment@patch:@jest/environment@npm%3A28.1.3#~/.yarn/patches/@jest-environment-npm-28.1.3-506a81a227.patch":
+  version: 28.1.3
+  resolution: "@jest/environment@patch:@jest/environment@npm%3A28.1.3#~/.yarn/patches/@jest-environment-npm-28.1.3-506a81a227.patch::version=28.1.3&hash=10fa81"
+  dependencies:
+    "@jest/fake-timers": "npm:^28.1.3"
+    "@jest/types": "npm:^28.1.3"
+    "@types/node": "npm:*"
+    jest-mock: "npm:^28.1.3"
+  checksum: 10c0/5385b5643aaa91942068e8faea83fd1cc2b6f7fbb5b75daf0cf689ce68baf88c5e537b54c5e5ecd35989b514a4bc719cfc7a08017f5debddbc8e571817cb6422
   languageName: node
   linkType: hard
 
@@ -2564,7 +2564,7 @@ __metadata:
     "@types/node-fetch": "npm:^2.6.2"
     debug: "npm:^4.3.4"
     node-fetch: "npm:^2.6.7"
-    sha-1: "npm:^1.0.0"
+    sha-1: "patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch"
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   languageName: unknown
@@ -10300,10 +10300,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sha-1@npm:^1.0.0":
+"sha-1@npm:1.0.0":
   version: 1.0.0
   resolution: "sha-1@npm:1.0.0"
   checksum: 10c0/972a1b7989ab8e7775ee68af99987f7fbf9620cd374819f654313ffce68b8647cab21b1622aff77fa90528a4aab32001e53bef09212809ff758f202d9ad1048f
+  languageName: node
+  linkType: hard
+
+"sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch":
+  version: 1.0.0
+  resolution: "sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch::version=1.0.0&hash=d602ec"
+  checksum: 10c0/ffefe16f5eb1ca4a7ad47ce1de59cc4c703696c407a25dc590ac33804e5b14d66ab515f565fa2eba01ad8fee44facc1b3528cde3f8a881081cb6fdf0a170d8c8
   languageName: node
   linkType: hard
 

@@ -67,7 +67,8 @@
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
 
     // Use ECMA-standard behavior for class properties.
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "skipLibCheck": true
   },
   "include": ["src", "bin", "types", "reporter.ts"]
 }
