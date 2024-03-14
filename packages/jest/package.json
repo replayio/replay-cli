@@ -32,7 +32,7 @@
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",
     "@types/node": "^20.11.27",
-    "typescript": "^5.0.4"
+    "typescript": "^5.4.2"
   },
   "dependencies": {
     "@replayio/replay": "^0.21.4",
