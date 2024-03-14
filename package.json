@@ -12,7 +12,7 @@
     "bootstrap": "yarn workspaces foreach --all --topological run build",
     "test": "yarn run test:unit",
     "test:unit": "lerna exec yarn run test",
-    "typecheck": "lerna exec yarn run typecheck",
+    "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check ."
   },
   "author": "",
