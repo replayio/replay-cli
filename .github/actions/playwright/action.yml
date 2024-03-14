@@ -14,13 +14,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
-        node-version: "17"
-    - uses: bahmutov/npm-install@v1
-      with:
-        working-directory: ${{ inputs.working-directory }}
+        node-version: "18"
+        cache: "npm"
+    - run: npm ci
+      working-directory: ${{ inputs.working-directory }}
     - uses: replayio/action-playwright@main
       with:
         project: ${{ inputs.project }}
