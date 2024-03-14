@@ -7,7 +7,7 @@ const config = {
     defaultBrowserType: "chromium",
   },
   webServer: {
-    command: "npm start",
+    command: "yarn run start",
     port: 3000,
     timeout: 30 * 1000,
     reuseExistingServer: !process.env.CI,

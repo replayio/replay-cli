@@ -18,8 +18,8 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: "18"
-        cache: "npm"
-    - run: npm ci
+        cache: "yarn"
+    - run: yarn
       working-directory: ${{ inputs.working-directory }}
     - uses: replayio/action-playwright@main
       with:

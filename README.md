@@ -16,14 +16,14 @@ To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) 
 
 ## Developing
 
-1. `npm install`
-2. `npm run bootstrap`
+1. `yarn`
+2. `yarn run bootstrap`
 
 That should create an installed version of the package in `dist` within each directory in `packages`.
 
 ## Testing
 
-You can run the unit tests for all of the packages with `earthly +test`. You can run the unit tests for any individual package with `npm test` within that package.
+You can run the unit tests for all of the packages with `earthly +test`. You can run the unit tests for any individual package with `yarn run test` within that package.
 
 ## Deploying
 

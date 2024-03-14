@@ -1,16 +1,18 @@
 {
   "name": "replay-cli",
-  "version": "1.0.1",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "packageManager": "yarn@4.1.1",
+  "workspaces": [
+    "packages/*"
+  ],
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "test": "npm run test:unit",
-    "test:unit": "lerna exec npm run test",
-    "typecheck": "lerna exec npm run typecheck",
+    "bootstrap": "lerna exec yarn run build",
+    "test": "yarn run test:unit",
+    "test:unit": "lerna exec yarn run test",
+    "typecheck": "lerna exec yarn run typecheck",
     "lint": "prettier --check ."
   },
   "author": "",

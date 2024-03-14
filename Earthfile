@@ -5,16 +5,16 @@ WORKDIR /usr/build
 
 build:
   COPY . .
-  RUN npm install && npm --unsafe-perm run bootstrap
+  RUN yarn && yarn run bootstrap
   RUN npm link ./packages/cypress/dist
 
 lint:
   FROM +build
-  RUN npm run lint
+  RUN yarn run lint
 
 test:
   FROM +build
-  RUN npm test
+  RUN yarn run test
 
 setup:
   FROM +build
