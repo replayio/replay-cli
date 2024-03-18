@@ -4,12 +4,12 @@
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "src/index.js",
   "scripts": {
-    "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
+    "if:exists": "node -e \"console.log(process.argv);require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:source": "npm run if:exists -- src/index.ts",
     "if:dist": "npm run if:exists -- src/index.js",
     "prepare": "npm run if:source -- npm run build",
-    "install": "npm run if:dist -- node ./bin/replayio-playwright first-run",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "install": "node ./bin/replayio-playwright first-run",
+    "build": "npm run if:dist -- node -p 'wow'",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
