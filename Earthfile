@@ -6,7 +6,7 @@ WORKDIR /usr/build
 build:
   COPY . .
   RUN yarn && yarn run bootstrap
-  RUN npm link ./packages/cypress/dist
+  RUN npm link --prefix ./packages/cypress/dist
 
 lint:
   FROM +build
