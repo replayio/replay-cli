@@ -9,7 +9,7 @@
     "if:source": "npm run if:exists -- src/index.ts",
     "prepare": "npm run if:source -- npm run build",
     "install": "npm run if:dist -- node ./bin/replayio-cypress first-run",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
@@ -48,10 +48,5 @@
   },
   "peerDependencies": {
     "cypress": ">=5.3.0"
-  },
-  "publishConfig": {
-    "directory": "dist",
-    "access": "public"
-  },
-  "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40"
+  }
 }

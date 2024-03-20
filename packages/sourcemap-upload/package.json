@@ -13,9 +13,6 @@
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "lib"
   ],
@@ -52,6 +49,5 @@
     "glob": "^7.1.6",
     "node-fetch": "^2.6.1",
     "string.prototype.matchall": "^4.0.5"
-  },
-  "gitHead": "1f66765d6ce66d3676c247110e21a78b2594314b"
+  }
 }

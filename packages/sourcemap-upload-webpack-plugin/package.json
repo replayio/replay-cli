@@ -16,9 +16,6 @@
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "index.js",
     "lib"
@@ -52,6 +49,5 @@
   },
   "peerDependencies": {
     "webpack": "^4.0.0 || ^5.76.0"
-  },
-  "gitHead": "92b75e7f45f6325c942723b0d21d6102fb42211c"
+  }
 }

@@ -7,13 +7,9 @@
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:source": "yarn run if:exists -- src/index.ts",
     "prepare": "yarn run if:source -- yarn run build",
-    "build": "rm -rf dist/ && tsc && cp package.json README.md dist/",
+    "build": "rm -rf dist/ && tsc",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
-  },
-  "publishConfig": {
-    "directory": "dist",
-    "access": "public"
   },
   "repository": {
     "type": "git",
@@ -32,7 +28,6 @@
     "sha-1": "patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch",
     "uuid": "^8.3.2"
   },
-  "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40",
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/node-fetch": "^2.6.2",

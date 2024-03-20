@@ -8,7 +8,7 @@
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:source": "yarn run if:exists -- src/main.ts",
     "prepare": "yarn run if:source -- yarn run build",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "jest --ci",
     "typecheck": "tsc --noEmit"
   },
@@ -37,10 +37,6 @@
     "text-table": "^0.2.0",
     "ws": "^7.5.0"
   },
-  "publishConfig": {
-    "directory": "dist"
-  },
-  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b",
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/jest": "^28.1.5",
