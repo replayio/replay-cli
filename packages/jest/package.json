@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "bin": {
-    "replayio-jest": "./bin/replayio-jest.js"
+    "replayio-jest": "./dist/bin/replayio-jest.js"
   },
   "repository": {
     "type": "git",
