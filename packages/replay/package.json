@@ -2,8 +2,8 @@
   "name": "@replayio/replay",
   "version": "0.21.4",
   "description": "CLI tool for uploading and managing recordings",
-  "bin": "bin/replay.js",
-  "main": "src/main.js",
+  "bin": "./dist/bin/replay.js",
+  "main": "./dist/src/main.js",
   "scripts": {
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:source": "yarn run if:exists -- src/main.ts",
