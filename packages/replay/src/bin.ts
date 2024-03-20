@@ -53,7 +53,7 @@ function commandWithGlobalOptions(cmdString: string) {
       try {
         await initLDContextFromKey(cmd.opts());
       } catch (e) {
-        debug("LaunchDarkly profile is anonymous %j", e);
+        debug("LaunchDarkly profile is anonymous %o", e);
       }
     });
 }

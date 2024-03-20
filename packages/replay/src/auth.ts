@@ -265,15 +265,27 @@ export async function maybeAuthenticateUser(options: Options = {}) {
   }
 }
 
+function parseId(id: string) {
+  return Buffer.from(id, "base64").toString("utf-8").split(":")[1];
+}
+
 async function getAuthInfo(key: string) {
   const resp = await query(
     "AuthInfo",
     `
         query AuthInfo {
+          viewer {
+            user {
+              id
+            }
+          }
           auth {
-            info {
-              userId
-              workspaceId
+            workspaces {
+              edges {
+                node {
+                  id
+                }
+              }
             }
           }
         }
@@ -292,7 +304,30 @@ async function getAuthInfo(key: string) {
     };
   }
 
-  return resp.data.auth.info as { userId: string | null; workspaceId: string | null } | null;
+  const response = resp.data as {
+    viewer: {
+      user: {
+        id: string | null;
+      } | null;
+    };
+    auth: {
+      workspaces: {
+        edges: {
+          node: {
+            id: string;
+          };
+        }[];
+      };
+    };
+  };
+
+  const encodedUserId = response?.viewer?.user?.id;
+  const encodedWorkspaceId = response?.auth?.workspaces?.edges?.[0]?.node?.id;
+
+  return {
+    userId: encodedUserId ? parseId(encodedUserId) : null,
+    workspaceId: encodedWorkspaceId ? parseId(encodedWorkspaceId) : null,
+  };
 }
 
 function getAuthInfoCachePath(options: Options = {}) {
