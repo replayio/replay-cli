@@ -27,4 +27,4 @@ You can run the unit tests for all of the packages with `earthly +test`. You can
 
 ## Deploying
 
-`npx lerna publish`
+`yarn release`

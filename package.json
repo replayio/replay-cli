@@ -13,14 +13,14 @@
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
-    "lint": "prettier --check ."
+    "lint": "prettier --check .",
+    "release": "yarn run bootstrap && yarn workspaces foreach --all --exclude=. --topological npm publish --tolerate-republish"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@replayio/playwright": "^1.1.16",
     "@replayio/replay": "^0.21.4",
-    "lerna": "^4.0.0",
     "prettier": "^2.7.1",
     "typescript": "^5.4.2"
   },
