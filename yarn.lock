@@ -1412,7 +1412,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   bin:
-    replayio-jest: ./bin/replayio-jest.js
+    replayio-jest: ./dist/bin/replayio-jest.js
   languageName: unknown
   linkType: soft
 
