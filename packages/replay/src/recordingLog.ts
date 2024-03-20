@@ -43,7 +43,7 @@ const RECORDING_LOG_KIND = [
 ] as const;
 interface RecordingLogEntry {
   [key: string]: any;
-  kind: typeof RECORDING_LOG_KIND[number];
+  kind: (typeof RECORDING_LOG_KIND)[number];
 }
 export function readRecordings(dir?: string, includeHidden = false) {
   dir = getDirectory({ directory: dir });
