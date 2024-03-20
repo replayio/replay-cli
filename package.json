@@ -11,7 +11,7 @@
   "scripts": {
     "bootstrap": "yarn workspaces foreach --all --topological run build",
     "test": "yarn run test:unit",
-    "test:unit": "lerna exec yarn run test",
+    "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check ."
   },
