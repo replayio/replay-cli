@@ -7,7 +7,7 @@
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:source": "yarn run if:exists -- src/index.ts",
     "if:dist": "yarn run if:exists -- src/index.js",
-    "prepare": "yarn run if:source -- yarn run build",
+    "prepare": "yarn run build",
     "install": "yarn run if:dist -- node ./bin/replayio-puppeteer first-run",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "echo \"Error: no test specified\"",
