@@ -27,4 +27,5 @@ You can run the unit tests for all of the packages with `earthly +test`. You can
 
 ## Deploying
 
-`yarn release`
+1. Adjust `package.json#version` in all packages that you want to release
+2. `yarn release`
