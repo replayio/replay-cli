@@ -335,16 +335,13 @@ export async function initLDContextFromKey(options: Options = {}) {
     return;
   }
 
-  let authInfo;
-  const authInfoFromCache = await readAuthInfoCache(apiKey, options);
-  if (!authInfoFromCache) {
+  let authInfo = await readAuthInfoCache(apiKey, options);
+  if (!authInfo) {
     debug("Fetching auth info from server");
     authInfo = await getAuthInfo(apiKey);
     if (authInfo) {
       await writeAuthInfoCache(apiKey, authInfo, options);
     }
-  } else {
-    authInfo = authInfoFromCache;
   }
 
   if (!authInfo) {
