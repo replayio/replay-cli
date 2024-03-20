@@ -6,7 +6,6 @@
   "main": "./dist/src/main.js",
   "scripts": {
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
-    "if:source": "yarn run if:exists -- src/main.ts",
     "prepare": "yarn run build",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "jest --ci",

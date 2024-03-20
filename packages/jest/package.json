@@ -4,8 +4,6 @@
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "dist/src/index.js",
   "scripts": {
-    "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
-    "if:source": "yarn run if:exists -- src/index.ts",
     "prepare": "yarn run build",
     "build": "rm -rf dist/ && tsc",
     "test": "echo \"Error: no test specified\"",
