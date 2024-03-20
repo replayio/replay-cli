@@ -7,6 +7,7 @@ import path from "path";
 import { query } from "./graphql";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
+import { launchDarkly } from "./launchdarkly";
 
 const debug = dbg("replay:cli:auth");
 
@@ -261,5 +262,94 @@ export async function maybeAuthenticateUser(options: Options = {}) {
     }
 
     return false;
+  }
+}
+
+async function getAuthInfo(key: string) {
+  const resp = await query(
+    "AuthInfo",
+    `
+        query AuthInfo {
+          authInfo {
+            userId
+            workspaceId
+          }
+        }
+      `,
+    undefined,
+    key
+  );
+
+  if (resp.errors) {
+    throw {
+      id: "graphql-error",
+      message: resp.errors
+        .map((e: any) => e.message)
+        .filter(Boolean)
+        .join(", "),
+    };
+  }
+
+  return resp.data.authInfo as { userId: string | null; workspaceId: string | null };
+}
+
+function getAuthInfoCachePath(options: Options = {}) {
+  const directory = getDirectory(options);
+  return path.resolve(path.join(directory, "profile", "authInfo.json"));
+}
+
+function authInfoCacheKey(key: string) {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+async function writeAuthInfoCache(
+  key: string,
+  authInfo: { userId: string | null; workspaceId: string | null },
+  options: Options = {}
+) {
+  const cachePath = getAuthInfoCachePath(options);
+  await mkdir(path.dirname(getAuthInfoCachePath(options)), { recursive: true });
+  const cache = {
+    [authInfoCacheKey(key)]: authInfo,
+  };
+  await writeFile(cachePath, JSON.stringify(cache, undefined, 2), { encoding: "utf-8" });
+}
+
+async function readAuthInfoCache(key: string, options: Options = {}) {
+  try {
+    const cachePath = getAuthInfoCachePath(options);
+    const cacheJson = await readFile(cachePath, { encoding: "utf-8" });
+    const cache = JSON.parse(cacheJson);
+    return cache[authInfoCacheKey(key)];
+  } catch (e) {
+    debug("Failed to read auth info cache: %o", e);
+    return;
+  }
+}
+
+export async function initLDContextFromKey(options: Options = {}) {
+  const apiKey = options.apiKey ?? (await readToken(options));
+  if (!apiKey) {
+    return;
+  }
+
+  let authInfo;
+  const authInfoFromCache = await readAuthInfoCache(apiKey, options);
+  if (!authInfoFromCache) {
+    debug("Fetching auth info from server");
+    authInfo = await getAuthInfo(apiKey);
+    await writeAuthInfoCache(apiKey, authInfo, options);
+  } else {
+    authInfo = authInfoFromCache;
+  }
+
+  if (!authInfo) {
+    return;
+  }
+
+  if (authInfo.userId) {
+    await launchDarkly.identify({ type: "user", id: authInfo.userId });
+  } else if (authInfo.workspaceId) {
+    await launchDarkly.identify({ type: "workspace", id: authInfo.workspaceId });
   }
 }

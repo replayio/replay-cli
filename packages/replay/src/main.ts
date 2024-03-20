@@ -683,52 +683,45 @@ async function updateMetadata({
   warn,
   directory,
 }: MetadataOptions & FilterOptions) {
-  try {
-    let md: any = {};
-    if (metadata) {
-      md = JSON.parse(metadata);
-    }
+  let md: any = {};
+  if (metadata) {
+    md = JSON.parse(metadata);
+  }
 
-    const keyedObjects = await pMap<string, Record<string, any> | null>(keys, async v => {
-      try {
-        switch (v) {
-          case "source":
-            return await sourceMetadata.init(md.source || {});
-          case "test":
-            return await testMetadata.init(md.test || {});
-        }
-      } catch (e) {
-        debug("Metadata initialization error: %o", e);
-        if (!warn) {
-          throw e;
-        }
-
-        console.warn(`Unable to initialize metadata field: "${v}"`);
-        if (e instanceof Error) {
-          console.warn(" ->", e.message);
-        }
+  const keyedObjects = await pMap<string, Record<string, any> | null>(keys, async v => {
+    try {
+      switch (v) {
+        case "source":
+          return await sourceMetadata.init(md.source || {});
+        case "test":
+          return await testMetadata.init(md.test || {});
+      }
+    } catch (e) {
+      debug("Metadata initialization error: %o", e);
+      if (!warn) {
+        throw e;
       }
 
-      return null;
-    });
+      console.warn(`Unable to initialize metadata field: "${v}"`);
+      if (e instanceof Error) {
+        console.warn(" ->", e.message);
+      }
+    }
 
-    const data = Object.assign(md, ...keyedObjects);
-    const sanitized = await sanitize(data);
+    return null;
+  });
 
-    debug("Sanitized metadata: %O", sanitized);
+  const data = Object.assign(md, ...keyedObjects);
+  const sanitized = await sanitize(data);
 
-    const recordings = listAllRecordings({ directory, filter, includeCrashes });
+  debug("Sanitized metadata: %O", sanitized);
 
-    recordings.forEach(r => {
-      maybeLog(verbose, `Setting metadata for ${r.id}`);
-      add(r.id, sanitized);
-    });
-  } catch (e) {
-    console.error("Failed to set recording metadata");
-    console.error(e);
+  const recordings = listAllRecordings({ directory, filter, includeCrashes });
 
-    process.exit(1);
-  }
+  recordings.forEach(r => {
+    maybeLog(verbose, `Setting metadata for ${r.id}`);
+    add(r.id, sanitized);
+  });
 }
 
 async function launchBrowser(
