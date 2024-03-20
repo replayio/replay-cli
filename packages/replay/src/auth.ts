@@ -292,7 +292,7 @@ async function getAuthInfo(key: string) {
     };
   }
 
-  return resp.data.auth.info as { userId: string | null; workspaceId: string | null };
+  return resp.data.auth.info as { userId: string | null; workspaceId: string | null } | null;
 }
 
 function getAuthInfoCachePath(options: Options = {}) {
@@ -340,7 +340,9 @@ export async function initLDContextFromKey(options: Options = {}) {
   if (!authInfoFromCache) {
     debug("Fetching auth info from server");
     authInfo = await getAuthInfo(apiKey);
-    await writeAuthInfoCache(apiKey, authInfo, options);
+    if (authInfo) {
+      await writeAuthInfoCache(apiKey, authInfo, options);
+    }
   } else {
     authInfo = authInfoFromCache;
   }
