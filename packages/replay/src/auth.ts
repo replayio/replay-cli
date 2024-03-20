@@ -270,9 +270,11 @@ async function getAuthInfo(key: string) {
     "AuthInfo",
     `
         query AuthInfo {
-          authInfo {
-            userId
-            workspaceId
+          auth {
+            info {
+              userId
+              workspaceId
+            }
           }
         }
       `,
@@ -290,7 +292,7 @@ async function getAuthInfo(key: string) {
     };
   }
 
-  return resp.data.authInfo as { userId: string | null; workspaceId: string | null };
+  return resp.data.auth.info as { userId: string | null; workspaceId: string | null };
 }
 
 function getAuthInfoCachePath(options: Options = {}) {
