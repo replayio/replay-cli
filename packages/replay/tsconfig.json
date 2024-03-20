@@ -69,7 +69,7 @@
     // Use ECMA-standard behavior for class properties.
     "useDefineForClassFields": true,
     "lib": ["ES2019"],
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
   "include": ["src", "bin", "metadata", "types"],
   "exclude": ["**/*.test.ts"]
