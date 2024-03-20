@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "bin": {
-    "replayio-playwright": "./bin/replayio-playwright.js"
+    "replayio-playwright": "./dist/bin/replayio-playwright.js"
   },
   "publishConfig": {
     "directory": "dist"

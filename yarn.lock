@@ -2448,7 +2448,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@replayio/playwright@workspace:packages/playwright":
+"@replayio/playwright@npm:^1.1.16, @replayio/playwright@workspace:packages/playwright":
   version: 0.0.0-use.local
   resolution: "@replayio/playwright@workspace:packages/playwright"
   dependencies:
@@ -2462,7 +2462,7 @@ __metadata:
   peerDependencies:
     "@playwright/test": 1.19.x
   bin:
-    replayio-playwright: ./bin/replayio-playwright.js
+    replayio-playwright: ./dist/bin/replayio-playwright.js
   languageName: unknown
   linkType: soft
 
@@ -2505,7 +2505,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     ws: "npm:^7.5.0"
   bin:
-    replay: bin/replay.js
+    replay: ./dist/bin/replay.js
   languageName: unknown
   linkType: soft
 
@@ -9959,6 +9959,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "replay-cli@workspace:."
   dependencies:
+    "@replayio/playwright": "npm:^1.1.16"
+    "@replayio/replay": "npm:^0.21.4"
     lerna: "npm:^4.0.0"
     node-fetch: "npm:^3.3.1"
     prettier: "npm:^2.7.1"
