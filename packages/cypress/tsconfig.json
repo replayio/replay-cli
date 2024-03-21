@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
     /* Basic Options */
@@ -70,5 +71,6 @@
     "useDefineForClassFields": true
   },
   "include": ["src", "bin", "types", "*.ts"],
-  "exclude": ["node_modules/cypress/types/mocha"]
+  "exclude": ["node_modules/cypress/types/mocha"],
+  "references": [{ "path": "../replay" }, { "path": "../test-utils" }]
 }

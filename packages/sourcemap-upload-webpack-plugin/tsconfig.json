@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     // Target Node > 10 since that is still in use in Google Firestore and
     // some clients use 10.x everywhere to be consistent with it.
     "target": "es2018",
@@ -18,5 +19,6 @@
     "outDir": "./lib/",
     "rootDir": "./src/"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../sourcemap-upload" }]
 }

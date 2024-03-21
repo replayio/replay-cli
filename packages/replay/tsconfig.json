@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
     /* Basic Options */
@@ -72,5 +73,6 @@
     "types": ["node", "jest"]
   },
   "include": ["src", "bin", "metadata", "types"],
-  "exclude": ["**/*.test.ts"]
+  "exclude": ["**/*.test.ts"],
+  "references": [{ "path": "../sourcemap-upload" }]
 }
