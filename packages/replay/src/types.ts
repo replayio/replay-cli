@@ -108,11 +108,11 @@ export interface SourceMapEntry {
   originalSources: OriginalSourceEntry[];
 }
 
-export interface RecordingEntry {
+export interface RecordingEntry<TMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
   id: string;
   createTime: Date;
   runtime: string;
-  metadata: UnstructuredMetadata;
+  metadata: TMetadata;
   sourcemaps: SourceMapEntry[];
   buildId?: string;
   status:
@@ -131,4 +131,6 @@ export interface RecordingEntry {
   unusableReason?: string;
 }
 
-export type ExternalRecordingEntry = Omit<RecordingEntry, "buildId" | "crashData">;
+export type ExternalRecordingEntry<
+  TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
+> = Omit<RecordingEntry<TRecordingMetadata>, "buildId" | "crashData">;

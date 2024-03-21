@@ -12,7 +12,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { log, warn } from "./logging";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { ExternalRecordingEntry } from "@replayio/replay/src/types";
+import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay/src/types";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -36,12 +36,14 @@ export interface TestIdContext {
   attempt: number;
 }
 
-export interface ReplayReporterConfig {
+export interface ReplayReporterConfig<
+  TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
+> {
   runTitle?: string;
   metadata?: Record<string, any> | string;
   upload?: boolean;
   apiKey?: string;
-  filter?: (r: RecordingEntry) => boolean;
+  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
 }
 
 export interface TestRunner {
@@ -169,7 +171,7 @@ export class ReporterError extends Error {
   }
 }
 
-class ReplayReporter {
+class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
   baseId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid.v4();
   testRunShardId: string | null = null;
   baseMetadata: Record<string, any> | null = null;
@@ -180,8 +182,8 @@ class ReplayReporter {
   apiKey?: string;
   pendingWork: Promise<PendingWork>[] = [];
   upload = false;
-  filter?: (r: RecordingEntry) => boolean;
-  recordingsToUpload: ExternalRecordingEntry[] = [];
+  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
+  recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
@@ -256,7 +258,7 @@ class ReplayReporter {
     return `${this.baseId}-${[...source.scope, source.title].join("-")}-${source.attempt}`;
   }
 
-  parseConfig(config: ReplayReporterConfig = {}, metadataKey?: string) {
+  parseConfig(config: ReplayReporterConfig<TRecordingMetadata> = {}, metadataKey?: string) {
     // always favor environment variables over config so the config can be
     // overwritten at runtime
     this.runTitle =
@@ -319,7 +321,7 @@ class ReplayReporter {
     };
   }
 
-  onTestSuiteBegin(config?: ReplayReporterConfig, metadataKey?: string) {
+  onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
     this.parseConfig(config, metadataKey);
 
     debug("onTestSuiteBegin: Reporter Configuration: %o", {
@@ -698,7 +700,7 @@ class ReplayReporter {
     recordings.forEach(rec => add(rec.id, mergedMetadata));
 
     // Re-fetch recordings so we have the most recent metadata
-    const allRecordings = listAllRecordings({ all: true });
+    const allRecordings = listAllRecordings({ all: true }) as RecordingEntry<TRecordingMetadata>[];
     return allRecordings.filter(recordingWithMetadata =>
       recordings.some(r => r.id === recordingWithMetadata.id)
     );

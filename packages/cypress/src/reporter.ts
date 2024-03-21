@@ -17,7 +17,13 @@ import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 
 type Test = TestMetadataV2.Test;
-export type PluginOptions = ReplayReporterConfig;
+
+type ReplayCypressRecordingMetadata = {
+  title: string;
+  test: TestMetadataV2.TestRun;
+};
+
+export interface PluginOptions extends ReplayReporterConfig<ReplayCypressRecordingMetadata> {}
 
 const debug = dbg("replay:cypress:reporter");
 const MAX_WAIT = 20_000;
@@ -39,7 +45,7 @@ function isStepEvent(value: unknown): value is StepEvent {
 class CypressReporter {
   public config: Cypress.PluginConfigOptions;
   public options: PluginOptions;
-  reporter: ReplayReporter;
+  reporter: ReplayReporter<ReplayCypressRecordingMetadata>;
   startTime: number | undefined;
   steps: StepEvent[] = [];
   selectedBrowser: string | undefined;
