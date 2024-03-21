@@ -6,6 +6,7 @@
   "main": "./dist/src/main.js",
   "exports": {
     ".": "./dist/src/main.js",
+    "./metadata": "./dist/src/metadata/index.js",
     "./package.json": "./package.json"
   },
   "scripts": {
