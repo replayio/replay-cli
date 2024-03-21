@@ -48,7 +48,7 @@
     "webpack": "^5.90.3"
   },
   "dependencies": {
-    "@replayio/sourcemap-upload": "^1.1.2"
+    "@replayio/sourcemap-upload": "workspace:^"
   },
   "peerDependencies": {
     "webpack": "^4.0.0 || ^5.76.0"

@@ -19,8 +19,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@replayio/playwright": "^1.1.16",
-    "@replayio/replay": "^0.21.4",
+    "@replayio/playwright": "workspace:^",
+    "@replayio/replay": "workspace:^",
     "prettier": "^2.7.1",
     "typescript": "^5.4.2"
   },
