@@ -21,7 +21,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 
-const pluginVersion = require("../package.json").version;
+const pluginVersion = require("@replayio/playwright/package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);

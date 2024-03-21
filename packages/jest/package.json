@@ -2,7 +2,11 @@
   "name": "@replayio/jest",
   "version": "27.2.43",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
-  "main": "dist/src/index.js",
+  "main": "./dist/src/index.js",
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "prepare": "yarn run build",
     "build": "rm -rf dist/ && tsc",

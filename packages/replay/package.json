@@ -4,6 +4,10 @@
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./dist/bin/replay.js",
   "main": "./dist/src/main.js",
+  "exports": {
+    ".": "./dist/src/main.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "prepare": "yarn run build",
     "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",

@@ -3,7 +3,10 @@
   "version": "1.0.12",
   "description": "A webpack plugin to run Replay's sourcemap-upload logic when Webpack compilation finishes.",
   "main": "./index.js",
-  "exports": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
   "types": "./lib/index.d.ts",
   "engines": {
     "node": ">=10.13"
