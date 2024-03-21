@@ -825,8 +825,6 @@ export {
   ExternalRecordingEntry,
   UnstructuredMetadata,
   addLocalRecordingMetadata,
-  // These methods aren't documented or available via the CLI, and are used by other
-  // replay NPM packages.
   ensurePlaywrightBrowsersInstalled,
   ensurePuppeteerBrowsersInstalled,
   exponentialBackoffRetry,
