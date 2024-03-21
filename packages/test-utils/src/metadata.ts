@@ -1,6 +1,6 @@
 import { writeFileSync, existsSync } from "fs";
 import path from "path";
-import { getDirectory } from "@replayio/replay/src/utils";
+import { getDirectory } from "@replayio/replay";
 import { warn } from "./logging";
 
 export function getMetadataFilePath(base: string, workerIndex = 0) {

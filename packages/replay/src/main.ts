@@ -4,6 +4,7 @@ import path from "path";
 import { getPackument } from "query-registry";
 import { compare } from "semver";
 import { getCurrentVersion } from "./utils";
+import { query } from "./graphql";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -23,7 +24,7 @@ import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from 
 import { spawn } from "child_process";
 import {
   BrowserName,
-  ExternalRecordingEntry,
+  type ExternalRecordingEntry,
   FilterOptions,
   LaunchOptions,
   ListOptions,
@@ -34,6 +35,7 @@ import {
   SourceMapEntry,
   UploadAllOptions,
   UploadOptions,
+  type UnstructuredMetadata,
 } from "./types";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
 import jsonata from "jsonata";
@@ -839,4 +841,9 @@ export {
   ensurePuppeteerBrowsersInstalled,
   getPlaywrightBrowserPath,
   getPuppeteerBrowserPath,
+  getDirectory,
+  exponentialBackoffRetry,
+  query,
+  ExternalRecordingEntry,
+  UnstructuredMetadata,
 };

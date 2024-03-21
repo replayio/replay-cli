@@ -1,7 +1,7 @@
 import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
 import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
-import { query } from "@replayio/replay/src/graphql";
-import { exponentialBackoffRetry } from "@replayio/replay/src/utils";
+import { query } from "@replayio/replay";
+import { exponentialBackoffRetry } from "@replayio/replay";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
@@ -12,7 +12,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { log, warn } from "./logging";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay/src/types";
+import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay";
 
 const debug = dbg("replay:test-utils:reporter");
 
