@@ -62,7 +62,7 @@ class CypressReporter {
       {
         name: "cypress",
         version: config.version,
-        plugin: require("../package.json").version,
+        plugin: require("@replayio/cypress/package.json").version,
       },
       "2.1.0"
     );

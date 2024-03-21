@@ -137,12 +137,12 @@ function assertValidBrowserName(browser?: string): asserts browser is BrowserNam
 }
 
 function getCurrentVersion() {
-  const pkg = require(path.join(__dirname, "../package.json"));
+  const pkg = require("@replayio/replay/package.json");
   return pkg.version;
 }
 
 function getNameAndVersion() {
-  const pkg = require(path.join(__dirname, "../package.json"));
+  const pkg = require("@replayio/replay/package.json");
   return `${pkg.name}/${pkg.version}`;
 }
 

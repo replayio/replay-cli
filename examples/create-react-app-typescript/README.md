@@ -1,6 +1,6 @@
 ### Replay/Playwright Example
 
-This directory contains a single example Playwright test, which can be run with `npm test`.
+This directory contains a single example Playwright test, which can be run with `yarn run test`.
 
 ### Confirming That Your Test Was Recorded
 

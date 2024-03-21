@@ -76,7 +76,7 @@ async function refresh(refreshToken: string) {
       }),
     });
 
-    const json = await resp.json();
+    const json: any = await resp.json();
 
     if (json.error) {
       debug("OAuth token request failed: %O", json.error);

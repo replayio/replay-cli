@@ -67,7 +67,9 @@
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
 
     // Use ECMA-standard behavior for class properties.
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "lib": ["ES2019"],
+    "types": ["node", "jest"]
   },
   "include": ["src", "bin", "metadata", "types"],
   "exclude": ["**/*.test.ts"]
