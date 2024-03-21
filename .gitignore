@@ -3,6 +3,7 @@ node_modules
 dist
 lerna-debug.log
 e2e-repos
+tsconfig.tsbuildinfo
 
 .pnp.*
 .yarn/*

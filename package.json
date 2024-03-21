@@ -9,7 +9,7 @@
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "yarn workspaces foreach --all --topological run build",
+    "bootstrap": "tsc -b",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
