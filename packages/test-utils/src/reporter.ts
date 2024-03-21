@@ -1,18 +1,22 @@
-import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
-import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
-import { query } from "@replayio/replay/src/graphql";
-import { exponentialBackoffRetry } from "@replayio/replay/src/utils";
+import {
+  RecordingEntry,
+  exponentialBackoffRetry,
+  listAllRecordings,
+  query,
+  uploadRecording,
+} from "@replayio/replay";
+import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
-import { writeFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
 import dbg from "debug";
+import { mkdirSync, writeFileSync } from "fs";
+import { dirname } from "path";
 const uuid = require("uuid");
 
+import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay";
+import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
-import { log, warn } from "./logging";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay/src/types";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -930,4 +934,4 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 }
 
 export default ReplayReporter;
-export type { UserActionEvent, Test, TestResult, TestError, TestMetadataV1, TestMetadataV2 };
+export type { Test, TestError, TestMetadataV1, TestMetadataV2, TestResult, UserActionEvent };
