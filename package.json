@@ -14,7 +14,7 @@
     "bootstrap": "yarn workspaces foreach --all --exclude=. --exclude=packages/cypress/example --topological run build",
     "build": "tsc -b",
     "test": "yarn run test:unit",
-    "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
+    "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=packages/cypress/example --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check .",
     "release": "yarn run bootstrap && yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish"
