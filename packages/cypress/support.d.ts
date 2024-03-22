@@ -1,1 +1,1 @@
-import './dist/support.js'
+import "./dist/support.js";
