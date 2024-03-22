@@ -5,7 +5,7 @@ WORKDIR /usr/build
 
 build:
   COPY . .
-  RUN yarn && yarn run bootstrap
+  RUN yarn --immutable && yarn run bootstrap
   RUN npm link --prefix ./packages/cypress
 
 lint:
