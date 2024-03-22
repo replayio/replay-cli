@@ -11,7 +11,7 @@ function getFixtureFile() {
     // walks back up to put the fixture.log near driver.ts. This would be a
     // weird default if we asked users to run this so this logic should be
     // smarter.
-    path.resolve(__filename, "../../../tests/fixtures/fixture.log")
+    path.resolve(__filename, "../../tests/fixtures/fixture.log")
   );
 }
 
