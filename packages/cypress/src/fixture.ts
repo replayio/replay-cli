@@ -7,7 +7,7 @@ const debug = dbg("replay:cypress:fixture");
 function getFixtureFile() {
   return (
     process.env.REPLAY_CYPRESS_FIXTURE_FILE ||
-    // TODO [ryanjduffy] - This assumes we're running in dist/src directory and
+    // TODO [ryanjduffy] - This assumes we're running in dist directory and
     // walks back up to put the fixture.log near driver.ts. This would be a
     // weird default if we asked users to run this so this logic should be
     // smarter.
