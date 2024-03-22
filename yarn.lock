@@ -1401,7 +1401,7 @@ __metadata:
   peerDependencies:
     cypress: ">=5.3.0"
   bin:
-    replayio-cypress: ./dist/bin.js
+    replayio-cypress: ./bin.js
   languageName: unknown
   linkType: soft
 
@@ -1420,7 +1420,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   bin:
-    replayio-jest: ./dist/bin.js
+    replayio-jest: ./bin.js
   languageName: unknown
   linkType: soft
 
@@ -1461,7 +1461,7 @@ __metadata:
     "@types/node": "npm:^20.11.27"
     typescript: "npm:^5.4.2"
   bin:
-    replayio-puppeteer: ./dist/bin.js
+    replayio-puppeteer: ./bin.js
   languageName: unknown
   linkType: soft
 

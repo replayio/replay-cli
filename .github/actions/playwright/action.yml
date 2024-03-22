@@ -19,7 +19,7 @@ runs:
       with:
         node-version: "18"
         cache: "yarn"
-    - run: yarn
+    - run: yarn --immutable
       shell: bash
       working-directory: ${{ inputs.working-directory }}
     - uses: replayio/action-playwright@main
