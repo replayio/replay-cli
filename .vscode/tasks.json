@@ -4,7 +4,7 @@
     {
       "label": "tsc -w",
       "type": "shell",
-      "command": "yarn bootstrap -w",
+      "command": "yarn build -w",
       "presentation": {
         "echo": true,
         "reveal": "silent",
