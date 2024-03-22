@@ -6,7 +6,7 @@
     "node": ">=10.13"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "yarn run build",
@@ -14,14 +14,15 @@
     "typecheck": "tsc --noEmit"
   },
   "files": [
-    "lib"
+    "dist",
+    "*.js",
+    "*.d.ts"
   ],
-  "main": "./lib/index.js",
+  "main": "./dist/index.js",
   "exports": {
-    ".": "./lib/index.js",
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
-  "types": "./lib/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/replayio/replay-cli.git"
@@ -33,6 +34,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/sourcemap-upload/README.md",
   "devDependencies": {
+    "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.5",
     "@types/glob": "^7.1.3",
     "@types/node": "^20.11.27",

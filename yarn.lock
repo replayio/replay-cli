@@ -1371,10 +1371,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@replay-cli/tsconfig@workspace:^, @replay-cli/tsconfig@workspace:scripts/tsconfig":
+  version: 0.0.0-use.local
+  resolution: "@replay-cli/tsconfig@workspace:scripts/tsconfig"
+  languageName: unknown
+  linkType: soft
+
 "@replayio/cypress@workspace:packages/cypress":
   version: 0.0.0-use.local
   resolution: "@replayio/cypress@workspace:packages/cypress"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/debug": "npm:^4.1.7"
@@ -1394,7 +1401,7 @@ __metadata:
   peerDependencies:
     cypress: ">=5.3.0"
   bin:
-    replayio-cypress: ./dist/bin/replayio-cypress.js
+    replayio-cypress: ./dist/bin.js
   languageName: unknown
   linkType: soft
 
@@ -1404,6 +1411,7 @@ __metadata:
   dependencies:
     "@jest/reporters": "npm:^27.5.1"
     "@jest/test-result": "npm:^27.5.1"
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
@@ -1412,7 +1420,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   bin:
-    replayio-jest: ./dist/bin/replayio-jest.js
+    replayio-jest: ./dist/bin.js
   languageName: unknown
   linkType: soft
 
@@ -1429,6 +1437,7 @@ __metadata:
   resolution: "@replayio/playwright@workspace:packages/playwright"
   dependencies:
     "@playwright/test": "npm:1.19.x"
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
@@ -1438,7 +1447,7 @@ __metadata:
   peerDependencies:
     "@playwright/test": 1.19.x
   bin:
-    replayio-playwright: ./dist/bin/replayio-playwright.js
+    replayio-playwright: ./bin.js
   languageName: unknown
   linkType: soft
 
@@ -1446,12 +1455,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/puppeteer@workspace:packages/puppeteer"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
     typescript: "npm:^5.4.2"
   bin:
-    replayio-puppeteer: ./dist/bin/replayio-puppeteer.js
+    replayio-puppeteer: ./dist/bin.js
   languageName: unknown
   linkType: soft
 
@@ -1459,6 +1469,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/replay@workspace:packages/replay"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.7"
     "@types/jest": "npm:^28.1.5"
@@ -1482,7 +1493,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     ws: "npm:^7.5.0"
   bin:
-    replay: ./dist/bin/replay.js
+    replay: ./bin.js
   languageName: unknown
   linkType: soft
 
@@ -1490,6 +1501,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.5"
     "@types/glob": "npm:^7.1.3"
@@ -1512,6 +1524,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/sourcemap-upload@workspace:packages/sourcemap-upload"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@types/debug": "npm:^4.1.5"
     "@types/glob": "npm:^7.1.3"
     "@types/node": "npm:^20.11.27"
@@ -1536,12 +1549,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/test-utils@workspace:packages/test-utils"
   dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@types/debug": "npm:^4.1.7"
     "@types/node-fetch": "npm:^2.6.2"
     debug: "npm:^4.3.4"
     node-fetch: "npm:^2.6.7"
-    sha-1: "patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch"
+    sha-1: "npm:^1.0.0"
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   languageName: unknown
@@ -7212,17 +7226,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sha-1@npm:1.0.0":
+"sha-1@npm:^1.0.0":
   version: 1.0.0
   resolution: "sha-1@npm:1.0.0"
   checksum: 10c0/972a1b7989ab8e7775ee68af99987f7fbf9620cd374819f654313ffce68b8647cab21b1622aff77fa90528a4aab32001e53bef09212809ff758f202d9ad1048f
-  languageName: node
-  linkType: hard
-
-"sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch":
-  version: 1.0.0
-  resolution: "sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch::version=1.0.0&hash=d602ec"
-  checksum: 10c0/ffefe16f5eb1ca4a7ad47ce1de59cc4c703696c407a25dc590ac33804e5b14d66ab515f565fa2eba01ad8fee44facc1b3528cde3f8a881081cb6fdf0a170d8c8
   languageName: node
   linkType: hard
 

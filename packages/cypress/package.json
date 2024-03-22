@@ -2,23 +2,28 @@
   "name": "@replayio/cypress",
   "version": "1.7.20",
   "description": "Plugin to record your Cypress tests with Replay",
-  "main": "./dist/src/index.js",
+  "main": "./dist/index.js",
+  "bin": {
+    "replayio-cypress": "./bin.js"
+  },
   "exports": {
-    ".": "./dist/src/index.js",
+    ".": "./dist/index.js",
     "./support": "./dist/support.js",
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "*.js",
+    "*.d.ts"
+  ],
   "scripts": {
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
     "if:dist": "yarn run if:exists -- dist",
-    "postinstall": "yarn run if:dist -- node ./dist/bin/replayio-cypress first-run",
+    "postinstall": "yarn run if:dist -- node ./bin.js first-run",
     "prepare": "npm run build",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
+    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
-  },
-  "bin": {
-    "replayio-cypress": "./dist/bin/replayio-cypress.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +36,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/cypress/README.md",
   "devDependencies": {
+    "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
     "@types/node": "^20.11.27",
     "@types/semver": "^7.3.13",

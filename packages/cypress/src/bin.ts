@@ -1,10 +1,8 @@
-#!/usr/bin/env node
-
 import cypress from "cypress";
 
-import install from "../src/install";
-import { ReplayMode, toDiagnosticLevel, toReplayMode } from "../src/mode";
-import run from "../src/run";
+import install from "./install";
+import { toDiagnosticLevel, toReplayMode } from "./mode";
+import run from "./run";
 
 let [, , cmd, ...args] = process.argv;
 

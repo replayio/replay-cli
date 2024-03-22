@@ -1,6 +1,7 @@
-import { buildTestId } from "@replayio/test-utils";
 import type { TestMetadataV2 } from "@replayio/test-utils";
+import { buildTestId } from "@replayio/test-utils";
 import { CONNECT_TASK_NAME } from "./constants";
+import { PluginFeature, isFeatureEnabled } from "./features";
 
 declare global {
   interface Window {
@@ -416,7 +417,7 @@ function getMessageFromLog(log: any) {
   return message ? [message] : [];
 }
 
-export default function register() {
+function register() {
   let lastCommand: Cypress.CommandQueue | undefined;
   let lastAssertionCommand: Cypress.CommandQueue | undefined;
   let currentTestScope: CypressTestScope | undefined;
@@ -707,4 +708,8 @@ export default function register() {
       console.error(e);
     }
   });
+}
+
+if (isFeatureEnabled(Cypress.env("REPLAY_PLUGIN_FEATURES"), PluginFeature.Support)) {
+  register();
 }
