@@ -2,26 +2,22 @@
   "name": "@replayio/puppeteer",
   "version": "0.1.89",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
-  "main": "src/index.js",
+  "main": "./dist/src/index.js",
   "scripts": {
     "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
-    "if:source": "npm run if:exists -- src/index.ts",
-    "if:dist": "npm run if:exists -- src/index.js",
-    "prepare": "npm run if:source -- npm run build",
-    "install": "npm run if:dist -- node ./bin/replayio-puppeteer first-run",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "if:dist": "yarn run if:exists -- dist",
+    "postinstall": "yarn run if:dist -- node ./dist/bin/replayio-puppeteer first-run",
+    "prepare": "yarn run build",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
   "bin": {
-    "replayio-puppeteer": "./bin/replayio-puppeteer.js"
-  },
-  "publishConfig": {
-    "directory": "dist"
+    "replayio-puppeteer": "./dist/bin/replayio-puppeteer.js"
   },
   "devDependencies": {
-    "@types/node": "^18.16.1",
-    "typescript": "^5.0.4"
+    "@types/node": "^20.11.27",
+    "typescript": "^5.4.2"
   },
   "repository": {
     "type": "git",
@@ -34,8 +30,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/puppeteer/README.md",
   "dependencies": {
-    "@replayio/replay": "^0.21.4",
-    "@replayio/test-utils": "^1.3.16"
-  },
-  "gitHead": "00bd1b69ab1eacc33cb2204d5c0f1bd7ae7f3c40"
+    "@replayio/replay": "workspace:^",
+    "@replayio/test-utils": "workspace:^"
+  }
 }

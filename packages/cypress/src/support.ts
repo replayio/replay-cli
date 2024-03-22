@@ -1,4 +1,4 @@
-import { buildTestId } from "@replayio/test-utils/src/testId";
+import { buildTestId } from "@replayio/test-utils";
 import type { TestMetadataV2 } from "@replayio/test-utils";
 import { CONNECT_TASK_NAME } from "./constants";
 

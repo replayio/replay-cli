@@ -21,7 +21,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 
-const pluginVersion = require("../package.json").version;
+const pluginVersion = require("@replayio/playwright/package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
@@ -66,12 +66,18 @@ function mapTestStepHook(step: TestStep): "beforeEach" | "afterEach" | undefined
   }
 }
 
-interface ReplayPlaywrightConfig extends ReplayReporterConfig {
+type ReplayPlaywrightRecordingMetadata = {
+  title: string;
+  test: TestMetadataV2.TestRun;
+};
+
+export interface ReplayPlaywrightConfig
+  extends ReplayReporterConfig<ReplayPlaywrightRecordingMetadata> {
   captureTestFile?: boolean;
 }
 
 class ReplayPlaywrightReporter implements Reporter {
-  reporter?: ReplayReporter;
+  reporter?: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile = ["1", "true"].includes(
     process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
   );

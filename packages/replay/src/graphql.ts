@@ -26,7 +26,7 @@ export async function query(name: string, query: string, variables = {}, apiKey?
   debug("Querying %s over %s graphql endpoint", name, server);
   const result = await fetch(`${server}/v1/graphql`, options);
 
-  const json = await result.json();
+  const json: any = await result.json();
   debug("GraphQL Response: %O", json);
 
   return json;

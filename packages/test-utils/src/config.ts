@@ -21,8 +21,9 @@ async function query(apiKey: string, name: string, query: string, variables = {}
   const server = process.env.REPLAY_API_SERVER || "https://api.replay.io";
   debug("Querying %s graphql endpoint", server);
   const result = await fetch(`${server}/v1/graphql`, options);
+  const json: any = await result.json();
 
-  return await result.json();
+  return json;
 }
 
 async function fetchWorkspaceConfig(apiKey: string) {

@@ -1,18 +1,22 @@
-import { RecordingEntry, listAllRecordings, uploadRecording } from "@replayio/replay";
-import { add, test as testMetadata, source as sourceMetadata } from "@replayio/replay/metadata";
-import { query } from "@replayio/replay/src/graphql";
-import { exponentialBackoffRetry } from "@replayio/replay/src/utils";
+import {
+  RecordingEntry,
+  exponentialBackoffRetry,
+  listAllRecordings,
+  query,
+  uploadRecording,
+} from "@replayio/replay";
+import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
-import { writeFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
 import dbg from "debug";
+import { mkdirSync, writeFileSync } from "fs";
+import { dirname } from "path";
 const uuid = require("uuid");
 
+import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay";
+import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
-import { log, warn } from "./logging";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { ExternalRecordingEntry } from "@replayio/replay/src/types";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -36,12 +40,14 @@ export interface TestIdContext {
   attempt: number;
 }
 
-export interface ReplayReporterConfig {
+export interface ReplayReporterConfig<
+  TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
+> {
   runTitle?: string;
   metadata?: Record<string, any> | string;
   upload?: boolean;
   apiKey?: string;
-  filter?: (r: RecordingEntry) => boolean;
+  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
 }
 
 export interface TestRunner {
@@ -169,7 +175,7 @@ export class ReporterError extends Error {
   }
 }
 
-class ReplayReporter {
+class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
   baseId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid.v4();
   testRunShardId: string | null = null;
   baseMetadata: Record<string, any> | null = null;
@@ -180,8 +186,8 @@ class ReplayReporter {
   apiKey?: string;
   pendingWork: Promise<PendingWork>[] = [];
   upload = false;
-  filter?: (r: RecordingEntry) => boolean;
-  recordingsToUpload: ExternalRecordingEntry[] = [];
+  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
+  recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
 
   constructor(runner: TestRunner, schemaVersion: string) {
     this.runner = runner;
@@ -256,7 +262,7 @@ class ReplayReporter {
     return `${this.baseId}-${[...source.scope, source.title].join("-")}-${source.attempt}`;
   }
 
-  parseConfig(config: ReplayReporterConfig = {}, metadataKey?: string) {
+  parseConfig(config: ReplayReporterConfig<TRecordingMetadata> = {}, metadataKey?: string) {
     // always favor environment variables over config so the config can be
     // overwritten at runtime
     this.runTitle =
@@ -319,7 +325,7 @@ class ReplayReporter {
     };
   }
 
-  onTestSuiteBegin(config?: ReplayReporterConfig, metadataKey?: string) {
+  onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
     this.parseConfig(config, metadataKey);
 
     debug("onTestSuiteBegin: Reporter Configuration: %o", {
@@ -698,7 +704,7 @@ class ReplayReporter {
     recordings.forEach(rec => add(rec.id, mergedMetadata));
 
     // Re-fetch recordings so we have the most recent metadata
-    const allRecordings = listAllRecordings({ all: true });
+    const allRecordings = listAllRecordings({ all: true }) as RecordingEntry<TRecordingMetadata>[];
     return allRecordings.filter(recordingWithMetadata =>
       recordings.some(r => r.id === recordingWithMetadata.id)
     );
@@ -928,4 +934,4 @@ class ReplayReporter {
 }
 
 export default ReplayReporter;
-export type { UserActionEvent, Test, TestResult, TestError, TestMetadataV1, TestMetadataV2 };
+export type { Test, TestError, TestMetadataV1, TestMetadataV2, TestResult, UserActionEvent };

@@ -2,15 +2,17 @@
   "name": "@replayio/replay",
   "version": "0.21.4",
   "description": "CLI tool for uploading and managing recordings",
-  "bin": {
-    "replay": "bin/replay.js"
+  "bin": "./dist/bin/replay.js",
+  "main": "./dist/src/main.js",
+  "exports": {
+    ".": "./dist/src/main.js",
+    "./metadata": "./dist/src/metadata/index.js",
+    "./metadata/*": "./dist/src/metadata/*",
+    "./package.json": "./package.json"
   },
-  "main": "src/main.js",
   "scripts": {
-    "if:exists": "node -e \"require('fs').existsSync(process.argv[1]) ? require('child_process').spawnSync(process.argv[2], process.argv.slice(3), {shell: true, stdio: 'inherit'}) : 0\"",
-    "if:source": "npm run if:exists -- src/main.ts",
-    "prepare": "npm run if:source -- npm run build",
-    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/* && cp package.json README.md dist/",
+    "prepare": "yarn run build",
+    "build": "rm -rf dist/ && tsc && chmod 755 dist/bin/*",
     "test": "jest --ci",
     "typecheck": "tsc --noEmit"
   },
@@ -25,7 +27,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replay/README.md",
   "dependencies": {
-    "@replayio/sourcemap-upload": "^1.1.2",
+    "@replayio/sourcemap-upload": "workspace:^",
     "@types/semver": "^7.5.6",
     "commander": "^12.0.0",
     "debug": "^4.3.4",
@@ -40,18 +42,14 @@
     "text-table": "^0.2.0",
     "ws": "^7.5.0"
   },
-  "publishConfig": {
-    "directory": "dist"
-  },
-  "gitHead": "e5d1208c1691f442ef4aeba6a238ec0b76a03a9b",
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/jest": "^28.1.5",
     "@types/node-fetch": "^2.6.3",
     "@types/text-table": "^0.2.2",
-    "@types/ws": "^8.5.3",
+    "@types/ws": "^8.5.10",
     "jest": "^28.1.3",
     "ts-jest": "^28.0.6",
-    "typescript": "^4.6.4"
+    "typescript": "^5.4.2"
   }
 }
