@@ -72,6 +72,6 @@ export default class ReplaySourceMapUploadWebpackPlugin {
 }
 
 function getNameAndVersion() {
-  const pkg = require(path.join(__dirname, "../package.json"));
+  const pkg = require("@replayio/sourcemap-upload-webpack-plugin/package.json");
   return `${pkg.name}/${pkg.version}`;
 }

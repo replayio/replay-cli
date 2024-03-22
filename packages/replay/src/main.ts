@@ -1,29 +1,37 @@
-import dbg from "./debug";
 import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";
 import { compare } from "semver";
+import dbg from "./debug";
+import { query } from "./graphql";
 import { getCurrentVersion } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
 import pMap from "p-map";
 
-import { ReplayClient } from "./upload";
+import { spawn } from "child_process";
+import jsonata from "jsonata";
+import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
+import { readToken } from "./auth";
+import { ProtocolError } from "./client";
 import {
-  ensurePuppeteerBrowsersInstalled,
+  ensureBrowsersInstalled,
   ensurePlaywrightBrowsersInstalled,
+  ensurePuppeteerBrowsersInstalled,
+  getExecutablePath,
   getPlaywrightBrowserPath,
   getPuppeteerBrowserPath,
   updateBrowsers,
-  ensureBrowsersInstalled,
-  getExecutablePath,
 } from "./install";
-import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
-import { spawn } from "child_process";
+import {
+  addRecordingEvent,
+  readRecordings,
+  removeRecordingFromLog,
+  removeRecordingsFile,
+} from "./recordingLog";
 import {
   BrowserName,
-  ExternalRecordingEntry,
   FilterOptions,
   LaunchOptions,
   ListOptions,
@@ -34,17 +42,11 @@ import {
   SourceMapEntry,
   UploadAllOptions,
   UploadOptions,
+  type ExternalRecordingEntry,
+  type UnstructuredMetadata,
 } from "./types";
-import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
-import jsonata from "jsonata";
-import { readToken } from "./auth";
-import {
-  readRecordings,
-  removeRecordingsFile,
-  removeRecordingFromLog,
-  addRecordingEvent,
-} from "./recordingLog";
-import { ProtocolError } from "./client";
+import { ReplayClient } from "./upload";
+import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
 import { launchDarkly } from "./launchdarkly";
 export type { BrowserName, RecordingEntry } from "./types";
 
@@ -815,23 +817,26 @@ async function version() {
 }
 
 export {
+  ExternalRecordingEntry,
+  UnstructuredMetadata,
   addLocalRecordingMetadata,
-  listAllRecordings,
-  uploadRecording,
-  processRecording,
-  uploadAllRecordings,
-  viewRecording,
-  viewLatestRecording,
-  removeRecording,
-  removeAllRecordings,
-  updateBrowsers,
-  updateMetadata,
-  launchBrowser,
-  version,
-  // These methods aren't documented or available via the CLI, and are used by other
-  // replay NPM packages.
   ensurePlaywrightBrowsersInstalled,
   ensurePuppeteerBrowsersInstalled,
+  exponentialBackoffRetry,
+  getDirectory,
   getPlaywrightBrowserPath,
   getPuppeteerBrowserPath,
+  launchBrowser,
+  listAllRecordings,
+  processRecording,
+  query,
+  removeAllRecordings,
+  removeRecording,
+  updateBrowsers,
+  updateMetadata,
+  uploadAllRecordings,
+  uploadRecording,
+  version,
+  viewLatestRecording,
+  viewRecording,
 };

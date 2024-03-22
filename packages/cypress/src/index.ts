@@ -187,17 +187,6 @@ function onReplayTask(value: any) {
   return true;
 }
 
-function getSpecFilter(relativePath: string, filter: PluginOptions["filter"]) {
-  return (r: RecordingEntry) => {
-    const testMetadata = r.metadata.test as TestMetadataV2.TestRun | undefined;
-    if (testMetadata?.source?.path !== relativePath) {
-      return false;
-    }
-
-    return filter ? filter(r) : true;
-  };
-}
-
 const cypressOnWrapper = (base: Cypress.PluginEvents): Cypress.PluginEvents => {
   const handlers: any = {};
 

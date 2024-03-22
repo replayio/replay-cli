@@ -27,7 +27,7 @@ function validate(metadata: { test: UnstructuredMetadata }) {
   return init(metadata.test);
 }
 
-type Metadata = typeof versions[keyof typeof versions];
+type Metadata = (typeof versions)[keyof typeof versions];
 
 function getVersion(k: string): Struct {
   const v: Struct | undefined = (versions as any)[k];
