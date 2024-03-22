@@ -1554,7 +1554,7 @@ __metadata:
     "@types/node-fetch": "npm:^2.6.2"
     debug: "npm:^4.3.4"
     node-fetch: "npm:^2.6.7"
-    sha-1: "patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch"
+    sha-1: "npm:^1.0.0"
     typescript: "npm:^5.4.2"
     uuid: "npm:^8.3.2"
   languageName: unknown
@@ -7162,17 +7162,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sha-1@npm:1.0.0":
+"sha-1@npm:^1.0.0":
   version: 1.0.0
   resolution: "sha-1@npm:1.0.0"
   checksum: 10c0/972a1b7989ab8e7775ee68af99987f7fbf9620cd374819f654313ffce68b8647cab21b1622aff77fa90528a4aab32001e53bef09212809ff758f202d9ad1048f
-  languageName: node
-  linkType: hard
-
-"sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch":
-  version: 1.0.0
-  resolution: "sha-1@patch:sha-1@npm%3A1.0.0#~/.yarn/patches/sha-1-npm-1.0.0-c0d40955fd.patch::version=1.0.0&hash=d602ec"
-  checksum: 10c0/ffefe16f5eb1ca4a7ad47ce1de59cc4c703696c407a25dc590ac33804e5b14d66ab515f565fa2eba01ad8fee44facc1b3528cde3f8a881081cb6fdf0a170d8c8
   languageName: node
   linkType: hard
 
