@@ -4,7 +4,7 @@
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "./dist/index.js",
   "bin": {
-    "replayio-playwright": "./dist/bin.js"
+    "replayio-playwright": "./bin.js"
   },
   "exports": {
     ".": "./dist/index.js",

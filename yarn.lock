@@ -1447,7 +1447,7 @@ __metadata:
   peerDependencies:
     "@playwright/test": 1.19.x
   bin:
-    replayio-playwright: ./dist/bin.js
+    replayio-playwright: ./bin.js
   languageName: unknown
   linkType: soft
 
@@ -1492,7 +1492,7 @@ __metadata:
     typescript: "npm:^5.4.2"
     ws: "npm:^7.5.0"
   bin:
-    replay: ./dist/bin.js
+    replay: ./bin.js
   languageName: unknown
   linkType: soft
 
