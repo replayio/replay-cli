@@ -7,12 +7,12 @@
     ".": "./index.js",
     "./package.json": "./package.json"
   },
-  "types": "./lib/index.d.ts",
+  "types": "./dist/index.d.ts",
   "engines": {
     "node": ">=10.13"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "yarn run build",
@@ -20,8 +20,9 @@
     "typecheck": "tsc --noEmit"
   },
   "files": [
-    "index.js",
-    "lib"
+    "dist",
+    "*.js",
+    "*.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -34,6 +35,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/sourcemap-upload-webpack-plugin/README.md",
   "devDependencies": {
+    "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.5",
     "@types/glob": "^7.1.3",
     "@types/node": "^20.11.27",

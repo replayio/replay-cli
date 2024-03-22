@@ -1,24 +1,16 @@
 {
+  "extends": "@replay-cli/tsconfig/base.json",
   "compilerOptions": {
-    "composite": true,
-    // Target Node > 10 since that is still in use in Google Firestore and
+    "rootDir": "./src",
+    "outDir": "./dist",
     // some clients use 10.x everywhere to be consistent with it.
     "target": "es2018",
-    "lib": ["es2018", "dom"],
-    "module": "commonjs",
-    "declaration": true,
-
-    // Strict Type-Checking Options
-    "strict": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-
-    "skipLibCheck": false,
-    "forceConsistentCasingInFileNames": true,
-
-    "outDir": "./lib/",
-    "rootDir": "./src/"
+    "lib": ["es2018", "dom"]
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../sourcemap-upload" }]
+  "references": [
+    {
+      "path": "../sourcemap-upload"
+    }
+  ]
 }

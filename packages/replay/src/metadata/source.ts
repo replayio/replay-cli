@@ -4,7 +4,7 @@ import fetch, { RequestInit, Response } from "node-fetch";
 import dbg from "debug";
 const { create, object, optional, defaulted } = require("superstruct");
 
-import { UnstructuredMetadata } from "../src/types";
+import { UnstructuredMetadata } from "../types";
 import { envString } from "./env";
 
 const defaultObject = (objStruct: any) => optional(defaulted(object(objStruct), {}));
