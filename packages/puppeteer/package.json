@@ -4,7 +4,7 @@
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "./dist/index.js",
   "bin": {
-    "replayio-puppeteer": "./dist/bin.js"
+    "replayio-puppeteer": "./bin.js"
   },
   "files": [
     "dist",

@@ -4,7 +4,7 @@
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "./dist/index.js",
   "bin": {
-    "replayio-jest": "./dist/bin.js"
+    "replayio-jest": "./bin.js"
   },
   "exports": {
     ".": "./dist/index.js",

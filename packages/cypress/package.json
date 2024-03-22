@@ -4,7 +4,7 @@
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "./dist/index.js",
   "bin": {
-    "replayio-cypress": "./dist/bin.js"
+    "replayio-cypress": "./bin.js"
   },
   "exports": {
     ".": "./dist/index.js",
