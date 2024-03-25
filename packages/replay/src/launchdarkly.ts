@@ -1,5 +1,5 @@
 import dbg from "./debug";
-import { initialize, LDClient, LDLogger, basicLogger } from "launchdarkly-node-client-sdk";
+import { initialize, LDClient, LDLogger } from "launchdarkly-node-client-sdk";
 
 const debug = dbg("replay:launchdarkly");
 
