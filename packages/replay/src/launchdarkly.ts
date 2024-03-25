@@ -3,24 +3,17 @@ import { initialize, LDClient, LDLogger, basicLogger } from "launchdarkly-node-c
 
 const debug = dbg("replay:launchdarkly");
 
-export type UserFeatureProfile = {
+type UserFeatureProfile = {
   type: "user";
   id: string;
 };
-export type WorkspaceFeatureProfile = {
-  type: "workspace";
-  id: string;
+
+type AnonymousFeatureProfile = {
+  type: "anonymous";
+  id: "anonymous";
 };
 
-export const AnonymousFeatureProfile = {
-  type: "anonymous",
-  id: "anonymous",
-};
-
-export type FeatureProfile =
-  | typeof AnonymousFeatureProfile
-  | UserFeatureProfile
-  | WorkspaceFeatureProfile;
+type FeatureProfile = AnonymousFeatureProfile | UserFeatureProfile;
 
 class NoOpLogger implements LDLogger {
   error() {}
@@ -40,12 +33,12 @@ class LaunchDarkly {
 
   private static initializeClient() {
     const key = "60ca05fb43d6f10d234bb3cf";
-    const defaultProfile = AnonymousFeatureProfile;
+    const defaultProfile = { type: "anonymous", id: "anonymous" };
     return initialize(
       key,
       {
         kind: "user",
-        key: `${defaultProfile.type}:${defaultProfile.id}`,
+        key: defaultProfile.id,
         anonymous: defaultProfile.type === "anonymous",
       },
       {
@@ -84,7 +77,7 @@ class LaunchDarkly {
 
     await this.client.identify({
       kind: "user",
-      key: `${profile.type}:${profile.id}`,
+      key: profile.id,
       anonymous: profile.type === "anonymous",
     });
   }
@@ -94,6 +87,7 @@ class LaunchDarkly {
   }
 
   public async variant<T>(name: string, defaultValue: T): Promise<T> {
+    this.lastCall = Date.now();
     if (!this.initialized) {
       this.reinitialize();
     }
@@ -110,8 +104,12 @@ class LaunchDarkly {
   }
 
   public async close() {
-    await this.client.close();
     this.initialized = false;
+    try {
+      await this.client.close();
+    } catch (e) {
+      debug("Failed to close LaunchDarkly client %j", e);
+    }
   }
 }
 
