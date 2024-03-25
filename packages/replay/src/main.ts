@@ -47,7 +47,7 @@ import {
 } from "./types";
 import { ReplayClient } from "./upload";
 import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
-import { launchDarkly } from "./launchdarkly";
+import { getLaunchDarkly } from "./launchdarkly";
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
@@ -344,7 +344,7 @@ async function doUploadRecording(
 
   let recordingId: string;
   try {
-    const isMultipartEnabled = await launchDarkly.isEnabled("cli-multipart-upload", false);
+    const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
     if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
       recordingId = await multipartUploadRecording(
         server,
