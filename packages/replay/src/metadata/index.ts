@@ -1,8 +1,8 @@
 import { appendFileSync } from "fs";
 import path from "path";
 
-import { Options, UnstructuredMetadata } from "../src/types";
-import { getDirectory, maybeLog } from "../src/utils";
+import { Options, UnstructuredMetadata } from "../types";
+import { getDirectory, maybeLog } from "../utils";
 
 import * as test from "./test";
 import * as source from "./source";

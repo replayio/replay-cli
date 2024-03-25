@@ -12,7 +12,7 @@ import pMap from "p-map";
 
 import { spawn } from "child_process";
 import jsonata from "jsonata";
-import { add, sanitize, source as sourceMetadata, test as testMetadata } from "../metadata";
+import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
 import { readToken } from "./auth";
 import { ProtocolError } from "./client";
 import {

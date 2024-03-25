@@ -3,18 +3,20 @@
   "private": true,
   "packageManager": "yarn@4.1.1",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "scripts/*"
   ],
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "tsc -b",
+    "bootstrap": "yarn workspaces foreach --all --exclude=. --topological run build",
+    "build": "tsc -b",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check .",
-    "release": "yarn run bootstrap && yarn workspaces foreach --all --exclude=. --topological npm publish --tolerate-republish"
+    "release": "yarn run bootstrap && yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish"
   },
   "author": "",
   "license": "ISC",

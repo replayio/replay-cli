@@ -1,6 +1,6 @@
 import { create, Struct, any } from "superstruct";
 
-import { UnstructuredMetadata } from "../../src/types";
+import { UnstructuredMetadata } from "../../types";
 
 import v1, { TestMetadataV1 } from "./v1";
 import v2, { TestMetadataV2 } from "./v2";

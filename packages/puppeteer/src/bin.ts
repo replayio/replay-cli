@@ -1,6 +1,4 @@
-#!/usr/bin/env node
-
-import install from "../src/install";
+import install from "./install";
 
 let [, , cmd] = process.argv;
 

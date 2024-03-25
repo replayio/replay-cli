@@ -5,7 +5,7 @@ import crypto from "crypto";
 import fetch from "node-fetch";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
-import { sanitize as sanitizeMetadata } from "../metadata";
+import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg, { logPath } from "./debug";
 import pMap from "p-map";
