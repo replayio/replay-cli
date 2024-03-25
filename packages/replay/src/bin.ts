@@ -25,7 +25,7 @@ import {
   UploadAllOptions,
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
-import { initLDContextFromKey, maybeAuthenticateUser } from "./auth";
+import { initLDContextFromApiKey, maybeAuthenticateUser } from "./auth";
 import { getLaunchDarkly } from "./launchdarkly";
 
 export interface CommandLineOptions extends Options {
@@ -51,7 +51,7 @@ function commandWithGlobalOptions(cmdString: string) {
     .option("--server <address>", "Alternate server to upload recordings to")
     .hook("preAction", async cmd => {
       try {
-        await initLDContextFromKey(cmd.opts());
+        await initLDContextFromApiKey(cmd.opts());
       } catch (e) {
         debug("LaunchDarkly profile is anonymous %o", e);
       }

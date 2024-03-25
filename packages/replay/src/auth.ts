@@ -11,6 +11,16 @@ import { getLaunchDarkly } from "./launchdarkly";
 
 const debug = dbg("replay:cli:auth");
 
+class GraphQLError extends Error {
+  constructor(message: string, public errors: any[]) {
+    const errorsMessage = errors
+      .map((e: any) => e.message)
+      .filter(Boolean)
+      .join(", ");
+    super(`${message}: ${errorsMessage}`);
+  }
+}
+
 function isInternalError(e: unknown): e is { id: string } {
   if (typeof e === "object" && e && "id" in e) {
     return typeof (e as any).id === "string";
@@ -36,8 +46,7 @@ function tokenInfo(token: string) {
 
   let payload;
   try {
-    const decPayload = Buffer.alloc(encPayload.length, encPayload, "base64");
-    payload = JSON.parse(new TextDecoder().decode(decPayload));
+    payload = JSON.parse(Buffer.from(encPayload, "base64").toString());
   } catch (err) {
     debug("Failed to decode token: %s %e", maskToken(token), err);
     return null;
@@ -221,6 +230,15 @@ export async function readToken(options: Options = {}) {
   }
 }
 
+async function getApiKey(options: Options = {}) {
+  return (
+    options.apiKey ??
+    process.env.REPLAY_API_KEY ??
+    process.env.RECORD_REPLAY_API_KEY ??
+    (await readToken(options))
+  );
+}
+
 async function writeToken(token: string, options: Options = {}) {
   maybeLog(options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
@@ -265,11 +283,7 @@ export async function maybeAuthenticateUser(options: Options = {}) {
   }
 }
 
-function parseId(id: string) {
-  return Buffer.from(id, "base64").toString("utf-8").split(":")[1];
-}
-
-async function getAuthInfo(key: string) {
+async function getAuthInfo(key: string): Promise<string> {
   const resp = await query(
     "AuthInfo",
     `
@@ -295,13 +309,7 @@ async function getAuthInfo(key: string) {
   );
 
   if (resp.errors) {
-    throw {
-      id: "graphql-error",
-      message: resp.errors
-        .map((e: any) => e.message)
-        .filter(Boolean)
-        .join(", "),
-    };
+    throw new GraphQLError("Failed to fetch auth info", resp.errors);
   }
 
   const response = resp.data as {
@@ -321,13 +329,17 @@ async function getAuthInfo(key: string) {
     };
   };
 
-  const encodedUserId = response?.viewer?.user?.id;
-  const encodedWorkspaceId = response?.auth?.workspaces?.edges?.[0]?.node?.id;
+  const { viewer, auth } = response;
 
-  return {
-    userId: encodedUserId ? parseId(encodedUserId) : null,
-    workspaceId: encodedWorkspaceId ? parseId(encodedWorkspaceId) : null,
-  };
+  if (viewer?.user?.id) {
+    viewer.user.id;
+  }
+
+  if (auth?.workspaces?.edges?.[0]?.node?.id) {
+    return auth.workspaces.edges[0].node.id;
+  }
+
+  throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
 }
 
 function getAuthInfoCachePath(options: Options = {}) {
@@ -341,18 +353,21 @@ function authInfoCacheKey(key: string) {
 
 async function writeAuthInfoCache(
   key: string,
-  authInfo: { userId: string | null; workspaceId: string | null },
+  authInfo: string,
   options: Options = {}
-) {
+): Promise<{
+  [key: string]: string;
+}> {
   const cachePath = getAuthInfoCachePath(options);
   await mkdir(path.dirname(getAuthInfoCachePath(options)), { recursive: true });
   const cache = {
     [authInfoCacheKey(key)]: authInfo,
   };
   await writeFile(cachePath, JSON.stringify(cache, undefined, 2), { encoding: "utf-8" });
+  return cache;
 }
 
-async function readAuthInfoCache(key: string, options: Options = {}) {
+async function readAuthInfoCache(key: string, options: Options = {}): Promise<string | undefined> {
   try {
     const cachePath = getAuthInfoCachePath(options);
     const cacheJson = await readFile(cachePath, { encoding: "utf-8" });
@@ -364,28 +379,18 @@ async function readAuthInfoCache(key: string, options: Options = {}) {
   }
 }
 
-export async function initLDContextFromKey(options: Options = {}) {
-  const apiKey = options.apiKey ?? (await readToken(options));
+export async function initLDContextFromApiKey(options: Options = {}) {
+  const apiKey = await getApiKey(options);
   if (!apiKey) {
     return;
   }
 
-  let authInfo = await readAuthInfoCache(apiKey, options);
-  if (!authInfo) {
+  let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
+  if (!targetId) {
     debug("Fetching auth info from server");
-    authInfo = await getAuthInfo(apiKey);
-    if (authInfo) {
-      await writeAuthInfoCache(apiKey, authInfo, options);
-    }
+    targetId = await getAuthInfo(apiKey);
+    await writeAuthInfoCache(apiKey, targetId, options);
   }
 
-  if (!authInfo) {
-    return;
-  }
-
-  if (authInfo.userId) {
-    await getLaunchDarkly().identify({ type: "user", id: authInfo.userId });
-  } else if (authInfo.workspaceId) {
-    await getLaunchDarkly().identify({ type: "workspace", id: authInfo.workspaceId });
-  }
+  await getLaunchDarkly().identify({ type: "user", id: targetId });
 }
