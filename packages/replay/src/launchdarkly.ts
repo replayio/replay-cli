@@ -115,4 +115,11 @@ class LaunchDarkly {
   }
 }
 
-export const launchDarkly = new LaunchDarkly();
+let launchDarkly: LaunchDarkly | undefined;
+export const getLaunchDarkly = () => {
+  if (launchDarkly) {
+    return launchDarkly;
+  }
+  launchDarkly = new LaunchDarkly();
+  return launchDarkly;
+};

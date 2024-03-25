@@ -7,7 +7,7 @@ import path from "path";
 import { query } from "./graphql";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
-import { launchDarkly } from "./launchdarkly";
+import { getLaunchDarkly } from "./launchdarkly";
 
 const debug = dbg("replay:cli:auth");
 
@@ -384,8 +384,8 @@ export async function initLDContextFromKey(options: Options = {}) {
   }
 
   if (authInfo.userId) {
-    await launchDarkly.identify({ type: "user", id: authInfo.userId });
+    await getLaunchDarkly().identify({ type: "user", id: authInfo.userId });
   } else if (authInfo.workspaceId) {
-    await launchDarkly.identify({ type: "workspace", id: authInfo.workspaceId });
+    await getLaunchDarkly().identify({ type: "workspace", id: authInfo.workspaceId });
   }
 }

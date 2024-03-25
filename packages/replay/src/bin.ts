@@ -26,7 +26,7 @@ import {
 } from "./types";
 import { assertValidBrowserName, fuzzyBrowserName } from "./utils";
 import { initLDContextFromKey, maybeAuthenticateUser } from "./auth";
-import { launchDarkly } from "./launchdarkly";
+import { getLaunchDarkly } from "./launchdarkly";
 
 export interface CommandLineOptions extends Options {
   /**
@@ -170,7 +170,7 @@ commandWithGlobalOptions("version")
   .action(commandVersion);
 
 async function exitCommand(exitCode: number) {
-  await launchDarkly.close();
+  await getLaunchDarkly().close();
   process.exit(exitCode);
 }
 
