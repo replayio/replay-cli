@@ -332,7 +332,7 @@ async function getAuthInfo(key: string): Promise<string> {
   const { viewer, auth } = response;
 
   if (viewer?.user?.id) {
-    viewer.user.id;
+    return viewer.user.id;
   }
 
   if (auth?.workspaces?.edges?.[0]?.node?.id) {
@@ -347,6 +347,8 @@ function getAuthInfoCachePath(options: Options = {}) {
   return path.resolve(path.join(directory, "profile", "authInfo.json"));
 }
 
+// We don't want to store the API key in plain text, especially when provided
+// via env or CLI arg. Hashing it would prevent leaking the key
 function authInfoCacheKey(key: string) {
   return createHash("sha256").update(key).digest("hex");
 }
