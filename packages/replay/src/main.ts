@@ -47,8 +47,8 @@ import {
 } from "./types";
 import { ReplayClient } from "./upload";
 import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
-import { Agent as HttpAgent, AgentOptions } from "http";
-import { Agent as HttpsAgent } from "https";
+import { getLaunchDarkly } from "./launchdarkly";
+import { Agent, AgentOptions } from "http";
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
@@ -146,7 +146,7 @@ async function doUploadCrash(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: HttpAgent
+  agent?: Agent
 ) {
   const client = new ReplayClient();
   maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
@@ -353,7 +353,8 @@ async function doUploadRecording(
 
   let recordingId: string;
   try {
-    if (size > MIN_MULTIPART_UPLOAD_SIZE && process.env.REPLAY_MULTIPART_UPLOAD) {
+    const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
+    if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
       recordingId = await multipartUploadRecording(
         server,
         client,
