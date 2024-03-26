@@ -347,6 +347,8 @@ function getAuthInfoCachePath(options: Options = {}) {
   return path.resolve(path.join(directory, "profile", "authInfo.json"));
 }
 
+// We don't want to store the API key in plain text, especially when provided
+// via env or CLI arg. Hashing it would prevent leaking the key
 function authInfoCacheKey(key: string) {
   return createHash("sha256").update(key).digest("hex");
 }
@@ -386,9 +388,11 @@ export async function initLDContextFromApiKey(options: Options = {}) {
   }
 
   let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
+  console.log("targetId: ", targetId);
   if (!targetId) {
     debug("Fetching auth info from server");
     targetId = await getAuthInfo(apiKey);
+    console.log("targetId: ", targetId);
     await writeAuthInfoCache(apiKey, targetId, options);
   }
 
