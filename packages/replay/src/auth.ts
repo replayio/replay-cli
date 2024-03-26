@@ -332,7 +332,7 @@ async function getAuthInfo(key: string): Promise<string> {
   const { viewer, auth } = response;
 
   if (viewer?.user?.id) {
-    viewer.user.id;
+    return viewer.user.id;
   }
 
   if (auth?.workspaces?.edges?.[0]?.node?.id) {
