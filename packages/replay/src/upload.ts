@@ -9,6 +9,7 @@ import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import dbg, { logPath } from "./debug";
 import pMap from "p-map";
+import type { Agent, AgentOptions } from "http";
 
 const debug = dbg("replay:cli:upload");
 
@@ -20,7 +21,7 @@ class ReplayClient {
   client: ProtocolClient | undefined;
   clientReady = defer<boolean>();
 
-  async initConnection(server: string, accessToken?: string, verbose?: boolean, agent?: any) {
+  async initConnection(server: string, accessToken?: string, verbose?: boolean, agent?: Agent) {
     if (!this.client) {
       let { resolve } = this.clientReady;
       this.client = new ProtocolClient(
@@ -43,9 +44,7 @@ class ReplayClient {
             resolve(false);
           },
         },
-        {
-          agent,
-        }
+        agent
       );
     }
 
@@ -182,7 +181,8 @@ class ReplayClient {
   async uploadPart(
     link: string,
     partMeta: { filePath: string; start: number; end: number },
-    size: number
+    size: number,
+    agentOptions?: AgentOptions
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
@@ -195,11 +195,16 @@ class ReplayClient {
         }
       });
 
-      worker.postMessage({ link, partMeta, size, logPath });
+      worker.postMessage({ link, partMeta, size, logPath, agentOptions });
     });
   }
 
-  async uploadRecordingInParts(filePath: string, partUploadLinks: string[], partSize: number) {
+  async uploadRecordingInParts(
+    filePath: string,
+    partUploadLinks: string[],
+    partSize: number,
+    agentOptions?: AgentOptions
+  ) {
     const stats = fs.statSync(filePath);
     const totalSize = stats.size;
     const results = await pMap(
@@ -218,7 +223,7 @@ class ReplayClient {
               totalSize,
               partSize,
             });
-            return this.uploadPart(url, { filePath, start, end }, end - start + 1);
+            return this.uploadPart(url, { filePath, start, end }, end - start + 1, agentOptions);
           },
           e => {
             debug(`Failed to upload part ${index + 1}. Will be retried: %o`, e);

@@ -1,5 +1,7 @@
 import dbg from "debug";
 import path from "path";
+import { Agent as HttpAgent, AgentOptions } from "http";
+import { Agent as HttpsAgent } from "https";
 
 import { BrowserName, Options } from "./types";
 
@@ -150,6 +152,21 @@ function getUserAgent() {
   return getNameAndVersion();
 }
 
+function getHttpAgent(server: string, agentOptions?: AgentOptions) {
+  const serverURL = new URL(server);
+  if (!agentOptions) {
+    return;
+  }
+
+  if (["wss:", "https:"].includes(serverURL.protocol)) {
+    return new HttpsAgent(agentOptions);
+  } else if (["ws:", "http:"].includes(serverURL.protocol)) {
+    return new HttpAgent(agentOptions);
+  }
+
+  throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
+}
+
 export {
   assertValidBrowserName,
   fuzzyBrowserName,
@@ -159,4 +176,5 @@ export {
   isValidUUID,
   getCurrentVersion,
   getUserAgent,
+  getHttpAgent,
 };

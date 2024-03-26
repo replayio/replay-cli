@@ -1,22 +1,10 @@
-import type { URL } from "url";
 import type { AgentOptions } from "http";
 
 import { parentPort } from "worker_threads";
 import fs from "fs";
 import fetch from "node-fetch";
-import { Agent as HttpAgent } from "http";
-import { Agent as HttpsAgent } from "https";
-import { getUserAgent } from "./utils";
+import { getHttpAgent, getUserAgent } from "./utils";
 import dbg from "./debug";
-
-// After adding support for agent options, merge the agent options with the default options here
-// https://linear.app/replay/issue/SCS-2034/take-agentoptions-rather-than-agent-instance
-const agentConfig: AgentOptions = {
-  keepAlive: true,
-  maxSockets: 500,
-};
-const agent = (parsedURL: URL) =>
-  parsedURL.protocol == "http:" ? new HttpAgent(agentConfig) : new HttpsAgent(agentConfig);
 
 if (parentPort === null) {
   throw new Error("Must be run as a worker");
@@ -29,11 +17,13 @@ parentPort.on(
     partMeta,
     size,
     logPath,
+    agentOptions,
   }: {
     link: string;
     partMeta: { filePath: string; start: number; end: number };
     size: number;
     logPath: string;
+    agentOptions?: AgentOptions;
   }) => {
     const { filePath, start, end } = partMeta;
     const debug = dbg("replay:cli:upload-worker", logPath);
@@ -47,7 +37,10 @@ parentPort.on(
     const stream = fs.createReadStream(filePath, { start, end });
     const resp = await fetch(link, {
       method: "PUT",
-      agent,
+      agent: getHttpAgent(link, {
+        keepAlive: true,
+        ...agentOptions,
+      }),
       headers: {
         Connection: "keep-alive",
         "Content-Length": size.toString(),
