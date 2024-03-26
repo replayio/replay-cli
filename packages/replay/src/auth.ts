@@ -7,8 +7,19 @@ import path from "path";
 import { query } from "./graphql";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
+import { getLaunchDarkly } from "./launchdarkly";
 
 const debug = dbg("replay:cli:auth");
+
+class GraphQLError extends Error {
+  constructor(message: string, public errors: any[]) {
+    const errorsMessage = errors
+      .map((e: any) => e.message)
+      .filter(Boolean)
+      .join(", ");
+    super(`${message}: ${errorsMessage}`);
+  }
+}
 
 function isInternalError(e: unknown): e is { id: string } {
   if (typeof e === "object" && e && "id" in e) {
@@ -35,8 +46,7 @@ function tokenInfo(token: string) {
 
   let payload;
   try {
-    const decPayload = Buffer.alloc(encPayload.length, encPayload, "base64");
-    payload = JSON.parse(new TextDecoder().decode(decPayload));
+    payload = JSON.parse(Buffer.from(encPayload, "base64").toString());
   } catch (err) {
     debug("Failed to decode token: %s %e", maskToken(token), err);
     return null;
@@ -220,6 +230,15 @@ export async function readToken(options: Options = {}) {
   }
 }
 
+async function getApiKey(options: Options = {}) {
+  return (
+    options.apiKey ??
+    process.env.REPLAY_API_KEY ??
+    process.env.RECORD_REPLAY_API_KEY ??
+    (await readToken(options))
+  );
+}
+
 async function writeToken(token: string, options: Options = {}) {
   maybeLog(options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
@@ -262,4 +281,118 @@ export async function maybeAuthenticateUser(options: Options = {}) {
 
     return false;
   }
+}
+
+async function getAuthInfo(key: string): Promise<string> {
+  const resp = await query(
+    "AuthInfo",
+    `
+        query AuthInfo {
+          viewer {
+            user {
+              id
+            }
+          }
+          auth {
+            workspaces {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+    undefined,
+    key
+  );
+
+  if (resp.errors) {
+    throw new GraphQLError("Failed to fetch auth info", resp.errors);
+  }
+
+  const response = resp.data as {
+    viewer: {
+      user: {
+        id: string | null;
+      } | null;
+    };
+    auth: {
+      workspaces: {
+        edges: {
+          node: {
+            id: string;
+          };
+        }[];
+      };
+    };
+  };
+
+  const { viewer, auth } = response;
+
+  if (viewer?.user?.id) {
+    return viewer.user.id;
+  }
+
+  if (auth?.workspaces?.edges?.[0]?.node?.id) {
+    return auth.workspaces.edges[0].node.id;
+  }
+
+  throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
+}
+
+function getAuthInfoCachePath(options: Options = {}) {
+  const directory = getDirectory(options);
+  return path.resolve(path.join(directory, "profile", "authInfo.json"));
+}
+
+// We don't want to store the API key in plain text, especially when provided
+// via env or CLI arg. Hashing it would prevent leaking the key
+function authInfoCacheKey(key: string) {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+async function writeAuthInfoCache(
+  key: string,
+  authInfo: string,
+  options: Options = {}
+): Promise<{
+  [key: string]: string;
+}> {
+  const cachePath = getAuthInfoCachePath(options);
+  await mkdir(path.dirname(getAuthInfoCachePath(options)), { recursive: true });
+  const cache = {
+    [authInfoCacheKey(key)]: authInfo,
+  };
+  await writeFile(cachePath, JSON.stringify(cache, undefined, 2), { encoding: "utf-8" });
+  return cache;
+}
+
+async function readAuthInfoCache(key: string, options: Options = {}): Promise<string | undefined> {
+  try {
+    const cachePath = getAuthInfoCachePath(options);
+    const cacheJson = await readFile(cachePath, { encoding: "utf-8" });
+    const cache = JSON.parse(cacheJson);
+    return cache[authInfoCacheKey(key)];
+  } catch (e) {
+    debug("Failed to read auth info cache: %o", e);
+    return;
+  }
+}
+
+export async function initLDContextFromApiKey(options: Options = {}) {
+  const apiKey = await getApiKey(options);
+  if (!apiKey) {
+    return;
+  }
+
+  let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
+  if (!targetId) {
+    debug("Fetching auth info from server");
+    targetId = await getAuthInfo(apiKey);
+    await writeAuthInfoCache(apiKey, targetId, options);
+  }
+
+  await getLaunchDarkly().identify({ type: "user", id: targetId });
 }
