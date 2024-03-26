@@ -1,7 +1,7 @@
 import dbg from "./debug";
 import WebSocket from "ws";
-import { Options } from "./types";
 import { defer } from "./utils";
+import { Agent } from "http";
 
 const debug = dbg("replay:protocol");
 
@@ -45,10 +45,10 @@ class ProtocolClient {
   eventListeners = new Map();
   nextMessageId = 1;
 
-  constructor(address: string, callbacks: Callbacks, opts: Options = {}) {
-    debug("Creating WebSocket for %s with %o", address, { agent: opts.agent });
+  constructor(address: string, callbacks: Callbacks, agent?: Agent) {
+    debug("Creating WebSocket for %s with %o", address, { agent });
     this.socket = new WebSocket(address, {
-      agent: opts.agent,
+      agent: agent,
     });
     this.callbacks = callbacks;
 

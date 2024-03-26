@@ -1,4 +1,4 @@
-import { Agent } from "http";
+import type { AgentOptions } from "http";
 
 export type UnstructuredMetadata = Record<string, unknown>;
 
@@ -23,7 +23,7 @@ export interface Options {
    */
   apiKey?: string;
   verbose?: boolean;
-  agent?: Agent;
+  agentOptions?: AgentOptions;
 }
 
 export interface SourcemapUploadOptions {
