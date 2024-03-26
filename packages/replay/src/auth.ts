@@ -388,11 +388,9 @@ export async function initLDContextFromApiKey(options: Options = {}) {
   }
 
   let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
-  console.log("targetId: ", targetId);
   if (!targetId) {
     debug("Fetching auth info from server");
     targetId = await getAuthInfo(apiKey);
-    console.log("targetId: ", targetId);
     await writeAuthInfoCache(apiKey, targetId, options);
   }
 

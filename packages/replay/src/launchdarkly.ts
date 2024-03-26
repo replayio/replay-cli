@@ -24,8 +24,6 @@ class NoOpLogger implements LDLogger {
 
 class LaunchDarkly {
   private client: LDClient;
-  private initialized = true;
-  private lastCall = Date.now();
 
   constructor() {
     this.client = LaunchDarkly.initializeClient();
@@ -47,27 +45,7 @@ class LaunchDarkly {
     );
   }
 
-  private async reinitialize() {
-    this.client = LaunchDarkly.initializeClient();
-    this.initialized = true;
-    // try to re-close the connection after we have re-initialized
-    setTimeout(this.reClose.bind(this), 5000).unref();
-  }
-
-  private async reClose() {
-    // If we've gone more than 5 seconds with a call to `variant`, re-close the connection
-    if (Date.now() - this.lastCall > 5000 && this.initialized) {
-      this.close();
-    } else {
-      setTimeout(this.reClose.bind(this), 5000).unref();
-    }
-  }
-
   public async identify(profile: FeatureProfile): Promise<void> {
-    if (!this.initialized) {
-      this.reinitialize();
-    }
-
     try {
       await this.client.waitForInitialization();
     } catch (e) {
@@ -87,11 +65,6 @@ class LaunchDarkly {
   }
 
   public async variant<T>(name: string, defaultValue: T): Promise<T> {
-    this.lastCall = Date.now();
-    if (!this.initialized) {
-      this.reinitialize();
-    }
-
     try {
       await this.client.waitForInitialization();
     } catch (e) {
@@ -104,7 +77,6 @@ class LaunchDarkly {
   }
 
   public async close() {
-    this.initialized = false;
     try {
       await this.client.close();
     } catch (e) {
