@@ -4,7 +4,7 @@ import { getPackument } from "query-registry";
 import { compare } from "semver";
 import dbg from "./debug";
 import { query } from "./graphql";
-import { getCurrentVersion } from "./utils";
+import { getCurrentVersion, getHttpAgent } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -48,6 +48,7 @@ import {
 import { ReplayClient } from "./upload";
 import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
 import { getLaunchDarkly } from "./launchdarkly";
+import { Agent, AgentOptions } from "http";
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
@@ -145,7 +146,7 @@ async function doUploadCrash(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: any
+  agent?: Agent
 ) {
   const client = new ReplayClient();
   maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
@@ -236,7 +237,8 @@ async function multipartUploadRecording(
   metadata: RecordingMetadata | null,
   size: number,
   strict: boolean,
-  verbose: boolean
+  verbose: boolean,
+  agentOptions?: AgentOptions
 ) {
   const requestPartChunkSize =
     parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
@@ -252,7 +254,12 @@ async function multipartUploadRecording(
     server,
     recordingId,
   });
-  const eTags = await client.uploadRecordingInParts(recording.path!, partLinks, chunkSize);
+  const eTags = await client.uploadRecordingInParts(
+    recording.path!,
+    partLinks,
+    chunkSize,
+    agentOptions
+  );
 
   await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
   return recordingId;
@@ -297,7 +304,7 @@ async function doUploadRecording(
   recording: RecordingEntry,
   verbose: boolean = false,
   apiKey?: string,
-  agent?: any,
+  agentOptions?: AgentOptions,
   removeAssets: boolean = false,
   strict: boolean = false
 ) {
@@ -319,6 +326,8 @@ async function doUploadRecording(
   if (!apiKey) {
     apiKey = await readToken({ directory: dir });
   }
+
+  const agent = getHttpAgent(server, agentOptions);
 
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
@@ -354,7 +363,8 @@ async function doUploadRecording(
         metadata,
         size,
         strict,
-        verbose
+        verbose,
+        agentOptions
       );
     } else {
       recordingId = await directUploadRecording(
@@ -450,7 +460,7 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
     recording,
     opts.verbose,
     opts.apiKey,
-    opts.agent,
+    opts.agentOptions,
     true,
     opts.strict
   );
@@ -458,7 +468,8 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
   const server = getServer(opts);
-  const { verbose, agent } = opts;
+  const agent = getHttpAgent(server, opts.agentOptions);
+  const { verbose } = opts;
   let apiKey = opts.apiKey;
 
   maybeLog(verbose, `Processing recording ${recordingId}...`);
@@ -534,7 +545,16 @@ async function uploadAllRecordings(opts: UploadAllOptions = {}) {
   const recordingIds: (string | null)[] = await pMap(
     recordings,
     (r: RecordingEntry) =>
-      doUploadRecording(dir, server, r, opts.verbose, opts.apiKey, opts.agent, false, opts.strict),
+      doUploadRecording(
+        dir,
+        server,
+        r,
+        opts.verbose,
+        opts.apiKey,
+        opts.agentOptions,
+        false,
+        opts.strict
+      ),
     { concurrency: batchSize, stopOnError: false }
   );
 
@@ -554,7 +574,7 @@ async function doViewRecording(
   recording: RecordingEntry,
   verbose?: boolean,
   apiKey?: string,
-  agent?: any,
+  agentOptions?: AgentOptions,
   viewServer?: string
 ) {
   let recordingId;
@@ -565,7 +585,15 @@ async function doViewRecording(
     recordingId = recording.recordingId;
     server = recording.server!;
   } else {
-    recordingId = await doUploadRecording(dir, server, recording, verbose, apiKey, agent, true);
+    recordingId = await doUploadRecording(
+      dir,
+      server,
+      recording,
+      verbose,
+      apiKey,
+      agentOptions,
+      true
+    );
 
     if (!recordingId) {
       return false;
@@ -588,7 +616,7 @@ async function viewRecording(id: string, opts: Options = {}) {
     maybeLog(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  return doViewRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agent);
+  return doViewRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agentOptions);
 }
 
 async function viewLatestRecording(opts: Options = {}) {
@@ -605,7 +633,7 @@ async function viewLatestRecording(opts: Options = {}) {
     recordings[recordings.length - 1],
     opts.verbose,
     opts.apiKey,
-    opts.agent,
+    opts.agentOptions,
     opts.viewServer
   );
 }
