@@ -1,6 +1,6 @@
 {
   "name": "@kitchensink/replayio-cypress",
-  "version": "1.7.21",
+  "version": "1.7.22",
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "./dist/index.js",
   "bin": "./bin.js",
