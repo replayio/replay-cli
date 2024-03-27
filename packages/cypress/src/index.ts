@@ -1,8 +1,8 @@
 /// <reference types="cypress" />
 
 import semver from "semver";
-import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
-import { TestMetadataV2, initMetadataFile, warn } from "@replayio/test-utils";
+import { getPlaywrightBrowserPath, RecordingEntry } from "@kitchensink-replayio/replay";
+import { TestMetadataV2, initMetadataFile, warn } from "@kitchensink-replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
@@ -34,7 +34,7 @@ function assertReporter(
 
 function loudWarning(...lines: string[]) {
   const terminalWidth = process.stdout.columns || 80;
-  const packageName = "@replayio/cypress";
+  const packageName = "@kitchensink-replayio/cypress";
 
   const startHeaderWidth = Math.floor((terminalWidth - packageName.length) / 2 - 1);
   const endHeaderWidth = terminalWidth - startHeaderWidth - packageName.length - 2;
@@ -150,7 +150,7 @@ async function onAfterRun() {
       "Your tests completed but our plugin did not receive any command events.",
       "",
       `Did you remember to include ${chalk.magentaBright(
-        "@replayio/cypress/support"
+        "@kitchensink-replayio/cypress/support"
       )} in your support file?`
     );
   }

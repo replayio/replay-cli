@@ -6,7 +6,7 @@ import {
   ReporterError,
   fetchWorkspaceConfig,
   ReplayReporterConfig,
-} from "@replayio/test-utils";
+} from "@kitchensink-replayio/test-utils";
 import dbg from "debug";
 
 import { Errors } from "./error";
@@ -62,7 +62,7 @@ class CypressReporter {
       {
         name: "cypress",
         version: config.version,
-        plugin: require("@replayio/cypress/package.json").version,
+        plugin: require("@kitchensink-replayio/cypress/package.json").version,
       },
       "2.1.0"
     );

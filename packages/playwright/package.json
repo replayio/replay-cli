@@ -1,5 +1,5 @@
 {
-  "name": "@replayio/playwright",
+  "name": "@kitchensink-replayio/playwright",
   "version": "1.1.16",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "./dist/index.js",
@@ -43,8 +43,8 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "workspace:^",
-    "@replayio/test-utils": "workspace:^",
+    "@kitchensink-replayio/replay": "workspace:^",
+    "@kitchensink-replayio/test-utils": "workspace:^",
     "uuid": "^8.3.2"
   },
   "peerDependencies": {

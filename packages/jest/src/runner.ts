@@ -7,12 +7,12 @@ import {
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
   TestIdContext,
-} from "@replayio/test-utils";
+} from "@kitchensink-replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
 
 const runner = require("jest-circus/runner");
-const pluginVersion = require("@replayio/jest/package.json").version;
+const pluginVersion = require("@kitchensink-replayio/jest/package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("JEST", workerIndex);

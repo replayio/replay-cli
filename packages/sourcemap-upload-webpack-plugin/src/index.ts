@@ -5,7 +5,7 @@ import {
   uploadSourceMaps,
   UploadOptions,
   LogCallback,
-} from "@replayio/sourcemap-upload";
+} from "@kitchensink-replayio/sourcemap-upload";
 import assert from "assert";
 import path from "path";
 
@@ -72,6 +72,6 @@ export default class ReplaySourceMapUploadWebpackPlugin {
 }
 
 function getNameAndVersion() {
-  const pkg = require("@replayio/sourcemap-upload-webpack-plugin/package.json");
+  const pkg = require("@kitchensink-replayio/sourcemap-upload-webpack-plugin/package.json");
   return `${pkg.name}/${pkg.version}`;
 }

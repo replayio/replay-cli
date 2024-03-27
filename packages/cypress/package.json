@@ -1,5 +1,5 @@
 {
-  "name": "@replayio/cypress",
+  "name": "@kitchensink-replayio/cypress",
   "version": "1.7.20",
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "./dist/index.js",
@@ -46,8 +46,8 @@
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@replayio/replay": "workspace:^",
-    "@replayio/test-utils": "workspace:^",
+    "@kitchensink-replayio/replay": "workspace:^",
+    "@kitchensink-replayio/test-utils": "workspace:^",
     "chalk": "^4.1.2",
     "debug": "^4.3.4",
     "semver": "^7.5.2",

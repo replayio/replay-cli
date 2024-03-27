@@ -1,4 +1,4 @@
-import { LogCallback, uploadSourceMaps } from "@replayio/sourcemap-upload";
+import { LogCallback, uploadSourceMaps } from "@kitchensink-replayio/sourcemap-upload";
 import { program } from "commander";
 import dbg, { printLogPath } from "./debug";
 import { formatAllRecordingsHumanReadable, formatAllRecordingsJson } from "./cli/formatRecordings";

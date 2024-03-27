@@ -1,5 +1,5 @@
 {
-  "name": "@replayio/sourcemap-upload-webpack-plugin",
+  "name": "@kitchensink-replayio/sourcemap-upload-webpack-plugin",
   "version": "1.0.12",
   "description": "A webpack plugin to run Replay's sourcemap-upload logic when Webpack compilation finishes.",
   "main": "./index.js",
@@ -50,7 +50,7 @@
     "webpack": "^5.90.3"
   },
   "dependencies": {
-    "@replayio/sourcemap-upload": "workspace:^"
+    "@kitchensink-replayio/sourcemap-upload": "workspace:^"
   },
   "peerDependencies": {
     "webpack": "^4.0.0 || ^5.76.0"

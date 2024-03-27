@@ -492,7 +492,7 @@ async function listAllFiles(
 }
 
 function getNameAndVersion() {
-  const pkg = require("@replayio/sourcemap-upload/package.json");
+  const pkg = require("@kitchensink-replayio/sourcemap-upload/package.json");
   return `${pkg.name}/${pkg.version}`;
 }
 

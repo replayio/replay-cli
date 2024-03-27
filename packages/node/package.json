@@ -1,5 +1,5 @@
 {
-  "name": "@replayio/node",
+  "name": "@kitchensink-replayio/node",
   "version": "0.2.4",
   "description": "CLI tool for creating recordings using the replay version of node",
   "bin": {

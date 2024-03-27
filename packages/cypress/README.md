@@ -17,7 +17,7 @@ The Replay adapter for cypress requires two updates: one to your `cypress.config
 ```js
 // cypress.config.js
 import { defineConfig } from "cypress";
-import cypressReplay from "@replayio/cypress";
+import cypressReplay from "@kitchensink-replayio/cypress";
 
 module.exports = defineConfig({
   e2e: {
@@ -35,7 +35,7 @@ module.exports = defineConfig({
 ```js
 // cypress/e2e/support.js
 
-import "@replayio/cypress/support";
+import "@kitchensink-replayio/cypress/support";
 ```
 
 ## Runtime Configuration

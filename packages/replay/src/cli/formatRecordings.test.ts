@@ -115,7 +115,11 @@ describe("formatAllReordingsJson", () => {
         createTime: new Date("Wed Jul 13 2022 20:35:07 GMT-0700 (Pacific Daylight Time)"),
         runtime: "node",
         metadata: {
-          argv: ["/Users/dan/.nvm/versions/node/v16.13.0/bin/npx", "@replayio/replay", "ls"],
+          argv: [
+            "/Users/dan/.nvm/versions/node/v16.13.0/bin/npx",
+            "@kitchensink-replayio/replay",
+            "ls",
+          ],
           title: "Replay of npx",
         },
         sourcemaps: [

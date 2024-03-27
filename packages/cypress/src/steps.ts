@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
+import { ReporterError, TestMetadataV2 } from "@kitchensink-replayio/test-utils";
 import Debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import type { StepEvent } from "./support";
