@@ -1267,6 +1267,190 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@kitchensink-replayio/cypress@workspace:packages/cypress":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/cypress@workspace:packages/cypress"
+  dependencies:
+    "@kitchensink-replayio/replay": "workspace:^"
+    "@kitchensink-replayio/test-utils": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/debug": "npm:^4.1.7"
+    "@types/node": "npm:^20.11.27"
+    "@types/semver": "npm:^7.3.13"
+    "@types/uuid": "npm:^9.0.1"
+    "@types/ws": "npm:^8.5.10"
+    chalk: "npm:^4.1.2"
+    cypress: "npm:^10.9.0"
+    debug: "npm:^4.3.4"
+    semver: "npm:^7.5.2"
+    terminate: "npm:^2.6.1"
+    txml: "npm:^3.2.5"
+    typescript: "npm:^5.4.2"
+    uuid: "npm:^8.3.2"
+    ws: "npm:^8.14.2"
+  peerDependencies:
+    cypress: ">=5.3.0"
+  bin:
+    replayio-cypress: ./bin.js
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/jest@workspace:packages/jest":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/jest@workspace:packages/jest"
+  dependencies:
+    "@jest/reporters": "npm:^27.5.1"
+    "@jest/test-result": "npm:^27.5.1"
+    "@kitchensink-replayio/replay": "workspace:^"
+    "@kitchensink-replayio/test-utils": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/node": "npm:^20.11.27"
+    jest-circus: "npm:^27.5.1"
+    jest-environment-node: "npm:^27.5.1"
+    typescript: "npm:^5.4.2"
+    uuid: "npm:^8.3.2"
+  bin:
+    replayio-jest: ./bin.js
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/node@workspace:packages/node":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/node@workspace:packages/node"
+  bin:
+    replay-node: bin/replay-node
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/playwright@workspace:^, @kitchensink-replayio/playwright@workspace:packages/playwright":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/playwright@workspace:packages/playwright"
+  dependencies:
+    "@kitchensink-replayio/replay": "workspace:^"
+    "@kitchensink-replayio/test-utils": "workspace:^"
+    "@playwright/test": "npm:1.19.x"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/node": "npm:^20.11.27"
+    "@types/uuid": "npm:^8.3.4"
+    typescript: "npm:^5.4.2"
+    uuid: "npm:^8.3.2"
+  peerDependencies:
+    "@playwright/test": 1.19.x
+  bin:
+    replayio-playwright: ./bin.js
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/puppeteer@workspace:packages/puppeteer":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/puppeteer@workspace:packages/puppeteer"
+  dependencies:
+    "@kitchensink-replayio/replay": "workspace:^"
+    "@kitchensink-replayio/test-utils": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/node": "npm:^20.11.27"
+    typescript: "npm:^5.4.2"
+  bin:
+    replayio-puppeteer: ./bin.js
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/replay@workspace:^, @kitchensink-replayio/replay@workspace:packages/replay":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/replay@workspace:packages/replay"
+  dependencies:
+    "@kitchensink-replayio/sourcemap-upload": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/debug": "npm:^4.1.7"
+    "@types/jest": "npm:^28.1.5"
+    "@types/node-fetch": "npm:^2.6.3"
+    "@types/semver": "npm:^7.5.6"
+    "@types/text-table": "npm:^0.2.2"
+    "@types/ws": "npm:^8.5.10"
+    commander: "npm:^12.0.0"
+    debug: "npm:^4.3.4"
+    is-uuid: "npm:^1.0.2"
+    jest: "npm:^28.1.3"
+    jsonata: "npm:^1.8.6"
+    launchdarkly-node-client-sdk: "npm:^3.1.0"
+    node-fetch: "npm:^2.6.8"
+    p-map: "npm:^4.0.0"
+    query-registry: "npm:^2.6.0"
+    semver: "npm:^7.5.4"
+    superstruct: "npm:^0.15.4"
+    text-table: "npm:^0.2.0"
+    ts-jest: "npm:^28.0.6"
+    typescript: "npm:^5.4.2"
+    ws: "npm:^7.5.0"
+  bin:
+    replay: ./bin.js
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin"
+  dependencies:
+    "@kitchensink-replayio/sourcemap-upload": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/debug": "npm:^4.1.5"
+    "@types/glob": "npm:^7.1.3"
+    "@types/node": "npm:^20.11.27"
+    "@types/node-fetch": "npm:^2.5.10"
+    "@typescript-eslint/eslint-plugin": "npm:^4.22.0"
+    "@typescript-eslint/parser": "npm:^4.22.0"
+    eslint: "npm:^7.25.0"
+    eslint-config-prettier: "npm:^8.3.0"
+    eslint-plugin-prettier: "npm:^3.4.0"
+    prettier: "npm:^2.2.1"
+    typescript: "npm:^5.4.2"
+    webpack: "npm:^5.90.3"
+  peerDependencies:
+    webpack: ^4.0.0 || ^5.76.0
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/sourcemap-upload@workspace:^, @kitchensink-replayio/sourcemap-upload@workspace:packages/sourcemap-upload":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/sourcemap-upload@workspace:packages/sourcemap-upload"
+  dependencies:
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/debug": "npm:^4.1.5"
+    "@types/glob": "npm:^7.1.3"
+    "@types/node": "npm:^20.11.27"
+    "@types/node-fetch": "npm:^2.5.10"
+    "@types/string.prototype.matchall": "npm:^4.0.0"
+    "@typescript-eslint/eslint-plugin": "npm:^4.22.0"
+    "@typescript-eslint/parser": "npm:^4.22.0"
+    commander: "npm:^7.2.0"
+    debug: "npm:^4.3.1"
+    eslint: "npm:^7.25.0"
+    eslint-config-prettier: "npm:^8.3.0"
+    eslint-plugin-prettier: "npm:^3.4.0"
+    glob: "npm:^7.1.6"
+    node-fetch: "npm:^2.6.1"
+    prettier: "npm:^2.2.1"
+    string.prototype.matchall: "npm:^4.0.5"
+    typescript: "npm:^5.4.2"
+  languageName: unknown
+  linkType: soft
+
+"@kitchensink-replayio/test-utils@workspace:^, @kitchensink-replayio/test-utils@workspace:packages/test-utils":
+  version: 0.0.0-use.local
+  resolution: "@kitchensink-replayio/test-utils@workspace:packages/test-utils"
+  dependencies:
+    "@kitchensink-replayio/replay": "workspace:^"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@types/debug": "npm:^4.1.7"
+    "@types/node-fetch": "npm:^2.6.2"
+    debug: "npm:^4.3.4"
+    node-fetch: "npm:^2.6.7"
+    sha-1: "npm:^1.0.0"
+    typescript: "npm:^5.4.2"
+    uuid: "npm:^8.3.2"
+  languageName: unknown
+  linkType: soft
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -1374,190 +1558,6 @@ __metadata:
 "@replay-cli/tsconfig@workspace:^, @replay-cli/tsconfig@workspace:scripts/tsconfig":
   version: 0.0.0-use.local
   resolution: "@replay-cli/tsconfig@workspace:scripts/tsconfig"
-  languageName: unknown
-  linkType: soft
-
-"@replayio/cypress@workspace:packages/cypress":
-  version: 0.0.0-use.local
-  resolution: "@replayio/cypress@workspace:packages/cypress"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
-    "@replayio/test-utils": "workspace:^"
-    "@types/debug": "npm:^4.1.7"
-    "@types/node": "npm:^20.11.27"
-    "@types/semver": "npm:^7.3.13"
-    "@types/uuid": "npm:^9.0.1"
-    "@types/ws": "npm:^8.5.10"
-    chalk: "npm:^4.1.2"
-    cypress: "npm:^10.9.0"
-    debug: "npm:^4.3.4"
-    semver: "npm:^7.5.2"
-    terminate: "npm:^2.6.1"
-    txml: "npm:^3.2.5"
-    typescript: "npm:^5.4.2"
-    uuid: "npm:^8.3.2"
-    ws: "npm:^8.14.2"
-  peerDependencies:
-    cypress: ">=5.3.0"
-  bin:
-    replayio-cypress: ./bin.js
-  languageName: unknown
-  linkType: soft
-
-"@replayio/jest@workspace:packages/jest":
-  version: 0.0.0-use.local
-  resolution: "@replayio/jest@workspace:packages/jest"
-  dependencies:
-    "@jest/reporters": "npm:^27.5.1"
-    "@jest/test-result": "npm:^27.5.1"
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
-    "@replayio/test-utils": "workspace:^"
-    "@types/node": "npm:^20.11.27"
-    jest-circus: "npm:^27.5.1"
-    jest-environment-node: "npm:^27.5.1"
-    typescript: "npm:^5.4.2"
-    uuid: "npm:^8.3.2"
-  bin:
-    replayio-jest: ./bin.js
-  languageName: unknown
-  linkType: soft
-
-"@replayio/node@workspace:packages/node":
-  version: 0.0.0-use.local
-  resolution: "@replayio/node@workspace:packages/node"
-  bin:
-    replay-node: bin/replay-node
-  languageName: unknown
-  linkType: soft
-
-"@replayio/playwright@workspace:^, @replayio/playwright@workspace:packages/playwright":
-  version: 0.0.0-use.local
-  resolution: "@replayio/playwright@workspace:packages/playwright"
-  dependencies:
-    "@playwright/test": "npm:1.19.x"
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
-    "@replayio/test-utils": "workspace:^"
-    "@types/node": "npm:^20.11.27"
-    "@types/uuid": "npm:^8.3.4"
-    typescript: "npm:^5.4.2"
-    uuid: "npm:^8.3.2"
-  peerDependencies:
-    "@playwright/test": 1.19.x
-  bin:
-    replayio-playwright: ./bin.js
-  languageName: unknown
-  linkType: soft
-
-"@replayio/puppeteer@workspace:packages/puppeteer":
-  version: 0.0.0-use.local
-  resolution: "@replayio/puppeteer@workspace:packages/puppeteer"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
-    "@replayio/test-utils": "workspace:^"
-    "@types/node": "npm:^20.11.27"
-    typescript: "npm:^5.4.2"
-  bin:
-    replayio-puppeteer: ./bin.js
-  languageName: unknown
-  linkType: soft
-
-"@replayio/replay@workspace:^, @replayio/replay@workspace:packages/replay":
-  version: 0.0.0-use.local
-  resolution: "@replayio/replay@workspace:packages/replay"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/sourcemap-upload": "workspace:^"
-    "@types/debug": "npm:^4.1.7"
-    "@types/jest": "npm:^28.1.5"
-    "@types/node-fetch": "npm:^2.6.3"
-    "@types/semver": "npm:^7.5.6"
-    "@types/text-table": "npm:^0.2.2"
-    "@types/ws": "npm:^8.5.10"
-    commander: "npm:^12.0.0"
-    debug: "npm:^4.3.4"
-    is-uuid: "npm:^1.0.2"
-    jest: "npm:^28.1.3"
-    jsonata: "npm:^1.8.6"
-    launchdarkly-node-client-sdk: "npm:^3.1.0"
-    node-fetch: "npm:^2.6.8"
-    p-map: "npm:^4.0.0"
-    query-registry: "npm:^2.6.0"
-    semver: "npm:^7.5.4"
-    superstruct: "npm:^0.15.4"
-    text-table: "npm:^0.2.0"
-    ts-jest: "npm:^28.0.6"
-    typescript: "npm:^5.4.2"
-    ws: "npm:^7.5.0"
-  bin:
-    replay: ./bin.js
-  languageName: unknown
-  linkType: soft
-
-"@replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin":
-  version: 0.0.0-use.local
-  resolution: "@replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/sourcemap-upload": "workspace:^"
-    "@types/debug": "npm:^4.1.5"
-    "@types/glob": "npm:^7.1.3"
-    "@types/node": "npm:^20.11.27"
-    "@types/node-fetch": "npm:^2.5.10"
-    "@typescript-eslint/eslint-plugin": "npm:^4.22.0"
-    "@typescript-eslint/parser": "npm:^4.22.0"
-    eslint: "npm:^7.25.0"
-    eslint-config-prettier: "npm:^8.3.0"
-    eslint-plugin-prettier: "npm:^3.4.0"
-    prettier: "npm:^2.2.1"
-    typescript: "npm:^5.4.2"
-    webpack: "npm:^5.90.3"
-  peerDependencies:
-    webpack: ^4.0.0 || ^5.76.0
-  languageName: unknown
-  linkType: soft
-
-"@replayio/sourcemap-upload@workspace:^, @replayio/sourcemap-upload@workspace:packages/sourcemap-upload":
-  version: 0.0.0-use.local
-  resolution: "@replayio/sourcemap-upload@workspace:packages/sourcemap-upload"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@types/debug": "npm:^4.1.5"
-    "@types/glob": "npm:^7.1.3"
-    "@types/node": "npm:^20.11.27"
-    "@types/node-fetch": "npm:^2.5.10"
-    "@types/string.prototype.matchall": "npm:^4.0.0"
-    "@typescript-eslint/eslint-plugin": "npm:^4.22.0"
-    "@typescript-eslint/parser": "npm:^4.22.0"
-    commander: "npm:^7.2.0"
-    debug: "npm:^4.3.1"
-    eslint: "npm:^7.25.0"
-    eslint-config-prettier: "npm:^8.3.0"
-    eslint-plugin-prettier: "npm:^3.4.0"
-    glob: "npm:^7.1.6"
-    node-fetch: "npm:^2.6.1"
-    prettier: "npm:^2.2.1"
-    string.prototype.matchall: "npm:^4.0.5"
-    typescript: "npm:^5.4.2"
-  languageName: unknown
-  linkType: soft
-
-"@replayio/test-utils@workspace:^, @replayio/test-utils@workspace:packages/test-utils":
-  version: 0.0.0-use.local
-  resolution: "@replayio/test-utils@workspace:packages/test-utils"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
-    "@types/debug": "npm:^4.1.7"
-    "@types/node-fetch": "npm:^2.6.2"
-    debug: "npm:^4.3.4"
-    node-fetch: "npm:^2.6.7"
-    sha-1: "npm:^1.0.0"
-    typescript: "npm:^5.4.2"
-    uuid: "npm:^8.3.2"
   languageName: unknown
   linkType: soft
 
@@ -6962,8 +6962,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "replay-cli@workspace:."
   dependencies:
-    "@replayio/playwright": "workspace:^"
-    "@replayio/replay": "workspace:^"
+    "@kitchensink-replayio/playwright": "workspace:^"
+    "@kitchensink-replayio/replay": "workspace:^"
     node-fetch: "npm:^3.3.1"
     prettier: "npm:^2.7.1"
     typescript: "npm:^5.4.2"
