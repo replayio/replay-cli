@@ -91,7 +91,7 @@ commandWithGlobalOptions("launch [url]")
 commandWithGlobalOptions("record [url]")
   .description("Launch the replay browser and start recording")
   .option("-b, --browser <browser>", "Browser to launch", "chromium")
-  .option("-a --browser-args <args>", "Browser arguments", "")
+  .option("--browser-args <args>", "Browser arguments", "")
   .option(
     "--attach <true|false>",
     "Whether to attach to the browser process after launching",
