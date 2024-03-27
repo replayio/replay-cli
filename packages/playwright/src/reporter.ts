@@ -15,13 +15,13 @@ import {
   TestMetadataV2,
   getMetadataFilePath as getMetadataFilePathBase,
   TestIdContext,
-} from "@kitchensink-replayio/test-utils";
+} from "@kitchensink/replayio-test-utils";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { readFileSync } from "fs";
 
-const pluginVersion = require("@kitchensink-replayio/playwright/package.json").version;
+const pluginVersion = require("@kitchensink/replayio-playwright/package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);

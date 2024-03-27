@@ -1,4 +1,4 @@
-import { TestMetadataV2 } from "@kitchensink-replayio/test-utils";
+import { TestMetadataV2 } from "@kitchensink/replayio-test-utils";
 import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;

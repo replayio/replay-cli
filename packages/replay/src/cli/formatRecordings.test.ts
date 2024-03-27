@@ -117,7 +117,7 @@ describe("formatAllReordingsJson", () => {
         metadata: {
           argv: [
             "/Users/dan/.nvm/versions/node/v16.13.0/bin/npx",
-            "@kitchensink-replayio/replay",
+            "@kitchensink/replayio-replay",
             "ls",
           ],
           title: "Replay of npx",

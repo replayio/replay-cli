@@ -20,7 +20,7 @@ You can add metadata to your puppeteer recordings using either the `RECORD_REPLA
 
 ```js
 const puppeteer = require("puppeteer");
-const { getExecutablePath } = require("@kitchensink-replayio/puppeteer");
+const { getExecutablePath } = require("@kitchensink/replayio-puppeteer");
 
 (async () => {
   const browser = await puppeteer.launch({

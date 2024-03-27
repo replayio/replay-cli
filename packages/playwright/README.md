@@ -14,7 +14,7 @@ Use with [action-playwright](https://github.com/Replayio/action-playwright) to a
 
 ```js
 import { PlaywrightTestConfig, devices } from "@playwright/test";
-import { devices as replayDevices } from "@kitchensink-replayio/playwright";
+import { devices as replayDevices } from "@kitchensink/replayio-playwright";
 
 
 const config: PlaywrightTestConfig = {

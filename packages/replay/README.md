@@ -155,7 +155,7 @@ npm i @replayio/replay
 Usage:
 
 ```js
-const interface = require("@kitchensink-replayio/replay");
+const interface = require("@kitchensink/replayio-replay");
 ```
 
 The interface includes the following members. Options objects can include `directory`, `server`, and `apiKey` properties which behave the same as `--directory`, `--server`, and `--api-key` arguments to the CLI tool, and a `verbose` property which can be set to log the same output as the CLI tool. Any of these properties or the options object themselves can be omitted to use default values.

@@ -21,8 +21,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@kitchensink-replayio/playwright": "workspace:^",
-    "@kitchensink-replayio/replay": "workspace:^",
+    "@kitchensink/replayio-playwright": "workspace:^",
+    "@kitchensink/replayio-replay": "workspace:^",
     "prettier": "^2.7.1",
     "typescript": "^5.4.2"
   },

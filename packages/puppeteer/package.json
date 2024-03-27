@@ -1,11 +1,9 @@
 {
-  "name": "@kitchensink-replayio/puppeteer",
+  "name": "@kitchensink/replayio-puppeteer",
   "version": "0.1.89",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "./dist/index.js",
-  "bin": {
-    "replayio-puppeteer": "./bin.js"
-  },
+  "bin": "./bin.js",
   "files": [
     "dist",
     "*.js",
@@ -36,7 +34,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/puppeteer/README.md",
   "dependencies": {
-    "@kitchensink-replayio/replay": "workspace:^",
-    "@kitchensink-replayio/test-utils": "workspace:^"
+    "@kitchensink/replayio-replay": "workspace:^",
+    "@kitchensink/replayio-test-utils": "workspace:^"
   }
 }

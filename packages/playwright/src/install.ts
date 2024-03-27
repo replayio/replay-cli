@@ -1,4 +1,4 @@
-import { BrowserName, ensurePlaywrightBrowsersInstalled } from "@kitchensink-replayio/replay";
+import { BrowserName, ensurePlaywrightBrowsersInstalled } from "@kitchensink/replayio-replay";
 
 function isValidBrowser(browserName: string): browserName is BrowserName | "all" {
   return ["chromium", "firefox", "all"].includes(browserName);

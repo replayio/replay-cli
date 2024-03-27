@@ -1,5 +1,5 @@
-import type { TestMetadataV2 } from "@kitchensink-replayio/test-utils";
-import { buildTestId } from "@kitchensink-replayio/test-utils";
+import type { TestMetadataV2 } from "@kitchensink/replayio-test-utils";
+import { buildTestId } from "@kitchensink/replayio-test-utils";
 import { CONNECT_TASK_NAME } from "./constants";
 import { PluginFeature, isFeatureEnabled } from "./features";
 

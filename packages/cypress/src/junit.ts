@@ -3,8 +3,8 @@ import path from "path";
 import dbg from "debug";
 import { xml, stringify, INode } from "txml";
 import { readFileSync, writeFileSync } from "fs";
-import { warn } from "@kitchensink-replayio/test-utils";
-import { RecordingEntry } from "@kitchensink-replayio/replay";
+import { warn } from "@kitchensink/replayio-test-utils";
+import { RecordingEntry } from "@kitchensink/replayio-replay";
 
 const debug = dbg("replay:cypress:junit");
 

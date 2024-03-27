@@ -1,7 +1,7 @@
 import dbg from "debug";
 import os from "os";
 import fetch from "node-fetch";
-import { TestMetadataV2 } from "@kitchensink-replayio/replay/metadata/test/v2";
+import { TestMetadataV2 } from "@kitchensink/replayio-replay/metadata/test/v2";
 import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:metrics");

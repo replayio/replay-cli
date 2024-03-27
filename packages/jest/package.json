@@ -1,11 +1,9 @@
 {
-  "name": "@kitchensink-replayio/jest",
+  "name": "@kitchensink/replayio-jest",
   "version": "27.2.43",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "./dist/index.js",
-  "bin": {
-    "replayio-jest": "./bin.js"
-  },
+  "bin": "./bin.js",
   "exports": {
     ".": "./dist/index.js",
     "./runner": "./dist/runner.js",
@@ -40,8 +38,8 @@
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@kitchensink-replayio/replay": "workspace:^",
-    "@kitchensink-replayio/test-utils": "workspace:^",
+    "@kitchensink/replayio-replay": "workspace:^",
+    "@kitchensink/replayio-test-utils": "workspace:^",
     "jest-circus": "^27.5.1",
     "jest-environment-node": "^27.5.1",
     "uuid": "^8.3.2"

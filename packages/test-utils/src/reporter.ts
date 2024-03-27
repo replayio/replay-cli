@@ -4,19 +4,19 @@ import {
   listAllRecordings,
   query,
   uploadRecording,
-} from "@kitchensink-replayio/replay";
+} from "@kitchensink/replayio-replay";
 import {
   add,
   source as sourceMetadata,
   test as testMetadata,
-} from "@kitchensink-replayio/replay/metadata";
-import type { TestMetadataV1, TestMetadataV2 } from "@kitchensink-replayio/replay/metadata/test";
+} from "@kitchensink/replayio-replay/metadata";
+import type { TestMetadataV1, TestMetadataV2 } from "@kitchensink/replayio-replay/metadata/test";
 import dbg from "debug";
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
 const uuid = require("uuid");
 
-import { ExternalRecordingEntry, UnstructuredMetadata } from "@kitchensink-replayio/replay";
+import { ExternalRecordingEntry, UnstructuredMetadata } from "@kitchensink/replayio-replay";
 import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";

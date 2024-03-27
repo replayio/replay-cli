@@ -1,8 +1,8 @@
-import { getPuppeteerBrowserPath, BrowserName } from "@kitchensink-replayio/replay";
+import { getPuppeteerBrowserPath, BrowserName } from "@kitchensink/replayio-replay";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
-} from "@kitchensink-replayio/test-utils";
+} from "@kitchensink/replayio-test-utils";
 
 const browserName: BrowserName = "chromium";
 function getDeviceConfig() {

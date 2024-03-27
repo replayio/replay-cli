@@ -797,7 +797,7 @@ async function version() {
   let latest: string | null = null;
 
   try {
-    const data = await getPackument({ name: "@kitchensink-replayio/replay" });
+    const data = await getPackument({ name: "@kitchensink/replayio-replay" });
     latest = data.distTags.latest;
 
     if (compare(version, latest) < 0) {

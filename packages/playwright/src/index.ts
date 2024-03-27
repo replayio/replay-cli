@@ -1,5 +1,5 @@
-import { getPlaywrightBrowserPath, BrowserName } from "@kitchensink-replayio/replay";
-import { initMetadataFile } from "@kitchensink-replayio/test-utils";
+import { getPlaywrightBrowserPath, BrowserName } from "@kitchensink/replayio-replay";
+import { initMetadataFile } from "@kitchensink/replayio-test-utils";
 
 import { ReplayPlaywrightConfig, getMetadataFilePath } from "./reporter";
 
@@ -59,7 +59,7 @@ export const devices = {
 };
 
 export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
-  return ["@kitchensink-replayio/playwright/reporter", config];
+  return ["@kitchensink/replayio-playwright/reporter", config];
 }
 
 export { getMetadataFilePath };
