@@ -38,6 +38,11 @@ export interface CommandLineOptions extends Options {
    * Warn of failures but do not quit with a non-zero exit code
    */
   warn?: boolean;
+
+  /**
+   * Pass along browser commandline arguments
+   */
+  browserArgs: string;
 }
 
 const debug = dbg("replay:cli");
@@ -86,6 +91,7 @@ commandWithGlobalOptions("launch [url]")
 commandWithGlobalOptions("record [url]")
   .description("Launch the replay browser and start recording")
   .option("-b, --browser <browser>", "Browser to launch", "chromium")
+  .option("-a --browser-args <args>", "Browser arguments", "")
   .option(
     "--attach <true|false>",
     "Whether to attach to the browser process after launching",
@@ -251,7 +257,7 @@ async function commandLaunchBrowser(
 
 async function commandLaunchBrowserAndRecord(
   url: string | undefined,
-  opts: Pick<CommandLineOptions, "warn" | "directory"> & LaunchOptions
+  opts: Pick<CommandLineOptions, "warn" | "directory" | "browserArgs"> & LaunchOptions
 ) {
   try {
     debug("Options", opts);
@@ -259,7 +265,7 @@ async function commandLaunchBrowserAndRecord(
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
-    await launchBrowser(browser, [url || "about:blank"], true, { ...opts, verbose: true });
+    await launchBrowser(browser, [url || "about:blank", opts.browserArgs], true, { ...opts, verbose: true, });
     await exitCommand(0);
   } catch (e) {
     console.error("Failed to launch browser");
