@@ -265,7 +265,10 @@ async function commandLaunchBrowserAndRecord(
     const browser = fuzzyBrowserName(opts.browser) || "chromium";
     assertValidBrowserName(browser);
 
-    await launchBrowser(browser, [url || "about:blank", opts.browserArgs], true, { ...opts, verbose: true, });
+    await launchBrowser(browser, [url || "about:blank", opts.browserArgs], true, {
+      ...opts,
+      verbose: true,
+    });
     await exitCommand(0);
   } catch (e) {
     console.error("Failed to launch browser");
