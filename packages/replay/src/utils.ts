@@ -1,3 +1,9 @@
+// This module is meant to be somewhat browser-friendly.
+// It can't lead to importing node builtin modules like like worker_threads.
+// Cypress bundles this file and runs it in the browser,
+// some imports like path and http are OK because they are aliased~ by their webpack config:
+// https://github.com/cypress-io/cypress/blob/fb87950d6337ba99d13cb5fa3ce129e5f5cac02b/npm/webpack-batteries-included-preprocessor/index.js#L151
+// TODO: decouple this more so we never run into problems with this - we shouldn't rely on implementation details of Cypress bundling
 import dbg from "debug";
 import path from "path";
 import { Agent as HttpAgent, AgentOptions } from "http";
