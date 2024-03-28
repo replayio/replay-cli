@@ -6,6 +6,7 @@ e2e-repos
 tsconfig.tsbuildinfo
 
 .pnp.*
+.trunk/*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
