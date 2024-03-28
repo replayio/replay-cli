@@ -9,6 +9,7 @@
     "./metadata": "./dist/metadata/index.js",
     "./metadata/test": "./dist/metadata/test/index.js",
     "./metadata/*": "./dist/metadata/*.js",
+    "./utils": "./dist/utils.js",
     "./package.json": "./package.json"
   },
   "files": [

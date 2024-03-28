@@ -1,5 +1,5 @@
 import type { TestMetadataV2 } from "@replayio/test-utils";
-import { buildTestId } from "@replayio/test-utils";
+import { buildTestId } from "@replayio/test-utils/testId";
 import { CONNECT_TASK_NAME } from "./constants";
 import { PluginFeature, isFeatureEnabled } from "./features";
 
