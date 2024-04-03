@@ -1,11 +1,8 @@
-import dbg from "debug";
 import path from "path";
 import { Agent as HttpAgent, AgentOptions } from "http";
 import { Agent as HttpsAgent } from "https";
 
-import { BrowserName, Options } from "./types";
-
-const debug = dbg("replay:cli");
+import { BrowserName, Ctx, Options } from "./types";
 
 // Get the executable name to use when opening a URL.
 // It would be nice to use an existing npm package for this,
@@ -32,8 +29,8 @@ function defer<T = unknown>() {
   return { promise, resolve, reject };
 }
 
-function maybeLog(verbose: boolean | undefined, str: string) {
-  debug(str);
+function maybeLog(ctx: Partial<Ctx> | undefined, verbose: boolean | undefined, str: string) {
+  ctx?.debug?.(str);
   if (verbose) {
     console.log(str);
   }

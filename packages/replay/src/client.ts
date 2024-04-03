@@ -1,9 +1,8 @@
-import dbg from "./debug";
 import WebSocket from "ws";
 import { defer } from "./utils";
 import { Agent } from "http";
-
-const debug = dbg("replay:protocol");
+import { ExtandableDebug } from "@replayio/dumpable-debug";
+import { Ctx } from "./types";
 
 // Simple protocol client for use in writing standalone applications.
 
@@ -39,14 +38,16 @@ export class ProtocolError extends Error {
 }
 
 class ProtocolClient {
+  private _debug: ExtandableDebug | undefined;
   socket: WebSocket;
   callbacks: Callbacks;
   pendingMessages = new Map();
   eventListeners = new Map();
   nextMessageId = 1;
 
-  constructor(address: string, callbacks: Callbacks, agent?: Agent) {
-    debug("Creating WebSocket for %s with %o", address, { agent });
+  constructor(ctx: Partial<Ctx> | undefined, address: string, callbacks: Callbacks, agent?: Agent) {
+    this._debug = ctx?.debug?.extend("protocol");
+    this._debug?.("Creating WebSocket for %s with %o", address, { agent });
     this.socket = new WebSocket(address, {
       agent: agent,
     });
@@ -84,7 +85,7 @@ class ProtocolClient {
     callback?: (err?: Error) => void
   ) {
     const id = this.nextMessageId++;
-    debug("Sending command %s: %o", method, { id, params, sessionId });
+    this._debug?.("Sending command %s: %o", method, { id, params, sessionId });
     this.socket.send(
       JSON.stringify({
         id,
@@ -98,7 +99,7 @@ class ProtocolClient {
           this.socket.send(data, callback);
         } else {
           if (err) {
-            debug("Received socket error: %s", err);
+            this._debug?.("Received socket error: %s", err);
           }
           callback?.(err);
         }
@@ -115,7 +116,7 @@ class ProtocolClient {
 
   onMessage(contents: WebSocket.RawData) {
     const msg = JSON.parse(String(contents));
-    debug("Received message %o", msg);
+    this._debug?.("Received message %o", msg);
     if (msg.id) {
       const { resolve, reject } = this.pendingMessages.get(msg.id);
       this.pendingMessages.delete(msg.id);

@@ -4,33 +4,48 @@ import { parentPort } from "worker_threads";
 import fs from "fs";
 import fetch from "node-fetch";
 import { getHttpAgent, getUserAgent } from "./utils";
-import dbg from "./debug";
+import { ExtandableDebug } from "@replayio/dumpable-debug";
+
+export type UploadWorkerMessage =
+  | {
+      type: "log";
+      args: Parameters<ExtandableDebug>;
+    }
+  | {
+      type: "result";
+      value: string;
+    };
 
 if (parentPort === null) {
   throw new Error("Must be run as a worker");
 }
 
-parentPort.on(
+const port = parentPort;
+
+function postMessage(message: UploadWorkerMessage) {
+  port.postMessage(message);
+}
+function debug(...args: Parameters<ExtandableDebug>) {
+  postMessage({
+    type: "log",
+    args,
+  });
+}
+
+port.on(
   "message",
   async ({
     link,
     partMeta,
     size,
-    logPath,
     agentOptions,
   }: {
     link: string;
     partMeta: { filePath: string; start: number; end: number };
     size: number;
-    logPath: string;
     agentOptions?: AgentOptions;
   }) => {
     const { filePath, start, end } = partMeta;
-    const debug = dbg("replay:cli:upload-worker", logPath);
-
-    if (parentPort === null) {
-      throw new Error("Must be run as a worker");
-    }
 
     debug("Uploading chunk %o", { filePath, size, start, end });
 
@@ -60,6 +75,13 @@ parentPort.on(
     const etag = resp.headers.get("etag");
     debug("Etag received %o", { etag, filePath, size, start, end });
 
-    parentPort.postMessage(etag);
+    if (!etag) {
+      throw new Error("Etag not found in response headers");
+    }
+
+    postMessage({
+      type: "result",
+      value: etag,
+    });
   }
 );

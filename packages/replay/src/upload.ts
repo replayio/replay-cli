@@ -6,25 +6,32 @@ import fetch from "node-fetch";
 import ProtocolClient from "./client";
 import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
 import { sanitize as sanitizeMetadata } from "./metadata";
-import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import dbg, { logPath } from "./debug";
+import { Ctx, Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import pMap from "p-map";
 import type { Agent, AgentOptions } from "http";
-
-const debug = dbg("replay:cli:upload");
+import { ExtandableDebug } from "@replayio/dumpable-debug";
+import type { UploadWorkerMessage } from "./uploadWorker";
 
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
 }
 
 class ReplayClient {
+  private _ctx: Partial<Ctx> | undefined;
+  private _debug: ExtandableDebug | undefined;
   client: ProtocolClient | undefined;
   clientReady = defer<boolean>();
+
+  constructor(ctx: Partial<Ctx> | undefined) {
+    this._ctx = ctx;
+    this._debug = ctx?.debug?.extend("upload");
+  }
 
   async initConnection(server: string, accessToken?: string, verbose?: boolean, agent?: Agent) {
     if (!this.client) {
       let { resolve } = this.clientReady;
       this.client = new ProtocolClient(
+        this._ctx,
         server,
         {
           onOpen: async () => {
@@ -32,15 +39,15 @@ class ReplayClient {
               await this.client!.setAccessToken(accessToken);
               resolve(true);
             } catch (err) {
-              maybeLog(verbose, `Error authenticating with server: ${err}`);
+              maybeLog(this._ctx, verbose, `Error authenticating with server: ${err}`);
               resolve(false);
             }
           },
           onClose() {
             resolve(false);
           },
-          onError(e) {
-            maybeLog(verbose, `Error connecting to server: ${e}`);
+          onError: e => {
+            maybeLog(this._ctx, verbose, `Error connecting to server: ${e}`);
             resolve(false);
           },
         },
@@ -173,7 +180,7 @@ class ReplayClient {
     });
 
     if (resp.status !== 200) {
-      debug(await resp.text());
+      this._debug?.(await resp.text());
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }
   }
@@ -186,8 +193,18 @@ class ReplayClient {
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
+      const workerDebug = this._debug?.extend("upload-worker");
 
-      worker.on("message", resolve);
+      worker.on("message", (event: UploadWorkerMessage) => {
+        switch (event.type) {
+          case "log":
+            workerDebug?.(...event.args);
+            break;
+          case "result":
+            resolve(event.value);
+            break;
+        }
+      });
       worker.on("error", reject);
       worker.on("exit", code => {
         if (code !== 0) {
@@ -195,7 +212,7 @@ class ReplayClient {
         }
       });
 
-      worker.postMessage({ link, partMeta, size, logPath, agentOptions });
+      worker.postMessage({ link, partMeta, size, agentOptions });
     });
   }
 
@@ -216,7 +233,7 @@ class ReplayClient {
             const start = index * partSize;
             const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
 
-            debug("Uploading part %o", {
+            this._debug?.("Uploading part %o", {
               partNumber,
               start,
               end,
@@ -226,7 +243,7 @@ class ReplayClient {
             return this.uploadPart(url, { filePath, start, end }, end - start + 1, agentOptions);
           },
           e => {
-            debug(`Failed to upload part ${index + 1}. Will be retried: %o`, e);
+            this._debug?.(`Failed to upload part ${index + 1}. Will be retried: %o`, e);
           },
           10
         );

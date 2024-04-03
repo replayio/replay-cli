@@ -1,7 +1,7 @@
 import { appendFileSync } from "fs";
 import path from "path";
 
-import { Options, UnstructuredMetadata } from "../types";
+import type { Ctx, Options, UnstructuredMetadata } from "../types";
 import { getDirectory, maybeLog } from "../utils";
 
 import * as test from "./test";
@@ -23,13 +23,14 @@ function isAllowedKey(key: string): key is AllowedKey {
 // Sanitizing arbitrary recording metadata before uploading by removing any
 // non-object values (allowing null) and limiting object values to known keys or
 // userspace keys prefixed by `x-`.
-async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
+async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}, ctx?: Ctx) {
   const updated: UnstructuredMetadata = {};
   for (const key of Object.keys(metadata)) {
     const value = metadata[key];
 
     if (typeof value !== "object") {
       maybeLog(
+        ctx,
         opts.verbose,
         `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
       );
@@ -47,6 +48,7 @@ async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
     } else {
       // and warn when dropping all other types
       maybeLog(
+        ctx,
         opts.verbose,
         `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
       );

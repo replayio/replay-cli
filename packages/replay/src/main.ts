@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";
 import { compare } from "semver";
-import dbg from "./debug";
 import { query } from "./graphql";
 import { getCurrentVersion, getHttpAgent } from "./utils";
 
@@ -44,14 +43,13 @@ import {
   UploadOptions,
   type ExternalRecordingEntry,
   type UnstructuredMetadata,
+  Ctx,
 } from "./types";
 import { ReplayClient } from "./upload";
 import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
 import { getLaunchDarkly } from "./launchdarkly";
 import { Agent, AgentOptions } from "http";
 export type { BrowserName, RecordingEntry } from "./types";
-
-const debug = dbg("replay:cli");
 
 export function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"]) {
   // Once a recording enters an unusable or crashed status, don't change it
@@ -69,21 +67,22 @@ export function updateStatus(recording: RecordingEntry, status: RecordingEntry["
 export function filterRecordings(
   recordings: RecordingEntry[],
   filter: FilterOptions["filter"],
-  includeCrashes: FilterOptions["includeCrashes"]
+  includeCrashes: FilterOptions["includeCrashes"],
+  ctx?: Ctx
 ) {
   let filteredRecordings = recordings;
-  debug("Recording log contains %d replays", recordings.length);
+  ctx?.debug("Recording log contains %d replays", recordings.length);
   if (filter && typeof filter === "string") {
-    debug("Using filter: %s", filter);
+    ctx?.debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     filteredRecordings = exp.evaluate(recordings) || [];
 
-    debug("Filtering resulted in %d replays", filteredRecordings.length);
+    ctx?.debug("Filtering resulted in %d replays", filteredRecordings.length);
   } else if (typeof filter === "function") {
-    debug("Using filter function");
+    ctx?.debug("Using filter function");
     filteredRecordings = recordings.filter(filter);
 
-    debug("Filtering resulted in %d replays", filteredRecordings.length);
+    ctx?.debug("Filtering resulted in %d replays", filteredRecordings.length);
   }
 
   if (includeCrashes) {
@@ -141,6 +140,7 @@ function getServer(opts: Options) {
 }
 
 async function doUploadCrash(
+  ctx: Partial<Ctx> | undefined,
   dir: string,
   server: string,
   recording: RecordingEntry,
@@ -148,10 +148,10 @@ async function doUploadCrash(
   apiKey?: string,
   agent?: Agent
 ) {
-  const client = new ReplayClient();
-  maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
+  const client = new ReplayClient(ctx);
+  maybeLog(ctx, verbose, `Starting crash data upload for ${recording.id}...`);
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
+    maybeLog(ctx, verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
 
@@ -166,8 +166,8 @@ async function doUploadCrash(
       await client.connectionReportCrash(data);
     })
   );
-  addRecordingEvent(dir, "crashUploaded", recording.id, { server });
-  maybeLog(verbose, `Crash data upload finished.`);
+  addRecordingEvent(ctx, dir, "crashUploaded", recording.id, { server });
+  maybeLog(ctx, verbose, `Crash data upload finished.`);
   client.closeConnection();
 }
 
@@ -183,15 +183,16 @@ class RecordingUploadError extends Error {
 }
 
 function handleUploadingError(
+  ctx: Partial<Ctx> | undefined,
   err: string,
   strict: boolean,
   verbose?: boolean,
   interiorError?: any
 ) {
-  maybeLog(verbose, `Upload failed: ${err}`);
+  maybeLog(ctx, verbose, `Upload failed: ${err}`);
 
   if (interiorError) {
-    debug(interiorError);
+    ctx?.debug?.(interiorError);
   }
 
   if (strict) {
@@ -208,6 +209,7 @@ async function validateMetadata(
 }
 
 async function setMetadata(
+  ctx: Partial<Ctx> | undefined,
   client: ReplayClient,
   recordingId: string,
   metadata: RecordingMetadata | null,
@@ -219,17 +221,18 @@ async function setMetadata(
       await exponentialBackoffRetry(
         () => client.setRecordingMetadata(recordingId, metadata),
         e => {
-          debug("Failed to set recording metadata. Will be retried:  %j", e);
+          ctx?.debug?.("Failed to set recording metadata. Will be retried:  %j", e);
         }
       );
     } catch (e) {
-      handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
+      handleUploadingError(ctx, `Failed to set recording metadata ${e}`, strict, verbose, e);
     }
   }
 }
 
 const MIN_MULTIPART_UPLOAD_SIZE = 5 * 1024 * 1024;
 async function multipartUploadRecording(
+  ctx: Partial<Ctx> | undefined,
   server: string,
   client: ReplayClient,
   dir: string,
@@ -249,8 +252,8 @@ async function multipartUploadRecording(
       size,
       requestPartChunkSize
     );
-  setMetadata(client, recordingId, metadata, strict, verbose);
-  addRecordingEvent(dir, "uploadStarted", recording.id, {
+  setMetadata(ctx, client, recordingId, metadata, strict, verbose);
+  addRecordingEvent(ctx, dir, "uploadStarted", recording.id, {
     server,
     recordingId,
   });
@@ -266,6 +269,7 @@ async function multipartUploadRecording(
 }
 
 async function directUploadRecording(
+  ctx: Partial<Ctx> | undefined,
   server: string,
   client: ReplayClient,
   dir: string,
@@ -280,25 +284,26 @@ async function directUploadRecording(
     recording.buildId!,
     size
   );
-  setMetadata(client, recordingId, metadata, strict, verbose);
-  addRecordingEvent(dir, "uploadStarted", recording.id, {
+  setMetadata(ctx, client, recordingId, metadata, strict, verbose);
+  addRecordingEvent(ctx, dir, "uploadStarted", recording.id, {
     server,
     recordingId,
   });
   await exponentialBackoffRetry(
     () => client.uploadRecording(recording.path!, uploadLink, size),
     e => {
-      debug("Upload failed with error. Will be retried:  %j", e);
+      ctx?.debug?.("Upload failed with error. Will be retried:  %j", e);
     }
   );
 
-  debug("%s: Uploaded %d bytes", recordingId, size);
+  ctx?.debug?.("%s: Uploaded %d bytes", recordingId, size);
 
   await client.connectionEndRecordingUpload(recording.id);
   return recordingId;
 }
 
 async function doUploadRecording(
+  ctx: Partial<Ctx> | undefined = {},
   dir: string,
   server: string,
   recording: RecordingEntry,
@@ -308,43 +313,43 @@ async function doUploadRecording(
   removeAssets: boolean = false,
   strict: boolean = false
 ) {
-  debug("Uploading %s from %s to %s", recording.id, dir, server);
-  maybeLog(verbose, `Starting upload for ${recording.id}...`);
+  ctx.debug?.("Uploading %s from %s to %s", recording.id, dir, server);
+  maybeLog(ctx, verbose, `Starting upload for ${recording.id}...`);
 
   if (recording.status == "uploaded" && recording.recordingId) {
-    maybeLog(verbose, `Already uploaded: ${recording.recordingId}`);
+    maybeLog(ctx, verbose, `Already uploaded: ${recording.recordingId}`);
 
     return recording.recordingId;
   }
 
   const reason = uploadSkipReason(recording);
   if (reason) {
-    handleUploadingError(reason, strict, verbose);
+    handleUploadingError(ctx, reason, strict, verbose);
     return null;
   }
 
   if (!apiKey) {
-    apiKey = await readToken({ directory: dir });
+    apiKey = await readToken(ctx, { directory: dir });
   }
 
   const agent = getHttpAgent(server, agentOptions);
 
   if (recording.status == "crashed") {
-    debug("Uploading crash %o", recording);
-    await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
+    ctx.debug?.("Uploading crash %o", recording);
+    await doUploadCrash(ctx, dir, server, recording, verbose, apiKey, agent);
+    maybeLog(ctx, verbose, `Crash report uploaded for ${recording.id}`);
     if (removeAssets) {
-      removeRecordingAssets(recording, { directory: dir });
+      removeRecordingAssets(ctx, recording, { directory: dir });
     }
     return recording.id;
   }
 
   const { size } = await fs.promises.stat(recording.path!);
 
-  debug("Uploading recording %o", recording);
-  const client = new ReplayClient();
+  ctx.debug?.("Uploading recording %o", recording);
+  const client = new ReplayClient(ctx);
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    handleUploadingError(`Cannot connect to server ${server}`, strict, verbose);
+    handleUploadingError(ctx, `Cannot connect to server ${server}`, strict, verbose);
     return null;
   }
 
@@ -353,9 +358,10 @@ async function doUploadRecording(
 
   let recordingId: string;
   try {
-    const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
+    const isMultipartEnabled = await getLaunchDarkly(ctx).isEnabled("cli-multipart-upload", false);
     if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
       recordingId = await multipartUploadRecording(
+        ctx,
         server,
         client,
         dir,
@@ -368,6 +374,7 @@ async function doUploadRecording(
       );
     } else {
       recordingId = await directUploadRecording(
+        ctx,
         server,
         client,
         dir,
@@ -380,6 +387,7 @@ async function doUploadRecording(
     }
   } catch (err) {
     handleUploadingError(
+      ctx,
       err instanceof ProtocolError ? err.protocolMessage : String(err),
       strict,
       verbose,
@@ -392,7 +400,7 @@ async function doUploadRecording(
     recording.sourcemaps,
     async (sourcemap: SourceMapEntry) => {
       try {
-        debug("Uploading sourcemap %s for recording %s", sourcemap.path, recording.id);
+        ctx.debug?.("Uploading sourcemap %s for recording %s", sourcemap.path, recording.id);
         const contents = fs.readFileSync(sourcemap.path, "utf8");
         const sourcemapId = await client.connectionUploadSourcemap(
           recordingId,
@@ -402,7 +410,7 @@ async function doUploadRecording(
         await pMap(
           sourcemap.originalSources,
           originalSource => {
-            debug(
+            ctx.debug?.(
               "Uploading original source %s for sourcemap %s for recording %s",
               originalSource.path,
               sourcemap.path,
@@ -420,6 +428,7 @@ async function doUploadRecording(
         );
       } catch (e) {
         handleUploadingError(
+          ctx,
           `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
           strict,
           verbose,
@@ -431,11 +440,12 @@ async function doUploadRecording(
   );
 
   if (removeAssets) {
-    removeRecordingAssets(recording, { directory: dir });
+    removeRecordingAssets(ctx, recording, { directory: dir });
   }
 
-  addRecordingEvent(dir, "uploadFinished", recording.id);
+  addRecordingEvent(ctx, dir, "uploadFinished", recording.id);
   maybeLog(
+    ctx,
     verbose,
     `Upload finished! View your Replay at: https://app.replay.io/recording/${recordingId}`
   );
@@ -443,18 +453,19 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: UploadOptions = {}) {
+async function uploadRecording(id: string, opts: UploadOptions = {}, ctx?: Ctx) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
   const recording = recordings.find(r => r.id == id);
 
   if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
+    maybeLog(ctx, opts.verbose, `Unknown recording ${id}`);
     return null;
   }
 
   return doUploadRecording(
+    ctx,
     dir,
     server,
     recording,
@@ -466,48 +477,48 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
   );
 }
 
-async function processUploadedRecording(recordingId: string, opts: Options) {
+async function processUploadedRecording(ctx: Ctx, recordingId: string, opts: Options) {
   const server = getServer(opts);
   const agent = getHttpAgent(server, opts.agentOptions);
   const { verbose } = opts;
   let apiKey = opts.apiKey;
 
-  maybeLog(verbose, `Processing recording ${recordingId}...`);
+  maybeLog(ctx, verbose, `Processing recording ${recordingId}...`);
 
   if (!apiKey) {
-    apiKey = await readToken(opts);
+    apiKey = await readToken(ctx, opts);
   }
 
-  const client = new ReplayClient();
+  const client = new ReplayClient(ctx);
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(verbose, `Processing failed: can't connect to server ${server}`);
+    maybeLog(ctx, verbose, `Processing failed: can't connect to server ${server}`);
     return false;
   }
 
   try {
     const error = await client.connectionWaitForProcessed(recordingId);
     if (error) {
-      maybeLog(verbose, `Processing failed: ${error}`);
+      maybeLog(ctx, verbose, `Processing failed: ${error}`);
       return false;
     }
   } finally {
     client.closeConnection();
   }
 
-  maybeLog(verbose, "Finished processing.");
+  maybeLog(ctx, verbose, "Finished processing.");
   return true;
 }
 
-async function processRecording(id: string, opts: Options = {}) {
-  const recordingId = await uploadRecording(id, opts);
+async function processRecording(ctx: Ctx, id: string, opts: Options = {}) {
+  const recordingId = await uploadRecording(id, opts, ctx);
   if (!recordingId) {
     return null;
   }
-  const succeeded = await processUploadedRecording(recordingId, opts);
+  const succeeded = await processUploadedRecording(ctx, recordingId, opts);
   return succeeded ? recordingId : null;
 }
 
-async function uploadAllRecordings(opts: UploadAllOptions = {}) {
+async function uploadAllRecordings(opts: UploadAllOptions = {}, ctx: Partial<Ctx> = {}) {
   const server = getServer(opts);
   const dir = getDirectory(opts);
   const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
@@ -520,6 +531,7 @@ async function uploadAllRecordings(opts: UploadAllOptions = {}) {
     !opts.includeCrashes
   ) {
     maybeLog(
+      ctx,
       opts.verbose,
       `\n⚠️ Warning: Some crash reports were created but will not be uploaded because of the provided filter. Add --include-crashes to upload crash reports.\n`
     );
@@ -527,17 +539,17 @@ async function uploadAllRecordings(opts: UploadAllOptions = {}) {
 
   if (recordings.length === 0) {
     if (opts.filter && allRecordings.length > 0) {
-      maybeLog(opts.verbose, `No replays matched the provided filter`);
+      maybeLog(ctx, opts.verbose, `No replays matched the provided filter`);
     } else {
-      maybeLog(opts.verbose, `No replays were found to upload`);
+      maybeLog(ctx, opts.verbose, `No replays were found to upload`);
     }
 
     return true;
   }
 
-  maybeLog(opts.verbose, `Starting upload of ${recordings.length} replays`);
+  maybeLog(ctx, opts.verbose, `Starting upload of ${recordings.length} replays`);
   if (opts.batchSize) {
-    debug("Batching upload in groups of %d", opts.batchSize);
+    ctx?.debug?.("Batching upload in groups of %d", opts.batchSize);
   }
 
   const batchSize = Math.min(opts.batchSize || 20, 25);
@@ -546,6 +558,7 @@ async function uploadAllRecordings(opts: UploadAllOptions = {}) {
     recordings,
     (r: RecordingEntry) =>
       doUploadRecording(
+        ctx,
         dir,
         server,
         r,
@@ -562,13 +575,14 @@ async function uploadAllRecordings(opts: UploadAllOptions = {}) {
     const recording = recordings.find(r => r.id === id);
     if (!recording) return;
 
-    removeRecordingAssets(recording, opts);
+    removeRecordingAssets(ctx, recording, opts);
   });
 
   return recordingIds.every(r => r !== null);
 }
 
 async function doViewRecording(
+  ctx: Ctx | undefined,
   dir: string,
   server: string,
   recording: RecordingEntry,
@@ -579,13 +593,14 @@ async function doViewRecording(
 ) {
   let recordingId;
   if (recording.status === "crashUploaded") {
-    maybeLog(verbose, "Crash report already uploaded");
+    maybeLog(ctx, verbose, "Crash report already uploaded");
     return true;
   } else if (recording.status == "uploaded") {
     recordingId = recording.recordingId;
     server = recording.server!;
   } else {
     recordingId = await doUploadRecording(
+      ctx,
       dir,
       server,
       recording,
@@ -607,27 +622,28 @@ async function doViewRecording(
   return true;
 }
 
-async function viewRecording(id: string, opts: Options = {}) {
+async function viewRecording(id: string, opts: Options = {}, ctx?: Ctx) {
   let server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
   const recording = recordings.find(r => r.id == id);
   if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
+    maybeLog(ctx, opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  return doViewRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agentOptions);
+  return doViewRecording(ctx, dir, server, recording, opts.verbose, opts.apiKey, opts.agentOptions);
 }
 
-async function viewLatestRecording(opts: Options = {}) {
+async function viewLatestRecording(opts: Options = {}, ctx?: Ctx) {
   let server = getServer(opts);
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
   if (!recordings.length) {
-    maybeLog(opts.verbose, "No recordings to view");
+    maybeLog(ctx, opts.verbose, "No recordings to view");
     return false;
   }
   return doViewRecording(
+    ctx,
     dir,
     server,
     recordings[recordings.length - 1],
@@ -638,28 +654,28 @@ async function viewLatestRecording(opts: Options = {}) {
   );
 }
 
-function maybeRemoveAssetFile(asset?: string) {
+function maybeRemoveAssetFile(ctx: Partial<Ctx> | undefined, asset?: string) {
   if (asset) {
     try {
       if (fs.existsSync(asset)) {
-        debug("Removing asset file %s", asset);
+        ctx?.debug?.("Removing asset file %s", asset);
         fs.unlinkSync(asset);
       }
     } catch (e) {
-      debug("Failed to remove asset file: %s", e);
+      ctx?.debug?.("Failed to remove asset file: %s", e);
     }
   }
 }
 
-function removeRecording(id: string, opts: Options = {}) {
+function removeRecording(id: string, opts: Options = {}, ctx?: Ctx) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
   const recording = recordings.find(r => r.id == id);
   if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
+    maybeLog(ctx, opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  removeRecordingAssets(recording, opts);
+  removeRecordingAssets(ctx, recording, opts);
   removeRecordingFromLog(dir, id);
   return true;
 }
@@ -679,7 +695,11 @@ function getRecordingAssetFiles(recording: RecordingEntry) {
   return assetFiles;
 }
 
-function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "directory">) {
+function removeRecordingAssets(
+  ctx: Partial<Ctx> | undefined,
+  recording: RecordingEntry,
+  opts?: Pick<Options, "directory">
+) {
   const localRecordings = listAllRecordings({
     ...opts,
     filter: r => r.status !== "uploaded" && r.status !== "crashUploaded" && r.id !== recording.id,
@@ -689,15 +709,15 @@ function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "
   const assetFiles = getRecordingAssetFiles(recording);
   assetFiles.forEach(file => {
     if (!localRecordingAssetFiles.has(file)) {
-      maybeRemoveAssetFile(file);
+      maybeRemoveAssetFile(ctx, file);
     }
   });
 }
 
-function removeAllRecordings(opts: Options = {}) {
+function removeAllRecordings(opts: Options = {}, ctx?: Ctx) {
   const dir = getDirectory(opts);
   const recordings = readRecordings(dir);
-  recordings.forEach(r => removeRecordingAssets(r, opts));
+  recordings.forEach(r => removeRecordingAssets(ctx, r, opts));
 
   removeRecordingsFile(dir);
 }
@@ -706,15 +726,18 @@ function addLocalRecordingMetadata(recordingId: string, metadata: Record<string,
   add(recordingId, metadata);
 }
 
-async function updateMetadata({
-  init: metadata,
-  keys = [],
-  filter,
-  includeCrashes,
-  verbose,
-  warn,
-  directory,
-}: MetadataOptions & FilterOptions) {
+async function updateMetadata(
+  {
+    init: metadata,
+    keys = [],
+    filter,
+    includeCrashes,
+    verbose,
+    warn,
+    directory,
+  }: MetadataOptions & FilterOptions,
+  ctx?: Ctx
+) {
   let md: any = {};
   if (metadata) {
     md = JSON.parse(metadata);
@@ -729,7 +752,7 @@ async function updateMetadata({
           return await testMetadata.init(md.test || {});
       }
     } catch (e) {
-      debug("Metadata initialization error: %o", e);
+      ctx?.debug("Metadata initialization error: %o", e);
       if (!warn) {
         throw e;
       }
@@ -746,12 +769,12 @@ async function updateMetadata({
   const data = Object.assign(md, ...keyedObjects);
   const sanitized = await sanitize(data);
 
-  debug("Sanitized metadata: %O", sanitized);
+  ctx?.debug("Sanitized metadata: %O", sanitized);
 
   const recordings = listAllRecordings({ directory, filter, includeCrashes });
 
   recordings.forEach(r => {
-    maybeLog(verbose, `Setting metadata for ${r.id}`);
+    maybeLog(ctx, verbose, `Setting metadata for ${r.id}`);
     add(r.id, sanitized);
   });
 }
@@ -760,17 +783,18 @@ async function launchBrowser(
   browserName: BrowserName,
   args: string[] = [],
   record: boolean = false,
-  opts?: Options & LaunchOptions
+  opts?: Options & LaunchOptions,
+  ctx?: Ctx
 ) {
-  debug("launchBrowser: %s %o %s %o", browserName, args, record, opts);
-  const execPath = getExecutablePath(browserName, opts);
+  ctx?.debug("launchBrowser: %s %o %s %o", browserName, args, record, opts);
+  const execPath = getExecutablePath(ctx, browserName, opts);
   if (!execPath) {
     throw new Error(`${browserName} not supported on the current platform`);
   }
 
   if (!fs.existsSync(execPath)) {
-    maybeLog(opts?.verbose, `Installing ${browserName}`);
-    await ensureBrowsersInstalled(browserName, false, opts);
+    maybeLog(ctx, opts?.verbose, `Installing ${browserName}`);
+    await ensureBrowsersInstalled(ctx, browserName, false, opts);
   }
 
   const profileDir = path.join(getDirectory(opts), "runtimes", "profiles", browserName);
@@ -821,7 +845,7 @@ async function launchBrowser(
   return proc;
 }
 
-async function version() {
+async function version(ctx?: Ctx) {
   const version = getCurrentVersion();
   let update = false;
   let latest: string | null = null;
@@ -834,7 +858,7 @@ async function version() {
       update = true;
     }
   } catch (e) {
-    debug("Error retrieving latest package info: %o", e);
+    ctx?.debug("Error retrieving latest package info: %o", e);
   }
 
   return {

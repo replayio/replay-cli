@@ -1,10 +1,14 @@
-import dbg from "./debug";
 import fetch from "node-fetch";
 import { getUserAgent } from "./utils";
+import { Ctx } from "./types";
 
-const debug = dbg("replay:cli:graphql");
-
-export async function query(name: string, query: string, variables = {}, apiKey?: string) {
+export async function query(
+  name: string,
+  query: string,
+  variables = {},
+  apiKey?: string,
+  ctx?: Ctx
+) {
   const options = {
     method: "POST",
     headers: {
@@ -23,11 +27,11 @@ export async function query(name: string, query: string, variables = {}, apiKey?
   }
 
   const server = process.env.REPLAY_API_SERVER || "https://api.replay.io";
-  debug("Querying %s over %s graphql endpoint", name, server);
+  ctx?.debug("Querying %s over %s graphql endpoint", name, server);
   const result = await fetch(`${server}/v1/graphql`, options);
 
   const json: any = await result.json();
-  debug("GraphQL Response: %O", json);
+  ctx?.debug("GraphQL Response: %O", json);
 
   return json;
 }

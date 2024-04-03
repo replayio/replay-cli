@@ -1,15 +1,12 @@
 import { spawn } from "child_process";
 import { createHash } from "crypto";
-import dbg from "./debug";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 import { query } from "./graphql";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
-import { Options } from "./types";
+import { Ctx, Options } from "./types";
 import { getLaunchDarkly } from "./launchdarkly";
-
-const debug = dbg("replay:cli:auth");
 
 class GraphQLError extends Error {
   constructor(message: string, public errors: any[]) {
@@ -37,10 +34,10 @@ function getAuthClientId() {
   return process.env.REPLAY_AUTH_CLIENT_ID || "4FvFnJJW4XlnUyrXQF8zOLw6vNAH1MAo";
 }
 
-function tokenInfo(token: string) {
+function tokenInfo(ctx: Partial<Ctx> | undefined, token: string) {
   const [_header, encPayload, _cypher] = token.split(".", 3);
   if (typeof encPayload !== "string") {
-    debug("Token did not contain a valid payload: %s", maskToken(token));
+    ctx?.debug?.("Token did not contain a valid payload: %s", maskToken(token));
     return null;
   }
 
@@ -48,22 +45,22 @@ function tokenInfo(token: string) {
   try {
     payload = JSON.parse(Buffer.from(encPayload, "base64").toString());
   } catch (err) {
-    debug("Failed to decode token: %s %e", maskToken(token), err);
+    ctx?.debug?.("Failed to decode token: %s %e", maskToken(token), err);
     return null;
   }
 
   if (typeof payload !== "object") {
-    debug("Token payload was not an object");
+    ctx?.debug?.("Token payload was not an object");
     return null;
   }
 
   return { payload };
 }
 
-function hasTokenExpired(token: string) {
-  const userInfo = tokenInfo(token);
+function hasTokenExpired(ctx: Partial<Ctx> | undefined, token: string) {
+  const userInfo = tokenInfo(ctx, token);
   const exp: number | undefined = userInfo?.payload?.exp;
-  debug("token expiration time: %d", exp ? exp * 1000 : 0);
+  ctx?.debug?.("token expiration time: %d", exp ? exp * 1000 : 0);
 
   return exp != null && Date.now() - exp * 1000 > 0;
 }
@@ -72,7 +69,7 @@ function maskToken(token: string) {
   return token.replace(/.(?!.{0,2}$)/g, "*");
 }
 
-async function refresh(refreshToken: string) {
+async function refresh(ctx: Ctx, refreshToken: string) {
   try {
     const resp = await fetch(`https://${getAuthHost()}/oauth/token`, {
       method: "POST",
@@ -89,7 +86,7 @@ async function refresh(refreshToken: string) {
     const json: any = await resp.json();
 
     if (json.error) {
-      debug("OAuth token request failed: %O", json.error);
+      ctx.debug("OAuth token request failed: %O", json.error);
 
       throw {
         id: "auth0-error",
@@ -98,7 +95,7 @@ async function refresh(refreshToken: string) {
     }
 
     if (!json.access_token) {
-      debug("OAuth token request was missing access token: %O", json);
+      ctx.debug("OAuth token request was missing access token: %O", json);
 
       throw {
         id: "no-access-token",
@@ -120,8 +117,8 @@ function generateAuthKey() {
   return hash.digest("hex").toString();
 }
 
-function initAuthRequest(options: Options = {}) {
-  maybeLog(options.verbose, "🌎 Launching browser to login to replay.io");
+function initAuthRequest(ctx: Ctx, options: Options = {}) {
+  maybeLog(ctx, options.verbose, "🌎 Launching browser to login to replay.io");
   const key = generateAuthKey();
   const server = process.env.REPLAY_APP_SERVER || "https://app.replay.io";
   spawn(openExecutable(), [`${server}/api/browser/auth?key=${key}&source=cli`]);
@@ -129,7 +126,7 @@ function initAuthRequest(options: Options = {}) {
   return key;
 }
 
-async function fetchToken(key: string) {
+async function fetchToken(ctx: Ctx, key: string) {
   const resp = await query(
     "CloseAuthRequest",
     `
@@ -142,7 +139,9 @@ async function fetchToken(key: string) {
       `,
     {
       key,
-    }
+    },
+    undefined,
+    ctx
   );
 
   if (resp.errors) {
@@ -175,7 +174,7 @@ async function fetchToken(key: string) {
   return refreshToken;
 }
 
-export async function pollForToken(key: string, options: Options = {}) {
+export async function pollForToken(ctx: Ctx, key: string, options: Options = {}) {
   let timedOut = false;
   setTimeout(() => {
     timedOut = true;
@@ -183,18 +182,18 @@ export async function pollForToken(key: string, options: Options = {}) {
 
   while (true) {
     if (timedOut) {
-      debug("Timed out waiting for auth request");
+      ctx.debug("Timed out waiting for auth request");
       throw { id: "timeout" };
     }
 
     try {
-      const refreshToken = await fetchToken(key);
-      maybeLog(options.verbose, "🔑 Fetching token");
+      const refreshToken = await fetchToken(ctx, key);
+      maybeLog(ctx, options.verbose, "🔑 Fetching token");
 
-      return await refresh(refreshToken);
+      return await refresh(ctx, refreshToken);
     } catch (e: any) {
       if (e.id === "missing-request") {
-        debug("Auth request was not found. Retrying.");
+        ctx.debug("Auth request was not found. Retrying.");
         await new Promise(resolve => setTimeout(resolve, 3000));
       } else {
         throw e;
@@ -208,13 +207,13 @@ function getTokenPath(options: Options = {}) {
   return path.resolve(path.join(directory, "profile", "auth.json"));
 }
 
-export async function readToken(options: Options = {}) {
+export async function readToken(ctx: Partial<Ctx> | undefined, options: Options = {}) {
   try {
     const tokenPath = getTokenPath(options);
     const tokenJson = await readFile(tokenPath, { encoding: "utf-8" });
     const { token } = JSON.parse(tokenJson);
 
-    if (hasTokenExpired(token)) {
+    if (hasTokenExpired(ctx, token)) {
       await writeFile(tokenPath, "{}");
       return;
     }
@@ -225,22 +224,22 @@ export async function readToken(options: Options = {}) {
 
     return token;
   } catch (e) {
-    debug("Failed to read/write token file: %o", e);
+    ctx?.debug?.("Failed to read/write token file: %o", e);
     return;
   }
 }
 
-async function getApiKey(options: Options = {}) {
+async function getApiKey(ctx: Ctx, options: Options = {}) {
   return (
     options.apiKey ??
     process.env.REPLAY_API_KEY ??
     process.env.RECORD_REPLAY_API_KEY ??
-    (await readToken(options))
+    (await readToken(ctx, options))
   );
 }
 
-async function writeToken(token: string, options: Options = {}) {
-  maybeLog(options.verbose, "✍️ Saving token");
+async function writeToken(ctx: Ctx, token: string, options: Options = {}) {
+  maybeLog(ctx, options.verbose, "✍️ Saving token");
   const tokenPath = getTokenPath(options);
   await mkdir(path.dirname(tokenPath), { recursive: true });
   await writeFile(
@@ -257,17 +256,17 @@ async function writeToken(token: string, options: Options = {}) {
   );
 }
 
-export async function maybeAuthenticateUser(options: Options = {}) {
+export async function maybeAuthenticateUser(ctx: Ctx, options: Options = {}) {
   try {
-    const key = initAuthRequest(options);
-    const token = await pollForToken(key, options);
-    await writeToken(token);
+    const key = initAuthRequest(ctx, options);
+    const token = await pollForToken(ctx, key, options);
+    await writeToken(ctx, token);
 
-    maybeLog(options.verbose, "✅ Authentication complete!");
+    maybeLog(ctx, options.verbose, "✅ Authentication complete!");
 
     return true;
   } catch (e) {
-    debug("Failed to authenticate user: %o", e);
+    ctx.debug("Failed to authenticate user: %o", e);
 
     if (isInternalError(e)) {
       if (e.id === "timeout") {
@@ -369,30 +368,34 @@ async function writeAuthInfoCache(
   return cache;
 }
 
-async function readAuthInfoCache(key: string, options: Options = {}): Promise<string | undefined> {
+async function readAuthInfoCache(
+  ctx: Ctx,
+  key: string,
+  options: Options = {}
+): Promise<string | undefined> {
   try {
     const cachePath = getAuthInfoCachePath(options);
     const cacheJson = await readFile(cachePath, { encoding: "utf-8" });
     const cache = JSON.parse(cacheJson);
     return cache[authInfoCacheKey(key)];
   } catch (e) {
-    debug("Failed to read auth info cache: %o", e);
+    ctx.debug("Failed to read auth info cache: %o", e);
     return;
   }
 }
 
-export async function initLDContextFromApiKey(options: Options = {}) {
-  const apiKey = await getApiKey(options);
+export async function initLDContextFromApiKey(ctx: Ctx, options: Options = {}) {
+  const apiKey = await getApiKey(ctx, options);
   if (!apiKey) {
     return;
   }
 
-  let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
+  let targetId: string | undefined = await readAuthInfoCache(ctx, apiKey, options);
   if (!targetId) {
-    debug("Fetching auth info from server");
+    ctx.debug("Fetching auth info from server");
     targetId = await getAuthInfo(apiKey);
     await writeAuthInfoCache(apiKey, targetId, options);
   }
 
-  await getLaunchDarkly().identify({ type: "user", id: targetId });
+  await getLaunchDarkly(ctx).identify({ type: "user", id: targetId });
 }

@@ -1,12 +1,9 @@
-import dbg from "./debug";
 import fs from "fs";
 import path from "path";
-import { RecordingEntry } from "./types";
+import { Ctx, RecordingEntry } from "./types";
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import { updateStatus } from "./main";
 import { getDirectory } from "./utils";
-
-const debug = dbg("replay:cli:recording-log");
 
 function getRecordingsFile(dir: string) {
   return path.join(dir, "recordings.log");
@@ -214,14 +211,20 @@ export function readRecordings(dir?: string, includeHidden = false) {
   return recordings.filter(r => !(r.unusableReason || "").includes("No interesting content"));
 }
 
-function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
+function addRecordingEvent(
+  ctx: Partial<Ctx> | undefined,
+  dir: string,
+  kind: string,
+  id: string,
+  tags = {}
+) {
   const event = {
     kind,
     id,
     timestamp: Date.now(),
     ...tags,
   };
-  debug("Writing event to recording log %o", event);
+  ctx?.debug?.("Writing event to recording log %o", event);
   const lines = readRecordingFile(dir);
   lines.push(JSON.stringify(event));
   writeRecordingFile(dir, lines);

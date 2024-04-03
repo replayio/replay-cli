@@ -1,4 +1,5 @@
 import type { AgentOptions } from "http";
+import type { ClosableDebug } from "@replayio/dumpable-debug";
 
 export type UnstructuredMetadata = Record<string, unknown>;
 
@@ -134,3 +135,7 @@ export interface RecordingEntry<TMetadata extends UnstructuredMetadata = Unstruc
 export type ExternalRecordingEntry<
   TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
 > = Omit<RecordingEntry<TRecordingMetadata>, "buildId" | "crashData">;
+
+export type Ctx = {
+  debug: ClosableDebug;
+};

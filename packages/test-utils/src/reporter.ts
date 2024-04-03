@@ -10,7 +10,7 @@ import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/t
 import dbg from "debug";
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
-const uuid = require("uuid");
+import uuid from "uuid";
 
 import { ExternalRecordingEntry, UnstructuredMetadata } from "@replayio/replay";
 import { log, warn } from "./logging";
@@ -855,7 +855,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     } else {
       debug("Skipping completing test run: API Key not set");
     }
-
     const failures = completedWork.filter(
       (r): r is PromiseRejectedResult => r.status === "rejected"
     );

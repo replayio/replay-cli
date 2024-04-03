@@ -1,7 +1,7 @@
-import dbg from "./debug";
+import weakMemoize from "@emotion/weak-memoize";
 import { initialize, LDClient, LDLogger } from "launchdarkly-node-client-sdk";
-
-const debug = dbg("replay:launchdarkly");
+import { Ctx } from "./types";
+import { ExtandableDebug } from "@replayio/dumpable-debug";
 
 type UserFeatureProfile = {
   type: "user";
@@ -23,9 +23,11 @@ class NoOpLogger implements LDLogger {
 }
 
 class LaunchDarkly {
+  private _debug: ExtandableDebug | undefined;
   private client: LDClient;
 
-  constructor() {
+  constructor(ctx: Partial<Ctx> | undefined) {
+    this._debug = ctx?.debug;
     this.client = LaunchDarkly.initializeClient();
   }
 
@@ -49,7 +51,7 @@ class LaunchDarkly {
     try {
       await this.client.waitForInitialization();
     } catch (e) {
-      debug("Failed to wait for LaunchDarkly initialization %j", e);
+      this._debug?.("Failed to wait for LaunchDarkly initialization %j", e);
       return;
     }
 
@@ -68,7 +70,7 @@ class LaunchDarkly {
     try {
       await this.client.waitForInitialization();
     } catch (e) {
-      debug("Failed to wait for LaunchDarkly initialization %j", e);
+      this._debug?.("Failed to wait for LaunchDarkly initialization %j", e);
       return defaultValue;
     }
 
@@ -80,16 +82,9 @@ class LaunchDarkly {
     try {
       await this.client.close();
     } catch (e) {
-      debug("Failed to close LaunchDarkly client %j", e);
+      this._debug?.("Failed to close LaunchDarkly client %j", e);
     }
   }
 }
 
-let launchDarkly: LaunchDarkly | undefined;
-export const getLaunchDarkly = () => {
-  if (launchDarkly) {
-    return launchDarkly;
-  }
-  launchDarkly = new LaunchDarkly();
-  return launchDarkly;
-};
+export const getLaunchDarkly = weakMemoize((ctx: Partial<Ctx>) => new LaunchDarkly(ctx));
