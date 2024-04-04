@@ -52,7 +52,7 @@ flake:
   ENV GITHUB_SERVER_URL=${GITHUB_SERVER_URL}
   ENV GITHUB_REF_NAME=${GITHUB_REF_NAME}
   ENV GITHUB_EVENT_PATH=/usr/build/e2e-repos/flake/github_event
-  RUN npm i && npm install typescript && npm link --ignore-scripts @replayio/cypress
+  RUN npm i && npm install -g typescript && npm link --ignore-scripts @replayio/cypress
   RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps,replay:cli:metadata:source npm run start-and-test || exit 0
   RUN npx @replayio/replay ls --all
   RUN echo "JUnit Output"
