@@ -339,7 +339,7 @@ class ReplayPlaywrightReporter implements Reporter {
         {
           ...testMetadata,
           approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          result: status === "interrupted" ? "unknown" : status,
+          result: status,
           error: result.error
             ? {
                 name: "Error",
