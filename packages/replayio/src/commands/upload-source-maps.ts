@@ -1,9 +1,8 @@
 import chalk from "chalk";
-import { requireAuthentication } from "../utils/authentication/requireAuthentication";
-import { registerCommand } from "../utils/commander";
+import { registerAuthenticatedCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
 
-registerCommand("upload-source-maps <paths...>")
+registerAuthenticatedCommand("upload-source-maps <paths...>")
   .description("Upload source-maps for a Workspace")
   .requiredOption(
     "-g, --group <name>",
@@ -12,12 +11,12 @@ registerCommand("upload-source-maps <paths...>")
   .option("    --api-key <key>", "Authentication API Key")
   .option(
     "    --batch-size <batchSize>",
-    `Number of sourcemaps to upload in parallel; ${chalk.dim("max 25")}`
+    `Number of sourcemaps to upload in parallel; ${chalk.gray("max 25")}`
   )
   .option("    --dry-run", "Perform all of the usual CLI logic, but the final sourcemap upload.")
   .option(
     "-x, --extensions <exts>",
-    `A comma-separated list of extensions to process; ${chalk.dim('default ".js,.map"')}`,
+    `A comma-separated list of extensions to process; ${chalk.gray('default ".js,.map"')}`,
     (value: string) => value.split(",")
   )
   .option(
@@ -33,8 +32,6 @@ registerCommand("upload-source-maps <paths...>")
   .action(uploadSourceMaps);
 
 async function uploadSourceMaps() {
-  await requireAuthentication(true);
-
   // TODO [PRO-*] Implement source-map upload
 
   await exitProcess(0);

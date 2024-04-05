@@ -14,13 +14,9 @@ import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 
 // TODO [PRO-24] Change authentication to remove polling and GraphQL mutation
 
-export async function requireAuthentication(verbose: boolean) {
+export async function requireAuthentication() {
   let savedAccessToken = await getAccessToken();
   if (savedAccessToken) {
-    if (verbose) {
-      console.log("You are already signed in!");
-    }
-
     return savedAccessToken;
   }
 
@@ -35,9 +31,7 @@ export async function requireAuthentication(verbose: boolean) {
 
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
-  if (verbose) {
-    console.log("You have been signed in successfully!");
-  }
+  console.log("You have been signed in successfully!");
 
   // (Re)initialize LaunchDarkly for the newly authenticated user
   await initLaunchDarklyFromAccessToken(accessToken);

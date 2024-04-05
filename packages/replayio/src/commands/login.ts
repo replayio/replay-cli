@@ -1,3 +1,4 @@
+import { getAccessToken } from "../utils/authentication/getAccessToken";
 import { requireAuthentication } from "../utils/authentication/requireAuthentication";
 import { registerCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
@@ -7,7 +8,12 @@ registerCommand("login")
   .action(login);
 
 async function login() {
-  await requireAuthentication(true);
+  let savedAccessToken = await getAccessToken();
+  if (savedAccessToken) {
+    console.log("You are already signed in!");
+  } else {
+    requireAuthentication();
+  }
 
   await exitProcess(0);
 }

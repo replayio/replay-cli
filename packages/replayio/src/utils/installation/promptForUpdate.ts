@@ -1,8 +1,10 @@
 import chalk from "chalk";
+import { existsSync } from "fs-extra";
+import { join } from "path";
 import { readFromCache } from "../cache";
 import { prompt } from "../prompt/prompt";
 import { shouldPrompt } from "../prompt/shouldPrompt";
-import { metadataPath } from "./config";
+import { metadataPath, runtimeMetadata, runtimePath } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { installLatestRelease } from "./installLatestRelease";
@@ -12,7 +14,13 @@ import { MetadataJSON } from "./types";
 const PROMPT_ID = "runtime-update";
 
 export async function promptForUpdate() {
-  if (!shouldPrompt(PROMPT_ID)) {
+  const { path: executablePath, runtime } = runtimeMetadata;
+  const runtimeExecutablePath = join(runtimePath, ...executablePath);
+  let isRuntimeInstalled = existsSync(runtimeExecutablePath);
+
+  // If the user hasn't installed Replay runtime, they'll have to install it
+  // Otherwise let's check for potential updates and ask them (at most) once per day
+  if (isRuntimeInstalled && !shouldPrompt(PROMPT_ID)) {
     return;
   }
 
@@ -31,18 +39,29 @@ export async function promptForUpdate() {
     debug("Installed version metadata not found");
   }
 
+  let confirmed = !isRuntimeInstalled;
   if (currentBuildId !== latestBuildId) {
     const { releaseDate } = parseBuildId(latestBuildId);
-    console.log("");
-    console.log("A new version of Replay is available!");
-    console.log("  Release date:", chalk.blueBright(releaseDate.toLocaleDateString()));
-    console.log("  Version:", chalk.blueBright(latestRelease.version));
-    console.log("");
-    console.log(`Press ${chalk.bold("[Enter]")} to upgrade`);
-    console.log("Press any other key to skip");
-    console.log("");
+    if (isRuntimeInstalled) {
+      console.log("");
+      console.log("A new version of Replay is available!");
+      console.log("  Release date:", chalk.blueBright(releaseDate.toLocaleDateString()));
+      console.log("  Version:", chalk.blueBright(latestRelease.version));
+      console.log("");
+      console.log(`Press ${chalk.bold("[Enter]")} to upgrade`);
+      console.log("Press any other key to skip");
+      console.log("");
 
-    const confirmed = await prompt(PROMPT_ID);
+      confirmed = await prompt(PROMPT_ID);
+    } else {
+      console.log("");
+      console.log("In order to record a Replay, you'll have to first install the browser.");
+      console.log(`Press any key to continue`);
+      console.log("");
+
+      await prompt(PROMPT_ID);
+    }
+
     if (confirmed) {
       await installLatestRelease();
       console.log("");

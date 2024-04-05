@@ -1,8 +1,9 @@
 import assert from "assert";
+import fetch from "node-fetch";
 import { replayAppHost } from "../../config";
 import { runtimeMetadata } from "./config";
-import { Release } from "./types";
 import { debug } from "./debug";
+import { Release } from "./types";
 
 const { platform, runtime } = runtimeMetadata;
 

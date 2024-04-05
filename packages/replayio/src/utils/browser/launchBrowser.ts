@@ -40,7 +40,7 @@ export async function launchBrowser(
     processOptions
   );
 
-  console.log(`Recording ${chalk.dim("(quit browser to continue)")}`);
+  console.log(`Recording ${chalk.gray("(quit browser to continue)")}`);
 
   await spawnProcess(runtimeExecutablePath, args, processOptions);
 }

@@ -4,6 +4,7 @@ import { getAccessToken } from "./authentication/getAccessToken";
 import { drawBoxAroundText } from "./formatting";
 import { initLaunchDarklyFromAccessToken } from "./launch-darkly/initLaunchDarklyFromAccessToken";
 import { promptNpmUpdate } from "./promptNpmUpdate";
+import { requireAuthentication } from "./authentication/requireAuthentication";
 
 type Block = {
   label: string;
@@ -82,6 +83,8 @@ export function formatOutput(originalText: string): string {
 
 export function registerAuthenticatedCommand(commandName: string) {
   return program.command(commandName).hook("preAction", async () => {
+    await requireAuthentication();
+
     const accessToken = await getAccessToken();
     if (accessToken) {
       await initLaunchDarklyFromAccessToken(accessToken);
@@ -96,6 +99,6 @@ export function registerCommand(commandName: string) {
 function formatCommandOrOptionLine(line: string): string {
   line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, chalk.blueBright(" $1"));
   line = line.replace(/ ([<\[][a-zA-Z0-9\-\_\.]+[>\]])/g, chalk.yellowBright(" $1"));
-  line = line.replace(/\(default: ([^)]+)\)/, `(default: ${chalk.yellowBright("$1")})`);
+  line = line.replace(/\(default: ([^)]+)\)/, chalk.gray(`(default: ${chalk.yellowBright("$1")})`));
   return line;
 }

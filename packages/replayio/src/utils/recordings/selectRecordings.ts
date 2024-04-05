@@ -1,19 +1,24 @@
 import chalk from "chalk";
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
 import { MultiSelect } from "bvaughn-enquirer";
-import { canUpload } from "./canUpload";
 import { printRecordings } from "./printRecordings";
 import { LocalRecording } from "./types";
 
 export async function selectRecordings(
   recordings: LocalRecording[],
   options: {
+    disabledSelector?: (recording: LocalRecording) => boolean;
     maxRecordingsToDisplay?: number;
     prompt: string;
     selectionMessage: string;
   }
 ): Promise<LocalRecording[]> {
-  const { maxRecordingsToDisplay, prompt, selectionMessage } = options;
+  const {
+    disabledSelector = () => false,
+    maxRecordingsToDisplay = 10,
+    prompt,
+    selectionMessage,
+  } = options;
 
   let isShowingAllRecordings = true;
   if (maxRecordingsToDisplay != null && recordings.length > maxRecordingsToDisplay) {
@@ -28,16 +33,16 @@ export async function selectRecordings(
   const select = new MultiSelect(
     {
       choices: recordings.map((recording, index) => ({
-        disabled: !canUpload(recording),
+        disabled: disabledSelector(recording),
         message: printedLines[index],
         value: recording.id,
       })),
       footer: isShowingAllRecordings
         ? undefined
-        : chalk.dim(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
+        : chalk.gray(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
       hideAfterSubmit: true,
       initial: recordings.map(recording => recording.id),
-      message: `${prompt}\n  ${chalk.dim(
+      message: `${prompt}\n  ${chalk.gray(
         "(↑/↓ to change selection, [space] to toggle, [a] to toggle all)"
       )}\n`,
       name: "numbers",
@@ -56,7 +61,7 @@ export async function selectRecordings(
   if (recordingIds.length > 0) {
     const selectedRecordings = recordings.filter(recording => recordingIds.includes(recording.id));
     console.log(selectionMessage);
-    console.log(printRecordings(selectedRecordings));
+    console.log(printRecordings(selectedRecordings, { showHeaderRow: false }));
 
     return selectedRecordings;
   } else {

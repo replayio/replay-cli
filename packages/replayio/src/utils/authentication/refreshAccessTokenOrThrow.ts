@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { maskString } from "../maskString";
 import { authClientId, authHost } from "./config";
 import { debug } from "./debug";

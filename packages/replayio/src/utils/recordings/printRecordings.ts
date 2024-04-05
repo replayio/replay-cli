@@ -1,6 +1,5 @@
-import chalk from "chalk";
-import { formatDuration, formatRelativeDate } from "../date";
 import { printTable } from "../table";
+import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
 export function printRecordings(
@@ -13,40 +12,9 @@ export function printRecordings(
 
   let text = printTable(
     recordings.map(recording => {
-      const columns = [];
-      columns.push(recording.id.substring(0, 8) + "…");
-      columns.push(chalk.blueBright.underline(recording.metadata.host ?? ""));
-      columns.push(chalk.dim(formatRelativeDate(recording.date)));
-      columns.push(chalk.dim(recording.duration ? formatDuration(recording.duration) : ""));
+      const { date, duration, id, status, title } = formatRecording(recording);
 
-      let status;
-      if (recording.uploadStatus) {
-        switch (recording.uploadStatus) {
-          case "in-progress":
-            status = "Uploading";
-            break;
-          case "finished":
-            status = "Uploaded";
-            break;
-        }
-      } else {
-        switch (recording.recordingStatus) {
-          case "crashed":
-            status = "Crashed";
-          case "in-progress":
-            status = "Recording";
-            break;
-          case "finished":
-            status = "Recorded";
-            break;
-          case "unusable":
-            status = "Unusable";
-            break;
-        }
-      }
-      columns.push(status);
-
-      return columns;
+      return [id, title, date, duration, status];
     }),
     showHeaderRow ? ["ID", "Host", "Date", "Duration", "Status"] : undefined
   );

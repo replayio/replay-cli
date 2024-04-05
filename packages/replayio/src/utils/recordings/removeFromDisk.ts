@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync, removeSync, writeFileSync } from "fs-extra";
+import { readdirSync, removeSync, writeFileSync } from "fs-extra";
 import { join } from "path";
-import { logPath, recordingsPath } from "./config";
+import { recordingLogPath, recordingsPath } from "./config";
 import { debug } from "./debug";
 import { getRecordings } from "./getRecordings";
+import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LogEntry, RECORDING_LOG_KIND } from "./types";
 
 export function removeFromDisk(id?: string) {
@@ -10,7 +11,7 @@ export function removeFromDisk(id?: string) {
     debug("Removing recording %s", id);
 
     const recordings = getRecordings();
-    const recording = recordings.find(recording => recording.id === id);
+    const recording = recordings.find(recording => recording.id.startsWith(id));
     if (recording) {
       const { metadata, path } = recording;
 
@@ -28,22 +29,25 @@ export function removeFromDisk(id?: string) {
       }
 
       // Remove entries from log
-      const log = readFileSync(logPath, "utf8");
-      const filteredLines = log.split("\n").filter(text => {
+      const filteredLines = readRecordingLogLines().filter(text => {
         if (text) {
-          const entry = JSON.parse(text) as LogEntry;
-          switch (entry.kind) {
-            case RECORDING_LOG_KIND.sourcemapAdded: {
-              return entry.recordingId !== id;
+          try {
+            const entry = JSON.parse(text) as LogEntry;
+            switch (entry.kind) {
+              case RECORDING_LOG_KIND.sourcemapAdded: {
+                return entry.recordingId !== id;
+              }
+              default: {
+                return entry.id !== id;
+              }
             }
-            default: {
-              return entry.id !== id;
-            }
+          } catch (error) {
+            console.error("Error parsing log text:\n%s\n%s", text, error);
           }
         }
       });
 
-      writeFileSync(logPath, filteredLines.join("\n"), "utf8");
+      writeFileSync(recordingLogPath, filteredLines.join("\n"), "utf8");
     } else {
       console.log("Recording not found");
     }
@@ -56,6 +60,6 @@ export function removeFromDisk(id?: string) {
         removeSync(join(recordingsPath, fileName));
       }
     });
-    removeSync(logPath);
+    removeSync(recordingLogPath);
   }
 }

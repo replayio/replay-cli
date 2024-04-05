@@ -30,7 +30,9 @@ export async function installLatestRelease() {
   debug("Deleting downloaded file %s", downloadFilePath);
   unlinkSync(downloadFilePath);
 
-  // TODO This seems unnecessary; why don't we just use the file name that was downloaded?
+  // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
+  // github.com/replayio/replay-cli/commit/6d9b8b95a3a55eb9a0aa0721199242cfaf319356#r140402329
+  // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
   if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
     renameSync(
       join(runtimePath, runtimeMetadata.sourceName),
@@ -62,7 +64,7 @@ async function downloadReplayFile() {
 
   for (let i = 0; i < 5; i++) {
     console.log(
-      `Downloading ${runtimeMetadata.runtime} from replay.io ${chalk.dim(
+      `Downloading ${runtimeMetadata.runtime} from replay.io ${chalk.gray(
         `(attempt ${i + 1} of 5)`
       )}`
     );

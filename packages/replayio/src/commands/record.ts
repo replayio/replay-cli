@@ -4,11 +4,14 @@ import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { promptForUpdate } from "../utils/installation/promptForUpdate";
 import { getRecordings } from "../utils/recordings/getRecordings";
+import { printViewRecordingLinks } from "../utils/recordings/printViewRecordingLinks";
 import { processUploadedRecordings } from "../utils/recordings/processUploadedRecordings";
+import { removeFromDisk } from "../utils/recordings/removeFromDisk";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { uploadRecordings } from "../utils/recordings/uploadRecordings";
+import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 
-registerAuthenticatedCommand("record [url]")
+registerAuthenticatedCommand("record")
+  .argument("[url]", `URL to open (default: "about:blank")`)
   .description("Launch the replay browser in recording mode")
   .action(record);
 
@@ -45,6 +48,16 @@ async function record(url: string = "about:blank") {
       if (shouldProcess) {
         await processUploadedRecordings(selectedRecordings);
       }
+
+      const uploadedRecordings = selectedRecordings.filter(
+        recording => recording.uploadStatus === "uploaded"
+      );
+
+      printViewRecordingLinks(uploadedRecordings);
+
+      uploadedRecordings.forEach(recording => {
+        removeFromDisk(recording.id);
+      });
     }
   } else {
     console.log("No new recordings were created");

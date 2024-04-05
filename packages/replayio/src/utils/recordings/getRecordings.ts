@@ -1,42 +1,39 @@
 import assert from "assert";
-import { existsSync, readFileSync } from "fs-extra";
+import { existsSync } from "fs-extra";
 import { basename } from "path";
-import { logPath } from "./config";
+import { recordingLogPath } from "./config";
 import { debug } from "./debug";
+import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
 export function getRecordings(): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
-  if (existsSync(logPath)) {
-    debug("Reading recording log %s", logPath);
+  if (existsSync(recordingLogPath)) {
+    const rawTextLines = readRecordingLogLines();
 
-    const log = readFileSync(logPath, "utf8");
-    const lines = log.split("\n");
-
-    debug("Found %s recording", lines.length);
+    debug("Reading recording log %s\n%s", recordingLogPath, rawTextLines.join("\n"));
 
     const idToStartTimestamp: Record<string, number> = {};
 
-    lines.forEach(text => {
-      if (text) {
-        const entry = JSON.parse(text) as LogEntry;
-
-        debug(JSON.stringify(entry, null, 2));
-
+    for (let line of rawTextLines) {
+      try {
+        const entry = JSON.parse(line) as LogEntry;
         switch (entry.kind) {
           case RECORDING_LOG_KIND.addMetadata: {
             const { id, metadata = {} } = entry;
             const recording = idToRecording[id];
             assert(recording, `Recording with ID "${id}" not found`);
-            if (entry.metadata?.uri) {
+
+            Object.assign(recording.metadata, metadata);
+
+            if (metadata?.uri) {
               let host = metadata.uri;
               if (host && typeof host === "string") {
                 try {
-                  const url = new URL(host);
-                  host = url.host;
-                } finally {
+                  recording.metadata.host = new URL(host).host;
+                } catch (error) {
                   recording.metadata.host = host;
                 }
               }
@@ -79,10 +76,11 @@ export function getRecordings(): LocalRecording[] {
               id: entry.id,
               metadata: {
                 host: undefined,
+                uri: undefined,
                 sourcemaps: undefined,
               },
               path: undefined,
-              recordingStatus: "in-progress",
+              recordingStatus: "recording",
               uploadStatus: undefined,
             };
 
@@ -93,7 +91,8 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
-            // No-op
+            // TODO [PRO-*] Handle this event type
+            console.group("originalSourceAdded", entry);
             break;
           }
           case RECORDING_LOG_KIND.recordingUnusable: {
@@ -126,7 +125,7 @@ export function getRecordings(): LocalRecording[] {
 
             const recording = idToRecording[id];
             assert(recording, `Recording with ID "${id}" not found`);
-            recording.uploadStatus = "finished";
+            recording.uploadStatus = "uploaded";
             break;
           }
           case RECORDING_LOG_KIND.uploadStarted: {
@@ -134,7 +133,7 @@ export function getRecordings(): LocalRecording[] {
 
             const recording = idToRecording[id];
             assert(recording, `Recording with ID "${id}" not found`);
-            recording.uploadStatus = "in-progress";
+            recording.uploadStatus = "uploading";
             break;
           }
           case RECORDING_LOG_KIND.writeFinished: {
@@ -160,11 +159,14 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
         }
+      } catch (error) {
+        debug(`Error parsing line:\n${line}`);
+        continue;
       }
-    });
-  } else {
-    debug("No recording log found at %s", logPath);
+    }
   }
+
+  debug("Found %s recordings:\n%o", recordings.length, recordings);
 
   return recordings;
 }

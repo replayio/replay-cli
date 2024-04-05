@@ -13,19 +13,23 @@ export enum RECORDING_LOG_KIND {
   writeStarted = "writeStarted",
 }
 
-// This data comes from the runtime
+export type UnstructuredMetadata = Record<string, unknown>;
+
+// This data primarily comes from the runtime
+// The CLI adds some entries as well, based on upload status
 export type LogEntry = {
   buildId?: string;
   data?: any;
   driverVersion?: string;
   id: string;
   kind: RECORDING_LOG_KIND;
-  metadata?: {
+  metadata?: Object & {
     argv?: string[];
     uri?: string;
   };
   path?: string;
   recordingId?: string;
+  server?: string;
   timestamp: number;
 };
 
@@ -36,11 +40,12 @@ export type LocalRecording = {
   driverVersion: string;
   duration: number | undefined;
   id: string;
-  metadata: {
+  metadata: Object & {
     host: string | undefined;
+    uri: string | undefined;
     sourcemaps: string[] | undefined;
   };
   path: string | undefined;
-  recordingStatus: "crashed" | "in-progress" | "finished" | "unusable";
-  uploadStatus: "in-progress" | "finished" | undefined;
+  recordingStatus: "crashed" | "finished" | "recording" | "unusable";
+  uploadStatus: "uploading" | "uploaded" | undefined;
 };
