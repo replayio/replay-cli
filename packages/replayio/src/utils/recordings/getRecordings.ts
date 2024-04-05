@@ -97,7 +97,6 @@ export function getRecordings(): LocalRecording[] {
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
             // TODO [PRO-*] Handle this event type
-            console.group("originalSourceAdded", entry);
             break;
           }
           case RECORDING_LOG_KIND.recordingUnusable: {

@@ -46,7 +46,8 @@ async function upload(
   if (selectedRecordings.length > 0) {
     if (processAfterUpload == null) {
       processAfterUpload = await confirm(
-        "Would you like the selected recording(s) to be processed?"
+        "Would you like the selected recording(s) to be processed?",
+        true
       );
       if (processAfterUpload) {
         console.log("After upload, the selected recording(s) will be processed.\n");
