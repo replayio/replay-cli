@@ -2,8 +2,10 @@ import { ensureFileSync, existsSync, readFileSync, removeSync, writeFileSync } f
 
 export function readFromCache<Type>(path: string): Type | undefined {
   if (existsSync(path)) {
-    const text = readFileSync(path, { encoding: "utf-8" });
-    return JSON.parse(text) as Type;
+    try {
+      const text = readFileSync(path, { encoding: "utf-8" });
+      return JSON.parse(text) as Type;
+    } catch (error) {}
   }
 }
 

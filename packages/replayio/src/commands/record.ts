@@ -43,8 +43,9 @@ async function record(url: string = "about:blank") {
         console.log("After upload, the selected recording(s) will be processed.\n");
       }
 
+      // TODO [PRO-*] Parallelize upload and processing
+      // THis would require refactoring the tasks and printDeferredRecordingActions() helper
       await uploadRecordings(selectedRecordings);
-
       if (shouldProcess) {
         await processUploadedRecordings(selectedRecordings);
       }

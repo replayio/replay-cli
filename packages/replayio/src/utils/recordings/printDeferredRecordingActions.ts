@@ -27,8 +27,8 @@ export async function printDeferredRecordingActions(
 
     logMessage(
       `${inProgressMessage}\n` +
-        printTable(
-          deferredActions.map(deferred => {
+        printTable({
+          rows: deferredActions.map(deferred => {
             let status = chalk.yellowBright(dot);
             let suffix = "";
             if (deferred.resolution === true) {
@@ -44,8 +44,8 @@ export async function printDeferredRecordingActions(
             const { date, duration, id, title } = formatRecording(recording);
 
             return [status, id, title, date, duration, suffix];
-          })
-        )
+          }),
+        })
     );
   };
 

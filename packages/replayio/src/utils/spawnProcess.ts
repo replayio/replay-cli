@@ -16,6 +16,8 @@ export async function spawnProcess(
     });
 
     if (options?.detached) {
+      // TODO [PRO-*] Properly handle detached processes
+      // github.com/replayio/replay-cli/pull/344#discussion_r1553258356
       spawned.unref();
     } else {
       spawned.on("error", error => {

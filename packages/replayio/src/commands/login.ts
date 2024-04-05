@@ -12,7 +12,7 @@ async function login() {
   if (savedAccessToken) {
     console.log("You are already signed in!");
   } else {
-    requireAuthentication();
+    await requireAuthentication();
   }
 
   await exitProcess(0);

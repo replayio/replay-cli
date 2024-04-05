@@ -2,7 +2,7 @@ export type Executable = "darwin:chromium" | "linux:chromium" | "win32:chromium"
 export type Platform = "macOS" | "linux" | "windows";
 
 // This CLI only supports Chromium for the time being
-export type Runtime = "chromium" | "gecko" | "node";
+export type Runtime = "chromium" | "node";
 
 export type Release = {
   buildFile: string;

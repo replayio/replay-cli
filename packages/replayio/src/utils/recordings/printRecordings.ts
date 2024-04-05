@@ -10,14 +10,14 @@ export function printRecordings(
 ) {
   const { showHeaderRow = true } = formattingOptions;
 
-  let text = printTable(
-    recordings.map(recording => {
+  let text = printTable({
+    headers: showHeaderRow ? ["ID", "Host", "Date", "Duration", "Status"] : undefined,
+    rows: recordings.map(recording => {
       const { date, duration, id, status, title } = formatRecording(recording);
 
       return [id, title, date, duration, status];
     }),
-    showHeaderRow ? ["ID", "Host", "Date", "Duration", "Status"] : undefined
-  );
+  });
 
   return text;
 }

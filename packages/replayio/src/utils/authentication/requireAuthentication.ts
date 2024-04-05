@@ -1,12 +1,12 @@
 import { spawn } from "child_process";
 import { replayAppHost } from "../../config";
 import { writeToCache } from "../cache";
-import { exitProcess } from "../exitProcess";
 import { getSystemOpenCommand } from "../getSystemOpenCommand";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
 import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
 import { wait } from "../wait";
+import { AuthenticationError } from "./AuthenticationError";
 import { cachedAuthPath } from "./config";
 import { debug } from "./debug";
 import { getAccessToken } from "./getAccessToken";
@@ -27,7 +27,12 @@ export async function requireAuthentication() {
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
   spawn(getSystemOpenCommand(), [`${replayAppHost}/api/browser/auth?key=${key}&source=cli`]);
 
-  const { accessToken, refreshToken } = await pollForAuthentication(key);
+  const result = await Promise.race([pollForAuthentication(key), wait(60_000)]);
+  if (result == null) {
+    throw new AuthenticationError("time-out", "Timed out waiting for authentication");
+  }
+
+  const { accessToken, refreshToken } = result;
 
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
@@ -80,12 +85,6 @@ async function fetchRefreshTokenFromGraphQLOrThrow(key: string) {
 }
 
 async function pollForAuthentication(key: string) {
-  const timeout = setTimeout(() => {
-    debug("Timed out waiting for authentication");
-
-    exitProcess(1);
-  }, 60_000);
-
   let refreshToken: string | undefined = undefined;
   while (!refreshToken) {
     try {
@@ -102,8 +101,6 @@ async function pollForAuthentication(key: string) {
   }
 
   const accessToken = await refreshAccessTokenOrThrow(refreshToken);
-
-  clearTimeout(timeout);
 
   return { accessToken, refreshToken };
 }

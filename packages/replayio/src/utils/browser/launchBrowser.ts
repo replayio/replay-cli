@@ -9,7 +9,6 @@ export async function launchBrowser(
   url: string,
   options: {
     directory?: string;
-    headless?: boolean;
   } = {}
 ) {
   const { path: executablePath, runtime } = runtimeMetadata;
@@ -25,7 +24,6 @@ export async function launchBrowser(
     `--user-data-dir=${profileDir}`,
   ];
   const processOptions = {
-    detached: options.headless,
     env: {
       RECORD_ALL_CONTENT: "1",
       RECORD_REPLAY_DIRECTORY: options.directory,

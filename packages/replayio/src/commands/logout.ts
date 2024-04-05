@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { getAccessToken } from "../utils/authentication/getAccessToken";
 import { logoutIfAuthenticated } from "../utils/authentication/logoutIfAuthenticated";
 import { registerCommand } from "../utils/commander";
@@ -10,7 +11,13 @@ async function logout() {
 
   const token = await getAccessToken();
   if (token) {
-    console.log("Cannot sign out sessions authenticated with an API_KEY");
+    const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
+
+    console.log(
+      `You are now signed out but still authenticated via the ${chalk.yellowBright(
+        name
+      )} env variable`
+    );
   } else {
     console.log("You are now signed out");
   }

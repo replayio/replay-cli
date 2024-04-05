@@ -5,14 +5,14 @@ import { PromptHistory } from "./types";
 export async function prompt(id?: string): Promise<boolean> {
   return new Promise(resolve => {
     const stdin = process.stdin;
-    const wasRaw = stdin.isRaw;
+    const prevRaw = stdin.isRaw;
     stdin.setRawMode(true);
     stdin.resume();
     stdin.setEncoding("utf8");
 
     function onData(data: string) {
       stdin.off("data", onData);
-      stdin.setRawMode(wasRaw);
+      stdin.setRawMode(prevRaw);
       stdin.setEncoding();
 
       if (id) {
@@ -33,6 +33,8 @@ export async function prompt(id?: string): Promise<boolean> {
       }
     }
 
+    // TODO [PRO-*] Verify that exit signals are properly handled while this listener is attached
+    // github.com/replayio/replay-cli/pull/344#discussion_r1553358859
     stdin.on("data", onData);
   });
 }

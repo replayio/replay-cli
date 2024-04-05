@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { maskString } from "../maskString";
+import { AuthenticationError } from "./AuthenticationError";
 import { authClientId, authHost } from "./config";
 import { debug } from "./debug";
 
@@ -21,20 +21,13 @@ export async function refreshAccessTokenOrThrow(refreshToken: string): Promise<s
   if (json.error) {
     debug("OAuth token request failed: %O", json.error);
 
-    throw {
-      id: "auth0-error",
-      message: json.error,
-      refreshToken: maskString(refreshToken),
-    };
+    throw new AuthenticationError("auth0-error", json.error);
   }
 
   if (!json.access_token) {
     debug("OAuth token request was missing access token: %O", json);
 
-    throw {
-      id: "no-access-token",
-      refreshToken: maskString(refreshToken),
-    };
+    throw new AuthenticationError("no-access-token", "No access token in response");
   }
 
   return json.access_token as string;

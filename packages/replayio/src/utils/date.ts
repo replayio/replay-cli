@@ -3,7 +3,6 @@ import differenceInMinutes from "date-fns/differenceInMinutes";
 import differenceInMonths from "date-fns/differenceInMonths";
 import differenceInWeeks from "date-fns/differenceInWeeks";
 import differenceInYears from "date-fns/differenceInYears";
-import padStart from "lodash.padstart";
 import prettyMilliseconds from "pretty-ms";
 
 export function formatDuration(ms: number) {
@@ -37,9 +36,9 @@ export function formatRelativeDate(date: Date): string {
 export function formatTimestamp(ms: number, showHighPrecision: boolean = false) {
   const seconds = showHighPrecision ? Math.floor(ms / 1000) : Math.round(ms / 1000.0);
   const minutesString = Math.floor(seconds / 60);
-  const secondsString = padStart(String(seconds % 60), 2, "0");
+  const secondsString = String(seconds % 60).padStart(2, "0");
   if (showHighPrecision) {
-    const millisecondsString = padStart(`${Math.round(ms) % 1000}`, 3, "0");
+    const millisecondsString = `${Math.round(ms) % 1000}`.padStart(3, "0");
     return `${minutesString}:${secondsString}.${millisecondsString}`;
   } else {
     return `${minutesString}:${secondsString}`;

@@ -19,8 +19,9 @@ export async function getAccessToken(): Promise<string | undefined> {
   if (typeof accessToken !== "string") {
     debug("Unexpected accessToken value: " + accessToken);
     return;
-  } else if (typeof refreshToken !== "string") {
-    debug("Unexpected refreshToken: " + accessToken);
+  }
+  if (typeof refreshToken !== "string") {
+    debug("Unexpected refreshToken: " + refreshToken);
     return;
   }
 

@@ -4,6 +4,8 @@ export function getSystemOpenCommand() {
       return "open";
     case "linux":
       return "xdg-open";
+    case "win32":
+      return "start";
     default:
       throw new Error("Unsupported platform");
   }

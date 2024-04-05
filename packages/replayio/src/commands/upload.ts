@@ -54,8 +54,9 @@ async function upload(
       }
     }
 
+    // TODO [PRO-*] Parallelize upload and processing
+    // THis would require refactoring the tasks and printDeferredRecordingActions() helper
     await uploadRecordings(selectedRecordings);
-
     if (shouldProcess) {
       await processUploadedRecordings(selectedRecordings);
     }
