@@ -53,12 +53,9 @@ export async function uploadRecording(
         }
       );
 
-      updateRecordingLog({
-        id: id,
+      updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        recordingId: id,
         server: replayServer,
-        timestamp: Date.now(),
       });
 
       await retryWithExponentialBackoff(
@@ -82,12 +79,9 @@ export async function uploadRecording(
         recordingSize: size,
       });
 
-      updateRecordingLog({
-        id: id,
+      updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        recordingId: id,
         server: replayServer,
-        timestamp: Date.now(),
       });
 
       await retryWithExponentialBackoff(
@@ -112,7 +106,10 @@ export async function uploadRecording(
       await endRecordingUpload(client, { recordingId });
     }
   } catch (error) {
-    // TODO [PRO-*] Update recording log
+    updateRecordingLog(recording, {
+      kind: RECORDING_LOG_KIND.uploadFailed,
+    });
+
     recording.uploadStatus = "failed";
 
     throw error;
@@ -122,16 +119,16 @@ export async function uploadRecording(
 
   // TODO [PRO-*] Upload source-maps
 
-  updateRecordingLog({
-    id: recording.id,
+  updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadFinished,
-    recordingId: recording.id,
     server: replayServer,
-    timestamp: Date.now(),
   });
 
   if (processAfterUpload) {
-    // TODO [PRO-*] Update recording log
+    updateRecordingLog(recording, {
+      kind: RECORDING_LOG_KIND.processing,
+    });
+
     recording.uploadStatus = "processing";
 
     // TODO [PRO-*] Process

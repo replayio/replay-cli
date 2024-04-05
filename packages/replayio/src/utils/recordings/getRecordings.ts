@@ -99,6 +99,15 @@ export function getRecordings(): LocalRecording[] {
             // TODO [PRO-*] Handle this event type
             break;
           }
+          case RECORDING_LOG_KIND.processing: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.uploadStatus = "processing";
+            break;
+            break;
+          }
           case RECORDING_LOG_KIND.recordingUnusable: {
             const { id } = entry;
             const recording = idToRecording[id];
@@ -122,6 +131,14 @@ export function getRecordings(): LocalRecording[] {
             } else {
               recording.metadata.sourcemaps = [path];
             }
+            break;
+          }
+          case RECORDING_LOG_KIND.uploadFailed: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.uploadStatus = "failed";
             break;
           }
           case RECORDING_LOG_KIND.uploadFinished: {
