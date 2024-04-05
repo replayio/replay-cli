@@ -1,12 +1,8 @@
-export const STATUS_NOT_FOUND = "not-found";
 export const STATUS_PENDING = "pending";
-export const STATUS_ABORTED = "aborted";
 export const STATUS_REJECTED = "rejected";
 export const STATUS_RESOLVED = "resolved";
 
-export type StatusNotFound = typeof STATUS_NOT_FOUND;
 export type StatusPending = typeof STATUS_PENDING;
-export type StatusAborted = typeof STATUS_ABORTED;
 export type StatusRejected = typeof STATUS_REJECTED;
 export type StatusResolved = typeof STATUS_RESOLVED;
 
@@ -21,12 +17,7 @@ export interface Deferred<Type, Data = void> {
   status: StatusPending | StatusRejected | StatusResolved;
 }
 
-export type Status =
-  | StatusNotFound
-  | StatusPending
-  | StatusAborted
-  | StatusRejected
-  | StatusResolved;
+export type Status = StatusPending | StatusRejected | StatusResolved;
 
 export function createDeferred<Type, Data = void>(
   data?: Data,
