@@ -1,0 +1,17 @@
+{
+  "extends": "@replay-cli/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2019"],
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "rootDir": "./src",
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../sourcemap-upload"
+    }
+  ]
+}
