@@ -14,10 +14,16 @@ export function formatRecording(recording: LocalRecording) {
 
   const date = chalk.gray(formatRelativeDate(recording.date));
   const duration = chalk.gray(recording.duration ? formatDuration(recording.duration) : "");
+  const processType = recording.metadata.processType
+    ? chalk.gray(`(${recording.metadata.processType})`)
+    : "";
 
   let status;
   if (recording.uploadStatus) {
     switch (recording.uploadStatus) {
+      case "processing":
+        status = "Processing";
+        break;
       case "uploaded":
         status = "Uploaded";
         break;
@@ -45,6 +51,7 @@ export function formatRecording(recording: LocalRecording) {
     date,
     duration,
     id,
+    processType,
     status,
     title,
   };

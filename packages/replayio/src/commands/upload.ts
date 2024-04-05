@@ -5,9 +5,6 @@ import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";
-import { printViewRecordingLinks } from "../utils/recordings/printViewRecordingLinks";
-import { processUploadedRecordings } from "../utils/recordings/processUploadedRecordings";
-import { removeFromDisk } from "../utils/recordings/removeFromDisk";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
@@ -25,7 +22,7 @@ async function upload(
   shortIds: string[],
   {
     all = false,
-    process: shouldProcess,
+    process: processAfterUpload,
   }: {
     all?: boolean;
     process?: boolean;
@@ -47,29 +44,16 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    if (shouldProcess == null) {
-      shouldProcess = await confirm("Would you like the selected recording(s) to be processed?");
-      if (shouldProcess) {
+    if (processAfterUpload == null) {
+      processAfterUpload = await confirm(
+        "Would you like the selected recording(s) to be processed?"
+      );
+      if (processAfterUpload) {
         console.log("After upload, the selected recording(s) will be processed.\n");
       }
     }
 
-    // TODO [PRO-*] Parallelize upload and processing
-    // THis would require refactoring the tasks and printDeferredRecordingActions() helper
-    await uploadRecordings(selectedRecordings);
-    if (shouldProcess) {
-      await processUploadedRecordings(selectedRecordings);
-    }
-
-    const uploadedRecordings = selectedRecordings.filter(
-      recording => recording.uploadStatus === "uploaded"
-    );
-
-    printViewRecordingLinks(uploadedRecordings);
-
-    uploadedRecordings.forEach(recording => {
-      removeFromDisk(recording.id);
-    });
+    await uploadRecordings(selectedRecordings, { processAfterUpload });
   }
 
   await exitProcess(0);

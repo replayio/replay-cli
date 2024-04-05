@@ -13,6 +13,7 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../retry";
+import { wait } from "../../wait";
 import { debugLogPath, multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
@@ -22,10 +23,15 @@ import { validateRecordingMetadata } from "./validateRecordingMetadata";
 export async function uploadRecording(
   client: ProtocolClient,
   recording: LocalRecording,
-  multiPartUpload: boolean
+  options: {
+    multiPartUpload: boolean;
+    processAfterUpload: boolean;
+  }
 ) {
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
+
+  const { multiPartUpload, processAfterUpload } = options;
 
   const { size } = await stat(path);
 
@@ -33,74 +39,83 @@ export async function uploadRecording(
 
   const { metadata, recordingData } = await validateRecordingMetadata(recording);
 
-  if (multiPartUpload && size > multiPartMinSizeThreshold) {
-    const { chunkSize, partLinks, recordingId, uploadId } = await beginRecordingMultipartUpload(
-      client,
-      {
+  recording.uploadStatus = "uploading";
+
+  try {
+    if (multiPartUpload && size > multiPartMinSizeThreshold) {
+      const { chunkSize, partLinks, recordingId, uploadId } = await beginRecordingMultipartUpload(
+        client,
+        {
+          buildId: buildId,
+          maxChunkSize: multiPartChunkSize,
+          recordingId: id,
+          recordingSize: size,
+        }
+      );
+
+      updateRecordingLog({
+        id: id,
+        kind: RECORDING_LOG_KIND.uploadStarted,
+        recordingId: id,
+        server: replayServer,
+        timestamp: Date.now(),
+      });
+
+      await retryWithExponentialBackoff(
+        () => setRecordingMetadata(client, { metadata, recordingData }),
+        (error: unknown, attemptNumber: number) => {
+          debug(`Attempt ${attemptNumber} to set metadata failed:\n%j`, error);
+        }
+      );
+
+      const partIds = await uploadRecordingFileInParts({
+        chunkSize,
+        partLinks,
+        recordingPath: path,
+      });
+
+      await endRecordingMultipartUpload(client, { partIds, recordingId, uploadId });
+    } else {
+      const { recordingId, uploadLink } = await beginRecordingUpload(client, {
         buildId: buildId,
-        maxChunkSize: multiPartChunkSize,
         recordingId: id,
         recordingSize: size,
-      }
-    );
+      });
 
-    updateRecordingLog({
-      id: id,
-      kind: RECORDING_LOG_KIND.uploadStarted,
-      recordingId: id,
-      server: replayServer,
-      timestamp: Date.now(),
-    });
+      updateRecordingLog({
+        id: id,
+        kind: RECORDING_LOG_KIND.uploadStarted,
+        recordingId: id,
+        server: replayServer,
+        timestamp: Date.now(),
+      });
 
-    await retryWithExponentialBackoff(
-      () => setRecordingMetadata(client, { metadata, recordingData }),
-      (error: unknown, attemptNumber: number) => {
-        debug(`Attempt ${attemptNumber} to set metadata failed:\n%j`, error);
-      }
-    );
+      await retryWithExponentialBackoff(
+        () => setRecordingMetadata(client, { metadata, recordingData }),
+        (error: unknown, attemptNumber: number) => {
+          debug(`Attempt ${attemptNumber} to set metadata failed:\n%j`, error);
+        }
+      );
 
-    const partIds = await uploadRecordingFileInParts({
-      chunkSize,
-      partLinks,
-      recordingPath: path,
-    });
+      await retryWithExponentialBackoff(
+        () =>
+          uploadRecordingFile({
+            recordingPath: path,
+            size,
+            uploadLink,
+          }),
+        (error: unknown, attemptNumber: number) => {
+          debug(`Attempt ${attemptNumber} to upload failed:\n%j`, error);
+        }
+      );
 
-    await endRecordingMultipartUpload(client, { partIds, recordingId, uploadId });
-  } else {
-    const { recordingId, uploadLink } = await beginRecordingUpload(client, {
-      buildId: buildId,
-      recordingId: id,
-      recordingSize: size,
-    });
+      await endRecordingUpload(client, { recordingId });
+    }
+  } catch (error) {
+    // TODO [PRO-*] Update recording log
+    recording.uploadStatus = "failed";
 
-    updateRecordingLog({
-      id: id,
-      kind: RECORDING_LOG_KIND.uploadStarted,
-      recordingId: id,
-      server: replayServer,
-      timestamp: Date.now(),
-    });
-
-    await retryWithExponentialBackoff(
-      () => setRecordingMetadata(client, { metadata, recordingData }),
-      (error: unknown, attemptNumber: number) => {
-        debug(`Attempt ${attemptNumber} to set metadata failed:\n%j`, error);
-      }
-    );
-
-    await retryWithExponentialBackoff(
-      () =>
-        uploadRecordingFile({
-          recordingPath: path,
-          size,
-          uploadLink,
-        }),
-      (error: unknown, attemptNumber: number) => {
-        debug(`Attempt ${attemptNumber} to upload failed:\n%j`, error);
-      }
-    );
-
-    await endRecordingUpload(client, { recordingId });
+    throw error;
   }
 
   debug("Uploaded %d bytes for recording %s", size, recording.id);
@@ -114,6 +129,14 @@ export async function uploadRecording(
     server: replayServer,
     timestamp: Date.now(),
   });
+
+  if (processAfterUpload) {
+    // TODO [PRO-*] Update recording log
+    recording.uploadStatus = "processing";
+
+    // TODO [PRO-*] Process
+    await wait(2_500);
+  }
 
   recording.uploadStatus = "uploaded";
 }

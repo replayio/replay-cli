@@ -40,6 +40,10 @@ export function getRecordings(): LocalRecording[] {
             } else if (Array.isArray(metadata.argv) && typeof metadata.argv[0] === "string") {
               recording.metadata.host = basename(metadata.argv[0]);
             }
+
+            if (metadata.process) {
+              recording.metadata.processType = metadata.process;
+            }
             break;
           }
           case RECORDING_LOG_KIND.crashData: {
@@ -76,8 +80,9 @@ export function getRecordings(): LocalRecording[] {
               id: entry.id,
               metadata: {
                 host: undefined,
-                uri: undefined,
+                processType: undefined,
                 sourcemaps: undefined,
+                uri: undefined,
               },
               path: undefined,
               recordingStatus: "recording",

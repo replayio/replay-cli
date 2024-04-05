@@ -9,5 +9,6 @@ export async function confirm(message: string) {
     message,
     name: "confirmation",
   });
-  return await confirm.run();
+  const confirmed = await confirm.run();
+  return confirmed === true;
 }

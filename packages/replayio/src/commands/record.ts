@@ -4,9 +4,6 @@ import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { promptForUpdate } from "../utils/installation/promptForUpdate";
 import { getRecordings } from "../utils/recordings/getRecordings";
-import { printViewRecordingLinks } from "../utils/recordings/printViewRecordingLinks";
-import { processUploadedRecordings } from "../utils/recordings/processUploadedRecordings";
-import { removeFromDisk } from "../utils/recordings/removeFromDisk";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 
@@ -36,29 +33,14 @@ async function record(url: string = "about:blank") {
     });
 
     if (selectedRecordings.length > 0) {
-      const shouldProcess = await confirm(
+      const processAfterUpload = await confirm(
         "Would you like the selected recording(s) to be processed?"
       );
-      if (shouldProcess) {
+      if (processAfterUpload) {
         console.log("After upload, the selected recording(s) will be processed.\n");
       }
 
-      // TODO [PRO-*] Parallelize upload and processing
-      // THis would require refactoring the tasks and printDeferredRecordingActions() helper
-      await uploadRecordings(selectedRecordings);
-      if (shouldProcess) {
-        await processUploadedRecordings(selectedRecordings);
-      }
-
-      const uploadedRecordings = selectedRecordings.filter(
-        recording => recording.uploadStatus === "uploaded"
-      );
-
-      printViewRecordingLinks(uploadedRecordings);
-
-      uploadedRecordings.forEach(recording => {
-        removeFromDisk(recording.id);
-      });
+      await uploadRecordings(selectedRecordings, { processAfterUpload });
     }
   } else {
     console.log("No new recordings were created");

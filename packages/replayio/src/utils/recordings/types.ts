@@ -13,6 +13,8 @@ export enum RECORDING_LOG_KIND {
   writeStarted = "writeStarted",
 }
 
+export type ProcessType = "devtools" | "extension" | "iframe" | "root";
+
 export type UnstructuredMetadata = Record<string, unknown>;
 
 // This data primarily comes from the runtime
@@ -25,6 +27,7 @@ export type LogEntry = {
   kind: RECORDING_LOG_KIND;
   metadata?: Object & {
     argv?: string[];
+    process?: ProcessType;
     uri?: string;
   };
   path?: string;
@@ -42,10 +45,11 @@ export type LocalRecording = {
   id: string;
   metadata: Object & {
     host: string | undefined;
-    uri: string | undefined;
+    processType: ProcessType | undefined;
     sourcemaps: string[] | undefined;
+    uri: string | undefined;
   };
   path: string | undefined;
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
-  uploadStatus: "uploading" | "uploaded" | undefined;
+  uploadStatus: "failed" | "processing" | "uploading" | "uploaded" | undefined;
 };

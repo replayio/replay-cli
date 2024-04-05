@@ -12,7 +12,7 @@ registerCommand("remove")
   .argument("[ids...]", `Recording ids ${chalk.gray("(comma-separated)")}`, value =>
     value.split(",")
   )
-  .option("--all", "Remove all recordings")
+  .option("-a, --all", "Remove all recordings")
   .description("Delete one or more recordings from disk")
   .action(remove);
 

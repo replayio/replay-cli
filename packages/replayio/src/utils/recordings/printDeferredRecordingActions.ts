@@ -2,7 +2,7 @@ import assert from "assert";
 import chalk from "chalk";
 import { dots } from "cli-spinners";
 import logUpdate from "log-update";
-import { Deferred, STATUS_REJECTED, STATUS_RESOLVED } from "../createDeferred";
+import { Deferred, STATUS_RESOLVED } from "../createDeferred";
 import { printTable } from "../table";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
@@ -18,7 +18,8 @@ if (process.env.DEBUG) {
 export async function printDeferredRecordingActions(
   deferredActions: Deferred<boolean, LocalRecording>[],
   inProgressMessage: string,
-  failedMessage: string
+  failedMessage: string,
+  getStatus: (recording: LocalRecording) => string | undefined
 ) {
   let dotIndex = 0;
 
@@ -30,13 +31,13 @@ export async function printDeferredRecordingActions(
         printTable({
           rows: deferredActions.map(deferred => {
             let status = chalk.yellowBright(dot);
-            let suffix = "";
             if (deferred.resolution === true) {
               status = chalk.greenBright("✔");
             } else if (deferred.resolution === false) {
               status = chalk.redBright("✘");
-              suffix = chalk.gray("(failed)");
             }
+
+            const suffix = chalk.gray(getStatus(deferred.data as LocalRecording) ?? "");
 
             const recording = deferred.data;
             assert(recording, "Recording is not defined");

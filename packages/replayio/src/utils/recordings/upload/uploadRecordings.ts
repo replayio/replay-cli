@@ -4,11 +4,21 @@ import { canUpload } from "../canUpload";
 import { createdDeferredAction } from "../createdDeferredAction";
 import { debug } from "../debug";
 import { printDeferredRecordingActions } from "../printDeferredRecordingActions";
+import { printViewRecordingLinks } from "../printViewRecordingLinks";
+import { removeFromDisk } from "../removeFromDisk";
 import { LocalRecording } from "../types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 
-export async function uploadRecordings(recordings: LocalRecording[]) {
+export async function uploadRecordings(
+  recordings: LocalRecording[],
+  options: {
+    deleteOnSuccess?: boolean;
+    processAfterUpload: boolean;
+  }
+) {
+  const { deleteOnSuccess = true, processAfterUpload } = options;
+
   recordings = recordings.filter(recording => {
     if (!canUpload(recording)) {
       debug(`Cannot upload recording ${recording.id}:\n%o`, recording);
@@ -18,7 +28,7 @@ export async function uploadRecordings(recordings: LocalRecording[]) {
     return true;
   });
 
-  const multipart = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
+  const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
   const client = new ProtocolClient();
   await client.waitUntilAuthenticated();
 
@@ -28,7 +38,7 @@ export async function uploadRecordings(recordings: LocalRecording[]) {
     } else {
       return createdDeferredAction<LocalRecording>(
         recording,
-        uploadRecording(client, recording, multipart)
+        uploadRecording(client, recording, { multiPartUpload, processAfterUpload })
       );
     }
   });
@@ -36,10 +46,30 @@ export async function uploadRecordings(recordings: LocalRecording[]) {
   printDeferredRecordingActions(
     deferredActions,
     "Uploading recordings...",
-    "recording(s) did not upload successfully"
+    "recording(s) did not upload successfully",
+    recording => {
+      switch (recording.uploadStatus) {
+        case "failed":
+          return "(failed)";
+        case "processing":
+          return "(processing…)";
+        case "uploading":
+          return "(uploading…)";
+      }
+    }
   );
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
+
+  const uploadedRecordings = recordings.filter(recording => recording.uploadStatus === "uploaded");
+
+  printViewRecordingLinks(uploadedRecordings);
+
+  if (deleteOnSuccess) {
+    uploadedRecordings.forEach(recording => {
+      removeFromDisk(recording.id);
+    });
+  }
 
   client.close();
 }
