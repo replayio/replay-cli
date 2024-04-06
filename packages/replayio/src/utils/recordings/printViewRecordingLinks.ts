@@ -1,6 +1,6 @@
-import chalk from "chalk";
 import strip from "strip-ansi";
 import { replayAppHost } from "../../config";
+import { link } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
@@ -15,9 +15,9 @@ export function printViewRecordingLinks(recordings: LocalRecording[]) {
 
       const formatted = processType ? `${title} ${processType}` : title;
 
-      let text = `${formatted}: ${chalk.blueBright.underline(url)}`;
+      let text = `${formatted}: ${link(url)}`;
       if (strip(text).length > process.stdout.columns) {
-        text = `${formatted}:\n${chalk.blueBright.underline(url)}`;
+        text = `${formatted}:\n${link(url)}`;
       }
 
       console.log(text);

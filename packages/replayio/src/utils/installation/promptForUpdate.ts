@@ -1,9 +1,9 @@
-import chalk from "chalk";
 import { existsSync } from "fs-extra";
 import { join } from "path";
 import { readFromCache } from "../cache";
 import { prompt } from "../prompt/prompt";
 import { shouldPrompt } from "../prompt/shouldPrompt";
+import { emphasize, highlight } from "../theme";
 import { metadataPath, runtimeMetadata, runtimePath } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
@@ -45,10 +45,10 @@ export async function promptForUpdate() {
     if (isRuntimeInstalled) {
       console.log("");
       console.log("A new version of Replay is available!");
-      console.log("  Release date:", chalk.blueBright(releaseDate.toLocaleDateString()));
-      console.log("  Version:", chalk.blueBright(latestRelease.version));
+      console.log("  Release date:", highlight(releaseDate.toLocaleDateString()));
+      console.log("  Version:", highlight(latestRelease.version));
       console.log("");
-      console.log(`Press ${chalk.bold("[Enter]")} to upgrade`);
+      console.log(`Press ${emphasize("[Enter]")} to upgrade`);
       console.log("Press any other key to skip");
       console.log("");
 

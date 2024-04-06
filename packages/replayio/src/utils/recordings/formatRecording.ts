@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import { formatDuration, formatRelativeDate } from "../date";
+import { dim, link } from "../theme";
 import { LocalRecording } from "./types";
 
 const MAX_TITLE_LENGTH = 35;
@@ -10,20 +10,18 @@ export function formatRecording(recording: LocalRecording) {
   let title;
   if (recording.metadata.host) {
     if (recording.metadata.host.length > MAX_TITLE_LENGTH) {
-      title = chalk.blueBright.underline(
-        recording.metadata.host.substring(0, MAX_TITLE_LENGTH) + "…"
-      );
+      title = link(recording.metadata.host.substring(0, MAX_TITLE_LENGTH) + "…");
     } else {
-      title = chalk.blueBright.underline(recording.metadata.host);
+      title = link(recording.metadata.host);
     }
   } else {
     title = "(untitled)";
   }
 
-  const date = chalk.gray(formatRelativeDate(recording.date));
-  const duration = chalk.gray(recording.duration ? formatDuration(recording.duration) : "");
+  const date = dim(formatRelativeDate(recording.date));
+  const duration = dim(recording.duration ? formatDuration(recording.duration) : "");
   const processType = recording.metadata.processType
-    ? chalk.gray(`(${recording.metadata.processType})`)
+    ? dim(`(${recording.metadata.processType})`)
     : "";
 
   let status;

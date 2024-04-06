@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { registerCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
@@ -7,11 +6,10 @@ import { printRecordings } from "../utils/recordings/printRecordings";
 import { removeFromDisk } from "../utils/recordings/removeFromDisk";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
+import { dim } from "../utils/theme";
 
 registerCommand("remove")
-  .argument("[ids...]", `Recording ids ${chalk.gray("(comma-separated)")}`, value =>
-    value.split(",")
-  )
+  .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Remove all recordings")
   .description("Delete one or more recordings from disk")
   .action(remove);

@@ -1,6 +1,6 @@
-import chalk from "chalk";
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
 import { MultiSelect } from "bvaughn-enquirer";
+import { dim, highlight, transparent } from "../theme";
 import { printRecordings } from "./printRecordings";
 import { LocalRecording } from "./types";
 
@@ -42,23 +42,29 @@ export async function selectRecordings(
 
   const select = new MultiSelect(
     {
-      choices: recordings.map((recording, index) => ({
-        disabled: disabledSelector(recording),
-        message: printedLines[index],
-        value: recording.id,
-      })),
+      choices: recordings.map((recording, index) => {
+        const disabled = disabledSelector(recording);
+        const message = printedLines[index];
+
+        return {
+          disabled,
+          hint: "",
+          message: disabled ? transparent(message) : message,
+          value: recording.id,
+        };
+      }),
       footer: isShowingAllRecordings
         ? undefined
-        : chalk.gray(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
+        : dim(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
       hideAfterSubmit: true,
       initial: recordings.map(recording => recording.id),
-      message: `${prompt}\n  ${chalk.gray(
+      message: `${prompt}\n  ${dim(
         "(↑/↓ to change selection, [space] to toggle, [a] to toggle all)"
       )}\n`,
       name: "numbers",
       styles: {
         // Selected row style
-        em: chalk.yellowBright,
+        em: highlight,
       },
     },
     (choices: any[]) => {

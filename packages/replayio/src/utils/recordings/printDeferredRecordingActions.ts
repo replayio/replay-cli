@@ -1,9 +1,9 @@
 import assert from "assert";
-import chalk from "chalk";
 import { dots } from "cli-spinners";
 import logUpdate from "log-update";
 import { Deferred, STATUS_RESOLVED } from "../createDeferred";
 import { printTable } from "../table";
+import { dim, statusFailed, statusPending, statusSuccess } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
@@ -30,14 +30,14 @@ export async function printDeferredRecordingActions(
       `${inProgressMessage}\n` +
         printTable({
           rows: deferredActions.map(deferred => {
-            let status = chalk.yellowBright(dot);
+            let status = statusPending(dot);
             if (deferred.resolution === true) {
-              status = chalk.greenBright("✔");
+              status = statusSuccess("✔");
             } else if (deferred.resolution === false) {
-              status = chalk.redBright("✘");
+              status = statusFailed("✘");
             }
 
-            const suffix = chalk.gray(getStatus(deferred.data as LocalRecording) ?? "");
+            const suffix = dim(getStatus(deferred.data as LocalRecording) ?? "");
 
             const recording = deferred.data;
             assert(recording, "Recording is not defined");
@@ -62,6 +62,6 @@ export async function printDeferredRecordingActions(
 
   const failedActions = deferredActions.filter(deferred => deferred.status !== STATUS_RESOLVED);
   if (failedActions.length > 0) {
-    console.log(chalk.red(`${failedActions.length} ${failedMessage}\n`));
+    console.log(statusFailed(`${failedActions.length} ${failedMessage}\n`));
   }
 }

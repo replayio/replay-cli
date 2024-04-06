@@ -1,19 +1,17 @@
-import chalk from "chalk";
 import { registerAuthenticatedCommand } from "../utils/commander";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";
+import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
+import { dim } from "../utils/theme";
 
 registerAuthenticatedCommand("upload")
-  .argument("[ids...]", `Recording ids ${chalk.gray("(comma-separated)")}`, value =>
-    value.split(",")
-  )
+  .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Upload all recordings")
   .option("-p, --process", "Process uploaded recording(s)")
   .description("Upload recording(s)")

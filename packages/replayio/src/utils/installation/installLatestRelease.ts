@@ -1,10 +1,10 @@
-import chalk from "chalk";
 import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "path";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
+import { dim } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
@@ -64,9 +64,7 @@ async function downloadReplayFile() {
 
   for (let i = 0; i < 5; i++) {
     console.log(
-      `Downloading ${runtimeMetadata.runtime} from replay.io ${chalk.gray(
-        `(attempt ${i + 1} of 5)`
-      )}`
+      `Downloading ${runtimeMetadata.runtime} from replay.io ${dim(`(attempt ${i + 1} of 5)`)}`
     );
 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {

@@ -1,6 +1,6 @@
-import chalk from "chalk";
 import { registerAuthenticatedCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
+import { dim } from "../utils/theme";
 
 registerAuthenticatedCommand("upload-source-maps <paths...>")
   .description("Upload source-maps for a Workspace")
@@ -11,12 +11,12 @@ registerAuthenticatedCommand("upload-source-maps <paths...>")
   .option("    --api-key <key>", "Authentication API Key")
   .option(
     "    --batch-size <batchSize>",
-    `Number of sourcemaps to upload in parallel; ${chalk.gray("max 25")}`
+    `Number of sourcemaps to upload in parallel; ${dim("max 25")}`
   )
   .option("    --dry-run", "Perform all of the usual CLI logic, but the final sourcemap upload.")
   .option(
     "-x, --extensions <exts>",
-    `A comma-separated list of extensions to process; ${chalk.gray('default ".js,.map"')}`,
+    `A comma-separated list of extensions to process; ${dim('default ".js,.map"')}`,
     (value: string) => value.split(",")
   )
   .option(
