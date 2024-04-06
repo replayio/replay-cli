@@ -8,6 +8,7 @@ import { getRecordings } from "../utils/recordings/getRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { printRecordings } from "../utils/recordings/printRecordings";
 
 registerAuthenticatedCommand("upload")
   .argument("[ids...]", `Recording ids ${chalk.gray("(comma-separated)")}`, value =>
@@ -38,6 +39,9 @@ async function upload(
   } else {
     selectedRecordings = await selectRecordings(recordings, {
       disabledSelector: recording => !canUpload(recording),
+      noSelectableRecordingsMessage:
+        "The recording(s) below cannot be uploaded.\n" +
+        printRecordings(recordings, { showHeaderRow: false }),
       prompt: "Which recordings would you like to upload?",
       selectionMessage: "The following recording(s) will be uploaded:",
     });
@@ -49,10 +53,9 @@ async function upload(
         "Would you like the selected recording(s) to be processed?",
         true
       );
-      if (processAfterUpload) {
-        console.log("After upload, the selected recording(s) will be processed.\n");
-      }
     }
+
+    console.log(""); // Spacing for readability
 
     await uploadRecordings(selectedRecordings, { processAfterUpload });
   }

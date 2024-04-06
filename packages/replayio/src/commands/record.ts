@@ -46,9 +46,8 @@ async function record(url: string = "about:blank") {
         "Would you like the selected recording(s) to be processed?",
         true
       );
-      if (processAfterUpload) {
-        console.log("After upload, the selected recording(s) will be processed.\n");
-      }
+
+      console.log(""); // Spacing for readability
 
       await uploadRecordings(selectedRecordings, { processAfterUpload });
     }

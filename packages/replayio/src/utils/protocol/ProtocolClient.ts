@@ -8,9 +8,11 @@ import { ProtocolError } from "./ProtocolError";
 import { setAccessToken } from "./api/setAccessToken";
 import { debug } from "./debug";
 
+type Callback = (params: any) => void;
+
 export default class ProtocolClient {
   private deferredAuthenticated = createDeferred<boolean>();
-  private eventListeners = new Map();
+  private eventListeners: Map<string, Set<Callback>> = new Map();
   private nextMessageId = 1;
   private pendingMessages: Map<number, Deferred<any>> = new Map();
   private socket: WebSocket;
@@ -30,6 +32,21 @@ export default class ProtocolClient {
 
   close() {
     this.socket.close();
+  }
+
+  listenForMessage(method: string, callback: Callback) {
+    let listeners = this.eventListeners.get(method);
+    if (listeners == null) {
+      listeners = new Set([callback]);
+
+      this.eventListeners.set(method, listeners);
+    } else {
+      listeners.add(callback);
+    }
+
+    return () => {
+      listeners!.delete(callback);
+    };
   }
 
   sendCommand<Params extends Object, ResponseType extends Object | void>({
@@ -85,24 +102,31 @@ export default class ProtocolClient {
   };
 
   private onSocketMessage = (contents: WebSocket.RawData) => {
-    const message = JSON.parse(String(contents));
-    debug("Received message %o", message);
-    if (message.id) {
-      const deferred = this.pendingMessages.get(message.id);
-      assert(deferred, `Received message with unknown id: ${message.id}`);
+    const { error, id, method, params, result } = JSON.parse(String(contents));
 
-      this.pendingMessages.delete(message.id);
-      if (message.result) {
-        deferred.resolve(message.result);
-      } else if (message.error) {
-        deferred.reject(new ProtocolError(message.error));
+    if (id) {
+      const deferred = this.pendingMessages.get(id);
+      assert(deferred, `Received message with unknown id: ${id}`);
+
+      this.pendingMessages.delete(id);
+      if (result) {
+        debug("Resolving response: %o", contents);
+        deferred.resolve(result);
+      } else if (error) {
+        debug("Received error: %o", contents);
+        deferred.reject(new ProtocolError(error));
       } else {
-        deferred.reject(new Error(`Channel error: ${JSON.stringify(message)}`));
+        debug("Received error: %o", contents);
+        deferred.reject(new Error(`Channel error: ${contents}`));
       }
-    } else if (this.eventListeners.has(message.method)) {
-      this.eventListeners.get(message.method)(message.params);
+    } else if (this.eventListeners.has(method)) {
+      debug("Received event: %o", contents);
+      const callbacks = this.eventListeners.get(method);
+      if (callbacks) {
+        callbacks.forEach(callback => callback(params));
+      }
     } else {
-      console.log(`Received event without listener: ${message.method}`);
+      debug("Received message without a handler: %o", contents);
     }
   };
 

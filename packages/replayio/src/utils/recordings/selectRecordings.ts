@@ -9,6 +9,7 @@ export async function selectRecordings(
   options: {
     disabledSelector?: (recording: LocalRecording) => boolean;
     maxRecordingsToDisplay?: number;
+    noSelectableRecordingsMessage?: string;
     prompt: string;
     selectionMessage: string;
   }
@@ -16,6 +17,7 @@ export async function selectRecordings(
   const {
     disabledSelector = () => false,
     maxRecordingsToDisplay = 10,
+    noSelectableRecordingsMessage,
     prompt,
     selectionMessage,
   } = options;
@@ -29,6 +31,14 @@ export async function selectRecordings(
   const printedLines = printRecordings(recordings, {
     showHeaderRow: false,
   }).split("\n");
+
+  const enabledRecordings = recordings.filter(recording => !disabledSelector(recording));
+  if (enabledRecordings.length === 0) {
+    if (noSelectableRecordingsMessage) {
+      console.log(noSelectableRecordingsMessage);
+    }
+    return [];
+  }
 
   const select = new MultiSelect(
     {

@@ -9,8 +9,11 @@ import { getUserAgent } from "../../getUserAgent";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
 import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload";
+import { createSession } from "../../protocol/api/createSession";
 import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMultipartUpload";
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
+import { ensureProcessed } from "../../protocol/api/ensureProcessed";
+import { releaseSession } from "../../protocol/api/releaseSession";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../retry";
 import { wait } from "../../wait";
@@ -124,18 +127,54 @@ export async function uploadRecording(
     server: replayServer,
   });
 
+  recording.uploadStatus = "uploaded";
+
   if (processAfterUpload) {
+    debug("Processing recording %s ...", recording.id);
+
     updateRecordingLog(recording, {
-      kind: RECORDING_LOG_KIND.processing,
+      kind: RECORDING_LOG_KIND.processingStarted,
     });
 
-    recording.uploadStatus = "processing";
+    recording.processingStatus = "processing";
 
-    // TODO [PRO-*] Process
-    await wait(2_500);
+    try {
+      await retryWithExponentialBackoff(() => processUploadedRecording(client, recording));
+
+      updateRecordingLog(recording, {
+        kind: RECORDING_LOG_KIND.processingFinished,
+        server: replayServer,
+      });
+
+      recording.processingStatus = "processed";
+    } catch (error) {
+      debug(`Processing failed for recording ${recording.id}`);
+
+      recording.processingStatus = "failed";
+
+      // Processing failed but the recording still uploaded successfully
+    }
+  }
+}
+
+async function processUploadedRecording(client: ProtocolClient, recording: LocalRecording) {
+  const result = await Promise.race([
+    createSession(client, {
+      recordingId: recording.id,
+    }),
+    wait(10_000),
+  ]);
+  if (result == null) {
+    throw new Error("Timed out waiting for createSession");
   }
 
-  recording.uploadStatus = "uploaded";
+  const { sessionId } = result;
+
+  await ensureProcessed(client, sessionId);
+
+  debug("Processed recording %s", recording.id);
+
+  await releaseSession(client, { sessionId });
 }
 
 async function uploadRecordingFile({
