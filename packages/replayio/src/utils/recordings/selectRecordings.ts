@@ -7,6 +7,7 @@ import { LocalRecording } from "./types";
 export async function selectRecordings(
   recordings: LocalRecording[],
   options: {
+    defaultSelection?: LocalRecording[];
     disabledSelector?: (recording: LocalRecording) => boolean;
     maxRecordingsToDisplay?: number;
     noSelectableRecordingsMessage?: string;
@@ -15,8 +16,9 @@ export async function selectRecordings(
   }
 ): Promise<LocalRecording[]> {
   const {
+    defaultSelection,
     disabledSelector = () => false,
-    maxRecordingsToDisplay = 10,
+    maxRecordingsToDisplay = 25,
     noSelectableRecordingsMessage,
     prompt,
     selectionMessage,
@@ -57,7 +59,7 @@ export async function selectRecordings(
         ? undefined
         : dim(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
       hideAfterSubmit: true,
-      initial: recordings.map(recording => recording.id),
+      initial: (defaultSelection ?? recordings).map(recording => recording.id),
       message: `${prompt}\n  ${dim(
         "(↑/↓ to change selection, [space] to toggle, [a] to toggle all)"
       )}\n`,

@@ -36,6 +36,9 @@ async function record(url: string = "about:blank") {
       }
     } else {
       selectedRecordings = await selectRecordings(recordingsNew, {
+        defaultSelection: recordingsNew.filter(
+          recording => recording.metadata.processType === "root"
+        ),
         prompt: "New recording(s) found. Which would you like to upload?",
         selectionMessage: "The following recording(s) will be uploaded:",
       });
