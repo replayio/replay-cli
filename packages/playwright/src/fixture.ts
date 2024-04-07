@@ -1,4 +1,4 @@
-import { Page, TestInfo, test } from "@playwright/test";
+import { Browser, Page, TestInfo, test } from "@playwright/test";
 import dbg from "debug";
 import {
   ClientInstrumentationListener,
@@ -129,7 +129,7 @@ function maybeMonkeyPatchTestInfo(
 }
 
 export async function replayFixture(
-  { playwright, page }: { playwright: any; page: Page },
+  { playwright, browser }: { playwright: any; browser: Browser },
   use: () => Promise<void>,
   testInfo: TestInfo
 ) {
@@ -156,9 +156,17 @@ export async function replayFixture(
 
   function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
     if (id) {
-      page
-        .evaluate(ReplayAddAnnotation, [event, id, JSON.stringify({ ...data, test: testIdData })])
-        .catch(e => warn("Failed to add annotation", e));
+      browser.contexts().forEach(context => {
+        context.pages().forEach(page => {
+          page
+            .evaluate(ReplayAddAnnotation, [
+              event,
+              id,
+              JSON.stringify({ ...data, test: testIdData }),
+            ])
+            .catch(e => warn("Failed to add annotation", e));
+        });
+      });
     }
   }
 
