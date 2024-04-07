@@ -7,9 +7,10 @@ import "./commands/login";
 import "./commands/logout";
 import "./commands/record";
 import "./commands/remove";
+import "./commands/setup";
 import "./commands/update";
-import "./commands/upload";
 import "./commands/upload-source-maps";
+import "./commands/upload";
 import "./commands/view";
 
 finalizeCommander();
