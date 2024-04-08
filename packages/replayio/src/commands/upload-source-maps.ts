@@ -32,7 +32,7 @@ registerAuthenticatedCommand("upload-source-maps <paths...>")
   .action(uploadSourceMaps);
 
 async function uploadSourceMaps() {
-  // TODO [PRO-*] Implement source-map upload
+  // TODO [PRO-103] Implement source-map upload
 
   await exitProcess(0);
 }

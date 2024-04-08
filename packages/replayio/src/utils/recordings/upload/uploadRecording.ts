@@ -120,7 +120,7 @@ export async function uploadRecording(
 
   debug("Uploaded %d bytes for recording %s", size, recording.id);
 
-  // TODO [PRO-*] Upload source-maps
+  // TODO [PRO-103] Upload source-maps
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadFinished,

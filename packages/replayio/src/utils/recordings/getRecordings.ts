@@ -97,7 +97,7 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
-            // TODO [PRO-*] Handle this event type
+            // TODO [PRO-103] Handle this event type
             break;
           }
           case RECORDING_LOG_KIND.processingFailed: {
