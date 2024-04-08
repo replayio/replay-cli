@@ -156,17 +156,21 @@ export async function replayFixture(
 
   function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
     if (id) {
-      browser.contexts().forEach(context => {
-        context.pages().forEach(page => {
-          page
-            .evaluate(ReplayAddAnnotation, [
-              event,
-              id,
-              JSON.stringify({ ...data, test: testIdData }),
-            ])
-            .catch(e => warn("Failed to add annotation", e));
-        });
-      });
+      return Promise.allSettled(
+        browser.contexts().flatMap(context => {
+          return context.pages().flatMap(async page => {
+            try {
+              await page.evaluate(ReplayAddAnnotation, [
+                event,
+                id,
+                JSON.stringify({ ...data, test: testIdData }),
+              ]);
+            } catch (e) {
+              warn("Failed to add annotation", e);
+            }
+          });
+        })
+      );
     }
   }
 
