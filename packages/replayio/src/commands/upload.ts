@@ -43,8 +43,6 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    console.log(""); // Spacing for readability
-
     await uploadRecordings(selectedRecordings, { processAfterUpload: true });
   }
 

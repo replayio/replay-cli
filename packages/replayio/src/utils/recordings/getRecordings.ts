@@ -85,7 +85,6 @@ export function getRecordings(): LocalRecording[] {
                 uri: undefined,
               },
               path: undefined,
-              processingStatus: "unprocessed",
               recordingStatus: "recording",
               uploadStatus: undefined,
             };
@@ -98,30 +97,6 @@ export function getRecordings(): LocalRecording[] {
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
             // TODO [PRO-103] Handle this event type
-            break;
-          }
-          case RECORDING_LOG_KIND.processingFailed: {
-            const { id } = entry;
-
-            const recording = idToRecording[id];
-            assert(recording, `Recording with ID "${id}" not found`);
-            recording.processingStatus = "failed";
-            break;
-          }
-          case RECORDING_LOG_KIND.processingFinished: {
-            const { id } = entry;
-
-            const recording = idToRecording[id];
-            assert(recording, `Recording with ID "${id}" not found`);
-            recording.processingStatus = "processed";
-            break;
-          }
-          case RECORDING_LOG_KIND.processingStarted: {
-            const { id } = entry;
-
-            const recording = idToRecording[id];
-            assert(recording, `Recording with ID "${id}" not found`);
-            recording.processingStatus = "processing";
             break;
           }
           case RECORDING_LOG_KIND.recordingUnusable: {

@@ -1,4 +1,3 @@
-import { ensureProcessedParameters, ensureProcessedResult } from "@replayio/protocol";
 import assert from "assert";
 import { createReadStream, stat, statSync } from "fs-extra";
 import fetch from "node-fetch";
@@ -10,13 +9,11 @@ import { getUserAgent } from "../../getUserAgent";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
 import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload";
-import { createSession } from "../../protocol/api/createSession";
 import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMultipartUpload";
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
-import { releaseSession } from "../../protocol/api/releaseSession";
+import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../retry";
-import { wait } from "../../wait";
 import { debugLogPath, multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
@@ -130,63 +127,26 @@ export async function uploadRecording(
   recording.uploadStatus = "uploaded";
 
   if (processAfterUpload) {
-    debug("Processing recording %s ...", recording.id);
-
-    updateRecordingLog(recording, {
-      kind: RECORDING_LOG_KIND.processingStarted,
-    });
-
-    recording.processingStatus = "processing";
+    debug("Begin processing recording %s ...", recording.id);
 
     try {
       await retryWithExponentialBackoff(() => processUploadedRecording(client, recording));
-
-      updateRecordingLog(recording, {
-        kind: RECORDING_LOG_KIND.processingFinished,
-        server: replayServer,
-      });
-
-      recording.processingStatus = "processed";
     } catch (error) {
-      debug(`Processing failed for recording ${recording.id}`);
+      debug(`Failed to begin processing recording ${recording.id}`);
 
-      recording.processingStatus = "failed";
-
-      // Processing failed but the recording still uploaded successfully
+      // Processing may have failed to start, but the recording still uploaded successfully
     }
   }
 }
 
 async function processUploadedRecording(client: ProtocolClient, recording: LocalRecording) {
-  const result = await Promise.race([
-    createSession(client, {
-      recordingId: recording.id,
-    }),
-    wait(10_000),
-  ]);
-  if (result == null) {
-    throw new Error("Timed out waiting for createSession");
-  }
-
-  const { sessionId } = result;
-
   await client.waitUntilAuthenticated();
 
-  debug(`Processing recording for session ${sessionId}`);
+  debug(`Processing recording ${recording.id}`);
 
-  try {
-    await client.sendCommand<ensureProcessedParameters, ensureProcessedResult>({
-      method: "Session.ensureProcessed",
-      params: {},
-      sessionId,
-    });
-
-    debug("Processed recording %s", recording.id);
-  } finally {
-    debug("Releasing session %s", sessionId);
-
-    await releaseSession(client, { sessionId });
-  }
+  // Processing can take a while
+  // In some cases it's nicer to give users a URL sooner rather than waiting for processing to complete
+  processRecording(client, { recordingId: recording.id });
 }
 
 async function uploadRecordingFile({

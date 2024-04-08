@@ -37,40 +37,28 @@ export function formatRecording(recording: LocalRecording) {
   );
 
   let status;
-
-  switch (recording.processingStatus) {
-    case "processed":
-      status = "Uploaded, processed";
-      break;
-    case "processing":
-      status = "Processing";
-      break;
-    default: {
-      if (recording.uploadStatus) {
-        switch (recording.uploadStatus) {
-          case "uploaded":
-            status = "Uploaded";
-            break;
-          case "uploading":
-            status = "Uploading";
-            break;
-        }
-      } else {
-        switch (recording.recordingStatus) {
-          case "crashed":
-            status = "Crashed";
-          case "finished":
-            status = "Recorded";
-            break;
-          case "recording":
-            status = "Recording";
-            break;
-          case "unusable":
-            status = "Unusable";
-            break;
-        }
-      }
-      break;
+  if (recording.uploadStatus) {
+    switch (recording.uploadStatus) {
+      case "uploaded":
+        status = "Uploaded";
+        break;
+      case "uploading":
+        status = "Uploading";
+        break;
+    }
+  } else {
+    switch (recording.recordingStatus) {
+      case "crashed":
+        status = "Crashed";
+      case "finished":
+        status = "Recorded";
+        break;
+      case "recording":
+        status = "Recording";
+        break;
+      case "unusable":
+        status = "Unusable";
+        break;
     }
   }
 

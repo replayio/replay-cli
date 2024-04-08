@@ -39,6 +39,8 @@ async function record(url: string = "about:blank") {
       if (confirmed) {
         selectedRecordings = recordingsNew;
       }
+
+      console.log(""); // Spacing for readability
     } else {
       selectedRecordings = await selectRecordings(recordingsNew, {
         defaultSelected: recording => recording.metadata.processType === "root",
@@ -48,8 +50,6 @@ async function record(url: string = "about:blank") {
     }
 
     if (selectedRecordings.length > 0) {
-      console.log(""); // Spacing for readability
-
       await uploadRecordings(selectedRecordings, { processAfterUpload: true });
     }
   } else {
