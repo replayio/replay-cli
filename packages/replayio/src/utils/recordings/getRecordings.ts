@@ -40,6 +40,10 @@ export function getRecordings(): LocalRecording[] {
             } else if (Array.isArray(metadata.argv) && typeof metadata.argv[0] === "string") {
               recording.metadata.host = basename(metadata.argv[0]);
             }
+
+            if (metadata.process) {
+              recording.metadata.processType = metadata.process;
+            }
             break;
           }
           case RECORDING_LOG_KIND.crashData: {
@@ -76,10 +80,12 @@ export function getRecordings(): LocalRecording[] {
               id: entry.id,
               metadata: {
                 host: undefined,
-                uri: undefined,
+                processType: undefined,
                 sourcemaps: undefined,
+                uri: undefined,
               },
               path: undefined,
+              processingStatus: "unprocessed",
               recordingStatus: "recording",
               uploadStatus: undefined,
             };
@@ -91,8 +97,31 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
-            // TODO [PRO-*] Handle this event type
-            console.group("originalSourceAdded", entry);
+            // TODO [PRO-103] Handle this event type
+            break;
+          }
+          case RECORDING_LOG_KIND.processingFailed: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.processingStatus = "failed";
+            break;
+          }
+          case RECORDING_LOG_KIND.processingFinished: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.processingStatus = "processed";
+            break;
+          }
+          case RECORDING_LOG_KIND.processingStarted: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.processingStatus = "processing";
             break;
           }
           case RECORDING_LOG_KIND.recordingUnusable: {
@@ -118,6 +147,14 @@ export function getRecordings(): LocalRecording[] {
             } else {
               recording.metadata.sourcemaps = [path];
             }
+            break;
+          }
+          case RECORDING_LOG_KIND.uploadFailed: {
+            const { id } = entry;
+
+            const recording = idToRecording[id];
+            assert(recording, `Recording with ID "${id}" not found`);
+            recording.uploadStatus = "failed";
             break;
           }
           case RECORDING_LOG_KIND.uploadFinished: {

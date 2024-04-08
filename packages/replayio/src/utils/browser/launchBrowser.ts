@@ -1,8 +1,8 @@
-import chalk from "chalk";
 import { ensureDirSync } from "fs-extra";
 import { join } from "path";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { spawnProcess } from "../spawnProcess";
+import { dim } from "../theme";
 import { debug } from "./debug";
 
 export async function launchBrowser(
@@ -38,7 +38,7 @@ export async function launchBrowser(
     processOptions
   );
 
-  console.log(`Recording ${chalk.gray("(quit browser to continue)")}`);
+  console.log(`Recording ${dim("(quit browser to continue)")}`);
 
   await spawnProcess(runtimeExecutablePath, args, processOptions);
 }

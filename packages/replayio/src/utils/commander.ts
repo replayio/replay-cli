@@ -1,10 +1,10 @@
-import chalk from "chalk";
 import { Help, program } from "commander";
 import { getAccessToken } from "./authentication/getAccessToken";
+import { requireAuthentication } from "./authentication/requireAuthentication";
 import { drawBoxAroundText } from "./formatting";
 import { initLaunchDarklyFromAccessToken } from "./launch-darkly/initLaunchDarklyFromAccessToken";
 import { promptNpmUpdate } from "./promptNpmUpdate";
-import { requireAuthentication } from "./authentication/requireAuthentication";
+import { dim, highlight, highlightAlternate } from "./theme";
 
 type Block = {
   label: string;
@@ -59,8 +59,8 @@ export function formatOutput(originalText: string): string {
         lines: [],
       };
     } else if (line.startsWith("Usage:")) {
-      line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, chalk.blueBright(" $1"));
-      line = line.replace(/ ([<\[][a-zA-Z0-9\-\_\.]+[>\]])/g, chalk.yellowBright(" $1"));
+      line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, highlightAlternate(" $1"));
+      line = line.replace(/ ([<\[][a-zA-Z0-9\-\_\.]+[>\]])/g, highlight(" $1"));
 
       lines.push(line);
     } else {
@@ -97,8 +97,8 @@ export function registerCommand(commandName: string) {
 }
 
 function formatCommandOrOptionLine(line: string): string {
-  line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, chalk.blueBright(" $1"));
-  line = line.replace(/ ([<\[][a-zA-Z0-9\-\_\.]+[>\]])/g, chalk.yellowBright(" $1"));
-  line = line.replace(/\(default: ([^)]+)\)/, chalk.gray(`(default: ${chalk.yellowBright("$1")})`));
+  line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, highlightAlternate(" $1"));
+  line = line.replace(/ ([<\[][a-zA-Z0-9\-\_\.]+[>\]])/g, highlight(" $1"));
+  line = line.replace(/\(default: ([^)]+)\)/, dim(`(default: ${highlight("$1")})`));
   return line;
 }

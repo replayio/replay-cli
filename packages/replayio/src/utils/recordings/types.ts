@@ -5,13 +5,19 @@ export enum RECORDING_LOG_KIND {
   crashUploaded = "crashUploaded",
   createRecording = "createRecording",
   originalSourceAdded = "originalSourceAdded",
+  processingFailed = "processingFailed",
+  processingFinished = "processingFinished",
+  processingStarted = "processingStarted",
   recordingUnusable = "recordingUnusable",
   sourcemapAdded = "sourcemapAdded",
+  uploadFailed = "uploadFailed",
   uploadFinished = "uploadFinished",
   uploadStarted = "uploadStarted",
   writeFinished = "writeFinished",
   writeStarted = "writeStarted",
 }
+
+export type ProcessType = "devtools" | "extension" | "iframe" | "root";
 
 export type UnstructuredMetadata = Record<string, unknown>;
 
@@ -23,9 +29,11 @@ export type LogEntry = {
   driverVersion?: string;
   id: string;
   kind: RECORDING_LOG_KIND;
-  metadata?: Object & {
+  metadata?: {
     argv?: string[];
+    process?: ProcessType;
     uri?: string;
+    [key: string]: unknown;
   };
   path?: string;
   recordingId?: string;
@@ -40,12 +48,15 @@ export type LocalRecording = {
   driverVersion: string;
   duration: number | undefined;
   id: string;
-  metadata: Object & {
+  metadata: {
     host: string | undefined;
-    uri: string | undefined;
+    processType: ProcessType | undefined;
     sourcemaps: string[] | undefined;
+    uri: string | undefined;
+    [key: string]: unknown;
   };
   path: string | undefined;
+  processingStatus: "failed" | "processed" | "processing" | "unprocessed";
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
-  uploadStatus: "uploading" | "uploaded" | undefined;
+  uploadStatus: "failed" | "uploading" | "uploaded" | undefined;
 };

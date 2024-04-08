@@ -1,21 +1,25 @@
-import chalk from "chalk";
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
 import { MultiSelect } from "bvaughn-enquirer";
+import { dim, highlight, transparent } from "../theme";
 import { printRecordings } from "./printRecordings";
 import { LocalRecording } from "./types";
 
 export async function selectRecordings(
   recordings: LocalRecording[],
   options: {
+    defaultSelected?: (recording: LocalRecording) => boolean;
     disabledSelector?: (recording: LocalRecording) => boolean;
     maxRecordingsToDisplay?: number;
+    noSelectableRecordingsMessage?: string;
     prompt: string;
     selectionMessage: string;
   }
 ): Promise<LocalRecording[]> {
   const {
+    defaultSelected = () => true,
     disabledSelector = () => false,
-    maxRecordingsToDisplay = 10,
+    maxRecordingsToDisplay = 25,
+    noSelectableRecordingsMessage,
     prompt,
     selectionMessage,
   } = options;
@@ -30,25 +34,39 @@ export async function selectRecordings(
     showHeaderRow: false,
   }).split("\n");
 
+  const enabledRecordings = recordings.filter(recording => !disabledSelector(recording));
+  if (enabledRecordings.length === 0) {
+    if (noSelectableRecordingsMessage) {
+      console.log(noSelectableRecordingsMessage);
+    }
+    return [];
+  }
+
   const select = new MultiSelect(
     {
-      choices: recordings.map((recording, index) => ({
-        disabled: disabledSelector(recording),
-        message: printedLines[index],
-        value: recording.id,
-      })),
+      choices: recordings.map((recording, index) => {
+        const disabled = disabledSelector(recording);
+        const message = printedLines[index];
+
+        return {
+          disabled,
+          hint: "",
+          message: disabled ? transparent(message) : message,
+          value: recording.id,
+        };
+      }),
       footer: isShowingAllRecordings
         ? undefined
-        : chalk.gray(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
+        : dim(`\nViewing the most recent ${maxRecordingsToDisplay} recordings`),
       hideAfterSubmit: true,
-      initial: recordings.map(recording => recording.id),
-      message: `${prompt}\n  ${chalk.gray(
+      initial: recordings.filter(defaultSelected).map(recording => recording.id),
+      message: `${prompt}\n  ${dim(
         "(↑/↓ to change selection, [space] to toggle, [a] to toggle all)"
       )}\n`,
       name: "numbers",
       styles: {
         // Selected row style
-        em: chalk.yellowBright,
+        em: highlight,
       },
     },
     (choices: any[]) => {

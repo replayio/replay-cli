@@ -1,7 +1,7 @@
 import { createDeferred } from "../createDeferred";
 import { debug } from "./debug";
 
-export function createdDeferredAction<Data>(data: Data, promise: Promise<void>) {
+export function createSettledDeferred<Data>(data: Data, promise: Promise<void>) {
   const deferred = createDeferred<boolean, Data>(data);
 
   promise.then(

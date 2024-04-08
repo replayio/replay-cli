@@ -1,21 +1,17 @@
-import chalk from "chalk";
 import { registerAuthenticatedCommand } from "../utils/commander";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";
-import { printViewRecordingLinks } from "../utils/recordings/printViewRecordingLinks";
-import { processUploadedRecordings } from "../utils/recordings/processUploadedRecordings";
-import { removeFromDisk } from "../utils/recordings/removeFromDisk";
+import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { dim } from "../utils/theme";
 
 registerAuthenticatedCommand("upload")
-  .argument("[ids...]", `Recording ids ${chalk.gray("(comma-separated)")}`, value =>
-    value.split(",")
-  )
+  .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Upload all recordings")
   .option("-p, --process", "Process uploaded recording(s)")
   .description("Upload recording(s)")
@@ -25,7 +21,7 @@ async function upload(
   shortIds: string[],
   {
     all = false,
-    process: shouldProcess,
+    process: processAfterUpload,
   }: {
     all?: boolean;
     process?: boolean;
@@ -40,36 +36,27 @@ async function upload(
     selectedRecordings = recordings;
   } else {
     selectedRecordings = await selectRecordings(recordings, {
+      defaultSelected: recording => recording.metadata.processType === "root",
       disabledSelector: recording => !canUpload(recording),
+      noSelectableRecordingsMessage:
+        "The recording(s) below cannot be uploaded.\n" +
+        printRecordings(recordings, { showHeaderRow: false }),
       prompt: "Which recordings would you like to upload?",
       selectionMessage: "The following recording(s) will be uploaded:",
     });
   }
 
   if (selectedRecordings.length > 0) {
-    if (shouldProcess == null) {
-      shouldProcess = await confirm("Would you like the selected recording(s) to be processed?");
-      if (shouldProcess) {
-        console.log("After upload, the selected recording(s) will be processed.\n");
-      }
+    if (processAfterUpload == null) {
+      processAfterUpload = await confirm(
+        "Would you like the selected recording(s) to be processed?",
+        true
+      );
     }
 
-    // TODO [PRO-*] Parallelize upload and processing
-    // THis would require refactoring the tasks and printDeferredRecordingActions() helper
-    await uploadRecordings(selectedRecordings);
-    if (shouldProcess) {
-      await processUploadedRecordings(selectedRecordings);
-    }
+    console.log(""); // Spacing for readability
 
-    const uploadedRecordings = selectedRecordings.filter(
-      recording => recording.uploadStatus === "uploaded"
-    );
-
-    printViewRecordingLinks(uploadedRecordings);
-
-    uploadedRecordings.forEach(recording => {
-      removeFromDisk(recording.id);
-    });
+    await uploadRecordings(selectedRecordings, { processAfterUpload });
   }
 
   await exitProcess(0);

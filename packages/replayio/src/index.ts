@@ -9,7 +9,8 @@ import "./commands/record";
 import "./commands/remove";
 import "./commands/update";
 import "./commands/upload";
-import "./commands/upload-source-maps";
+// TODO [PRO-103] Re-enable once this command has been implemented
+// import "./commands/upload-source-maps";
 import "./commands/view";
 
 finalizeCommander();

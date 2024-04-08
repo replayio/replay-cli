@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import { table } from "table";
+import { emphasize } from "./theme";
 
 export function printTable({
   headers,
@@ -8,7 +8,7 @@ export function printTable({
   headers?: string[] | undefined;
   rows: unknown[][];
 }) {
-  const data = headers ? [headers.map(text => chalk.bold(text)), ...rows] : rows;
+  const data = headers ? [headers.map(text => emphasize(text)), ...rows] : rows;
 
   return table(data, {
     drawHorizontalLine: () => false,
