@@ -29,10 +29,11 @@ export type LogEntry = {
   driverVersion?: string;
   id: string;
   kind: RECORDING_LOG_KIND;
-  metadata?: Object & {
+  metadata?: {
     argv?: string[];
     process?: ProcessType;
     uri?: string;
+    [key: string]: unknown;
   };
   path?: string;
   recordingId?: string;
@@ -47,11 +48,12 @@ export type LocalRecording = {
   driverVersion: string;
   duration: number | undefined;
   id: string;
-  metadata: Object & {
+  metadata: {
     host: string | undefined;
     processType: ProcessType | undefined;
     sourcemaps: string[] | undefined;
     uri: string | undefined;
+    [key: string]: unknown;
   };
   path: string | undefined;
   processingStatus: "failed" | "processed" | "processing" | "unprocessed";

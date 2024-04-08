@@ -1,7 +1,7 @@
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { canUpload } from "../canUpload";
-import { createdDeferredAction } from "../createdDeferredAction";
+import { createSettledDeferred } from "../createSettledDeferred";
 import { debug } from "../debug";
 import { printDeferredRecordingActions } from "../printDeferredRecordingActions";
 import { printViewRecordingLinks } from "../printViewRecordingLinks";
@@ -34,9 +34,9 @@ export async function uploadRecordings(
 
   const deferredActions = recordings.map(recording => {
     if (recording.recordingStatus === "crashed") {
-      return createdDeferredAction<LocalRecording>(recording, uploadCrashedData(client, recording));
+      return createSettledDeferred<LocalRecording>(recording, uploadCrashedData(client, recording));
     } else {
-      return createdDeferredAction<LocalRecording>(
+      return createSettledDeferred<LocalRecording>(
         recording,
         uploadRecording(client, recording, { multiPartUpload, processAfterUpload })
       );

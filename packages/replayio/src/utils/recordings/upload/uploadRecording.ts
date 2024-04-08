@@ -1,3 +1,4 @@
+import { ensureProcessedParameters, ensureProcessedResult } from "@replayio/protocol";
 import assert from "assert";
 import { createReadStream, stat, statSync } from "fs-extra";
 import fetch from "node-fetch";
@@ -12,7 +13,6 @@ import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload";
 import { createSession } from "../../protocol/api/createSession";
 import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMultipartUpload";
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
-import { ensureProcessed } from "../../protocol/api/ensureProcessed";
 import { releaseSession } from "../../protocol/api/releaseSession";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../retry";
@@ -170,11 +170,23 @@ async function processUploadedRecording(client: ProtocolClient, recording: Local
 
   const { sessionId } = result;
 
-  await ensureProcessed(client, sessionId);
+  await client.waitUntilAuthenticated();
 
-  debug("Processed recording %s", recording.id);
+  debug(`Processing recording for session ${sessionId}`);
 
-  await releaseSession(client, { sessionId });
+  try {
+    await client.sendCommand<ensureProcessedParameters, ensureProcessedResult>({
+      method: "Session.ensureProcessed",
+      params: {},
+      sessionId,
+    });
+
+    debug("Processed recording %s", recording.id);
+  } finally {
+    debug("Releasing session %s", sessionId);
+
+    await releaseSession(client, { sessionId });
+  }
 }
 
 async function uploadRecordingFile({

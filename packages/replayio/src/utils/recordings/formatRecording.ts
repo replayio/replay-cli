@@ -10,7 +10,7 @@ export function formatRecording(recording: LocalRecording) {
   let title;
   if (recording.metadata.host) {
     if (recording.metadata.host.length > MAX_TITLE_LENGTH) {
-      title = link(recording.metadata.host.substring(0, MAX_TITLE_LENGTH) + "…");
+      title = link(recording.metadata.host.substring(0, MAX_TITLE_LENGTH).trimEnd() + "…");
     } else {
       title = link(recording.metadata.host);
     }

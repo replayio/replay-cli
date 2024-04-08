@@ -36,7 +36,7 @@ async function upload(
     selectedRecordings = recordings;
   } else {
     selectedRecordings = await selectRecordings(recordings, {
-      defaultSelection: recordings.filter(recording => recording.metadata.processType === "root"),
+      defaultSelected: recording => recording.metadata.processType === "root",
       disabledSelector: recording => !canUpload(recording),
       noSelectableRecordingsMessage:
         "The recording(s) below cannot be uploaded.\n" +

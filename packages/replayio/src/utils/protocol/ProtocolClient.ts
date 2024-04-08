@@ -1,3 +1,4 @@
+import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "assert";
 import { Agent } from "http";
 import WebSocket from "ws";
@@ -14,7 +15,7 @@ export default class ProtocolClient {
   private deferredAuthenticated = createDeferred<boolean>();
   private eventListeners: Map<string, Set<Callback>> = new Map();
   private nextMessageId = 1;
-  private pendingMessages: Map<number, Deferred<any>> = new Map();
+  private pendingMessages: Map<number, Deferred<any, SessionId>> = new Map();
   private socket: WebSocket;
 
   constructor({ agent }: { agent?: Agent } = {}) {
@@ -28,6 +29,24 @@ export default class ProtocolClient {
     this.socket.on("error", this.onSocketError);
     this.socket.on("open", this.onSocketOpen);
     this.socket.on("message", this.onSocketMessage);
+
+    this.listenForMessage("Recording.sessionError", (error: sessionError) => {
+      if (error.sessionId) {
+        this.pendingMessages.forEach(deferred => {
+          if (deferred.status === STATUS_PENDING && deferred.data === error.sessionId) {
+            deferred.reject(
+              new ProtocolError({
+                code: error.code,
+                message: error.message,
+                data: {
+                  sessionId: error.sessionId,
+                },
+              })
+            );
+          }
+        });
+      }
+    });
   }
 
   close() {
@@ -76,7 +95,7 @@ export default class ProtocolClient {
       }
     );
 
-    const deferred = createDeferred<ResponseType>();
+    const deferred = createDeferred<ResponseType, SessionId>(sessionId);
 
     this.pendingMessages.set(id, deferred);
 

@@ -11,12 +11,12 @@ export class ProtocolError extends Error {
   readonly protocolMessage: string;
   readonly protocolData: unknown;
 
-  constructor(err: ProtocolErrorBase) {
-    super(`protocol error ${err.code}: ${err.message}`);
+  constructor(error: ProtocolErrorBase) {
+    super(`protocol error ${error.code}: ${error.message}`);
 
-    this.protocolCode = err.code;
-    this.protocolMessage = err.message;
-    this.protocolData = err.data ?? {};
+    this.protocolCode = error.code;
+    this.protocolMessage = error.message;
+    this.protocolData = error.data ?? {};
   }
 
   toString() {
