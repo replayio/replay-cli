@@ -43,14 +43,9 @@ async function record(url: string = "about:blank") {
     }
 
     if (selectedRecordings.length > 0) {
-      const processAfterUpload = await confirm(
-        "Would you like the selected recording(s) to be processed?",
-        true
-      );
-
       console.log(""); // Spacing for readability
 
-      await uploadRecordings(selectedRecordings, { processAfterUpload });
+      await uploadRecordings(selectedRecordings, { processAfterUpload: true });
     }
   } else {
     console.log("No new recordings were created");

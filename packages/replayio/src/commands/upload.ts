@@ -1,5 +1,4 @@
 import { registerAuthenticatedCommand } from "../utils/commander";
-import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
@@ -13,7 +12,6 @@ import { dim } from "../utils/theme";
 registerAuthenticatedCommand("upload")
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Upload all recordings")
-  .option("-p, --process", "Process uploaded recording(s)")
   .description("Upload recording(s)")
   .action(upload);
 
@@ -21,10 +19,8 @@ async function upload(
   shortIds: string[],
   {
     all = false,
-    process: processAfterUpload,
   }: {
     all?: boolean;
-    process?: boolean;
   } = {}
 ) {
   const recordings = await getRecordings();
@@ -47,16 +43,9 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    if (processAfterUpload == null) {
-      processAfterUpload = await confirm(
-        "Would you like the selected recording(s) to be processed?",
-        true
-      );
-    }
-
     console.log(""); // Spacing for readability
 
-    await uploadRecordings(selectedRecordings, { processAfterUpload });
+    await uploadRecordings(selectedRecordings, { processAfterUpload: true });
   }
 
   await exitProcess(0);
