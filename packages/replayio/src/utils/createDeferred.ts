@@ -12,7 +12,9 @@ export interface Deferred<Type, Data = void> {
   promise: Promise<Type>;
   rejection: Error | undefined;
   reject(error: Error): void;
+  rejectIfPending(error: Error): void;
   resolve(value?: Type): void;
+  resolveIfPending(value?: Type): void;
   resolution: Type | undefined;
   status: StatusPending | StatusRejected | StatusResolved;
 }
@@ -53,19 +55,29 @@ export function createDeferred<Type, Data = void>(
     reject(error: Error) {
       assertPending();
 
-      rejection = error;
-      status = STATUS_REJECTED;
+      deferred.rejectIfPending(error);
+    },
+    rejectIfPending(error: Error) {
+      if (status === STATUS_PENDING) {
+        rejection = error;
+        status = STATUS_REJECTED;
 
-      rejectPromise(error);
+        rejectPromise(error);
+      }
     },
 
     resolve(value: Type) {
       assertPending();
 
-      resolution = value;
-      status = STATUS_RESOLVED;
+      deferred.resolveIfPending(value);
+    },
+    resolveIfPending(value: Type) {
+      if (status === STATUS_PENDING) {
+        resolution = value;
+        status = STATUS_RESOLVED;
 
-      resolvePromise(value);
+        resolvePromise(value);
+      }
     },
 
     get status() {

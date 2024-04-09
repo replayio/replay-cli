@@ -29,7 +29,7 @@ export async function promptNpmUpdate() {
       console.log("Press any key to continue");
       console.log("");
 
-      await prompt(PROMPT_ID);
+      await prompt({ id: PROMPT_ID });
     }
   } catch (error) {
     console.error(error);
