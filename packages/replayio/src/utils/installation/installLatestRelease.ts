@@ -64,7 +64,9 @@ async function downloadReplayFile() {
 
   for (let i = 0; i < 5; i++) {
     console.log(
-      `Downloading ${runtimeMetadata.runtime} from replay.io ${dim(`(attempt ${i + 1} of 5)`)}`
+      `Downloading ${runtimeMetadata.runtime} from replay.io${
+        i ? ` ${dim(`(retry ${i} of 4)`)}` : ""
+      }`
     );
 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
