@@ -5,6 +5,13 @@ import { LocalRecording } from "./types";
 
 const MAX_TITLE_LENGTH = 35;
 
+function truncateRecordingTitle(title: string) {
+  if (title.length > MAX_TITLE_LENGTH) {
+    return title.substring(0, MAX_TITLE_LENGTH).trimEnd() + "…";
+  }
+  return title;
+}
+
 export function formatRecording(recording: LocalRecording) {
   const { buildId, metadata, recordingStatus, uploadStatus } = recording;
 
@@ -18,16 +25,14 @@ export function formatRecording(recording: LocalRecording) {
   let title;
   switch (runtime) {
     case "node": {
-      title = "NodeJS";
+      title = recording.metadata.argv?.length
+        ? truncateRecordingTitle(recording.metadata.argv.join(" "))
+        : "NodeJS";
       break;
     }
     default: {
       if (metadata.host) {
-        if (metadata.host.length > MAX_TITLE_LENGTH) {
-          title = link(metadata.host.substring(0, MAX_TITLE_LENGTH).trimEnd() + "…");
-        } else {
-          title = link(metadata.host);
-        }
+        title = link(metadata.host);
       } else {
         title = "(untitled)";
       }
