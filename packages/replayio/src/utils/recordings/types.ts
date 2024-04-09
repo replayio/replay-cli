@@ -68,6 +68,7 @@ export type LocalRecording = {
   duration: number | undefined;
   id: string;
   metadata: {
+    argv?: string[] | undefined;
     host: string | undefined;
     processGroupId: string | undefined;
     processType: ProcessType | undefined;
