@@ -6,6 +6,7 @@ import { LocalRecording } from "./types";
 const MAX_TITLE_LENGTH = 35;
 
 function truncateRecordingTitle(title: string) {
+  title = title.trimEnd();
   if (title.length > MAX_TITLE_LENGTH) {
     return title.substring(0, MAX_TITLE_LENGTH).trimEnd() + "…";
   }
