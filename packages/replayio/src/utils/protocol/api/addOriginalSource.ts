@@ -8,7 +8,7 @@ export async function addOriginalSource(
   await client.waitUntilAuthenticated();
 
   return await client.sendCommand<addOriginalSourceParameters, addOriginalSourceResult>({
-    method: "Record.addOriginalSource",
+    method: "Recording.addOriginalSource",
     params,
   });
 }

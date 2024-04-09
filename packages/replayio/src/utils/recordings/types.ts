@@ -21,6 +21,7 @@ export type UnstructuredMetadata = Record<string, unknown>;
 // This data primarily comes from the runtime
 // The CLI adds some entries as well, based on upload status
 export type LogEntry = {
+  baseURL?: string;
   buildId?: string;
   data?: any;
   driverVersion?: string;
@@ -33,16 +34,15 @@ export type LogEntry = {
     uri?: string;
     [key: string]: unknown;
   };
+  parentId?: string;
+  parentOffset?: number;
   path?: string;
   recordingId?: string;
   server?: string;
-  timestamp: number;
-  baseURL?: string;
   targetContentHash?: string;
-  targetURLHash?: string;
   targetMapURLHash?: string;
-  parentId?: string;
-  parentOffset?: number;
+  targetURLHash?: string;
+  timestamp: number;
 };
 
 export type OriginalSource = {
@@ -51,13 +51,13 @@ export type OriginalSource = {
 };
 
 export type SourceMap = {
-  id: string;
-  path: string;
   baseURL: string;
-  targetContentHash?: string;
-  targetURLHash?: string;
-  targetMapURLHash: string;
+  id: string;
   originalSources: OriginalSource[];
+  path: string;
+  targetContentHash?: string;
+  targetMapURLHash: string;
+  targetURLHash?: string;
 };
 
 export type LocalRecording = {
