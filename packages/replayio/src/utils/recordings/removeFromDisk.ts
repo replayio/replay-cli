@@ -15,10 +15,14 @@ export function removeFromDisk(id?: string) {
     if (recording) {
       const { metadata, path } = recording;
 
-      metadata.sourcemaps?.forEach(path => {
-        debug("Removing recording source-map file %s", path);
+      metadata.sourcemaps.forEach(sourceMap => {
+        debug("Removing recording source-map file %s", sourceMap.path);
+        removeSync(sourceMap.path);
 
-        removeSync(path);
+        sourceMap.originalSources.forEach(source => {
+          debug("Removing recording original source file %s", source.path);
+          removeSync(source.path);
+        });
       });
 
       // Delete recording data file
@@ -34,6 +38,7 @@ export function removeFromDisk(id?: string) {
           try {
             const entry = JSON.parse(text) as LogEntry;
             switch (entry.kind) {
+              case RECORDING_LOG_KIND.originalSourceAdded:
               case RECORDING_LOG_KIND.sourcemapAdded: {
                 return entry.recordingId !== id;
               }
@@ -56,7 +61,7 @@ export function removeFromDisk(id?: string) {
 
     const files = readdirSync(recordingsPath);
     files.forEach(fileName => {
-      if (fileName.startsWith("recording-") || fileName.startsWith("sourcemap-")) {
+      if (/(recording|sourcemap|original)-/.test(fileName)) {
         removeSync(join(recordingsPath, fileName));
       }
     });

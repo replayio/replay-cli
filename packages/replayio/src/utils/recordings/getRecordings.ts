@@ -88,7 +88,7 @@ export function getRecordings(): LocalRecording[] {
                 host: undefined,
                 processGroupId: undefined,
                 processType: undefined,
-                sourcemaps: undefined,
+                sourcemaps: [],
                 uri: undefined,
               },
               path: undefined,
@@ -102,7 +102,27 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
-            // TODO [PRO-103] Handle this event type
+            const { recordingId, parentId, path, parentOffset } = entry;
+            assert(recordingId, '"originalSourceAdded" entry must have a "recordingId"');
+            assert(parentId, '"originalSourceAdded" entry must have a "parentId"');
+            assert(path, '"originalSourceAdded" entry must have a "path"');
+            assert(
+              typeof parentOffset === "number",
+              '"originalSourceAdded" entry must have a numeric "parentOffset"'
+            );
+
+            const recording = idToRecording[recordingId];
+            assert(recording, `Recording with ID "${recordingId}" not found`);
+
+            const sourceMap = recording.metadata.sourcemaps.find(
+              sourceMap => sourceMap.id === parentId
+            );
+            assert(sourceMap, `Sourcemap with ID "${parentId}" not found`);
+
+            sourceMap.originalSources.push({
+              path,
+              parentOffset,
+            });
             break;
           }
           case RECORDING_LOG_KIND.recordingUnusable: {
@@ -117,17 +137,32 @@ export function getRecordings(): LocalRecording[] {
             break;
           }
           case RECORDING_LOG_KIND.sourcemapAdded: {
-            const { path, recordingId } = entry;
-            assert(path, '"sourcemapAdded" entry must have a "path"');
+            const {
+              path,
+              recordingId,
+              id,
+              baseURL,
+              targetContentHash,
+              targetURLHash,
+              targetMapURLHash,
+            } = entry;
             assert(recordingId, '"sourcemapAdded" entry must have a "recordingId"');
+            assert(path, '"sourcemapAdded" entry must have a "path"');
+            assert(baseURL, '"sourcemapAdded" entry must have a "baseURL"');
+            assert(targetMapURLHash, '"sourcemapAdded" entry must have a "targetMapURLHash"');
 
             const recording = idToRecording[recordingId];
             assert(recording, `Recording with ID "${recordingId}" not found`);
-            if (recording.metadata.sourcemaps) {
-              recording.metadata.sourcemaps.push(path);
-            } else {
-              recording.metadata.sourcemaps = [path];
-            }
+
+            recording.metadata.sourcemaps.push({
+              id,
+              path,
+              baseURL,
+              targetContentHash,
+              targetURLHash,
+              targetMapURLHash,
+              originalSources: [],
+            });
             break;
           }
           case RECORDING_LOG_KIND.uploadFailed: {
