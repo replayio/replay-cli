@@ -9,6 +9,7 @@ import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 
 registerAuthenticatedCommand("record")
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -46,9 +47,10 @@ async function record(url: string = "about:blank") {
 
       console.log(""); // Spacing for readability
     } else {
+      const defaultRecording = findMostRecentPrimaryRecording(recordingsNew);
+
       selectedRecordings = await selectRecordings(recordingsNew, {
-        defaultSelected: recording =>
-          recording.metadata.processType === undefined || recording.metadata.processType === "root",
+        defaultSelected: recording => recording === defaultRecording,
         prompt: "New recordings found. Which would you like to upload?",
         selectionMessage: "The following recording(s) will be uploaded:",
       });
