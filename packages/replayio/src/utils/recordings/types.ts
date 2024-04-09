@@ -29,6 +29,7 @@ export type LogEntry = {
   metadata?: {
     argv?: string[];
     process?: ProcessType;
+    processGroupId?: string;
     uri?: string;
     [key: string]: unknown;
   };
@@ -47,6 +48,7 @@ export type LocalRecording = {
   id: string;
   metadata: {
     host: string | undefined;
+    processGroupId: string | undefined;
     processType: ProcessType | undefined;
     sourcemaps: string[] | undefined;
     uri: string | undefined;

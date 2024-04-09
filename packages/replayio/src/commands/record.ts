@@ -1,3 +1,4 @@
+import { v4 as uuid } from "uuid";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerAuthenticatedCommand } from "../utils/commander";
 import { confirm } from "../utils/confirm";
@@ -8,6 +9,7 @@ import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 
 registerAuthenticatedCommand("record")
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -19,7 +21,7 @@ async function record(url: string = "about:blank") {
 
   const recordingsBefore = await getRecordings();
 
-  await launchBrowser(url);
+  await launchBrowser(url, { processGroupId: uuid() });
 
   const recordingsAfter = await getRecordings();
   const recordingsNew = recordingsAfter.filter(
@@ -45,8 +47,10 @@ async function record(url: string = "about:blank") {
 
       console.log(""); // Spacing for readability
     } else {
+      const defaultRecording = findMostRecentPrimaryRecording(recordingsNew);
+
       selectedRecordings = await selectRecordings(recordingsNew, {
-        defaultSelected: recording => recording.metadata.processType === "root",
+        defaultSelected: recording => recording === defaultRecording,
         prompt: "New recordings found. Which would you like to upload?",
         selectionMessage: "The following recording(s) will be uploaded:",
       });
