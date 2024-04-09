@@ -3,7 +3,7 @@ import { join } from "path";
 import { readFromCache } from "../cache";
 import { prompt } from "../prompt/prompt";
 import { shouldPrompt } from "../prompt/shouldPrompt";
-import { updatePrompt } from "../prompt/updatePrompt";
+import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
 import { emphasize, highlight } from "../theme";
 import { metadataPath, runtimeMetadata, runtimePath } from "./config";
 import { debug } from "./debug";
@@ -65,7 +65,7 @@ export async function promptForUpdate() {
       await prompt();
     }
 
-    updatePrompt({
+    updateCachedPromptData({
       id: PROMPT_ID,
       metadata: latestBuildId,
     });

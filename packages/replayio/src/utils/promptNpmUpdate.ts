@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import { version as currentVersion, name } from "../../package.json";
 import { prompt } from "./prompt/prompt";
 import { shouldPrompt } from "./prompt/shouldPrompt";
-import { updatePrompt } from "./prompt/updatePrompt";
+import { updateCachedPromptData } from "./prompt/updateCachedPromptData";
 import { highlight } from "./theme";
 
 const PROMPT_ID = "npm-update";
@@ -34,7 +34,7 @@ export async function promptNpmUpdate() {
 
       await prompt();
 
-      updatePrompt({
+      updateCachedPromptData({
         id: PROMPT_ID,
         metadata: latestVersion,
       });
