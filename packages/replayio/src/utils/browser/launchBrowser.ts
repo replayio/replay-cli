@@ -47,16 +47,16 @@ export async function launchBrowser(
   const browserClosedDeferred = createDeferred<void>();
 
   const { data: childProcess } = spawnProcess(runtimeExecutablePath, args, processOptions, {
-    onError: () => {
+    onError: (error: Error) => {
       abortControllerForPrompt.abort();
-      browserClosedDeferred.resolveIfPending();
+      browserClosedDeferred.rejectIfPending(error);
     },
     onExit: () => {
       abortControllerForPrompt.abort();
       browserClosedDeferred.resolveIfPending();
     },
     onSpawn: () => {
-      console.log(`Recording ${dim("(press any key to continue)")}`);
+      console.log(`Recording ${dim("(press any key to stop recording)")}`);
 
       prompt({
         abortSignal: abortControllerForPrompt.signal,

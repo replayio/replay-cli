@@ -34,7 +34,10 @@ async function record(url: string = "about:blank") {
       const confirmed = await confirm(
         "New recording found. Would you like to upload it?",
         true,
-        "\n" + printRecordings(recordingsNew)
+        "\n" +
+          printRecordings(recordingsNew, {
+            showHeaderRow: false,
+          })
       );
       if (confirmed) {
         selectedRecordings = recordingsNew;

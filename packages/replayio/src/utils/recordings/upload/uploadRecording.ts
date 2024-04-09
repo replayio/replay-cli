@@ -130,23 +130,19 @@ export async function uploadRecording(
     debug("Begin processing recording %s ...", recording.id);
 
     try {
-      await retryWithExponentialBackoff(() => processUploadedRecording(client, recording));
+      await client.waitUntilAuthenticated();
+
+      debug(`Processing recording ${recording.id}`);
+
+      // Processing can take a while
+      // In some cases it's nicer to give users a URL sooner rather than waiting for processing to complete
+      processRecording(client, { recordingId: recording.id });
     } catch (error) {
-      debug(`Failed to begin processing recording ${recording.id}`);
+      debug(`Failed to begin processing recording ${recording.id}\n%o`, error);
 
       // Processing may have failed to start, but the recording still uploaded successfully
     }
   }
-}
-
-async function processUploadedRecording(client: ProtocolClient, recording: LocalRecording) {
-  await client.waitUntilAuthenticated();
-
-  debug(`Processing recording ${recording.id}`);
-
-  // Processing can take a while
-  // In some cases it's nicer to give users a URL sooner rather than waiting for processing to complete
-  processRecording(client, { recordingId: recording.id });
 }
 
 async function uploadRecordingFile({
