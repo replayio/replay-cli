@@ -28,8 +28,10 @@ export function getRecordings(): LocalRecording[] {
 
             Object.assign(recording.metadata, metadata);
 
-            if (metadata?.uri) {
-              let host = metadata.uri;
+            const { argv, process, processGroupId, uri } = metadata;
+
+            if (uri) {
+              let host = uri;
               if (host && typeof host === "string") {
                 try {
                   recording.metadata.host = new URL(host).host;
@@ -37,12 +39,16 @@ export function getRecordings(): LocalRecording[] {
                   recording.metadata.host = host;
                 }
               }
-            } else if (Array.isArray(metadata.argv) && typeof metadata.argv[0] === "string") {
-              recording.metadata.host = basename(metadata.argv[0]);
+            } else if (Array.isArray(argv) && typeof argv[0] === "string") {
+              recording.metadata.host = basename(argv[0]);
             }
 
-            if (metadata.process) {
-              recording.metadata.processType = metadata.process;
+            if (process) {
+              recording.metadata.processType = process;
+            }
+
+            if (processGroupId) {
+              recording.metadata.processGroupId = processGroupId;
             }
             break;
           }
@@ -80,6 +86,7 @@ export function getRecordings(): LocalRecording[] {
               id: entry.id,
               metadata: {
                 host: undefined,
+                processGroupId: undefined,
                 processType: undefined,
                 sourcemaps: undefined,
                 uri: undefined,
@@ -91,8 +98,7 @@ export function getRecordings(): LocalRecording[] {
 
             idToRecording[entry.id] = recording;
 
-            // Newest to oldest
-            recordings.unshift(recording);
+            recordings.push(recording);
             break;
           }
           case RECORDING_LOG_KIND.originalSourceAdded: {
@@ -179,6 +185,20 @@ export function getRecordings(): LocalRecording[] {
   }
 
   debug("Found %s recordings:\n%o", recordings.length, recordings);
+
+  // Sort recordings in reverse chronological order
+  // but group related recordings so that "root" recordings are always listed first
+  recordings.sort((a, b) => {
+    if (a.metadata.processGroupId === b.metadata.processGroupId) {
+      if (a.metadata.processType === "root") {
+        return -1;
+      } else if (b.metadata.processType === "root") {
+        return 1;
+      }
+    }
+
+    return b.date.getTime() - a.date.getTime();
+  });
 
   return recordings;
 }

@@ -14,7 +14,7 @@ import { MetadataJSON } from "./types";
 const PROMPT_ID = "runtime-update";
 
 export async function promptForUpdate() {
-  const { path: executablePath, runtime } = runtimeMetadata;
+  const { path: executablePath } = runtimeMetadata;
   const runtimeExecutablePath = join(runtimePath, ...executablePath);
   let isRuntimeInstalled = existsSync(runtimeExecutablePath);
 
