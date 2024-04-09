@@ -37,6 +37,27 @@ export type LogEntry = {
   recordingId?: string;
   server?: string;
   timestamp: number;
+  baseURL?: string;
+  targetContentHash?: string;
+  targetURLHash?: string;
+  targetMapURLHash?: string;
+  parentId?: string;
+  parentOffset?: number;
+};
+
+export type OriginalSource = {
+  path: string;
+  parentOffset: number;
+};
+
+export type SourceMap = {
+  id: string;
+  path: string;
+  baseURL: string;
+  targetContentHash?: string;
+  targetURLHash?: string;
+  targetMapURLHash: string;
+  originalSources: OriginalSource[];
 };
 
 export type LocalRecording = {
@@ -50,7 +71,7 @@ export type LocalRecording = {
     host: string | undefined;
     processGroupId: string | undefined;
     processType: ProcessType | undefined;
-    sourcemaps: string[] | undefined;
+    sourcemaps: SourceMap[];
     uri: string | undefined;
     [key: string]: unknown;
   };

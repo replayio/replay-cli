@@ -18,6 +18,7 @@ import { debugLogPath, multiPartChunkSize, multiPartMinSizeThreshold } from "../
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
+import { uploadSourceMaps } from "./uploadSourceMaps";
 import { validateRecordingMetadata } from "./validateRecordingMetadata";
 
 export async function uploadRecording(
@@ -117,7 +118,7 @@ export async function uploadRecording(
 
   debug("Uploaded %d bytes for recording %s", size, recording.id);
 
-  // TODO [PRO-103] Upload source-maps
+  await uploadSourceMaps(client, recording);
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadFinished,
