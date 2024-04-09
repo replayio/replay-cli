@@ -5,7 +5,7 @@ import { registerCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
 import { highlight } from "../utils/theme";
 
-registerCommand("logout").description("Sign out of your Replay account").action(logout);
+registerCommand("logout").description("Log out of your Replay account").action(logout);
 
 async function logout() {
   await logoutIfAuthenticated();
