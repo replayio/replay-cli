@@ -1,13 +1,7 @@
-import { readFromCache, writeToCache } from "../cache";
-import { promptHistoryPath } from "./config";
-import { PromptHistory } from "./types";
-
 export async function prompt({
   abortSignal,
-  id,
 }: {
   abortSignal?: AbortSignal;
-  id?: string;
 } = {}): Promise<boolean> {
   return new Promise(resolve => {
     const stdin = process.stdin;
@@ -28,14 +22,6 @@ export async function prompt({
 
     function onData(data: string) {
       destroy();
-
-      if (id) {
-        const cache = readFromCache<PromptHistory>(promptHistoryPath) ?? {};
-        writeToCache<PromptHistory>(promptHistoryPath, {
-          ...cache,
-          [id]: Date.now(),
-        });
-      }
 
       switch (data) {
         case "\r":

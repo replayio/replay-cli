@@ -3,6 +3,7 @@ import { join } from "path";
 import { readFromCache } from "../cache";
 import { prompt } from "../prompt/prompt";
 import { shouldPrompt } from "../prompt/shouldPrompt";
+import { updatePrompt } from "../prompt/updatePrompt";
 import { emphasize, highlight } from "../theme";
 import { metadataPath, runtimeMetadata, runtimePath } from "./config";
 import { debug } from "./debug";
@@ -17,12 +18,6 @@ export async function promptForUpdate() {
   const { path: executablePath } = runtimeMetadata;
   const runtimeExecutablePath = join(runtimePath, ...executablePath);
   let isRuntimeInstalled = existsSync(runtimeExecutablePath);
-
-  // If the user hasn't installed Replay runtime, they'll have to install it
-  // Otherwise let's check for potential updates and ask them (at most) once per day
-  if (isRuntimeInstalled && !shouldPrompt(PROMPT_ID)) {
-    return;
-  }
 
   const latestRelease = await getLatestRelease();
   const latestBuildId = latestRelease?.buildId ?? null;
@@ -39,8 +34,16 @@ export async function promptForUpdate() {
     debug("Installed version metadata not found");
   }
 
+  // If the user hasn't installed Replay runtime, they'll have to install it
+  // Otherwise let's check for potential updates and ask them (at most) once per day
   let confirmed = !isRuntimeInstalled;
-  if (currentBuildId !== latestBuildId) {
+  if (
+    currentBuildId !== latestBuildId &&
+    shouldPrompt({
+      id: PROMPT_ID,
+      metadata: latestBuildId,
+    })
+  ) {
     const { releaseDate } = parseBuildId(latestBuildId);
     if (isRuntimeInstalled) {
       console.log("");
@@ -52,15 +55,20 @@ export async function promptForUpdate() {
       console.log("Press any other key to skip");
       console.log("");
 
-      confirmed = await prompt({ id: PROMPT_ID });
+      confirmed = await prompt();
     } else {
       console.log("");
       console.log("In order to record a Replay, you'll have to first install the browser.");
       console.log(`Press any key to continue`);
       console.log("");
 
-      await prompt({ id: PROMPT_ID });
+      await prompt();
     }
+
+    updatePrompt({
+      id: PROMPT_ID,
+      metadata: latestBuildId,
+    });
 
     if (confirmed) {
       await installLatestRelease();

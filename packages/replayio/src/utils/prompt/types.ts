@@ -1,3 +1,6 @@
 export type PromptHistory = {
-  [id: string]: number;
+  [id: string]: {
+    metadata: any;
+    time: number;
+  };
 };
