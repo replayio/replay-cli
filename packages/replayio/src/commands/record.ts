@@ -4,6 +4,7 @@ import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { promptForUpdate } from "../utils/installation/promptForUpdate";
 import { getRecordings } from "../utils/recordings/getRecordings";
+import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
@@ -30,27 +31,29 @@ async function record(url: string = "about:blank") {
   if (recordingsNew.length > 0) {
     let selectedRecordings: LocalRecording[] = [];
     if (recordingsNew.length === 1) {
-      const confirmed = await confirm("Would you like to upload the new recording?", true);
+      const confirmed = await confirm(
+        "New recording found. Would you like to upload it?",
+        true,
+        "\n" +
+          printRecordings(recordingsNew, {
+            showHeaderRow: false,
+          })
+      );
       if (confirmed) {
         selectedRecordings = recordingsNew;
       }
+
+      console.log(""); // Spacing for readability
     } else {
       selectedRecordings = await selectRecordings(recordingsNew, {
         defaultSelected: recording => recording.metadata.processType === "root",
-        prompt: "New recording(s) found. Which would you like to upload?",
+        prompt: "New recordings found. Which would you like to upload?",
         selectionMessage: "The following recording(s) will be uploaded:",
       });
     }
 
     if (selectedRecordings.length > 0) {
-      const processAfterUpload = await confirm(
-        "Would you like the selected recording(s) to be processed?",
-        true
-      );
-
-      console.log(""); // Spacing for readability
-
-      await uploadRecordings(selectedRecordings, { processAfterUpload });
+      await uploadRecordings(selectedRecordings, { processAfterUpload: true });
     }
   } else {
     console.log("No new recordings were created");

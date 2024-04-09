@@ -3,9 +3,7 @@ import { requireAuthentication } from "../utils/authentication/requireAuthentica
 import { registerCommand } from "../utils/commander";
 import { exitProcess } from "../utils/exitProcess";
 
-registerCommand("login")
-  .description("Sign in to your Replay account with your browser")
-  .action(login);
+registerCommand("login").description("Log into your Replay account (or register)").action(login);
 
 async function login() {
   let savedAccessToken = await getAccessToken();

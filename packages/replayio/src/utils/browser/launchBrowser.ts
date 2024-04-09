@@ -1,6 +1,9 @@
+import assert from "assert";
 import { ensureDirSync } from "fs-extra";
 import { join } from "path";
+import { createDeferred } from "../createDeferred";
 import { runtimeMetadata, runtimePath } from "../installation/config";
+import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
 import { dim } from "../theme";
 import { debug } from "./debug";
@@ -38,7 +41,31 @@ export async function launchBrowser(
     processOptions
   );
 
-  console.log(`Recording ${dim("(quit browser to continue)")}`);
+  // Wait until the user quits the browser process OR
+  // until the user presses a key to continue (in which case, we will kill the process)
+  const abortControllerForPrompt = new AbortController();
+  const browserClosedDeferred = createDeferred<void>();
 
-  await spawnProcess(runtimeExecutablePath, args, processOptions);
+  const { data: childProcess } = spawnProcess(runtimeExecutablePath, args, processOptions, {
+    onError: (error: Error) => {
+      abortControllerForPrompt.abort();
+      browserClosedDeferred.rejectIfPending(error);
+    },
+    onExit: () => {
+      abortControllerForPrompt.abort();
+      browserClosedDeferred.resolveIfPending();
+    },
+    onSpawn: () => {
+      console.log(`Recording ${dim("(press any key to stop recording)")}`);
+
+      prompt({
+        abortSignal: abortControllerForPrompt.signal,
+      }).then(() => {
+        assert(childProcess);
+        childProcess.kill();
+      });
+    },
+  });
+
+  await browserClosedDeferred.promise;
 }

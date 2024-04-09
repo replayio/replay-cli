@@ -22,7 +22,7 @@ export async function requireAuthentication() {
 
   const key = hashValue(String(globalThis.performance.now()));
 
-  console.log("Please sign-in to Replay in your browser to continue.");
+  console.log("Please log in or register to continue.");
 
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
   spawn(getSystemOpenCommand(), [`${replayAppHost}/api/browser/auth?key=${key}&source=cli`]);

@@ -52,14 +52,14 @@ export async function promptForUpdate() {
       console.log("Press any other key to skip");
       console.log("");
 
-      confirmed = await prompt(PROMPT_ID);
+      confirmed = await prompt({ id: PROMPT_ID });
     } else {
       console.log("");
       console.log("In order to record a Replay, you'll have to first install the browser.");
       console.log(`Press any key to continue`);
       console.log("");
 
-      await prompt(PROMPT_ID);
+      await prompt({ id: PROMPT_ID });
     }
 
     if (confirmed) {
