@@ -5,6 +5,9 @@ export enum RECORDING_LOG_KIND {
   crashUploaded = "crashUploaded",
   createRecording = "createRecording",
   originalSourceAdded = "originalSourceAdded",
+  processingFailed = "processingFailed",
+  processingFinished = "processingFinished",
+  processingStarted = "processingStarted",
   recordingUnusable = "recordingUnusable",
   sourcemapAdded = "sourcemapAdded",
   uploadFailed = "uploadFailed",
@@ -77,6 +80,7 @@ export type LocalRecording = {
     [key: string]: unknown;
   };
   path: string | undefined;
+  processingStatus: "failed" | "processed" | "processing" | undefined;
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
   uploadStatus: "failed" | "uploading" | "uploaded" | undefined;
 };
