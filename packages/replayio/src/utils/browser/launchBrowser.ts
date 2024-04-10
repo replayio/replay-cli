@@ -1,7 +1,7 @@
 import assert from "assert";
 import { ensureDirSync } from "fs-extra";
 import { join } from "path";
-import { createDeferred } from "../createDeferred";
+import { createDeferred } from "../async/createDeferred";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";

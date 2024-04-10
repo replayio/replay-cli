@@ -5,6 +5,9 @@ import { drawBoxAroundText } from "./formatting";
 import { initLaunchDarklyFromAccessToken } from "./launch-darkly/initLaunchDarklyFromAccessToken";
 import { promptNpmUpdate } from "./promptNpmUpdate";
 import { dim, highlight, highlightAlternate } from "./theme";
+import { logPromise } from "./async/logPromise";
+import { raceWithTimeout } from "./async/raceWithTimeout";
+import { exitProcess } from "./exitProcess";
 
 type Block = {
   label: string;
@@ -83,11 +86,30 @@ export function formatOutput(originalText: string): string {
 
 export function registerAuthenticatedCommand(commandName: string) {
   return program.command(commandName).hook("preAction", async () => {
-    await requireAuthentication();
+    const initialize = async () => {
+      await requireAuthentication();
 
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await initLaunchDarklyFromAccessToken(accessToken);
+      const accessToken = await getAccessToken();
+      if (accessToken) {
+        await initLaunchDarklyFromAccessToken(accessToken);
+      }
+    };
+
+    const promise = raceWithTimeout(initialize(), 15_000);
+
+    logPromise({
+      delayBeforeLoggingMs: 500,
+      messages: {
+        failed: "Initialization timed out. Please check your internet connection.\n",
+        pending: "Initializing session…",
+      },
+      promise,
+    });
+
+    try {
+      await promise;
+    } catch (error) {
+      await exitProcess(1);
     }
   });
 }

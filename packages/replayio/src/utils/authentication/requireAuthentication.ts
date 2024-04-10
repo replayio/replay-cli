@@ -5,7 +5,8 @@ import { getSystemOpenCommand } from "../getSystemOpenCommand";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
 import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
-import { wait } from "../wait";
+import { raceWithTimeout } from "../async/raceWithTimeout";
+import { timeoutAfter } from "../async/timeoutAfter";
 import { AuthenticationError } from "./AuthenticationError";
 import { cachedAuthPath } from "./config";
 import { debug } from "./debug";
@@ -27,8 +28,10 @@ export async function requireAuthentication() {
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
   spawn(getSystemOpenCommand(), [`${replayAppHost}/api/browser/auth?key=${key}&source=cli`]);
 
-  const result = await Promise.race([pollForAuthentication(key), wait(60_000)]);
-  if (result == null) {
+  let result;
+  try {
+    result = await raceWithTimeout(pollForAuthentication(key), 60_000);
+  } catch (error) {
     throw new AuthenticationError("time-out", "Timed out waiting for authentication");
   }
 
@@ -93,7 +96,7 @@ async function pollForAuthentication(key: string) {
       if (error?.id === "missing-request") {
         debug("Auth request was not found. Retrying in a few seconds...");
 
-        await wait(2_500);
+        await timeoutAfter(2_500);
       } else {
         throw error;
       }
