@@ -57,7 +57,7 @@ async function record(url: string = "about:blank") {
     }
 
     if (selectedRecordings.length > 0) {
-      await uploadRecordings(selectedRecordings, { processAfterUpload: true });
+      await uploadRecordings(selectedRecordings, { processAfterUpload: false });
     }
   } else {
     console.log("No new recordings were created");

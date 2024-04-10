@@ -69,13 +69,22 @@ export async function uploadRecordings(
     renderTitle: ({ done }) => (done ? "Uploaded recordings" : `Uploading recordings...`),
     renderExtraColumns: recording => {
       let status: string | undefined;
-      switch (recording.uploadStatus) {
-        case "failed":
-          status = "(failed)";
-        case "uploading":
-          status = "(uploading…)";
-        case "uploaded":
-          status = "(uploaded)";
+      if (recording.processingStatus) {
+        switch (recording.processingStatus) {
+          case "processing":
+            status = "(processing…)";
+          case "processed":
+            status = "(uploaded+processed)";
+        }
+      } else {
+        switch (recording.uploadStatus) {
+          case "failed":
+            status = "(failed)";
+          case "uploading":
+            status = "(uploading…)";
+          case "uploaded":
+            status = "(uploaded)";
+        }
       }
       return [status ? dim(status) : ""];
     },

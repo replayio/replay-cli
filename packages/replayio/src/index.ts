@@ -19,7 +19,7 @@ finalizeCommander();
 // avoid ERR_UNHANDLED_REJECTION from being printed to the console
 process.on("uncaughtException", async error => {
   if (error.name !== "UnhandledPromiseRejection") {
-    console.error("uncaughtException:", error);
+    console.error(error);
   }
 
   await exitProcess(1);

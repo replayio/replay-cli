@@ -1,6 +1,6 @@
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
 import { MultiSelect } from "bvaughn-enquirer";
-import { dim, highlight, transparent } from "../theme";
+import { dim, select, transparent } from "../theme";
 import { printRecordings } from "./printRecordings";
 import { LocalRecording } from "./types";
 
@@ -42,7 +42,7 @@ export async function selectRecordings(
     return [];
   }
 
-  const select = new MultiSelect(
+  const multiSelect = new MultiSelect(
     {
       choices: recordings.map((recording, index) => {
         const disabled = disabledSelector(recording);
@@ -51,6 +51,10 @@ export async function selectRecordings(
         return {
           disabled,
           hint: "",
+          indicator: {
+            off: "☐",
+            on: "✔",
+          },
           message: disabled ? transparent(message) : message,
           value: recording.id,
         };
@@ -61,12 +65,13 @@ export async function selectRecordings(
       hideAfterSubmit: true,
       initial: recordings.filter(defaultSelected).map(recording => recording.id),
       message: `${prompt}\n  ${dim(
-        "(↑/↓ to change selection, [space] to toggle, [a] to toggle all)"
+        "(↑/↓ to change selection, Space to toggle, a/A to toggle all, Enter to confirm)"
       )}\n`,
       name: "numbers",
+      pointer: "→ ",
       styles: {
         // Selected row style
-        em: highlight,
+        em: select,
       },
     },
     (choices: any[]) => {
@@ -74,7 +79,7 @@ export async function selectRecordings(
     }
   );
 
-  const recordingIds = (await select.run()) as string[];
+  const recordingIds = (await multiSelect.run()) as string[];
 
   if (recordingIds.length > 0) {
     const selectedRecordings = recordings.filter(recording => recordingIds.includes(recording.id));

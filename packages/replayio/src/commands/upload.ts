@@ -31,6 +31,8 @@ async function upload(
     selectedRecordings = findRecordingsWithShortIds(recordings, shortIds);
   } else if (all) {
     selectedRecordings = recordings;
+  } else if (recordings.length === 0) {
+    console.log("No recordings found.");
   } else {
     const defaultRecording = findMostRecentPrimaryRecording(recordings);
 
@@ -46,7 +48,7 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    await uploadRecordings(selectedRecordings, { processAfterUpload: true });
+    await uploadRecordings(selectedRecordings, { processAfterUpload: false });
   }
 
   await exitProcess(0);

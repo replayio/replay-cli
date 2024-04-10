@@ -138,13 +138,32 @@ export async function uploadRecording(
 
       debug(`Processing recording ${recording.id}`);
 
-      // Processing can take a while
-      // In some cases it's nicer to give users a URL sooner rather than waiting for processing to complete
-      processRecording(client, { recordingId: recording.id });
-    } catch (error) {
-      debug(`Failed to begin processing recording ${recording.id}\n%o`, error);
+      updateRecordingLog(recording, {
+        kind: RECORDING_LOG_KIND.processingStarted,
+      });
 
+      recording.processingStatus = "processing";
+
+      await retryWithExponentialBackoff(
+        () => processRecording(client, { recordingId: recording.id }),
+        (error: unknown, attemptNumber: number) => {
+          debug(`Processing failed after ${attemptNumber} attempts:\n%j`, error);
+        }
+      );
+
+      updateRecordingLog(recording, {
+        kind: RECORDING_LOG_KIND.processingFinished,
+      });
+
+      recording.processingStatus = "processed";
+    } catch (error) {
       // Processing may have failed to start, but the recording still uploaded successfully
+
+      updateRecordingLog(recording, {
+        kind: RECORDING_LOG_KIND.processingFailed,
+      });
+
+      recording.processingStatus = "failed";
     }
   }
 }
