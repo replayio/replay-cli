@@ -1,4 +1,5 @@
 import { readFromCache } from "../cache";
+import { GraphQLError } from "../graphql/GraphQLError";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { cachePath } from "./config";
 import { debug } from "./debug";
@@ -24,7 +25,7 @@ export async function initLaunchDarklyFromAccessToken(accessToken: string) {
       await identifyUserProfile(id);
     }
   } catch (error) {
-    console.error(error);
+    debug("Failed to initialize LaunchDarkly profile: %o", error);
   }
 }
 
@@ -58,9 +59,7 @@ async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
   );
 
   if (errors) {
-    console.error(errors);
-
-    throw new Error("Failed to fetch auth info");
+    throw new GraphQLError("Failed to fetch auth info", errors);
   }
 
   const response = data as {

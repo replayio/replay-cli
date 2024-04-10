@@ -6,8 +6,8 @@ export type StatusPending = typeof STATUS_PENDING;
 export type StatusRejected = typeof STATUS_REJECTED;
 export type StatusResolved = typeof STATUS_RESOLVED;
 
-export interface Deferred<Type, Data = void> {
-  data: Data | undefined;
+export interface Deferred<Type, Data = undefined> {
+  data: Data;
   debugLabel: string | undefined;
   promise: Promise<Type>;
   rejection: Error | undefined;
@@ -21,10 +21,15 @@ export interface Deferred<Type, Data = void> {
 
 export type Status = StatusPending | StatusRejected | StatusResolved;
 
-export function createDeferred<Type, Data = void>(
+export function createDeferred<Type, Data>(data: Data, debugLabel?: string): Deferred<Type, Data>;
+export function createDeferred<Type, Data = undefined>(
   data?: Data,
   debugLabel?: string
-): Deferred<Type, Data> {
+): Deferred<Type, Data | undefined>;
+export function createDeferred<Type, Data>(
+  data?: Data,
+  debugLabel?: string
+): Deferred<Type, Data | undefined> {
   let rejection: Error | undefined = undefined;
   let resolution: Type | undefined = undefined;
   let status: StatusPending | StatusRejected | StatusResolved = STATUS_PENDING;
@@ -46,7 +51,7 @@ export function createDeferred<Type, Data = void>(
     }
   }
 
-  const deferred: Deferred<Type, Data> = {
+  const deferred: Deferred<Type, Data | undefined> = {
     data,
     debugLabel,
 

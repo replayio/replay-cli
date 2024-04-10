@@ -1,6 +1,5 @@
 import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "assert";
-import { Agent } from "http";
 import WebSocket from "ws";
 import { replayServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";
@@ -11,19 +10,23 @@ import { debug } from "./debug";
 
 type Callback = (params: any) => void;
 
+type CommandData = {
+  // `command` is kept around only for debugging purposes
+  command: unknown;
+  sessionId: SessionId | undefined;
+};
+
 export default class ProtocolClient {
   private deferredAuthenticated = createDeferred<boolean>();
   private eventListeners: Map<string, Set<Callback>> = new Map();
   private nextMessageId = 1;
-  private pendingMessages: Map<number, Deferred<any, SessionId>> = new Map();
+  private pendingCommands: Map<number, Deferred<any, CommandData>> = new Map();
   private socket: WebSocket;
 
-  constructor({ agent }: { agent?: Agent } = {}) {
-    debug("Creating WebSocket for %s with %o", replayServer, { agent });
+  constructor() {
+    debug("Creating WebSocket for %s", replayServer);
 
-    this.socket = new WebSocket(replayServer, {
-      agent: agent,
-    });
+    this.socket = new WebSocket(replayServer);
 
     this.socket.on("close", this.onSocketClose);
     this.socket.on("error", this.onSocketError);
@@ -32,8 +35,8 @@ export default class ProtocolClient {
 
     this.listenForMessage("Recording.sessionError", (error: sessionError) => {
       if (error.sessionId) {
-        this.pendingMessages.forEach(deferred => {
-          if (deferred.status === STATUS_PENDING && deferred.data === error.sessionId) {
+        this.pendingCommands.forEach(deferred => {
+          if (deferred.status === STATUS_PENDING && deferred.data?.sessionId === error.sessionId) {
             deferred.reject(
               new ProtocolError({
                 code: error.code,
@@ -81,23 +84,22 @@ export default class ProtocolClient {
 
     debug("Sending command %s: %o", method, { id, params, sessionId });
 
-    this.socket.send(
-      JSON.stringify({
-        id,
-        method,
-        params,
-        sessionId,
-      }),
-      error => {
-        if (error) {
-          debug("Received socket error: %s", error);
-        }
+    const command = {
+      id,
+      method,
+      params,
+      sessionId,
+    };
+
+    this.socket.send(JSON.stringify(command), error => {
+      if (error) {
+        debug("Received socket error: %s", error);
       }
-    );
+    });
 
-    const deferred = createDeferred<ResponseType, SessionId>(sessionId);
+    const deferred = createDeferred<ResponseType, CommandData>({ sessionId, command });
 
-    this.pendingMessages.set(id, deferred);
+    this.pendingCommands.set(id, deferred);
 
     return deferred.promise;
   }
@@ -116,7 +118,7 @@ export default class ProtocolClient {
     debug("Socket error:\n", error);
 
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
-      this.deferredAuthenticated.resolve(false);
+      this.deferredAuthenticated.reject(error);
     }
   };
 
@@ -124,10 +126,10 @@ export default class ProtocolClient {
     const { error, id, method, params, result } = JSON.parse(String(contents));
 
     if (id) {
-      const deferred = this.pendingMessages.get(id);
+      const deferred = this.pendingCommands.get(id);
       assert(deferred, `Received message with unknown id: ${id}`);
 
-      this.pendingMessages.delete(id);
+      this.pendingCommands.delete(id);
       if (result) {
         debug("Resolving response: %o", contents);
         deferred.resolve(result);
@@ -160,7 +162,8 @@ export default class ProtocolClient {
     } catch (error) {
       debug("Error authenticating:\n", error);
 
-      this.deferredAuthenticated.resolve(false);
+      this.socket.close();
+      this.deferredAuthenticated.reject(error as Error);
     }
   };
 }

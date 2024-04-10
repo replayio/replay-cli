@@ -7,61 +7,69 @@ import { dim, statusFailed, statusPending, statusSuccess } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
+// log-update interferes with verbose output
+const isDebug = !!process.env.DEBUG;
+
 let logMessage: Function = logUpdate;
 let loggingDone: Function = logUpdate.done;
-if (process.env.DEBUG) {
-  // log-update interferes with verbose output
-  logMessage = () => {};
+if (isDebug) {
+  logMessage = console.log.bind(console);
   loggingDone = () => {};
 }
 
+function getRecordingStatus(recording: LocalRecording): string | undefined {
+  switch (recording.uploadStatus) {
+    case "failed":
+      return "(failed)";
+    case "uploading":
+      return "(uploading…)";
+    case "uploaded":
+      return "(uploaded)";
+  }
+}
+
 export async function printDeferredRecordingActions(
-  deferredActions: Deferred<boolean, LocalRecording>[],
-  inProgressMessage: string,
-  failedMessage: string,
-  getStatus: (recording: LocalRecording) => string | undefined
+  deferredActions: Deferred<boolean, LocalRecording>[]
 ) {
   let dotIndex = 0;
 
-  const print = () => {
+  const print = (done = false) => {
     const dot = dots.frames[++dotIndex % dots.frames.length];
+    const table = printTable({
+      rows: deferredActions.map(deferred => {
+        let status = !isDebug ? statusPending(dot) : "";
+        if (deferred.resolution === true) {
+          status = statusSuccess("✔");
+        } else if (deferred.resolution === false) {
+          status = statusFailed("✘");
+        }
 
-    logMessage(
-      `${inProgressMessage}\n` +
-        printTable({
-          rows: deferredActions.map(deferred => {
-            let status = statusPending(dot);
-            if (deferred.resolution === true) {
-              status = statusSuccess("✔");
-            } else if (deferred.resolution === false) {
-              status = statusFailed("✘");
-            }
+        const suffix = dim(getRecordingStatus(deferred.data) ?? "");
 
-            const suffix = dim(getStatus(deferred.data as LocalRecording) ?? "");
+        const recording = deferred.data;
+        assert(recording, "Recording is not defined");
 
-            const recording = deferred.data;
-            assert(recording, "Recording is not defined");
+        const { date, duration, id, title } = formatRecording(recording);
 
-            const { date, duration, id, title } = formatRecording(recording);
+        return [status, id, title, date, duration, suffix];
+      }),
+    });
 
-            return [status, id, title, date, duration, suffix];
-          }),
-        })
-    );
+    logMessage((done ? "Uploaded recordings" : `Uploading recordings...`) + "\n" + table);
   };
 
   print();
 
-  const interval = setInterval(print, dots.interval);
+  const interval = isDebug ? setInterval(print, dots.interval) : undefined;
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
   clearInterval(interval);
-  print();
+  print(true);
   loggingDone();
 
   const failedActions = deferredActions.filter(deferred => deferred.status !== STATUS_RESOLVED);
   if (failedActions.length > 0) {
-    console.log(statusFailed(`${failedActions.length} ${failedMessage}\n`));
+    console.log(statusFailed(`${failedActions.length} recording(s) did not upload successfully\n`));
   }
 }

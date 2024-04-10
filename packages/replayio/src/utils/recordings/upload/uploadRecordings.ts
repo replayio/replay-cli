@@ -1,5 +1,8 @@
+import { exitProcess } from "../../exitProcess";
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
+import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
+import { highlight, statusFailed } from "../../theme";
 import { canUpload } from "../canUpload";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { debug } from "../debug";
@@ -30,7 +33,26 @@ export async function uploadRecordings(
 
   const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
   const client = new ProtocolClient();
-  await client.waitUntilAuthenticated();
+  try {
+    await client.waitUntilAuthenticated();
+  } catch (error) {
+    if (
+      error instanceof ProtocolError &&
+      error.protocolCode === AUTHENTICATION_REQUIRED_ERROR_CODE
+    ) {
+      let message = `${statusFailed("✘")} Authentication failed.`;
+      if (process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY) {
+        const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
+        message += ` Please check your ${highlight(name)}.`;
+      } else {
+        message += " Please try to `replay login` again.";
+      }
+      console.error(message);
+      await exitProcess(1);
+      return;
+    }
+    throw error;
+  }
 
   const deferredActions = recordings.map(recording => {
     if (recording.recordingStatus === "crashed") {
@@ -43,21 +65,7 @@ export async function uploadRecordings(
     }
   });
 
-  printDeferredRecordingActions(
-    deferredActions,
-    "Uploading recordings...",
-    "recording(s) did not upload successfully",
-    recording => {
-      switch (recording.uploadStatus) {
-        case "failed":
-          return "(failed)";
-        case "uploading":
-          return "(uploading…)";
-        case "uploaded":
-          return "(uploaded)";
-      }
-    }
-  );
+  printDeferredRecordingActions(deferredActions);
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
