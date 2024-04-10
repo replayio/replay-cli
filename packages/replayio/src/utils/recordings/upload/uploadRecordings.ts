@@ -2,7 +2,7 @@ import { exitProcess } from "../../exitProcess";
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
-import { highlight, statusFailed } from "../../theme";
+import { dim, highlight, statusFailed } from "../../theme";
 import { canUpload } from "../canUpload";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { debug } from "../debug";
@@ -65,7 +65,21 @@ export async function uploadRecordings(
     }
   });
 
-  printDeferredRecordingActions(deferredActions);
+  printDeferredRecordingActions(deferredActions, {
+    renderTitle: ({ done }) => (done ? "Uploaded recordings" : `Uploading recordings...`),
+    renderExtraColumns: recording => {
+      let status: string | undefined;
+      switch (recording.uploadStatus) {
+        case "failed":
+          status = "(failed)";
+        case "uploading":
+          status = "(uploading…)";
+        case "uploaded":
+          status = "(uploaded)";
+      }
+      return [status ? dim(status) : ""];
+    },
+  });
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 

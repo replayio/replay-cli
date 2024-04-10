@@ -1,9 +1,8 @@
-import assert from "assert";
 import { dots } from "cli-spinners";
 import logUpdate from "log-update";
 import { Deferred, STATUS_RESOLVED } from "../createDeferred";
 import { printTable } from "../table";
-import { dim, statusFailed, statusPending, statusSuccess } from "../theme";
+import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
@@ -17,24 +16,21 @@ if (isDebug) {
   loggingDone = () => {};
 }
 
-function getRecordingStatus(recording: LocalRecording): string | undefined {
-  switch (recording.uploadStatus) {
-    case "failed":
-      return "(failed)";
-    case "uploading":
-      return "(uploading…)";
-    case "uploaded":
-      return "(uploaded)";
-  }
-}
-
 export async function printDeferredRecordingActions(
-  deferredActions: Deferred<boolean, LocalRecording>[]
+  deferredActions: Deferred<boolean, LocalRecording>[],
+  {
+    renderTitle,
+    renderExtraColumns,
+  }: {
+    renderTitle: (options: { done: boolean }) => string;
+    renderExtraColumns: (recording: LocalRecording) => string[];
+  }
 ) {
   let dotIndex = 0;
 
   const print = (done = false) => {
     const dot = dots.frames[++dotIndex % dots.frames.length];
+    const title = renderTitle({ done });
     const table = printTable({
       rows: deferredActions.map(deferred => {
         let status = !isDebug ? statusPending(dot) : "";
@@ -43,24 +39,18 @@ export async function printDeferredRecordingActions(
         } else if (deferred.resolution === false) {
           status = statusFailed("✘");
         }
-
-        const suffix = dim(getRecordingStatus(deferred.data) ?? "");
-
         const recording = deferred.data;
-        assert(recording, "Recording is not defined");
-
         const { date, duration, id, title } = formatRecording(recording);
-
-        return [status, id, title, date, duration, suffix];
+        return [status, id, title, date, duration, ...renderExtraColumns(recording)];
       }),
     });
 
-    logMessage((done ? "Uploaded recordings" : `Uploading recordings...`) + "\n" + table);
+    logMessage(title + "\n" + table);
   };
 
   print();
 
-  const interval = isDebug ? setInterval(print, dots.interval) : undefined;
+  const interval = !isDebug ? setInterval(print, dots.interval) : undefined;
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
