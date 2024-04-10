@@ -1,5 +1,8 @@
+import { exitProcess } from "../../exitProcess";
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
+import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
+import { dim, highlight, statusFailed } from "../../theme";
 import { canUpload } from "../canUpload";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { debug } from "../debug";
@@ -30,7 +33,26 @@ export async function uploadRecordings(
 
   const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
   const client = new ProtocolClient();
-  await client.waitUntilAuthenticated();
+  try {
+    await client.waitUntilAuthenticated();
+  } catch (error) {
+    if (
+      error instanceof ProtocolError &&
+      error.protocolCode === AUTHENTICATION_REQUIRED_ERROR_CODE
+    ) {
+      let message = `${statusFailed("✘")} Authentication failed.`;
+      if (process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY) {
+        const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
+        message += ` Please check your ${highlight(name)}.`;
+      } else {
+        message += ` Please try to ${highlight("replay login")} again.`;
+      }
+      console.error(message);
+      await exitProcess(1);
+      return;
+    }
+    throw error;
+  }
 
   const deferredActions = recordings.map(recording => {
     if (recording.recordingStatus === "crashed") {
@@ -43,28 +65,37 @@ export async function uploadRecordings(
     }
   });
 
-  printDeferredRecordingActions(
-    deferredActions,
-    "Uploading recordings...",
-    "recording(s) did not upload successfully",
-    recording => {
-      switch (recording.processingStatus) {
-        case "processing":
-          return "(processing…)";
-        case "processed":
-          return "(uploaded+processed)";
+  printDeferredRecordingActions(deferredActions, {
+    renderTitle: ({ done }) => (done ? "Uploaded recordings" : `Uploading recordings...`),
+    renderExtraColumns: recording => {
+      let status: string | undefined;
+      if (recording.processingStatus) {
+        switch (recording.processingStatus) {
+          case "processing":
+            status = "(processing…)";
+            break;
+          case "processed":
+            status = "(uploaded+processed)";
+            break;
+        }
+      } else {
+        switch (recording.uploadStatus) {
+          case "failed":
+            status = "(failed)";
+            break;
+          case "uploading":
+            status = "(uploading…)";
+            break;
+          case "uploaded":
+            status = "(uploaded)";
+            break;
+        }
       }
-
-      switch (recording.uploadStatus) {
-        case "failed":
-          return "(failed)";
-        case "uploading":
-          return "(uploading…)";
-        case "uploaded":
-          return "(uploaded)";
-      }
-    }
-  );
+      return [status ? dim(status) : ""];
+    },
+    renderFailedSummary: failedRecordings =>
+      `${failedRecordings.length} recording(s) did not upload successfully`,
+  });
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 

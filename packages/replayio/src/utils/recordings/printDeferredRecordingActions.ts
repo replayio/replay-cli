@@ -1,67 +1,68 @@
-import assert from "assert";
 import { dots } from "cli-spinners";
 import logUpdate from "log-update";
 import { Deferred, STATUS_RESOLVED } from "../createDeferred";
 import { printTable } from "../table";
-import { dim, statusFailed, statusPending, statusSuccess } from "../theme";
+import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
 
+// log-update interferes with verbose output
+const isDebug = !!process.env.DEBUG;
+
 let logMessage: Function = logUpdate;
 let loggingDone: Function = logUpdate.done;
-if (process.env.DEBUG) {
-  // log-update interferes with verbose output
-  logMessage = () => {};
+if (isDebug) {
+  logMessage = console.log.bind(console);
   loggingDone = () => {};
 }
 
 export async function printDeferredRecordingActions(
   deferredActions: Deferred<boolean, LocalRecording>[],
-  inProgressMessage: string,
-  failedMessage: string,
-  getStatus: (recording: LocalRecording) => string | undefined
+  {
+    renderTitle,
+    renderExtraColumns,
+    renderFailedSummary,
+  }: {
+    renderTitle: (options: { done: boolean }) => string;
+    renderExtraColumns: (recording: LocalRecording) => string[];
+    renderFailedSummary: (failedRecordings: LocalRecording[]) => string;
+  }
 ) {
   let dotIndex = 0;
 
-  const print = () => {
+  const print = (done = false) => {
     const dot = dots.frames[++dotIndex % dots.frames.length];
+    const title = renderTitle({ done });
+    const table = printTable({
+      rows: deferredActions.map(deferred => {
+        let status = !isDebug ? statusPending(dot) : "";
+        if (deferred.resolution === true) {
+          status = statusSuccess("✔");
+        } else if (deferred.resolution === false) {
+          status = statusFailed("✘");
+        }
+        const recording = deferred.data;
+        const { date, duration, id, title } = formatRecording(recording);
+        return [status, id, title, date, duration, ...renderExtraColumns(recording)];
+      }),
+    });
 
-    logMessage(
-      `${inProgressMessage}\n` +
-        printTable({
-          rows: deferredActions.map(deferred => {
-            let status = statusPending(dot);
-            if (deferred.resolution === true) {
-              status = statusSuccess("✔");
-            } else if (deferred.resolution === false) {
-              status = statusFailed("✘");
-            }
-
-            const suffix = dim(getStatus(deferred.data as LocalRecording) ?? "");
-
-            const recording = deferred.data;
-            assert(recording, "Recording is not defined");
-
-            const { date, duration, id, title } = formatRecording(recording);
-
-            return [status, id, title, date, duration, suffix];
-          }),
-        })
-    );
+    logMessage(title + "\n" + table);
   };
 
   print();
 
-  const interval = setInterval(print, dots.interval);
+  const interval = !isDebug ? setInterval(print, dots.interval) : undefined;
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
   clearInterval(interval);
-  print();
+  print(true);
   loggingDone();
 
   const failedActions = deferredActions.filter(deferred => deferred.status !== STATUS_RESOLVED);
   if (failedActions.length > 0) {
-    console.log(statusFailed(`${failedActions.length} ${failedMessage}\n`));
+    const failedSummary = renderFailedSummary(failedActions.map(action => action.data));
+    console.log(statusFailed(`${failedSummary}`) + "\n");
   }
 }

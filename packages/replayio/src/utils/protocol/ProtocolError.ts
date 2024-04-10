@@ -6,6 +6,8 @@ type ProtocolErrorBase = {
   data: ErrorData;
 };
 
+export const AUTHENTICATION_REQUIRED_ERROR_CODE = 49;
+
 export class ProtocolError extends Error {
   readonly protocolCode: number;
   readonly protocolMessage: string;
