@@ -7,6 +7,7 @@ export function findMostRecentPrimaryRecording(
   cloned.sort((a, b) => b.date.getTime() - a.date.getTime());
   return cloned.find(
     recording =>
-      recording.metadata.processType === undefined || recording.metadata.processType === "root"
+      recording.uploadStatus === undefined &&
+      (recording.metadata.processType === undefined || recording.metadata.processType === "root")
   );
 }
