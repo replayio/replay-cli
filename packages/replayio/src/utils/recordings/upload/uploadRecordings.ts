@@ -73,17 +73,22 @@ export async function uploadRecordings(
         switch (recording.processingStatus) {
           case "processing":
             status = "(processing…)";
+            break;
           case "processed":
             status = "(uploaded+processed)";
+            break;
         }
       } else {
         switch (recording.uploadStatus) {
           case "failed":
             status = "(failed)";
+            break;
           case "uploading":
             status = "(uploading…)";
+            break;
           case "uploaded":
             status = "(uploaded)";
+            break;
         }
       }
       return [status ? dim(status) : ""];
