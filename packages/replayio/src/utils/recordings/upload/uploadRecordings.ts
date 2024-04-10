@@ -48,6 +48,13 @@ export async function uploadRecordings(
     "Uploading recordings...",
     "recording(s) did not upload successfully",
     recording => {
+      switch (recording.processingStatus) {
+        case "processing":
+          return "(processing…)";
+        case "processed":
+          return "(uploaded+processed)";
+      }
+
       switch (recording.uploadStatus) {
         case "failed":
           return "(failed)";
