@@ -79,6 +79,8 @@ export async function uploadRecordings(
       }
       return [status ? dim(status) : ""];
     },
+    renderFailedSummary: failedRecordings =>
+      `${failedRecordings.length} recording(s) did not upload successfully`,
   });
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));

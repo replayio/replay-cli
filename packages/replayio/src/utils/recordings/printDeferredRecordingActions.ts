@@ -21,9 +21,11 @@ export async function printDeferredRecordingActions(
   {
     renderTitle,
     renderExtraColumns,
+    renderFailedSummary,
   }: {
     renderTitle: (options: { done: boolean }) => string;
     renderExtraColumns: (recording: LocalRecording) => string[];
+    renderFailedSummary: (failedRecordings: LocalRecording[]) => string;
   }
 ) {
   let dotIndex = 0;
@@ -60,6 +62,7 @@ export async function printDeferredRecordingActions(
 
   const failedActions = deferredActions.filter(deferred => deferred.status !== STATUS_RESOLVED);
   if (failedActions.length > 0) {
-    console.log(statusFailed(`${failedActions.length} recording(s) did not upload successfully\n`));
+    const failedSummary = renderFailedSummary(failedActions.map(action => action.data));
+    console.log(statusFailed(`${failedSummary}`) + "\n");
   }
 }
