@@ -19,19 +19,19 @@ parentPort.on(
   }: {
     link: string;
     logPath: string;
-    partMeta: { filePath: string; start: number; end: number };
+    partMeta: { recordingPath: string; start: number; end: number };
     size: number;
   }) => {
-    const { filePath, start, end } = partMeta;
+    const { recordingPath, start, end } = partMeta;
     const debug = createLog("upload-worker", logPath);
 
     if (parentPort === null) {
       throw new Error("Must be run as a worker");
     }
 
-    debug("Uploading chunk %o", { filePath, size, start, end });
+    debug("Uploading chunk %o", { recordingPath, size, start, end });
 
-    const stream = createReadStream(filePath, { start, end });
+    const stream = createReadStream(recordingPath, { start, end });
     const resp = await fetch(link, {
       agent: createHttpAgent({
         keepAlive: true,
@@ -54,7 +54,7 @@ parentPort.on(
     }
 
     const etag = resp.headers.get("etag");
-    debug("Etag received %o", { etag, filePath, size, start, end });
+    debug("Etag received %o", { etag, recordingPath, size, start, end });
 
     parentPort.postMessage(etag);
   }
