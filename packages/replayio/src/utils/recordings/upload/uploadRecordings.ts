@@ -45,7 +45,7 @@ export async function uploadRecordings(
         const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
         message += ` Please check your ${highlight(name)}.`;
       } else {
-        message += " Please try to `replay login` again.";
+        message += ` Please try to ${highlight("replay login")} again.`;
       }
       console.error(message);
       await exitProcess(1);
