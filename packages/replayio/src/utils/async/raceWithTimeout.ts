@@ -3,16 +3,24 @@ import { isTimeoutResult, timeoutAfter } from "./timeoutAfter";
 export async function raceWithTimeout<Type>(
   promise: Promise<Type>,
   timeoutMs: number,
-  abortController?: AbortController
+  externalAbortController?: AbortController
 ): Promise<Type | undefined> {
-  const result = await Promise.race([promise, timeoutAfter(timeoutMs)]);
+  const internalAbortController = new AbortController();
+
+  const result = await Promise.race([
+    promise,
+    timeoutAfter(timeoutMs, { abortSignal: internalAbortController?.signal }),
+  ]);
+
   if (isTimeoutResult(result)) {
-    if (abortController) {
-      abortController.abort();
+    if (externalAbortController) {
+      externalAbortController.abort();
     }
 
     return undefined;
-  }
+  } else {
+    internalAbortController.abort();
 
-  return result;
+    return result;
+  }
 }
