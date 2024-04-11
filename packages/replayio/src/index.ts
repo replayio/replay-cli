@@ -1,3 +1,6 @@
+// Import this before anything else
+import "./utils/async/overrideSetTimeout";
+
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
 import { exitProcess } from "./utils/exitProcess";
 
