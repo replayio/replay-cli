@@ -3,6 +3,9 @@
   "version": "0.0.2",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./replayio.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "rm -rf dist/ metadata/ tsconfig.tsbuildinfo && tsc",
     "lint": "prettier --write .",
