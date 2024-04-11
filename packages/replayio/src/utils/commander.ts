@@ -1,13 +1,12 @@
 import { Help, program } from "commander";
+import { logPromise } from "./async/logPromise";
+import { raceWithTimeout } from "./async/raceWithTimeout";
 import { getAccessToken } from "./authentication/getAccessToken";
 import { requireAuthentication } from "./authentication/requireAuthentication";
 import { drawBoxAroundText } from "./formatting";
 import { initLaunchDarklyFromAccessToken } from "./launch-darkly/initLaunchDarklyFromAccessToken";
 import { promptNpmUpdate } from "./promptNpmUpdate";
 import { dim, highlight, highlightAlternate } from "./theme";
-import { logPromise } from "./async/logPromise";
-import { raceWithTimeout } from "./async/raceWithTimeout";
-import { exitProcess } from "./exitProcess";
 
 type Block = {
   label: string;
@@ -28,7 +27,11 @@ export function finalizeCommander() {
       writeOut: (text: string) => process.stdout.write(formatOutput(text)),
     });
     program.hook("preAction", async () => {
-      await promptNpmUpdate();
+      try {
+        await raceWithTimeout(promptNpmUpdate(), 5_000);
+      } catch (error) {
+        // Ignore
+      }
     });
     program.helpCommand("help [command]", "Display help for command");
     program.helpOption("-h, --help", "Display help for command");
@@ -86,30 +89,25 @@ export function formatOutput(originalText: string): string {
 
 export function registerAuthenticatedCommand(commandName: string) {
   return program.command(commandName).hook("preAction", async () => {
-    const initialize = async () => {
-      await requireAuthentication();
+    await requireAuthentication();
 
-      const accessToken = await getAccessToken();
-      if (accessToken) {
-        await initLaunchDarklyFromAccessToken(accessToken);
+    const accessToken = await getAccessToken();
+    if (accessToken) {
+      const launchDarklyPromise = initLaunchDarklyFromAccessToken(accessToken);
+
+      logPromise({
+        delayBeforeLoggingMs: 500,
+        messages: {
+          pending: "Initializing session…",
+        },
+        promise: launchDarklyPromise,
+      });
+
+      try {
+        await raceWithTimeout(launchDarklyPromise, 5_000);
+      } catch (error) {
+        // Ignore
       }
-    };
-
-    const promise = raceWithTimeout(initialize(), 15_000);
-
-    logPromise({
-      delayBeforeLoggingMs: 500,
-      messages: {
-        failed: "Initialization timed out. Please check your internet connection.\n",
-        pending: "Initializing session…",
-      },
-      promise,
-    });
-
-    try {
-      await promise;
-    } catch (error) {
-      await exitProcess(1);
     }
   });
 }

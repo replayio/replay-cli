@@ -16,6 +16,5 @@ export async function identifyUserProfile(id: string) {
     } satisfies LDContext);
   } catch (error) {
     debug("Failed identify LaunchDarkly feature profiler %j", error);
-    return;
   }
 }

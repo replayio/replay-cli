@@ -32,6 +32,8 @@ export async function requireAuthentication() {
   try {
     result = await raceWithTimeout(pollForAuthentication(key), 60_000);
   } catch (error) {
+    debug("" + error);
+
     throw new AuthenticationError("time-out", "Timed out waiting for authentication");
   }
 

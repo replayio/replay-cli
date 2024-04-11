@@ -10,6 +10,7 @@ import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
+import { raceWithTimeout } from "../utils/async/raceWithTimeout";
 
 registerAuthenticatedCommand("record")
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -17,7 +18,11 @@ registerAuthenticatedCommand("record")
   .action(record);
 
 async function record(url: string = "about:blank") {
-  await promptForUpdate();
+  try {
+    await raceWithTimeout(promptForUpdate(), 5_000);
+  } catch (error) {
+    // Ignore
+  }
 
   const recordingsBefore = await getRecordings();
 

@@ -11,7 +11,7 @@ export async function logPromise({
 }: {
   delayBeforeLoggingMs?: number;
   messages: {
-    failed: string;
+    failed?: string;
     pending: string;
     success?: string;
   };
@@ -23,14 +23,14 @@ export async function logPromise({
   let logAfter = Date.now() + delayBeforeLoggingMs;
 
   const print = () => {
-    if (delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
-      return;
-    }
-
     let message;
     let prefix;
     switch (status) {
       case STATUS_PENDING:
+        if (!isDebugging && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
+          return;
+        }
+
         message = messages.pending;
         prefix = statusPending(dots.frames[++dotIndex % dots.frames.length]);
         break;
