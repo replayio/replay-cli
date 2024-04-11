@@ -1,4 +1,4 @@
-import { finalizeCommander } from "./utils/commander";
+import { finalizeCommander } from "./utils/commander/finalizeCommander";
 import { exitProcess } from "./utils/exitProcess";
 
 // Commands self-register with "commander"

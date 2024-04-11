@@ -1,29 +1,21 @@
 import { v4 as uuid } from "uuid";
 import { launchBrowser } from "../utils/browser/launchBrowser";
-import { registerAuthenticatedCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
-import { promptForUpdate } from "../utils/installation/promptForUpdate";
+import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
-import { raceWithTimeout } from "../utils/async/raceWithTimeout";
 
-registerAuthenticatedCommand("record")
+registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
   .description("Launch the replay browser in recording mode")
   .action(record);
 
 async function record(url: string = "about:blank") {
-  try {
-    await raceWithTimeout(promptForUpdate(), 5_000);
-  } catch (error) {
-    // Ignore
-  }
-
   const recordingsBefore = await getRecordings();
 
   await launchBrowser(url, { processGroupId: uuid() });

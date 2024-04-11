@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { replayAppHost } from "../config";
-import { registerCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { getSystemOpenCommand } from "../utils/getSystemOpenCommand";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";

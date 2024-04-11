@@ -1,16 +1,16 @@
-import { getAccessToken } from "../utils/authentication/getAccessToken";
-import { requireAuthentication } from "../utils/authentication/requireAuthentication";
-import { registerCommand } from "../utils/commander";
+import { checkAuthentication } from "../utils/initialization/checkAuthentication";
+import { promptForAuthentication } from "../utils/initialization/promptForAuthentication";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 
 registerCommand("login").description("Log into your Replay account (or register)").action(login);
 
 async function login() {
-  let savedAccessToken = await getAccessToken();
-  if (savedAccessToken) {
+  const authenticated = await checkAuthentication();
+  if (authenticated) {
     console.log("You are already signed in!");
   } else {
-    await requireAuthentication();
+    await promptForAuthentication();
   }
 
   await exitProcess(0);

@@ -1,6 +1,7 @@
 import { program } from "commander";
 import strip from "strip-ansi";
-import { formatOutput, registerCommand } from "./commander";
+import { formatOutput } from "./formatOutput";
+import { registerCommand } from "./registerCommand";
 
 function addTestCommand(name: string) {
   return registerCommand(name).action(() => {});
