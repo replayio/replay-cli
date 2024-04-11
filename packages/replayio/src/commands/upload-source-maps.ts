@@ -1,8 +1,8 @@
-import { registerAuthenticatedCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { dim } from "../utils/theme";
 
-registerAuthenticatedCommand("upload-source-maps <paths...>")
+registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
   .description("Upload source-maps for a Workspace")
   .requiredOption(
     "-g, --group <name>",

@@ -3,7 +3,7 @@ import assert from "assert";
 import WebSocket from "ws";
 import { replayServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";
-import { Deferred, STATUS_PENDING, createDeferred } from "../createDeferred";
+import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
 import { ProtocolError } from "./ProtocolError";
 import { setAccessToken } from "./api/setAccessToken";
 import { debug } from "./debug";

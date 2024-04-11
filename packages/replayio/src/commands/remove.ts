@@ -1,4 +1,4 @@
-import { registerCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";

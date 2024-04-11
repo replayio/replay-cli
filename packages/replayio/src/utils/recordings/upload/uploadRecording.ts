@@ -13,7 +13,7 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../retry";
+import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
 import { debugLogPath, multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";

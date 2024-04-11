@@ -7,7 +7,10 @@ import { identifyUserProfile } from "./identifyUserProfile";
 import { Cached } from "./types";
 import { updateLaunchDarklyCache } from "./updateLaunchDarklyCache";
 
-export async function initLaunchDarklyFromAccessToken(accessToken: string) {
+export async function initLaunchDarklyFromAccessToken(
+  accessToken: string,
+  abortSignal: AbortSignal
+) {
   debug("Initializing LaunchDarkly profile");
 
   try {
@@ -17,6 +20,10 @@ export async function initLaunchDarklyFromAccessToken(accessToken: string) {
       id = await fetchUserIdFromGraphQLOrThrow(accessToken);
 
       updateLaunchDarklyCache(accessToken, id);
+    }
+
+    if (abortSignal.aborted) {
+      return;
     }
 
     debug("Found cached user id %s", id);

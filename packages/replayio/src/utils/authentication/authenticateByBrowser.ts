@@ -1,25 +1,19 @@
 import { spawn } from "child_process";
 import { replayAppHost } from "../../config";
+import { raceWithTimeout } from "../async/raceWithTimeout";
+import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
 import { getSystemOpenCommand } from "../getSystemOpenCommand";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
-import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
-import { wait } from "../wait";
 import { AuthenticationError } from "./AuthenticationError";
 import { cachedAuthPath } from "./config";
 import { debug } from "./debug";
-import { getAccessToken } from "./getAccessToken";
 import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 
 // TODO [PRO-24] Change authentication to remove polling and GraphQL mutation
 
-export async function requireAuthentication() {
-  let savedAccessToken = await getAccessToken();
-  if (savedAccessToken) {
-    return savedAccessToken;
-  }
-
+export async function authenticateByBrowser() {
   const key = hashValue(String(globalThis.performance.now()));
 
   console.log("Please log in or register to continue.");
@@ -27,7 +21,7 @@ export async function requireAuthentication() {
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
   spawn(getSystemOpenCommand(), [`${replayAppHost}/api/browser/auth?key=${key}&source=cli`]);
 
-  const result = await Promise.race([pollForAuthentication(key), wait(60_000)]);
+  const result = await raceWithTimeout(pollForAuthentication(key), 60_000);
   if (result == null) {
     throw new AuthenticationError("time-out", "Timed out waiting for authentication");
   }
@@ -37,9 +31,6 @@ export async function requireAuthentication() {
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
   console.log("You have been signed in successfully!");
-
-  // (Re)initialize LaunchDarkly for the newly authenticated user
-  await initLaunchDarklyFromAccessToken(accessToken);
 
   return accessToken;
 }
@@ -93,7 +84,7 @@ async function pollForAuthentication(key: string) {
       if (error?.id === "missing-request") {
         debug("Auth request was not found. Retrying in a few seconds...");
 
-        await wait(2_500);
+        await timeoutAfter(2_500);
       } else {
         throw error;
       }
