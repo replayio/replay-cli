@@ -1,30 +1,28 @@
-import { exec } from "child_process";
-import { promisify } from "util";
-import { version as currentVersion, name } from "../../../package.json";
+import { version as currentVersion, name as packageName } from "../../../package.json";
 import { shouldPrompt } from "../prompt/shouldPrompt";
 import { debug } from "./debug";
+import { getLatestPackageVersion } from "./getLatestPackageVersion";
+import { getPackageManagerCommand } from "./getPackageManagerCommand";
 import { UpdateCheck } from "./types";
-
-const execAsync = promisify(exec);
 
 const PROMPT_ID = "npm-update";
 
 export async function checkForNpmUpdate(): Promise<UpdateCheck<string>> {
   try {
-    const { stdout: text } = await execAsync(`npm info ${name} --json`, {
-      encoding: "utf8",
-    });
-    const { version: latestVersion } = JSON.parse(text.trim());
+    const command = getPackageManagerCommand();
+    if (command) {
+      const latestVersion = await getLatestPackageVersion(command, packageName);
 
-    return {
-      hasUpdate: currentVersion !== latestVersion,
-      fromVersion: currentVersion,
-      shouldShowPrompt: shouldPrompt({
-        id: PROMPT_ID,
-        metadata: latestVersion,
-      }),
-      toVersion: latestVersion,
-    };
+      return {
+        hasUpdate: currentVersion !== latestVersion,
+        fromVersion: currentVersion,
+        shouldShowPrompt: shouldPrompt({
+          id: PROMPT_ID,
+          metadata: latestVersion,
+        }),
+        toVersion: latestVersion,
+      };
+    }
   } catch (error) {
     debug("Failed to check for npm update", error);
   }
