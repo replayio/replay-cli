@@ -22,7 +22,7 @@
     "dist",
     "replayio.js"
   ],
-  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replay/README.md",
+  "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replayio/README.md",
   "dependencies": {
     "@replayio/protocol": "^0.71.0",
     "@types/semver": "^7.5.6",
