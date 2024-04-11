@@ -25,12 +25,11 @@ export async function initialize({
     raceWithTimeout(checkForNpmUpdate(), 5_000),
   ]);
 
-  logPromise({
+  logPromise(promises, {
     delayBeforeLoggingMs: 250,
     messages: {
       pending: "Initializing…",
     },
-    promise: promises,
   });
 
   let [
@@ -55,15 +54,11 @@ export async function initialize({
       )
     : Promise.resolve();
 
-  if (npmUpdateCheck.hasUpdate) {
+  if (npmUpdateCheck.hasUpdate && npmUpdateCheck.shouldShowPrompt) {
     await promptForNpmUpdate(npmUpdateCheck);
   }
 
-  if (
-    shouldCheckForRuntimeUpdate &&
-    runtimeUpdateCheck.hasUpdate &&
-    runtimeUpdateCheck.shouldShowPrompt
-  ) {
+  if (runtimeUpdateCheck.hasUpdate && runtimeUpdateCheck.shouldShowPrompt) {
     await promptForRuntimeUpdate(runtimeUpdateCheck);
   }
 

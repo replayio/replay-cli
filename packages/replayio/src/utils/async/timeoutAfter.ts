@@ -1,11 +1,19 @@
 type TimeoutResult = { timedOutAfter: number };
 
-export async function timeoutAfter(duration: number): Promise<TimeoutResult> {
+export async function timeoutAfter(
+  duration: number,
+  throwOnTimeout: boolean = false
+): Promise<TimeoutResult> {
   const startTime = Date.now();
-  return new Promise(resolve =>
+  return new Promise((resolve, reject) =>
     setTimeout(() => {
       const endTime = Date.now();
-      resolve({ timedOutAfter: endTime - startTime });
+
+      if (throwOnTimeout) {
+        reject(new Error(`Timed out after ${endTime - startTime}ms`));
+      } else {
+        resolve({ timedOutAfter: endTime - startTime });
+      }
     }, duration)
   );
 }

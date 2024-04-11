@@ -4,19 +4,19 @@ import { logUpdate } from "../logUpdate";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, Status } from "./createDeferred";
 
-export async function logPromise({
-  delayBeforeLoggingMs = 0,
-  messages,
-  promise,
-}: {
-  delayBeforeLoggingMs?: number;
-  messages: {
-    failed?: string;
-    pending: string;
-    success?: string;
-  };
-  promise: Promise<any>;
-}) {
+export async function logPromise(
+  promise: Promise<any>,
+  options: {
+    delayBeforeLoggingMs?: number;
+    messages: {
+      failed?: string;
+      pending: string;
+      success?: string;
+    };
+  }
+) {
+  const { delayBeforeLoggingMs = 0, messages } = options;
+
   let dotIndex = 0;
   let status: Status = STATUS_PENDING;
 

@@ -1,5 +1,3 @@
-import { authenticateByBrowser } from "../authentication/authenticateByBrowser";
+import { authenticateByBrowser as promptForAuthentication } from "../authentication/authenticateByBrowser";
 
-export async function promptForAuthentication() {
-  return await authenticateByBrowser();
-}
+export { promptForAuthentication };
