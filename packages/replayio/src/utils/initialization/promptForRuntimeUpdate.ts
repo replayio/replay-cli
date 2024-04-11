@@ -15,8 +15,9 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
   // Otherwise let's check for potential updates and ask them (at most) once per day
   let confirmed = fromVersion == null;
 
-  const { releaseDate } = parseBuildId(toVersion.buildId);
   if (fromVersion) {
+    const { releaseDate } = parseBuildId(toVersion.buildId);
+
     console.log("");
     console.log("A new version of Replay is available!");
     console.log("  Release date:", highlight(releaseDate.toLocaleDateString()));
