@@ -7283,6 +7283,7 @@ __metadata:
   dependencies:
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/protocol": "npm:^0.71.0"
+    "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.7"
     "@types/fs-extra": "npm:latest"
     "@types/inquirer": "npm:^9"

@@ -1,4 +1,4 @@
-import { replayServer } from "../../../config";
+import { replayWsServer } from "../../../config";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { reportCrash } from "../../protocol/api/reportCrash";
 import { debug } from "../debug";
@@ -18,7 +18,7 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.crashUploaded,
-    server: replayServer,
+    server: replayWsServer,
   });
 
   recording.uploadStatus = "uploaded";

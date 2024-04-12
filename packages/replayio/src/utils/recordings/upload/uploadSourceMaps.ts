@@ -30,9 +30,9 @@ const queue = createPromiseQueue({ concurrency: 10 });
 export async function uploadSourceMaps(client: ProtocolClient, recording: LocalRecording) {
   const queueGroup = queue.fork();
 
-  for (const sourceMap of recording.metadata.sourcemaps) {
+  for (const sourceMap of recording.metadata.sourceMaps) {
     queueGroup.add(async () => {
-      debug("Uploading sourcemap %s for recording %s", sourceMap.path, recording.id);
+      debug("Uploading source map %s for recording %s", sourceMap.path, recording.id);
       let sourceMapId: string;
       try {
         const sourceMapContent = await fs.readFile(sourceMap.path, "utf-8");
@@ -47,7 +47,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
         sourceMapId = result.id;
       } catch (error) {
         debug(
-          "Failed to upload sourcemap %s for recording %s: %o",
+          "Failed to upload source map %s for recording %s: %o",
           sourceMap.path,
           recording.id,
           error
@@ -58,7 +58,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
       for (const source of sourceMap.originalSources) {
         queueGroup.add(async () => {
           debug(
-            "Uploading original source %s for sourcemap %s for recording %s",
+            "Uploading original source %s for source map %s for recording %s",
             source.path,
             sourceMap.path,
             recording.id
@@ -73,7 +73,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
             });
           } catch (error) {
             debug(
-              "Failed to upload original source %s for sourcemap %s for recording %s: %o",
+              "Failed to upload original source %s for source map %s for recording %s: %o",
               source.path,
               sourceMap.path,
               recording.id,

@@ -1,7 +1,7 @@
 import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "assert";
 import WebSocket from "ws";
-import { replayServer } from "../../config";
+import { replayWsServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";
 import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
 import { ProtocolError } from "./ProtocolError";
@@ -24,9 +24,9 @@ export default class ProtocolClient {
   private socket: WebSocket;
 
   constructor() {
-    debug("Creating WebSocket for %s", replayServer);
+    debug("Creating WebSocket for %s", replayWsServer);
 
-    this.socket = new WebSocket(replayServer);
+    this.socket = new WebSocket(replayWsServer);
 
     this.socket.on("close", this.onSocketClose);
     this.socket.on("error", this.onSocketError);

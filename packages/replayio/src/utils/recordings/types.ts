@@ -75,7 +75,7 @@ export type LocalRecording = {
     host: string | undefined;
     processGroupId: string | undefined;
     processType: ProcessType | undefined;
-    sourcemaps: SourceMap[];
+    sourceMaps: SourceMap[];
     uri: string | undefined;
     [key: string]: unknown;
   };

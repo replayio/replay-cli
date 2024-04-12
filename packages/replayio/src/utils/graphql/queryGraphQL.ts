@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { graphQLServer } from "../../config";
+import { replayApiServer } from "../../config";
 import { getUserAgent } from "../getUserAgent";
 import { debug } from "./debug";
 
@@ -21,8 +21,8 @@ export async function queryGraphQL(name: string, query: string, variables = {}, 
     options.headers.Authorization = `Bearer ${apiKey.trim()}`;
   }
 
-  debug("Querying %s over %s graphql endpoint", name, graphQLServer);
-  const result = await fetch(`${graphQLServer}/v1/graphql`, options);
+  debug("Querying %s over %s graphql endpoint", name, replayApiServer);
+  const result = await fetch(`${replayApiServer}/v1/graphql`, options);
 
   const json: any = await result.json();
   debug("GraphQL Response: %O", json);

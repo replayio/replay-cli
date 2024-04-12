@@ -1,7 +1,7 @@
 import assert from "assert";
 import { ReadStream, createReadStream, stat } from "fs-extra";
 import fetch from "node-fetch";
-import { replayServer } from "../../../config";
+import { replayWsServer } from "../../../config";
 import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
@@ -58,7 +58,7 @@ export async function uploadRecording(
 
       updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        server: replayServer,
+        server: replayWsServer,
       });
 
       await retryWithExponentialBackoff(
@@ -84,7 +84,7 @@ export async function uploadRecording(
 
       updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        server: replayServer,
+        server: replayWsServer,
       });
 
       await retryWithExponentialBackoff(
@@ -123,14 +123,14 @@ export async function uploadRecording(
 
   debug("Uploaded %d bytes for recording %s", size, recording.id);
 
-  if (recording.metadata.sourcemaps.length) {
+  if (recording.metadata.sourceMaps.length) {
     await uploadSourceMaps(client, recording);
-    debug("Uploaded sourcemaps for recording %s", recording.id);
+    debug("Uploaded source maps for recording %s", recording.id);
   }
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadFinished,
-    server: replayServer,
+    server: replayWsServer,
   });
 
   recording.uploadStatus = "uploaded";

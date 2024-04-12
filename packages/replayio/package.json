@@ -28,6 +28,7 @@
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replayio/README.md",
   "dependencies": {
     "@replayio/protocol": "^0.71.0",
+    "@replayio/sourcemap-upload": "workspace:^",
     "@types/semver": "^7.5.6",
     "assert": "latest",
     "bvaughn-enquirer": "2.4.2",
