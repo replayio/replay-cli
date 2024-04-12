@@ -7,7 +7,6 @@ import { dim } from "../utils/theme";
 import { logPromise } from "../utils/async/logPromise";
 
 registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
-  .alias("upload-sourcemaps")
   .description("Upload source-maps for a Workspace")
   .requiredOption(
     "-g, --group <name>",
