@@ -1,20 +1,11 @@
 import { dots } from "cli-spinners";
-import logUpdate from "log-update";
-import { Deferred, STATUS_RESOLVED } from "../createDeferred";
+import { isDebugging } from "../../config";
+import { Deferred, STATUS_RESOLVED } from "../async/createDeferred";
+import { logUpdate } from "../logUpdate";
 import { printTable } from "../table";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { formatRecording } from "./formatRecording";
 import { LocalRecording } from "./types";
-
-// log-update interferes with verbose output
-const isDebug = !!process.env.DEBUG;
-
-let logMessage: Function = logUpdate;
-let loggingDone: Function = logUpdate.done;
-if (isDebug) {
-  logMessage = console.log.bind(console);
-  loggingDone = () => {};
-}
 
 export async function printDeferredRecordingActions(
   deferredActions: Deferred<boolean, LocalRecording>[],
@@ -35,7 +26,7 @@ export async function printDeferredRecordingActions(
     const title = renderTitle({ done });
     const table = printTable({
       rows: deferredActions.map(deferred => {
-        let status = !isDebug ? statusPending(dot) : "";
+        let status = !isDebugging ? statusPending(dot) : "";
         if (deferred.resolution === true) {
           status = statusSuccess("✔");
         } else if (deferred.resolution === false) {
@@ -47,18 +38,18 @@ export async function printDeferredRecordingActions(
       }),
     });
 
-    logMessage(title + "\n" + table);
+    logUpdate(title + "\n" + table);
   };
 
   print();
 
-  const interval = !isDebug ? setInterval(print, dots.interval) : undefined;
+  const interval = !isDebugging ? setInterval(print, dots.interval) : undefined;
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
   clearInterval(interval);
   print(true);
-  loggingDone();
+  logUpdate.done();
 
   const failedActions = deferredActions.filter(deferred => deferred.status !== STATUS_RESOLVED);
   if (failedActions.length > 0) {

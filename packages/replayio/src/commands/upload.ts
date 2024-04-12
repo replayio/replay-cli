@@ -1,4 +1,4 @@
-import { registerAuthenticatedCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
@@ -10,7 +10,7 @@ import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { dim } from "../utils/theme";
 
-registerAuthenticatedCommand("upload")
+registerCommand("upload", { requireAuthentication: true })
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Upload all recordings")
   .description("Upload recording(s)")

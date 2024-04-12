@@ -1,4 +1,4 @@
-import { createDeferred } from "../createDeferred";
+import { createDeferred } from "../async/createDeferred";
 import { debug } from "./debug";
 
 export function createSettledDeferred<Data>(data: Data, promise: Promise<void>) {

@@ -1,5 +1,5 @@
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
-import { createDeferred, Deferred } from "./createDeferred";
+import { createDeferred, Deferred } from "./async/createDeferred";
 
 export function spawnProcess(
   executablePath: string,

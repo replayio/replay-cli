@@ -1,9 +1,9 @@
-import { registerAuthenticatedCommand } from "../utils/commander";
+import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 
-registerAuthenticatedCommand("list")
+registerCommand("list", { requireAuthentication: true })
   .description("List all local recordings")
   .option("--json", "Format output as JSON")
   .action(list);

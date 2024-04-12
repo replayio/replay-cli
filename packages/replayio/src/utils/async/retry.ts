@@ -1,4 +1,4 @@
-import { wait } from "./wait";
+import { timeoutAfter } from "./timeoutAfter";
 
 async function retry<T>(
   asyncFunction: () => Promise<T>,
@@ -21,7 +21,7 @@ async function retry<T>(
         throw error;
       }
 
-      await wait(backOffStrategy(currentAttempt));
+      await timeoutAfter(backOffStrategy(currentAttempt));
     }
   }
 
