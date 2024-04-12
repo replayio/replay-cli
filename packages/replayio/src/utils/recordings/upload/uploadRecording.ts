@@ -1,10 +1,10 @@
 import assert from "assert";
-import { createReadStream, stat, statSync } from "fs-extra";
+import { ReadStream, createReadStream, stat } from "fs-extra";
 import fetch from "node-fetch";
-import promiseMap from "p-map";
-import { join } from "path";
-import { Worker } from "worker_threads";
 import { replayWsServer } from "../../../config";
+import { createDeferred } from "../../async/createDeferred";
+import { createPromiseQueue } from "../../async/createPromiseQueue";
+import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
 import { getUserAgent } from "../../getUserAgent";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
@@ -13,13 +13,15 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
-import { debugLogPath, multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
+import { getKeepAliveAgent } from "../../protocol/getKeepAliveAgent";
+import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
 import { uploadSourceMaps } from "./uploadSourceMaps";
 import { validateRecordingMetadata } from "./validateRecordingMetadata";
+
+const uploadQueue = createPromiseQueue({ concurrency: 10 });
 
 export async function uploadRecording(
   client: ProtocolClient,
@@ -91,19 +93,22 @@ export async function uploadRecording(
           debug(`Attempt ${attemptNumber} to set metadata failed:\n%j`, error);
         }
       );
-
-      await retryWithExponentialBackoff(
-        () =>
-          uploadRecordingFile({
-            recordingPath: path,
-            size,
-            uploadLink,
-          }),
-        (error: unknown, attemptNumber: number) => {
-          debug(`Attempt ${attemptNumber} to upload failed:\n%j`, error);
-        }
+      await uploadQueue.add(() =>
+        retryWithExponentialBackoff(
+          () =>
+            uploadRecordingFile({
+              recordingPath: path,
+              size,
+              url: uploadLink,
+            }),
+          (error: any, attemptNumber: number) => {
+            debug(`Attempt ${attemptNumber} to upload failed:\n%j`, error);
+            if (error.code === "ENOENT") {
+              throw error;
+            }
+          }
+        )
       );
-
       await endRecordingUpload(client, { recordingId });
     }
   } catch (error) {
@@ -171,22 +176,14 @@ export async function uploadRecording(
 async function uploadRecordingFile({
   recordingPath,
   size,
-  uploadLink,
+  url,
 }: {
   recordingPath: string;
   size: number;
-  uploadLink: string;
+  url: string;
 }) {
-  const file = createReadStream(recordingPath);
-  const resp = await fetch(uploadLink, {
-    body: file,
-    headers: { "Content-Length": size.toString(), "User-Agent": getUserAgent() },
-    method: "PUT",
-  });
-
-  if (resp.status !== 200) {
-    throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
-  }
+  const stream = createReadStream(recordingPath);
+  await uploadRecordingReadStream(stream, { url, size });
 }
 
 async function uploadRecordingFileInParts({
@@ -198,54 +195,116 @@ async function uploadRecordingFileInParts({
   partLinks: string[];
   recordingPath: string;
 }): Promise<string[]> {
-  const { size: totalSize } = statSync(recordingPath);
+  const { size: totalSize } = await stat(recordingPath);
+  const abortController = new AbortController();
 
-  const results = await promiseMap<string, string>(
-    partLinks,
-    async (url: string, index: number) => {
-      return retryWithLinearBackoff(
-        async () => {
-          const partNumber = index + 1;
-          const start = index * chunkSize;
-          const end = Math.min(start + chunkSize, totalSize) - 1; // -1 because end is inclusive
+  const partsUploads = partLinks.map((url: string, index: number) => {
+    return uploadQueue.add(async () => {
+      try {
+        return retryWithLinearBackoff(
+          async () => {
+            const partNumber = index + 1;
+            const start = index * chunkSize;
+            const end = Math.min(start + chunkSize, totalSize) - 1; // -1 because end is inclusive
 
-          debug("Uploading part %o", {
-            partNumber,
-            start,
-            end,
-            totalSize,
-            chunkSize,
-          });
-          return uploadPart(url, { recordingPath, start, end }, end - start + 1);
-        },
-        error => {
-          debug(`Failed to upload part ${index + 1}. Will be retried: %o`, error);
-        },
-        10
-      );
-    },
-    { concurrency: 10 }
-  );
+            debug("Uploading part %o", {
+              partNumber,
+              start,
+              end,
+              totalSize,
+              chunkSize,
+            });
+            return uploadPart(
+              { url, recordingPath, start, end, size: end - start + 1 },
+              abortController.signal
+            );
+          },
+          (error: any) => {
+            debug(`Failed to upload part ${index + 1}. Will be retried: %o`, error);
+            if (error.code === "ENOENT") {
+              throw error;
+            }
+          }
+        );
+      } catch (error) {
+        abortController.abort();
+        throw error;
+      }
+    });
+  });
 
-  return results;
+  return Promise.all(partsUploads);
 }
 
 async function uploadPart(
-  link: string,
-  partMeta: { recordingPath: string; start: number; end: number },
-  size: number
+  {
+    url,
+    recordingPath,
+    start,
+    end,
+    size,
+  }: {
+    url: string;
+    recordingPath: string;
+    start: number;
+    end: number;
+    size: number;
+  },
+  abortSignal: AbortSignal
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(join(__dirname, "./uploadWorker.js"));
+  debug("Uploading chunk %o", { recordingPath, size, start, end });
+  const stream = createReadStream(recordingPath, { start, end });
+  const response = await uploadRecordingReadStream(stream, { url, size }, abortSignal);
 
-    worker.on("message", resolve);
-    worker.on("error", reject);
-    worker.on("exit", code => {
-      if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`));
-      }
-    });
+  const etag = response.headers.get("etag");
+  assert(etag, "Etag has to be returned in the response headers");
+  debug("Etag received %o", { etag, recordingPath, size, start, end });
 
-    worker.postMessage({ link, partMeta, size, logPath: debugLogPath });
-  });
+  return etag;
+}
+
+async function uploadRecordingReadStream(
+  stream: ReadStream,
+  { url, size }: { url: string; size: number },
+  abortSignal?: AbortSignal
+) {
+  abortSignal?.throwIfAborted();
+
+  const streamError = createDeferred<never>();
+  const closeStream = () => stream.close();
+  stream.on("error", streamError.reject);
+
+  try {
+    const response = await Promise.race([
+      fetch(url, {
+        agent: getKeepAliveAgent,
+        headers: {
+          "Content-Length": size.toString(),
+          "User-Agent": getUserAgent(),
+          Connection: "keep-alive",
+        },
+        method: "PUT",
+        body: stream,
+        signal: abortSignal,
+      }),
+      streamError.promise,
+    ]);
+
+    debug(
+      `Fetch response received. Status: ${response.status}, Status Text: ${response.statusText}`
+    );
+
+    if (response.status !== 200) {
+      const respText = await response.text();
+      debug(`Fetch response text: ${respText}`);
+      throw new Error(
+        `Failed to upload recording. Response was ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response;
+  } finally {
+    // it's idempotent but it has to be closed manually when the upload gets aborted
+    closeStream();
+  }
 }
