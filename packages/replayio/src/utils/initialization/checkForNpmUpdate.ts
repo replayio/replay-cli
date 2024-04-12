@@ -13,8 +13,8 @@ export async function checkForNpmUpdate(): Promise<UpdateCheck<string>> {
         Accept: "application/vnd.npm.install-v1+json",
       },
     });
-    const json = (await response.json()) as any;
-    const latestVersion = json["dist-tags"]?.latest;
+    const json: any = await response.json();
+    const latestVersion = json["dist-tags"].latest;
 
     return {
       hasUpdate: currentVersion !== latestVersion,
