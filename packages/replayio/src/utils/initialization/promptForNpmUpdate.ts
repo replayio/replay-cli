@@ -1,4 +1,4 @@
-import { name } from "../../../package.json";
+import { name as packageName } from "../../../package.json";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
 import { highlight } from "../theme";
@@ -15,7 +15,7 @@ export async function promptForNpmUpdate(updateCheck: UpdateCheckResult<string>)
   console.log("  New version:", highlight(toVersion));
   console.log("");
   console.log("To upgrade, run the following:");
-  console.log(highlight(`  npm install -g ${name}`));
+  console.log(highlight(`  npm install -g ${packageName}`));
   console.log("");
   console.log("Press any key to continue");
   console.log("");
