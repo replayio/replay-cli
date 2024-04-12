@@ -1555,6 +1555,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^3.4.0"
     glob: "npm:^7.1.6"
     node-fetch: "npm:^2.6.1"
+    p-map: "npm:^4.0.0"
     prettier: "npm:^2.2.1"
     string.prototype.matchall: "npm:^4.0.5"
     typescript: "npm:^5.4.2"
