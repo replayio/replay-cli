@@ -16,12 +16,14 @@ export type Release = {
   version: string | null;
 };
 
-export type MetadataJSON = Record<
-  Runtime,
-  | {
-      buildId: string;
-      installDate: string;
-      nativeVersion: string | null;
-    }
-  | undefined
+export type MetadataJSON = Partial<
+  Record<
+    Runtime,
+    | {
+        buildId: string;
+        installDate: string;
+        nativeVersion: string | null;
+      }
+    | undefined
+  >
 >;

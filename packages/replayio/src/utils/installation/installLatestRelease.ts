@@ -54,7 +54,6 @@ export async function installLatestRelease() {
       installDate: new Date().toISOString(),
       nativeVersion: latestVersion,
     },
-    node: undefined,
   });
 }
 
