@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import promiseMap from "p-map";
 import { join } from "path";
 import { Worker } from "worker_threads";
-import { replayServer } from "../../../config";
+import { replayWsServer } from "../../../config";
 import { getUserAgent } from "../../getUserAgent";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
@@ -56,7 +56,7 @@ export async function uploadRecording(
 
       updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        server: replayServer,
+        server: replayWsServer,
       });
 
       await retryWithExponentialBackoff(
@@ -82,7 +82,7 @@ export async function uploadRecording(
 
       updateRecordingLog(recording, {
         kind: RECORDING_LOG_KIND.uploadStarted,
-        server: replayServer,
+        server: replayWsServer,
       });
 
       await retryWithExponentialBackoff(
@@ -125,7 +125,7 @@ export async function uploadRecording(
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadFinished,
-    server: replayServer,
+    server: replayWsServer,
   });
 
   recording.uploadStatus = "uploaded";

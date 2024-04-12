@@ -2,30 +2,29 @@ import { dots } from "cli-spinners";
 import { isDebugging } from "../../config";
 import { logUpdate } from "../logUpdate";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
-import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, Status } from "./createDeferred";
+import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, createDeferred } from "./createDeferred";
 
-export async function logPromise(
-  promise: Promise<any>,
+export async function logPromise<T>(
+  promise: Promise<T>,
   options: {
     delayBeforeLoggingMs?: number;
     messages: {
-      failed?: string;
+      failed?: string | ((error: Error) => string);
       pending: string;
-      success?: string;
+      success?: string | ((result: T) => string);
     };
   }
 ) {
   const { delayBeforeLoggingMs = 0, messages } = options;
 
+  let deferred = createDeferred<T>();
   let dotIndex = 0;
-  let status: Status = STATUS_PENDING;
-
   let logAfter = Date.now() + delayBeforeLoggingMs;
 
   const print = () => {
-    let message;
-    let prefix;
-    switch (status) {
+    let message: string | undefined;
+    let prefix: string;
+    switch (deferred.status) {
       case STATUS_PENDING:
         if (!isDebugging && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
           return;
@@ -35,11 +34,17 @@ export async function logPromise(
         prefix = statusPending(dots.frames[++dotIndex % dots.frames.length]);
         break;
       case STATUS_REJECTED:
-        message = messages.failed;
+        message =
+          typeof messages.failed === "function"
+            ? messages.failed(deferred.rejection!)
+            : messages.failed;
         prefix = statusFailed("✘");
         break;
       case STATUS_RESOLVED:
-        message = messages.success;
+        message =
+          typeof messages.success === "function"
+            ? messages.success(deferred.resolution!)
+            : messages.success;
         prefix = statusSuccess("✔");
         break;
     }
@@ -56,16 +61,16 @@ export async function logPromise(
   const interval = !isDebugging ? setInterval(print, dots.interval) : undefined;
 
   try {
-    await promise;
-
-    status = STATUS_RESOLVED;
+    deferred.resolve(await promise);
   } catch (error) {
-    status = STATUS_REJECTED;
+    deferred.reject(error as Error);
   }
 
   clearInterval(interval);
 
-  print();
-
-  logUpdate.done();
+  try {
+    print();
+  } finally {
+    logUpdate.done();
+  }
 }
