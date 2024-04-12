@@ -11,11 +11,13 @@ npm install --global replayio
 ## Usage
 
 To see all available commands, run:
+
 ```bash
 replayio
 ```
 
 For help on a specific command, use the `help` command:
+
 ```bash
 replayio help list
 ```
