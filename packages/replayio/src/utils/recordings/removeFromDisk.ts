@@ -15,7 +15,7 @@ export function removeFromDisk(id?: string) {
     if (recording) {
       const { metadata, path } = recording;
 
-      metadata.sourcemaps.forEach(sourceMap => {
+      metadata.sourceMaps.forEach(sourceMap => {
         debug("Removing recording source-map file %s", sourceMap.path);
         removeSync(sourceMap.path);
 

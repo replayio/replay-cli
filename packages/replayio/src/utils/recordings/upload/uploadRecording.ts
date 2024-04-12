@@ -123,9 +123,9 @@ export async function uploadRecording(
 
   debug("Uploaded %d bytes for recording %s", size, recording.id);
 
-  if (recording.metadata.sourcemaps.length) {
+  if (recording.metadata.sourceMaps.length) {
     await uploadSourceMaps(client, recording);
-    debug("Uploaded sourcemaps for recording %s", recording.id);
+    debug("Uploaded source maps for recording %s", recording.id);
   }
 
   updateRecordingLog(recording, {

@@ -9,7 +9,7 @@ import "./commands/record";
 import "./commands/remove";
 import "./commands/update";
 import "./commands/upload";
-import "./commands/upload-sourcemaps";
+import "./commands/upload-source-maps";
 
 finalizeCommander();
 

@@ -88,7 +88,7 @@ export function getRecordings(): LocalRecording[] {
                 host: undefined,
                 processGroupId: undefined,
                 processType: undefined,
-                sourcemaps: [],
+                sourceMaps: [],
                 uri: undefined,
               },
               path: undefined,
@@ -115,10 +115,10 @@ export function getRecordings(): LocalRecording[] {
             const recording = idToRecording[recordingId];
             assert(recording, `Recording with ID "${recordingId}" not found`);
 
-            const sourceMap = recording.metadata.sourcemaps.find(
+            const sourceMap = recording.metadata.sourceMaps.find(
               sourceMap => sourceMap.id === parentId
             );
-            assert(sourceMap, `Sourcemap with ID "${parentId}" not found`);
+            assert(sourceMap, `Source map with ID "${parentId}" not found`);
 
             sourceMap.originalSources.push({
               path,
@@ -179,7 +179,7 @@ export function getRecordings(): LocalRecording[] {
             const recording = idToRecording[recordingId];
             assert(recording, `Recording with ID "${recordingId}" not found`);
 
-            recording.metadata.sourcemaps.push({
+            recording.metadata.sourceMaps.push({
               id,
               path,
               baseURL,

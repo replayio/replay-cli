@@ -6,11 +6,11 @@ import { exitProcess } from "../utils/exitProcess";
 import { dim } from "../utils/theme";
 import { logPromise } from "../utils/async/logPromise";
 
-registerCommand("upload-sourcemaps <paths...>", { requireAuthentication: true })
+registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
   .description("Upload source-maps for a Workspace")
   .requiredOption(
     "-g, --group <name>",
-    "The name to group this sourcemap into, e.g. A commit SHA or release version."
+    "The name to group this source map into, e.g. A commit SHA or release version."
   )
   .option(
     "-x, --extensions <exts>",
@@ -50,11 +50,10 @@ async function uploadSourceMaps(
     root,
     server: replayApiServer,
   });
-  debugger;
 
   await logPromise(uploadPromise, {
     messages: {
-      pending: "Uploading sourcemaps...",
+      pending: "Uploading source maps...",
       success: "Source maps uploaded",
       failed: error => `Source maps upload failed:\n${error}`,
     },
