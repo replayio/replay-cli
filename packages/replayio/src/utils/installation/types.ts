@@ -16,14 +16,10 @@ export type Release = {
   version: string | null;
 };
 
-export type MetadataJSON = Partial<
-  Record<
-    Runtime,
-    | {
-        buildId: string;
-        installDate: string;
-        nativeVersion: string | null;
-      }
-    | undefined
-  >
->;
+export type MetadataJSON = {
+  [Key in Runtime]?: {
+    buildId: string;
+    forkedVersion: string | null;
+    installDate: string;
+  };
+};
