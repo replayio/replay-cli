@@ -9,6 +9,8 @@ export function finalizeCommander() {
         const helpText = help.formatHelp(command, helper);
         return formatOutput(helpText);
       },
+      sortOptions: true,
+      sortSubcommands: true,
     });
     program.configureOutput({
       writeErr: (text: string) => process.stderr.write(formatOutput(text)),

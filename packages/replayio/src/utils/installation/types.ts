@@ -17,8 +17,9 @@ export type Release = {
 };
 
 export type MetadataJSON = {
-  chromium: {
+  [Key in Runtime]?: {
     buildId: string;
+    forkedVersion: string | null;
     installDate: string;
   };
 };

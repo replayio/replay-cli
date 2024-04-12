@@ -1,11 +1,11 @@
 import { existsSync } from "fs-extra";
 import { join } from "path";
-import { metadataPath, runtimeMetadata, runtimePath } from "../installation/config";
+import { runtimeMetadata, runtimePath } from "../installation/config";
 import { getLatestRelease } from "../installation/getLatestReleases";
-import { MetadataJSON, Release } from "../installation/types";
-import { readFromCache } from "../cache";
+import { Release } from "../installation/types";
 import { shouldPrompt } from "../prompt/shouldPrompt";
 import { debug } from "./debug";
+import { getCurrentRuntimeMetadata } from "./getCurrentRuntimeMetadata";
 import { UpdateCheck } from "./types";
 
 const PROMPT_ID = "runtime-update";
@@ -47,8 +47,7 @@ export async function checkForRuntimeUpdate(): Promise<UpdateCheck<Version>> {
     };
   }
 
-  const metadata = readFromCache<MetadataJSON>(metadataPath);
-  const currentBuildId = metadata?.chromium?.buildId;
+  const { buildId: currentBuildId } = getCurrentRuntimeMetadata("chromium") ?? {};
   if (currentBuildId) {
     debug("Current build id: %s", currentBuildId);
   } else {

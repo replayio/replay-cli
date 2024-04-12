@@ -4,7 +4,7 @@ import { get } from "https";
 import { join } from "path";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
-import { dim } from "../theme";
+import { dim, highlight, link } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
@@ -44,12 +44,14 @@ export async function installLatestRelease() {
 
   const latestRelease = await getLatestRelease();
   const latestBuildId = latestRelease.buildId;
+  const latestVersion = latestRelease.version;
 
   // Write version metadata to disk so we can compare against the latest release and prompt to update
   debug("Saving release metadata to %s", metadataPath);
   writeToCache<MetadataJSON>(metadataPath, {
     chromium: {
       buildId: latestBuildId,
+      forkedVersion: latestVersion,
       installDate: new Date().toISOString(),
     },
   });
@@ -64,7 +66,7 @@ async function downloadReplayFile() {
 
   for (let i = 0; i < 5; i++) {
     console.log(
-      `Downloading ${runtimeMetadata.runtime} from replay.io${
+      `Downloading ${highlight(runtimeMetadata.runtime)} from ${link("replay.io")}${
         i ? ` ${dim(`(retry ${i} of 4)`)}` : ""
       }`
     );
