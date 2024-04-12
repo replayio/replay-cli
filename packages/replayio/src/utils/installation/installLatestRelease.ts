@@ -44,6 +44,7 @@ export async function installLatestRelease() {
 
   const latestRelease = await getLatestRelease();
   const latestBuildId = latestRelease.buildId;
+  const latestVersion = latestRelease.version;
 
   // Write version metadata to disk so we can compare against the latest release and prompt to update
   debug("Saving release metadata to %s", metadataPath);
@@ -51,7 +52,9 @@ export async function installLatestRelease() {
     chromium: {
       buildId: latestBuildId,
       installDate: new Date().toISOString(),
+      nativeVersion: latestVersion,
     },
+    node: undefined,
   });
 }
 

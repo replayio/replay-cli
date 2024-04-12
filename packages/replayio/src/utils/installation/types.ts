@@ -16,9 +16,12 @@ export type Release = {
   version: string | null;
 };
 
-export type MetadataJSON = {
-  chromium: {
-    buildId: string;
-    installDate: string;
-  };
-};
+export type MetadataJSON = Record<
+  Runtime,
+  | {
+      buildId: string;
+      installDate: string;
+      nativeVersion: string | null;
+    }
+  | undefined
+>;
