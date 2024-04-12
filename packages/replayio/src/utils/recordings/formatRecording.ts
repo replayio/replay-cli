@@ -59,6 +59,7 @@ export function formatRecording(recording: LocalRecording) {
     switch (recordingStatus) {
       case "crashed":
         status = "Crashed";
+        break;
       case "finished":
         status = "Recorded";
         break;
