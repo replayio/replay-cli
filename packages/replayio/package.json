@@ -1,6 +1,6 @@
 {
   "name": "replayio",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./replayio.js",
   "engines": {
