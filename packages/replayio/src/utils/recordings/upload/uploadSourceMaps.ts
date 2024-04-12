@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import promiseMap from "p-map";
+import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { hashValue } from "../../hashValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { addOriginalSource } from "../../protocol/api/addOriginalSource";
@@ -25,10 +25,13 @@ async function ensureResource(client: ProtocolClient, content: string) {
   return (await createResource(client, { content })).resource;
 }
 
+const queue = createPromiseQueue({ concurrency: 10 });
+
 export async function uploadSourceMaps(client: ProtocolClient, recording: LocalRecording) {
-  return promiseMap(
-    recording.metadata.sourcemaps,
-    async sourceMap => {
+  const queueGroup = queue.fork();
+
+  for (const sourceMap of recording.metadata.sourcemaps) {
+    queueGroup.add(async () => {
       debug("Uploading sourcemap %s for recording %s", sourceMap.path, recording.id);
       let sourceMapId: string;
       try {
@@ -52,9 +55,8 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
         return;
       }
 
-      return promiseMap(
-        sourceMap.originalSources,
-        async source => {
+      for (const source of sourceMap.originalSources) {
+        queueGroup.add(async () => {
           debug(
             "Uploading original source %s for sourcemap %s for recording %s",
             source.path,
@@ -78,14 +80,10 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
               error
             );
           }
-        },
-        {
-          concurrency: 5,
-        }
-      );
-    },
-    {
-      concurrency: 10,
-    }
-  );
+        });
+      }
+    });
+  }
+
+  await queueGroup.waitUntilIdle();
 }
