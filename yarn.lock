@@ -7305,7 +7305,6 @@ __metadata:
     launchdarkly-node-client-sdk: "npm:^3.1.0"
     log-update: "npm:^4"
     node-fetch: "npm:^2.6.8"
-    p-map: "npm:^4.0.0"
     prettier: "npm:^2.7.1"
     pretty-ms: "npm:^7.0.1"
     query-registry: "npm:^2.6.0"
