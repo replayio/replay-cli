@@ -24,17 +24,20 @@ export async function prompt({
       destroy();
 
       switch (data) {
+        case "\n":
         case "\r":
           resolve(true);
           break;
+        case "\x03":
+          // \x03 is Ctrl+C (aka "End of text")
+          // https://donsnotes.com/tech/charsets/ascii.html
+          process.exit(0);
         default:
           resolve(false);
           break;
       }
     }
 
-    // TODO [PRO-*] Verify that exit signals are properly handled while this listener is attached
-    // github.com/replayio/replay-cli/pull/344#discussion_r1553358859
     stdin.on("data", onData);
 
     if (abortSignal) {
