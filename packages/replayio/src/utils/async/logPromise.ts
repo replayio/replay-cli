@@ -4,20 +4,20 @@ import { logUpdate } from "../logUpdate";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, createDeferred } from "./createDeferred";
 
-export async function logPromise<T>(
-  promise: Promise<T>,
+export async function logPromise<PromiseType>(
+  promise: Promise<PromiseType>,
   options: {
     delayBeforeLoggingMs?: number;
     messages: {
       failed?: string | ((error: Error) => string);
       pending: string;
-      success?: string | ((result: T) => string);
+      success?: string | ((result: PromiseType) => string);
     };
   }
 ) {
   const { delayBeforeLoggingMs = 0, messages } = options;
 
-  let deferred = createDeferred<T>();
+  let deferred = createDeferred<PromiseType>();
   let dotIndex = 0;
   let logAfter = Date.now() + delayBeforeLoggingMs;
 
@@ -68,9 +68,7 @@ export async function logPromise<T>(
 
   clearInterval(interval);
 
-  try {
-    print();
-  } finally {
-    logUpdate.done();
-  }
+  print();
+
+  logUpdate.done();
 }

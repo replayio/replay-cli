@@ -14,7 +14,7 @@ registerCommand("upload-sourcemaps <paths...>", { requireAuthentication: true })
   )
   .option(
     "-x, --extensions <exts>",
-    `A comma-separated list of extensions to process; ${dim('default ".js,.map"')}`,
+    `A comma-separated list of file extensions to process; ${dim('default ".js,.map"')}`,
     (value: string) => value.split(",")
   )
   .option(
@@ -24,7 +24,7 @@ registerCommand("upload-sourcemaps <paths...>", { requireAuthentication: true })
       return previous.concat([value]);
     }
   )
-  .option("    --root <dirname>", "The base directory to use when computing relative paths")
+  .option("--root <dirname>", "The base directory to use when computing relative paths")
   .action(uploadSourceMaps);
 
 async function uploadSourceMaps(
@@ -50,6 +50,7 @@ async function uploadSourceMaps(
     root,
     server: replayApiServer,
   });
+  debugger;
 
   await logPromise(uploadPromise, {
     messages: {
