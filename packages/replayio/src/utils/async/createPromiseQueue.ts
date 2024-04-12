@@ -16,15 +16,25 @@ function createGroup(root: PromiseQueueRoot): PromiseQueue {
   return {
     add: <T>(action: () => Promise<T>) => {
       pendingCount++;
-      const finalize = <T>(result: T) => {
+      const finalize = () => {
         pendingCount--;
         if (!pendingCount) {
           idleDeferred?.resolve();
           idleDeferred = undefined;
         }
-        return result;
       };
-      return root.add(() => action().then(finalize, finalize));
+      return root.add(() =>
+        action().then(
+          result => {
+            finalize();
+            return result;
+          },
+          error => {
+            finalize();
+            throw error;
+          }
+        )
+      );
     },
     fork: () => createGroup(root),
     waitUntilIdle: (): Promise<undefined> => {

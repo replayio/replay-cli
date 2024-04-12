@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { hashValue } from "../../hashValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { addOriginalSource } from "../../protocol/api/addOriginalSource";
@@ -8,7 +9,6 @@ import { createResource } from "../../protocol/api/createResource";
 import { getResourceToken } from "../../protocol/api/getResourceToken";
 import { debug } from "../debug";
 import { LocalRecording } from "../types";
-import { createPromiseQueue } from "../../createPromiseQueue";
 
 async function ensureResource(client: ProtocolClient, content: string) {
   const { token } = await getResourceToken(client, { hash: `sha256:${hashValue(content)}` });
