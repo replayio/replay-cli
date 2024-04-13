@@ -2,9 +2,11 @@ import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "path";
+import { logPromise } from "../async/logPromise";
+import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
-import { dim, highlight, link } from "../theme";
+import { dim, link } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
@@ -15,10 +17,32 @@ export async function installLatestRelease() {
   const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
   const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
 
+  const metadata = {
+    attemptNumber: 0,
+  };
+
+  const downloadPromise = downloadReplayFile(5, metadata);
+
+  logPromise(downloadPromise, {
+    messages: {
+      failed: "Something went wrong installing the Replay browser. Please try again later.",
+      pending: () => {
+        const prefix = `Downloading from ${link("static.replay.io")}`;
+        let suffix = "";
+        if (metadata.attemptNumber > 1) {
+          suffix = `${dim(` (retry ${metadata.attemptNumber - 1} of 4)`)}`;
+        }
+
+        return `${prefix}${suffix}...`;
+      },
+      success: "Replay browser has been updated.",
+    },
+  });
+
+  const buffers = await downloadPromise;
+
   debug("Removing previous installation at %s", runtimePath);
   rmSync(runtimePath, { force: true, recursive: true });
-
-  const buffers = await downloadReplayFile();
 
   ensureDirSync(runtimeBaseDir);
 
@@ -40,8 +64,6 @@ export async function installLatestRelease() {
     );
   }
 
-  console.log("Download complete!");
-
   const latestRelease = await getLatestRelease();
   const latestBuildId = latestRelease.buildId;
   const latestVersion = latestRelease.version;
@@ -57,24 +79,20 @@ export async function installLatestRelease() {
   });
 }
 
-async function downloadReplayFile() {
+async function downloadReplayFile(maxAttempts: number, metadata: { attemptNumber: number }) {
   const options = {
     host: "static.replay.io",
     port: 443,
     path: `/downloads/${runtimeMetadata.downloadFileName}`,
   };
 
-  for (let i = 0; i < 5; i++) {
-    console.log(
-      `Downloading ${highlight(runtimeMetadata.runtime)} from ${link("replay.io")}${
-        i ? ` ${dim(`(retry ${i} of 4)`)}` : ""
-      }`
-    );
+  for (let i = 1; i <= maxAttempts; i++) {
+    metadata.attemptNumber = i;
 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
       const request = get(options, response => {
         if (response.statusCode != 200) {
-          console.log(`Download received status code ${response.statusCode}, retrying...`);
+          debug(`Download received status code ${response.statusCode}, retrying...`);
           request.destroy();
           resolve(null);
           return;
@@ -85,7 +103,7 @@ async function downloadReplayFile() {
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        console.error(`Download error ${error}, retrying...`);
+        debug(`Download error ${error}, retrying...`);
         request.destroy();
         resolve(null);
       });
@@ -106,8 +124,8 @@ async function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: s
     cwd: runtimeBaseDir,
   });
   if (tarResult.status !== 0) {
-    console.error("Failed to extract", downloadFilePath);
-    console.error(String(tarResult.stderr));
+    debug("Failed to extract", downloadFilePath);
+    debug(String(tarResult.stderr));
 
     throw new Error("Unable to extract browser archive");
   }

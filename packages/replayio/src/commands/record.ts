@@ -19,7 +19,11 @@ registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: 
 async function record(url: string = "about:blank") {
   const prevRecordings = await getRecordings();
 
-  await launchBrowser(url, { processGroupId: uuid() });
+  const didLaunchBrowser = await launchBrowser(url, { processGroupId: uuid() });
+  if (!didLaunchBrowser) {
+    // Browser is missing or somehow corrupted
+    await exitProcess(1);
+  }
 
   const recordingsAfter = await getRecordings();
 
