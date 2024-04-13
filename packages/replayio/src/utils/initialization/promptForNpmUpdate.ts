@@ -15,7 +15,7 @@ export async function promptForNpmUpdate(updateCheck: UpdateCheckResult<string>)
   console.log("  New version:", highlight(toVersion));
   console.log("");
   console.log("To upgrade, run the following:");
-  console.log(highlight(`  npm install -g ${packageName}`));
+  console.log(highlight(`  npm install --global ${packageName}@${toVersion}`));
   console.log("");
   console.log("Press any key to continue");
   console.log("");
