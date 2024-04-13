@@ -4,6 +4,6 @@ export function canUpload(recording: LocalRecording) {
   return (
     recording.path &&
     recording.uploadStatus === undefined &&
-    recording.recordingStatus === "finished"
+    (recording.recordingStatus === "crashed" || recording.recordingStatus === "finished")
   );
 }

@@ -14,7 +14,7 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
     recordingId: recording.id,
   });
 
-  await Promise.all(crashData.map(async data => reportCrash(client, data)));
+  await Promise.all(crashData.map(async data => reportCrash(client, { data })));
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.crashUploaded,

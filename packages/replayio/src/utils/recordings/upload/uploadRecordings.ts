@@ -18,9 +18,10 @@ export async function uploadRecordings(
   options: {
     deleteOnSuccess?: boolean;
     processAfterUpload: boolean;
+    silent?: boolean;
   }
 ) {
-  const { deleteOnSuccess = true, processAfterUpload } = options;
+  const { deleteOnSuccess = true, processAfterUpload, silent = false } = options;
 
   recordings = recordings.filter(recording => {
     if (!canUpload(recording)) {
@@ -65,43 +66,47 @@ export async function uploadRecordings(
     }
   });
 
-  printDeferredRecordingActions(deferredActions, {
-    renderTitle: ({ done }) => (done ? "Uploaded recordings" : `Uploading recordings...`),
-    renderExtraColumns: recording => {
-      let status: string | undefined;
-      if (recording.processingStatus) {
-        switch (recording.processingStatus) {
-          case "processing":
-            status = "(processing…)";
-            break;
-          case "processed":
-            status = "(uploaded+processed)";
-            break;
+  if (!silent) {
+    printDeferredRecordingActions(deferredActions, {
+      renderTitle: ({ done }) => (done ? "Uploaded recordings" : `Uploading recordings...`),
+      renderExtraColumns: recording => {
+        let status: string | undefined;
+        if (recording.processingStatus) {
+          switch (recording.processingStatus) {
+            case "processing":
+              status = "(processing…)";
+              break;
+            case "processed":
+              status = "(uploaded+processed)";
+              break;
+          }
+        } else {
+          switch (recording.uploadStatus) {
+            case "failed":
+              status = "(failed)";
+              break;
+            case "uploading":
+              status = "(uploading…)";
+              break;
+            case "uploaded":
+              status = "(uploaded)";
+              break;
+          }
         }
-      } else {
-        switch (recording.uploadStatus) {
-          case "failed":
-            status = "(failed)";
-            break;
-          case "uploading":
-            status = "(uploading…)";
-            break;
-          case "uploaded":
-            status = "(uploaded)";
-            break;
-        }
-      }
-      return [status ? dim(status) : ""];
-    },
-    renderFailedSummary: failedRecordings =>
-      `${failedRecordings.length} recording(s) did not upload successfully`,
-  });
+        return [status ? dim(status) : ""];
+      },
+      renderFailedSummary: failedRecordings =>
+        `${failedRecordings.length} recording(s) did not upload successfully`,
+    });
+  }
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
   const uploadedRecordings = recordings.filter(recording => recording.uploadStatus === "uploaded");
 
-  printViewRecordingLinks(uploadedRecordings);
+  if (!silent) {
+    printViewRecordingLinks(uploadedRecordings);
+  }
 
   if (deleteOnSuccess) {
     uploadedRecordings.forEach(recording => {

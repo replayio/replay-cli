@@ -9,6 +9,7 @@ import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { logPromise } from "../utils/async/logPromise";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -16,37 +17,71 @@ registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: 
   .action(record);
 
 async function record(url: string = "about:blank") {
-  const recordingsBefore = await getRecordings();
+  const prevRecordings = await getRecordings();
 
   await launchBrowser(url, { processGroupId: uuid() });
 
   const recordingsAfter = await getRecordings();
-  const recordingsNew = recordingsAfter.filter(
-    recording => !recordingsBefore.some(({ id }) => id === recording.id)
-  );
+
+  const nextCrashedRecordings: LocalRecording[] = [];
+  const nextRecordings: LocalRecording[] = [];
+
+  recordingsAfter.filter(recording => {
+    if (!prevRecordings.some(({ id }) => id === recording.id)) {
+      if (recording.recordingStatus === "crashed") {
+        nextCrashedRecordings.push(recording);
+      } else {
+        nextRecordings.push(recording);
+      }
+    }
+  });
 
   console.log(""); // Spacing for readability
 
-  if (recordingsNew.length > 0) {
+  // First check for any new crashes; these we should upload automatically
+  if (nextCrashedRecordings.length > 0) {
+    console.log(
+      "It looks like something went wrong with this recording. Please hold while we upload crash data."
+    );
+
+    const promise = uploadRecordings(nextCrashedRecordings, {
+      processAfterUpload: false,
+      silent: true,
+    });
+
+    logPromise(promise, {
+      messages: {
+        pending: "Uploading crash data...",
+        success: "Crash data uploaded successfully",
+      },
+    });
+
+    await promise;
+
+    console.log(""); // Spacing for readability
+  }
+
+  // Then let the user decide what to do with the other new recordings
+  if (nextRecordings.length > 0) {
     let selectedRecordings: LocalRecording[] = [];
-    if (recordingsNew.length === 1) {
+    if (nextRecordings.length === 1) {
       const confirmed = await confirm(
         "New recording found. Would you like to upload it?",
         true,
         "\n" +
-          printRecordings(recordingsNew, {
+          printRecordings(nextRecordings, {
             showHeaderRow: false,
           })
       );
       if (confirmed) {
-        selectedRecordings = recordingsNew;
+        selectedRecordings = nextRecordings;
       }
 
       console.log(""); // Spacing for readability
     } else {
-      const defaultRecording = findMostRecentPrimaryRecording(recordingsNew);
+      const defaultRecording = findMostRecentPrimaryRecording(nextRecordings);
 
-      selectedRecordings = await selectRecordings(recordingsNew, {
+      selectedRecordings = await selectRecordings(nextRecordings, {
         defaultSelected: recording => recording === defaultRecording,
         prompt: "New recordings found. Which would you like to upload?",
         selectionMessage: "The following recording(s) will be uploaded:",
@@ -56,7 +91,8 @@ async function record(url: string = "about:blank") {
     if (selectedRecordings.length > 0) {
       await uploadRecordings(selectedRecordings, { processAfterUpload: false });
     }
-  } else {
+  } else if (nextCrashedRecordings.length === 0) {
+    // It doesn't make sense to print this message if there were crashes
     console.log("No new recordings were created");
   }
 
