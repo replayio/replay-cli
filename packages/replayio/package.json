@@ -3,6 +3,10 @@
   "version": "0.0.10",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./replayio.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": ">=18"
   },
