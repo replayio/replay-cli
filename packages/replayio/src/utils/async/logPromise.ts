@@ -10,7 +10,7 @@ export async function logPromise<PromiseType>(
     delayBeforeLoggingMs?: number;
     messages: {
       failed?: string | ((error: Error) => string);
-      pending: string;
+      pending: string | (() => string);
       success?: string | ((result: PromiseType) => string);
     };
   }
@@ -30,7 +30,7 @@ export async function logPromise<PromiseType>(
           return;
         }
 
-        message = messages.pending;
+        message = typeof messages.pending === "function" ? messages.pending() : messages.pending;
         prefix = statusPending(dots.frames[++dotIndex % dots.frames.length]);
         break;
       case STATUS_REJECTED:

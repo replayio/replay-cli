@@ -1,16 +1,16 @@
 import { v4 as uuid } from "uuid";
+import { logPromise } from "../utils/async/logPromise";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
+import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { logPromise } from "../utils/async/logPromise";
-import { canUpload } from "../utils/recordings/canUpload";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -48,7 +48,7 @@ async function record(url: string = "about:blank") {
     const uploadableCrashes = nextCrashedRecordings.filter(canUpload);
 
     const promise = uploadRecordings(nextCrashedRecordings, {
-      processAfterUpload: false,
+      processingBehavior: "do-not-process",
       silent: true,
     });
 
@@ -97,7 +97,7 @@ async function record(url: string = "about:blank") {
     }
 
     if (selectedRecordings.length > 0) {
-      await uploadRecordings(selectedRecordings, { processAfterUpload: false });
+      await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
     }
   } else if (nextCrashedRecordings.length === 0) {
     // It doesn't make sense to print this message if there were crashes

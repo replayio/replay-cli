@@ -10,6 +10,7 @@ import { printDeferredRecordingActions } from "../printDeferredRecordingActions"
 import { printViewRecordingLinks } from "../printViewRecordingLinks";
 import { removeFromDisk } from "../removeFromDisk";
 import { LocalRecording } from "../types";
+import { ProcessingBehavior } from "./types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 
@@ -17,11 +18,11 @@ export async function uploadRecordings(
   recordings: LocalRecording[],
   options: {
     deleteOnSuccess?: boolean;
-    processAfterUpload: boolean;
+    processingBehavior: ProcessingBehavior;
     silent?: boolean;
   }
 ) {
-  const { deleteOnSuccess = true, processAfterUpload, silent = false } = options;
+  const { deleteOnSuccess = true, processingBehavior, silent = false } = options;
 
   recordings = recordings.filter(recording => {
     if (!canUpload(recording)) {
@@ -60,7 +61,7 @@ export async function uploadRecordings(
     } else {
       return createSettledDeferred<LocalRecording>(
         recording,
-        uploadRecording(client, recording, { multiPartUpload, processAfterUpload })
+        uploadRecording(client, recording, { multiPartUpload, processingBehavior })
       );
     }
   });

@@ -1,7 +1,5 @@
-import assert from "assert";
-import { ensureDirSync } from "fs-extra";
+import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
-import { createDeferred } from "../async/createDeferred";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
@@ -37,6 +35,11 @@ export async function launchBrowser(
     stdio: undefined,
   };
 
+  if (!existsSync(runtimeExecutablePath)) {
+    debug(`Replay browser not found at: ${runtimeExecutablePath}`);
+    throw new Error(`Replay browser not found at: ${runtimeExecutablePath}`);
+  }
+
   debug(
     `Launching browser: ${runtimeExecutablePath} with args:\n`,
     args.join("\n"),
@@ -47,28 +50,22 @@ export async function launchBrowser(
   // Wait until the user quits the browser process OR
   // until the user presses a key to continue (in which case, we will kill the process)
   const abortControllerForPrompt = new AbortController();
-  const browserClosedDeferred = createDeferred<void>();
 
-  const { data: childProcess } = spawnProcess(runtimeExecutablePath, args, processOptions, {
-    onError: (error: Error) => {
-      abortControllerForPrompt.abort();
-      browserClosedDeferred.rejectIfPending(error);
-    },
-    onExit: () => {
-      abortControllerForPrompt.abort();
-      browserClosedDeferred.resolveIfPending();
-    },
+  const spawnDeferred = spawnProcess(runtimeExecutablePath, args, processOptions, {
     onSpawn: () => {
       console.log(`Recording ${dim("(press any key to stop recording)")}`);
 
       prompt({
-        abortSignal: abortControllerForPrompt.signal,
+        signal: abortControllerForPrompt.signal,
       }).then(() => {
-        assert(childProcess);
-        childProcess.kill();
+        spawnDeferred.data.kill();
       });
     },
   });
 
-  await browserClosedDeferred.promise;
+  try {
+    await spawnDeferred.promise;
+  } finally {
+    abortControllerForPrompt.abort();
+  }
 }

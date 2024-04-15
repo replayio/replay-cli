@@ -48,7 +48,7 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    await uploadRecordings(selectedRecordings, { processAfterUpload: false });
+    await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
   }
 
   await exitProcess(0);

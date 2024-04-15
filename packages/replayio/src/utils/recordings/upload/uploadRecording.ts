@@ -18,6 +18,7 @@ import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
+import { ProcessingBehavior } from "./types";
 import { uploadSourceMaps } from "./uploadSourceMaps";
 import { validateRecordingMetadata } from "./validateRecordingMetadata";
 
@@ -28,13 +29,13 @@ export async function uploadRecording(
   recording: LocalRecording,
   options: {
     multiPartUpload: boolean;
-    processAfterUpload: boolean;
+    processingBehavior: ProcessingBehavior;
   }
 ) {
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
-  const { multiPartUpload, processAfterUpload } = options;
+  const { multiPartUpload, processingBehavior } = options;
 
   const { size } = await stat(path);
 
@@ -135,40 +136,54 @@ export async function uploadRecording(
 
   recording.uploadStatus = "uploaded";
 
-  if (processAfterUpload) {
-    debug("Begin processing recording %s ...", recording.id);
+  switch (processingBehavior) {
+    case "start-processing": {
+      debug("Start processing recording %s ...", recording.id);
 
-    try {
-      await client.waitUntilAuthenticated();
+      // In this code path, we intentionally don't update the "processingStatus" nor the recording log
+      // because this would interfere with how the recordings are printed when the upload has finished
 
-      debug(`Processing recording ${recording.id}`);
-
-      updateRecordingLog(recording, {
-        kind: RECORDING_LOG_KIND.processingStarted,
+      processRecording(client, { recordingId: recording.id }).catch(error => {
+        // Ignore
       });
+      break;
+    }
+    case "wait-for-processing-to-finish": {
+      debug("Begin processing recording %s ...", recording.id);
 
-      recording.processingStatus = "processing";
+      try {
+        await client.waitUntilAuthenticated();
 
-      await retryWithExponentialBackoff(
-        () => processRecording(client, { recordingId: recording.id }),
-        (error: unknown, attemptNumber: number) => {
-          debug(`Processing failed after ${attemptNumber} attempts:\n%j`, error);
-        }
-      );
+        debug(`Processing recording ${recording.id}`);
 
-      updateRecordingLog(recording, {
-        kind: RECORDING_LOG_KIND.processingFinished,
-      });
+        updateRecordingLog(recording, {
+          kind: RECORDING_LOG_KIND.processingStarted,
+        });
 
-      recording.processingStatus = "processed";
-    } catch (error) {
-      // Processing may have failed to start, but the recording still uploaded successfully
+        recording.processingStatus = "processing";
 
-      updateRecordingLog(recording, {
-        kind: RECORDING_LOG_KIND.processingFailed,
-      });
+        await retryWithExponentialBackoff(
+          () => processRecording(client, { recordingId: recording.id }),
+          (error: unknown, attemptNumber: number) => {
+            debug(`Processing failed after ${attemptNumber} attempts:\n%j`, error);
+          }
+        );
 
-      recording.processingStatus = "failed";
+        updateRecordingLog(recording, {
+          kind: RECORDING_LOG_KIND.processingFinished,
+        });
+
+        recording.processingStatus = "processed";
+      } catch (error) {
+        // Processing may have failed to start, but the recording still uploaded successfully
+
+        updateRecordingLog(recording, {
+          kind: RECORDING_LOG_KIND.processingFailed,
+        });
+
+        recording.processingStatus = "failed";
+      }
+      break;
     }
   }
 }
