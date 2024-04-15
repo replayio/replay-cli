@@ -14,11 +14,16 @@ export async function prompt({
     stdin.resume();
     stdin.setEncoding("utf8");
 
+    function abortListener() {
+      destroy();
+      resolve(false);
+    }
+
     function destroy() {
       stdin.off("data", onData);
       stdin.setRawMode(prevRaw);
       stdin.setEncoding();
-      signal?.removeEventListener("abort", destroy);
+      signal?.removeEventListener("abort", abortListener);
     }
 
     function onData(data: string) {
@@ -40,9 +45,6 @@ export async function prompt({
     }
 
     stdin.on("data", onData);
-    signal?.addEventListener("abort", () => {
-      destroy();
-      resolve(false);
-    });
+    signal?.addEventListener("abort", abortListener);
   });
 }

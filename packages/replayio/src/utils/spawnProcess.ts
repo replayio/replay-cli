@@ -53,9 +53,9 @@ export function spawnProcess(
           message += `:\n${buffered}`;
         }
         deferred.rejectIfPending(new Error(message));
-        return;
+      } else {
+        deferred.resolveIfPending();
       }
-      deferred.resolveIfPending();
     });
   }
 
