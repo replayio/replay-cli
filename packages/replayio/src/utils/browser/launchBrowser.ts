@@ -5,6 +5,7 @@ import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
 import { dim } from "../theme";
 import { debug } from "./debug";
+import { getBrowserPath } from "./getBrowserPath";
 
 export async function launchBrowser(
   url: string,
@@ -13,13 +14,12 @@ export async function launchBrowser(
     processGroupId: string;
   }
 ) {
-  const { path: executablePath, runtime } = runtimeMetadata;
   const { directory, processGroupId } = options;
 
-  const profileDir = join(runtimePath, "profiles", runtime);
+  const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
 
-  const runtimeExecutablePath = join(runtimePath, ...executablePath);
+  const browserExecutablePath = getBrowserPath();
   const args = [
     url,
     "--no-first-run",
@@ -35,13 +35,13 @@ export async function launchBrowser(
     stdio: undefined,
   };
 
-  if (!existsSync(runtimeExecutablePath)) {
-    debug(`Replay browser not found at: ${runtimeExecutablePath}`);
-    throw new Error(`Replay browser not found at: ${runtimeExecutablePath}`);
+  if (!existsSync(browserExecutablePath)) {
+    debug(`Replay browser not found at: ${browserExecutablePath}`);
+    throw new Error(`Replay browser not found at: ${browserExecutablePath}`);
   }
 
   debug(
-    `Launching browser: ${runtimeExecutablePath} with args:\n`,
+    `Launching browser: ${browserExecutablePath} with args:\n`,
     args.join("\n"),
     "\n",
     processOptions
@@ -51,7 +51,7 @@ export async function launchBrowser(
   // until the user presses a key to continue (in which case, we will kill the process)
   const abortControllerForPrompt = new AbortController();
 
-  const spawnDeferred = spawnProcess(runtimeExecutablePath, args, processOptions, {
+  const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
     onSpawn: () => {
       console.log(`Recording ${dim("(press any key to stop recording)")}`);
 
