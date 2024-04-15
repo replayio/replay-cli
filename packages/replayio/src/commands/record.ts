@@ -19,12 +19,7 @@ registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: 
 async function record(url: string = "about:blank") {
   const prevRecordings = await getRecordings();
 
-  const didLaunchBrowser = await launchBrowser(url, { processGroupId: uuid() });
-  if (!didLaunchBrowser) {
-    console.error("Something went wrong trying to launch the Replay browser.");
-
-    await exitProcess(1);
-  }
+  await launchBrowser(url, { processGroupId: uuid() });
 
   const recordingsAfter = await getRecordings();
 
