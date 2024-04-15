@@ -140,6 +140,9 @@ export async function uploadRecording(
     case "start-processing": {
       debug("Start processing recording %s ...", recording.id);
 
+      // In this code path, we intentionally don't update the "processingStatus" nor the recording log
+      // because this would interfere with how the recordings are printed when the upload has finished
+
       processRecording(client, { recordingId: recording.id }).catch(error => {
         // Ignore
       });
