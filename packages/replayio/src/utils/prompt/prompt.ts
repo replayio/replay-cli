@@ -1,9 +1,13 @@
 export async function prompt({
-  abortSignal,
+  signal,
 }: {
-  abortSignal?: AbortSignal;
+  signal?: AbortSignal;
 } = {}): Promise<boolean> {
   return new Promise(resolve => {
+    if (signal?.aborted) {
+      resolve(false);
+      return;
+    }
     const stdin = process.stdin;
     const prevRaw = stdin.isRaw;
     stdin.setRawMode(true);
@@ -14,10 +18,7 @@ export async function prompt({
       stdin.off("data", onData);
       stdin.setRawMode(prevRaw);
       stdin.setEncoding();
-
-      if (abortSignal) {
-        abortSignal.removeEventListener("abort", destroy);
-      }
+      signal?.removeEventListener("abort", destroy);
     }
 
     function onData(data: string) {
@@ -39,9 +40,9 @@ export async function prompt({
     }
 
     stdin.on("data", onData);
-
-    if (abortSignal) {
-      abortSignal.addEventListener("abort", destroy);
-    }
+    signal?.addEventListener("abort", () => {
+      destroy();
+      resolve(false);
+    });
   });
 }
