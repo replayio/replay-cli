@@ -1,5 +1,5 @@
 import assert from "assert";
-import { ensureDirSync } from "fs-extra";
+import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
 import { createDeferred } from "../async/createDeferred";
 import { runtimeMetadata, runtimePath } from "../installation/config";
@@ -37,6 +37,12 @@ export async function launchBrowser(
     stdio: undefined,
   };
 
+  if (!existsSync(runtimeExecutablePath)) {
+    debug(`Replay browser not found at: ${runtimeExecutablePath}`);
+
+    return false;
+  }
+
   debug(
     `Launching browser: ${runtimeExecutablePath} with args:\n`,
     args.join("\n"),
@@ -71,4 +77,6 @@ export async function launchBrowser(
   });
 
   await browserClosedDeferred.promise;
+
+  return true;
 }

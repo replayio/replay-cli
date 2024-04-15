@@ -1,8 +1,7 @@
 import { installLatestRelease } from "../installation/installLatestRelease";
-import { parseBuildId } from "../installation/parseBuildId";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
-import { emphasize, highlight } from "../theme";
+import { emphasize } from "../theme";
 import { Version } from "./checkForRuntimeUpdate";
 import { UpdateCheckResult } from "./types";
 
@@ -16,15 +15,9 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
   let confirmed = fromVersion == null;
 
   if (fromVersion) {
-    const { releaseDate } = parseBuildId(toVersion.buildId);
-
     console.log("");
-    console.log("A new version of Replay is available!");
-    console.log("  Release date:", highlight(releaseDate.toLocaleDateString()));
-    console.log("  Version:", highlight(toVersion.version));
-    console.log("");
-    console.log(`Press ${emphasize("[Enter]")} to upgrade`);
-    console.log("Press any other key to skip");
+    console.log(`A new version of the Replay browser is available.`);
+    console.log(`Press ${emphasize("[Enter]")} to upgrade or press any other key to skip.`);
     console.log("");
 
     confirmed = await prompt();
@@ -43,7 +36,13 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
   });
 
   if (confirmed) {
-    await installLatestRelease();
-    console.log("");
+    try {
+      await installLatestRelease();
+    } catch (error) {
+      // A failed update is not a critical error;
+      // A failed install will be handled later
+    }
   }
+
+  console.log("");
 }
