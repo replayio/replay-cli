@@ -4,6 +4,7 @@ import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
+import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
@@ -44,6 +45,8 @@ async function record(url: string = "about:blank") {
       "It looks like something went wrong with this recording. Please hold while we upload crash data."
     );
 
+    const uploadableCrashes = nextCrashedRecordings.filter(canUpload);
+
     const promise = uploadRecordings(nextCrashedRecordings, {
       processingBehavior: "do-not-process",
       silent: true,
@@ -52,7 +55,12 @@ async function record(url: string = "about:blank") {
     logPromise(promise, {
       messages: {
         pending: "Uploading crash data...",
-        success: "Crash data uploaded successfully",
+        success: () => {
+          if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
+            return "Crash data could only be partially uploaded";
+          }
+          return "Crash data uploaded successfully";
+        },
       },
     });
 

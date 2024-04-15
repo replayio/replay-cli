@@ -51,7 +51,6 @@ export async function uploadRecordings(
       }
       console.error(message);
       await exitProcess(1);
-      return;
     }
     throw error;
   }
@@ -116,4 +115,5 @@ export async function uploadRecordings(
   }
 
   client.close();
+  return deferredActions.map(action => action.data);
 }
