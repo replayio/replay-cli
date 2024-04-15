@@ -21,7 +21,8 @@ async function record(url: string = "about:blank") {
 
   const didLaunchBrowser = await launchBrowser(url, { processGroupId: uuid() });
   if (!didLaunchBrowser) {
-    // Browser is missing or somehow corrupted
+    console.error("Something went wrong trying to launch the Replay browser.");
+
     await exitProcess(1);
   }
 
