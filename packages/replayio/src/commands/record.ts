@@ -57,7 +57,7 @@ async function record(url: string = "about:blank") {
         pending: "Uploading crash data...",
         success: () => {
           if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
-            return "Some of the crash data couldn't be uploaded";
+            return "Crash data could only be partially uploaded";
           }
           return "Crash data uploaded successfully";
         },
