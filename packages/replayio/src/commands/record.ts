@@ -10,6 +10,7 @@ import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { logPromise } from "../utils/async/logPromise";
+import { canUpload } from "../utils/recordings/canUpload";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -44,6 +45,8 @@ async function record(url: string = "about:blank") {
       "It looks like something went wrong with this recording. Please hold while we upload crash data."
     );
 
+    const uploadableCrashes = nextCrashedRecordings.filter(canUpload);
+
     const promise = uploadRecordings(nextCrashedRecordings, {
       processAfterUpload: false,
       silent: true,
@@ -52,7 +55,12 @@ async function record(url: string = "about:blank") {
     logPromise(promise, {
       messages: {
         pending: "Uploading crash data...",
-        success: "Crash data uploaded successfully",
+        success: () => {
+          if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
+            return "Some of the crash data couldn't be uploaded";
+          }
+          return "Crash data uploaded successfully";
+        },
       },
     });
 
