@@ -1,5 +1,5 @@
 import { dots } from "cli-spinners";
-import { isDebugging } from "../../config";
+import { disableAnimatedLog } from "../../config";
 import { logUpdate } from "../logUpdate";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
 import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, createDeferred } from "./createDeferred";
@@ -26,7 +26,7 @@ export async function logPromise<PromiseType>(
     let prefix: string;
     switch (deferred.status) {
       case STATUS_PENDING:
-        if (!isDebugging && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
+        if (!disableAnimatedLog && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
           return;
         }
 
@@ -58,7 +58,7 @@ export async function logPromise<PromiseType>(
 
   print();
 
-  const interval = !isDebugging ? setInterval(print, dots.interval) : undefined;
+  const interval = disableAnimatedLog ? undefined : setInterval(print, dots.interval);
 
   try {
     deferred.resolve(await promise);

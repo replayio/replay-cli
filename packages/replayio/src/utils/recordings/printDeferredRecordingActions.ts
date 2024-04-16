@@ -1,5 +1,5 @@
 import { dots } from "cli-spinners";
-import { isDebugging } from "../../config";
+import { disableAnimatedLog } from "../../config";
 import { Deferred, STATUS_RESOLVED } from "../async/createDeferred";
 import { logUpdate } from "../logUpdate";
 import { printTable } from "../table";
@@ -26,7 +26,7 @@ export async function printDeferredRecordingActions(
     const title = renderTitle({ done });
     const table = printTable({
       rows: deferredActions.map(deferred => {
-        let status = !isDebugging ? statusPending(dot) : "";
+        let status = disableAnimatedLog ? "" : statusPending(dot);
         if (deferred.resolution === true) {
           status = statusSuccess("✔");
         } else if (deferred.resolution === false) {
@@ -43,7 +43,7 @@ export async function printDeferredRecordingActions(
 
   print();
 
-  const interval = !isDebugging ? setInterval(print, dots.interval) : undefined;
+  const interval = disableAnimatedLog ? undefined : setInterval(print, dots.interval);
 
   await Promise.all(deferredActions.map(deferred => deferred.promise));
 
