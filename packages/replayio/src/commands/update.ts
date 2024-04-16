@@ -2,9 +2,7 @@ import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { installLatestRelease } from "../utils/installation/installLatestRelease";
 
-registerCommand("update", { requireAuthentication: true })
-  .description("Update your installed Replay browser")
-  .action(update);
+registerCommand("update").description("Update your installed Replay browser").action(update);
 
 async function update() {
   try {
