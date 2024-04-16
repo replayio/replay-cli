@@ -3,7 +3,6 @@ import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs
 import { get } from "https";
 import { join } from "path";
 import { logPromise } from "../async/logPromise";
-import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
 import { dim, link } from "../theme";
@@ -59,8 +58,8 @@ export async function installLatestRelease() {
   // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
   if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
     renameSync(
-      join(runtimePath, runtimeMetadata.sourceName),
-      join(runtimePath, runtimeMetadata.destinationName)
+      join(runtimeBaseDir, runtimeMetadata.sourceName),
+      join(runtimeBaseDir, runtimeMetadata.destinationName)
     );
   }
 
