@@ -17,10 +17,13 @@ export async function promptForNpmUpdate(updateCheck: UpdateCheckResult<string>)
   console.log("To upgrade, run the following:");
   console.log(highlight(`  npm install --global ${packageName}@${toVersion}`));
   console.log("");
-  console.log("Press any key to continue");
-  console.log("");
 
-  await prompt();
+  if (process.stdin.isTTY) {
+    console.log("Press any key to continue");
+    console.log("");
+
+    await prompt();
+  }
 
   updateCachedPromptData({
     id: PROMPT_ID,
