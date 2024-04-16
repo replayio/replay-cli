@@ -17,7 +17,7 @@
     "*.d.ts"
   ],
   "scripts": {
-    "postinstall": "\"$npm_node_execpath\" ./postinstall.js",
+    "postinstall": "\"$npm_node_execpath\" ./first-run.js",
     "prepare": "npm run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "test": "echo \"Error: no test specified\"",
