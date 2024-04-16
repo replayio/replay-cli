@@ -34,7 +34,7 @@ export async function uploadRecordings(
   });
 
   if (recordings.length === 0) {
-    return;
+    return [];
   }
 
   const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
@@ -119,5 +119,6 @@ export async function uploadRecordings(
   }
 
   client.close();
+
   return deferredActions.map(action => action.data);
 }

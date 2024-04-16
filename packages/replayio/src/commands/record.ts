@@ -1,10 +1,9 @@
 import { v4 as uuid } from "uuid";
-import { logPromise } from "../utils/async/logPromise";
+import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
-import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
@@ -30,9 +29,7 @@ async function record(url: string = "about:blank") {
   recordingsAfter.filter(recording => {
     if (!prevRecordings.some(({ id }) => id === recording.id)) {
       if (recording.recordingStatus === "crashed") {
-        if (canUpload(recording)) {
-          nextCrashedRecordings.push(recording);
-        }
+        nextCrashedRecordings.push(recording);
       } else {
         nextRecordings.push(recording);
       }
@@ -52,61 +49,47 @@ async function record(url: string = "about:blank") {
       silent: true,
     });
 
-    logPromise(promise, {
-      messages: {
-        pending: "Uploading crash data...",
-        success: () => {
-          if (nextCrashedRecordings.some(recording => recording.uploadStatus === "failed")) {
-            return "Crash data could only be partially uploaded";
-          }
-          return "Crash data uploaded successfully";
-        },
-      },
-    });
+    const progress = logAsyncOperation("Uploading crash data...");
+    const uploadableCrashes = await promise;
 
-    await promise;
+    if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
+      progress.setFailed("Crash data could only be partially uploaded");
+    } else {
+      progress.setSuccess("Crash data uploaded successfully");
+    }
 
     console.log(""); // Spacing for readability
   }
 
   // Then let the user decide what to do with the other new recordings
   if (nextRecordings.length > 0) {
-    if (!process.stdin.isTTY) {
-      console.log(
-        "New recording(s) found:\n" +
+    let selectedRecordings: LocalRecording[] = [];
+    if (nextRecordings.length === 1) {
+      const confirmed = await confirm(
+        "New recording found. Would you like to upload it?",
+        true,
+        "\n" +
           printRecordings(nextRecordings, {
             showHeaderRow: false,
           })
       );
+      if (confirmed) {
+        selectedRecordings = nextRecordings;
+      }
+
+      console.log(""); // Spacing for readability
     } else {
-      let selectedRecordings: LocalRecording[] = [];
-      if (nextRecordings.length === 1) {
-        const confirmed = await confirm(
-          "New recording found. Would you like to upload it?",
-          true,
-          "\n" +
-            printRecordings(nextRecordings, {
-              showHeaderRow: false,
-            })
-        );
-        if (confirmed) {
-          selectedRecordings = nextRecordings;
-        }
+      const defaultRecording = findMostRecentPrimaryRecording(nextRecordings);
 
-        console.log(""); // Spacing for readability
-      } else {
-        const defaultRecording = findMostRecentPrimaryRecording(nextRecordings);
+      selectedRecordings = await selectRecordings(nextRecordings, {
+        defaultSelected: recording => recording === defaultRecording,
+        prompt: "New recordings found. Which would you like to upload?",
+        selectionMessage: "The following recording(s) will be uploaded:",
+      });
+    }
 
-        selectedRecordings = await selectRecordings(nextRecordings, {
-          defaultSelected: recording => recording === defaultRecording,
-          prompt: "New recordings found. Which would you like to upload?",
-          selectionMessage: "The following recording(s) will be uploaded:",
-        });
-      }
-
-      if (selectedRecordings.length > 0) {
-        await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
-      }
+    if (selectedRecordings.length > 0) {
+      await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
     }
   } else if (nextCrashedRecordings.length === 0) {
     // It doesn't make sense to print this message if there were crashes

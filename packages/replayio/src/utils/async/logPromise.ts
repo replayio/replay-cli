@@ -1,74 +1,29 @@
-import { dots } from "cli-spinners";
-import { disableAnimatedLog } from "../../config";
-import { logUpdate } from "../logUpdate";
-import { statusFailed, statusPending, statusSuccess } from "../theme";
-import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, createDeferred } from "./createDeferred";
+import { logProgress, LogProgressOptions } from "./logProgress";
 
 export async function logPromise<PromiseType>(
   promise: Promise<PromiseType>,
-  options: {
-    delayBeforeLoggingMs?: number;
+  options: LogProgressOptions & {
     messages: {
       failed?: string | ((error: Error) => string);
-      pending: string | (() => string);
+      pending: string;
       success?: string | ((result: PromiseType) => string);
     };
   }
 ) {
-  const { delayBeforeLoggingMs = 0, messages } = options;
+  const { delayBeforeLoggingMs, messages } = options;
 
-  let deferred = createDeferred<PromiseType>();
-  let dotIndex = 0;
-  let logAfter = Date.now() + delayBeforeLoggingMs;
-
-  const print = () => {
-    let message: string | undefined;
-    let prefix: string;
-    switch (deferred.status) {
-      case STATUS_PENDING:
-        if (!disableAnimatedLog && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {
-          return;
-        }
-
-        message = typeof messages.pending === "function" ? messages.pending() : messages.pending;
-        prefix = statusPending(dots.frames[++dotIndex % dots.frames.length]);
-        break;
-      case STATUS_REJECTED:
-        message =
-          typeof messages.failed === "function"
-            ? messages.failed(deferred.rejection!)
-            : messages.failed;
-        prefix = statusFailed("✘");
-        break;
-      case STATUS_RESOLVED:
-        message =
-          typeof messages.success === "function"
-            ? messages.success(deferred.resolution!)
-            : messages.success;
-        prefix = statusSuccess("✔");
-        break;
-    }
-
-    if (message) {
-      logUpdate(`${prefix} ${message}`);
-    } else {
-      logUpdate.clear();
-    }
-  };
-
-  print();
-
-  const interval = disableAnimatedLog ? undefined : setInterval(print, dots.interval);
+  const progress = logProgress(messages.pending, {
+    delayBeforeLoggingMs,
+  });
 
   try {
-    deferred.resolve(await promise);
+    const result = await promise;
+    const message =
+      typeof messages.success === "function" ? messages.success(result) : messages.success;
+    progress.setSuccess(message || "");
   } catch (error) {
-    deferred.reject(error as Error);
+    const message =
+      typeof messages.failed === "function" ? messages.failed(error as Error) : messages.failed;
+    progress.setFailed(message || "");
   }
-
-  clearInterval(interval);
-
-  print();
-
-  logUpdate.done();
 }
