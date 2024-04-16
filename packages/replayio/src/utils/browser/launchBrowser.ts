@@ -1,5 +1,6 @@
 import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
+import { getReplayPath } from "../getReplayPath";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
@@ -10,11 +11,10 @@ import { getBrowserPath } from "./getBrowserPath";
 export async function launchBrowser(
   url: string,
   options: {
-    directory?: string;
     processGroupId: string;
   }
 ) {
-  const { directory, processGroupId } = options;
+  const { processGroupId } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -29,7 +29,7 @@ export async function launchBrowser(
   const processOptions = {
     env: {
       RECORD_ALL_CONTENT: "1",
-      RECORD_REPLAY_DIRECTORY: directory,
+      RECORD_REPLAY_DIRECTORY: getReplayPath(),
       RECORD_REPLAY_METADATA: JSON.stringify({ processGroupId }),
     },
     stdio: undefined,
