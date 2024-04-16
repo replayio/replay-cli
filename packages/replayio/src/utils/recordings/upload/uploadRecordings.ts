@@ -33,6 +33,10 @@ export async function uploadRecordings(
     return true;
   });
 
+  if (recordings.length === 0) {
+    return;
+  }
+
   const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
   const client = new ProtocolClient();
   try {
