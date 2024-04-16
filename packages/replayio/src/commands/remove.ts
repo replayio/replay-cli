@@ -28,6 +28,12 @@ async function remove(shortIds: string[], { all = false }: { all?: boolean }) {
     } else if (all) {
       selectedRecordings = allRecordings;
     } else {
+      if (!process.stdin.isTTY) {
+        console.log("Recording ids argument required for non-TTY environments.");
+
+        await exitProcess(1);
+      }
+
       selectedRecordings = await selectRecordings(allRecordings, {
         prompt: "Which recordings would you like to delete?",
         selectionMessage: "The following recording(s) will be deleted from disk:",

@@ -34,6 +34,12 @@ async function upload(
   } else if (recordings.length === 0) {
     console.log("No recordings found.");
   } else {
+    if (!process.stdin.isTTY) {
+      console.log("Recording ids argument required for non-TTY environments.");
+
+      await exitProcess(1);
+    }
+
     const defaultRecording = findMostRecentPrimaryRecording(recordings);
 
     selectedRecordings = await selectRecordings(recordings, {

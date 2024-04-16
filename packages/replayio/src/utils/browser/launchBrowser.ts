@@ -53,13 +53,17 @@ export async function launchBrowser(
 
   const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
     onSpawn: () => {
-      console.log(`Recording ${dim("(press any key to stop recording)")}`);
+      if (process.stdin.isTTY) {
+        console.log(`Recording... ${dim("(press any key to stop recording)")}`);
 
-      prompt({
-        signal: abortControllerForPrompt.signal,
-      }).then(() => {
-        spawnDeferred.data.kill();
-      });
+        prompt({
+          signal: abortControllerForPrompt.signal,
+        }).then(() => {
+          spawnDeferred.data.kill();
+        });
+      } else {
+        console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+      }
     },
   });
 
