@@ -2,7 +2,7 @@ import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "path";
-import { logProgress } from "../async/logProgress";
+import { logAsyncOperation } from "../async/logAsyncOperation";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
 import { dim, link } from "../theme";
@@ -11,31 +11,23 @@ import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
 
-function getPendingDownloadMessage(attempt: number) {
-  const prefix = `Downloading from ${link("static.replay.io")}`;
-  let suffix = "";
-  if (attempt > 0) {
-    suffix = `${dim(` (retry ${attempt} of 4)`)}`;
-  }
-
-  return `${prefix}${suffix}...`;
-}
+const MAX_DOWNLOAD_ATTEMPTS = 5;
 
 export async function installLatestRelease() {
   const runtimeBaseDir = getReplayPath("runtimes");
   const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
   const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
 
-  const progress = logProgress(getPendingDownloadMessage(0));
+  const progress = logAsyncOperation(getPendingDownloadMessage(0));
 
   try {
-    const buffers = await downloadReplayFile(5, {
+    const buffers = await downloadReplayFile({
       onRetry: attempt => {
-        progress.setProgress(getPendingDownloadMessage(attempt));
+        progress.setPending(getPendingDownloadMessage(attempt));
       },
     });
 
-    progress.setProgress("Processing downloaded browser archive");
+    progress.setPending("Processing downloaded browser archive");
 
     debug("Removing previous installation at %s", runtimePath);
     rmSync(runtimePath, { force: true, recursive: true });
@@ -82,17 +74,27 @@ export async function installLatestRelease() {
   }
 }
 
-async function downloadReplayFile(
-  maxAttempts: number,
-  { onRetry }: { onRetry?: (attempt: number) => void }
-) {
+function getPendingDownloadMessage(attempt: number) {
+  const prefix = `Downloading from ${link("static.replay.io")}`;
+
+  const maxRetries = MAX_DOWNLOAD_ATTEMPTS - 1;
+
+  let suffix = "";
+  if (attempt > 0) {
+    suffix = dim(`(retry ${attempt} of ${maxRetries})`);
+  }
+
+  return `${prefix}... ${suffix}`;
+}
+
+async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => void }) {
   const options = {
     host: "static.replay.io",
     port: 443,
     path: `/downloads/${runtimeMetadata.downloadFileName}`,
   };
 
-  for (let i = 0; i < maxAttempts; i++) {
+  for (let i = 0; i < MAX_DOWNLOAD_ATTEMPTS; i++) {
     if (i > 0) {
       onRetry?.(i);
     }

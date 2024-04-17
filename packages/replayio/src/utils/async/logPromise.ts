@@ -1,4 +1,4 @@
-import { logProgress, LogProgressOptions } from "./logProgress";
+import { logAsyncOperation, LogProgressOptions } from "./logAsyncOperation";
 
 export async function logPromise<PromiseType>(
   promise: Promise<PromiseType>,
@@ -12,7 +12,7 @@ export async function logPromise<PromiseType>(
 ) {
   const { delayBeforeLoggingMs, messages } = options;
 
-  const progress = logProgress(messages.pending, {
+  const progress = logAsyncOperation(messages.pending, {
     delayBeforeLoggingMs,
   });
 
