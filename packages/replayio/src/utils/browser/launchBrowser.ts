@@ -4,7 +4,7 @@ import { getReplayPath } from "../getReplayPath";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
-import { dim } from "../theme";
+import { dim, stderrPrefix, stdoutPrefix } from "../theme";
 import { debug } from "./debug";
 import { getBrowserPath } from "./getBrowserPath";
 
@@ -64,6 +64,12 @@ export async function launchBrowser(
       } else {
         console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
       }
+    },
+    printStderr: (text: string) => {
+      debug(stderrPrefix("stderr"), text);
+    },
+    printStdout: (text: string) => {
+      debug(stdoutPrefix("stdout"), text);
     },
   });
 
