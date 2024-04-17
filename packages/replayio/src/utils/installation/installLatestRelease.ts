@@ -2,7 +2,7 @@ import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "path";
-import { logPromise } from "../async/logPromise";
+import { logAsyncOperation } from "../async/logAsyncOperation";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
 import { dim, link } from "../theme";
@@ -11,82 +11,93 @@ import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
 
+const MAX_DOWNLOAD_ATTEMPTS = 5;
+
 export async function installLatestRelease() {
   const runtimeBaseDir = getReplayPath("runtimes");
   const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
   const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
 
-  const metadata = {
-    attemptNumber: 0,
-  };
+  const progress = logAsyncOperation(getPendingDownloadMessage(0));
 
-  const downloadPromise = downloadReplayFile(5, metadata);
-
-  logPromise(downloadPromise, {
-    messages: {
-      failed: "Something went wrong installing the Replay browser. Please try again later.",
-      pending: () => {
-        const prefix = `Downloading from ${link("static.replay.io")}`;
-        let suffix = "";
-        if (metadata.attemptNumber > 1) {
-          suffix = `${dim(` (retry ${metadata.attemptNumber - 1} of 4)`)}`;
-        }
-
-        return `${prefix}${suffix}...`;
+  try {
+    const buffers = await downloadReplayFile({
+      onRetry: attempt => {
+        progress.setPending(getPendingDownloadMessage(attempt));
       },
-      success: "Replay browser has been updated.",
-    },
-  });
+    });
 
-  const buffers = await downloadPromise;
+    progress.setPending("Processing downloaded browser archive");
 
-  debug("Removing previous installation at %s", runtimePath);
-  rmSync(runtimePath, { force: true, recursive: true });
+    debug("Removing previous installation at %s", runtimePath);
+    rmSync(runtimePath, { force: true, recursive: true });
 
-  ensureDirSync(runtimeBaseDir);
+    ensureDirSync(runtimeBaseDir);
 
-  debug("Writing downloaded file data to %s", downloadFilePath);
-  writeFileSync(downloadFilePath, buffers);
+    debug("Writing downloaded file data to %s", downloadFilePath);
+    writeFileSync(downloadFilePath, buffers);
 
-  extractBrowserArchive(runtimeBaseDir, runtimePath);
+    extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-  debug("Deleting downloaded file %s", downloadFilePath);
-  unlinkSync(downloadFilePath);
+    debug("Deleting downloaded file %s", downloadFilePath);
+    unlinkSync(downloadFilePath);
 
-  // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
-  // github.com/replayio/replay-cli/commit/6d9b8b95a3a55eb9a0aa0721199242cfaf319356#r140402329
-  // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
-  if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
-    renameSync(
-      join(runtimeBaseDir, runtimeMetadata.sourceName),
-      join(runtimeBaseDir, runtimeMetadata.destinationName)
+    // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
+    // github.com/replayio/replay-cli/commit/6d9b8b95a3a55eb9a0aa0721199242cfaf319356#r140402329
+    // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
+    if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
+      renameSync(
+        join(runtimeBaseDir, runtimeMetadata.sourceName),
+        join(runtimeBaseDir, runtimeMetadata.destinationName)
+      );
+    }
+
+    const latestRelease = await getLatestRelease();
+    const latestBuildId = latestRelease.buildId;
+    const latestVersion = latestRelease.version;
+
+    // Write version metadata to disk so we can compare against the latest release and prompt to update
+    debug("Saving release metadata to %s", metadataPath);
+    writeToCache<MetadataJSON>(metadataPath, {
+      chromium: {
+        buildId: latestBuildId,
+        forkedVersion: latestVersion,
+        installDate: new Date().toISOString(),
+      },
+    });
+
+    progress.setSuccess("Replay browser has been updated.");
+  } catch (error) {
+    progress.setFailed(
+      "Something went wrong installing the Replay browser. Please try again later."
     );
   }
-
-  const latestRelease = await getLatestRelease();
-  const latestBuildId = latestRelease.buildId;
-  const latestVersion = latestRelease.version;
-
-  // Write version metadata to disk so we can compare against the latest release and prompt to update
-  debug("Saving release metadata to %s", metadataPath);
-  writeToCache<MetadataJSON>(metadataPath, {
-    chromium: {
-      buildId: latestBuildId,
-      forkedVersion: latestVersion,
-      installDate: new Date().toISOString(),
-    },
-  });
 }
 
-async function downloadReplayFile(maxAttempts: number, metadata: { attemptNumber: number }) {
+function getPendingDownloadMessage(attempt: number) {
+  const prefix = `Downloading from ${link("static.replay.io")}`;
+
+  const maxRetries = MAX_DOWNLOAD_ATTEMPTS - 1;
+
+  let suffix = "";
+  if (attempt > 0) {
+    suffix = dim(`(retry ${attempt} of ${maxRetries})`);
+  }
+
+  return `${prefix}... ${suffix}`;
+}
+
+async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => void }) {
   const options = {
     host: "static.replay.io",
     port: 443,
     path: `/downloads/${runtimeMetadata.downloadFileName}`,
   };
 
-  for (let i = 1; i <= maxAttempts; i++) {
-    metadata.attemptNumber = i;
+  for (let i = 0; i < MAX_DOWNLOAD_ATTEMPTS; i++) {
+    if (i > 0) {
+      onRetry?.(i);
+    }
 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
       const request = get(options, response => {

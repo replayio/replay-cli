@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { logPromise } from "../utils/async/logPromise";
+import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
@@ -52,19 +52,14 @@ async function record(url: string = "about:blank") {
       silent: true,
     });
 
-    logPromise(promise, {
-      messages: {
-        pending: "Uploading crash data...",
-        success: () => {
-          if (nextCrashedRecordings.some(recording => recording.uploadStatus === "failed")) {
-            return "Crash data could only be partially uploaded";
-          }
-          return "Crash data uploaded successfully";
-        },
-      },
-    });
+    const progress = logAsyncOperation("Uploading crash data...");
+    const uploadableCrashes = await promise;
 
-    await promise;
+    if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
+      progress.setFailed("Crash data could only be partially uploaded");
+    } else {
+      progress.setSuccess("Crash data uploaded successfully");
+    }
 
     console.log(""); // Spacing for readability
   }
