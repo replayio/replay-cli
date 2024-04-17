@@ -39,19 +39,25 @@ export function spawnProcess(
       onSpawn?.();
     });
 
-    if (printStderr) {
-      spawned.stderr?.setEncoding("utf8");
-      spawned.stderr?.on("data", printStderr);
-    }
+    let stderr = "";
+    spawned.stderr?.setEncoding("utf8");
+    spawned.stderr?.on("data", (data: string) => {
+      stderr += data;
+      printStderr?.(data);
+    });
 
     if (printStdout) {
       spawned.stdout?.setEncoding("utf8");
       spawned.stdout?.on("data", printStdout);
     }
 
-    spawned.on("exit", code => {
-      if (code) {
-        deferred.rejectIfPending(new Error(`Process failed (code: ${code})`));
+    spawned.on("exit", (code, signal) => {
+      if (code || signal) {
+        let message = `Process failed (${code ? `code: ${code}` : `signal: ${signal}`})`;
+        if (stderr.length) {
+          message += `:\n${stderr}`;
+        }
+        deferred.rejectIfPending(new Error(message));
       } else {
         deferred.resolveIfPending();
       }
