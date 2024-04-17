@@ -30,7 +30,9 @@ async function record(url: string = "about:blank") {
   recordingsAfter.filter(recording => {
     if (!prevRecordings.some(({ id }) => id === recording.id)) {
       if (recording.recordingStatus === "crashed") {
-        nextCrashedRecordings.push(recording);
+        if (canUpload(recording)) {
+          nextCrashedRecordings.push(recording);
+        }
       } else {
         nextRecordings.push(recording);
       }
@@ -45,8 +47,6 @@ async function record(url: string = "about:blank") {
       "It looks like something went wrong with this recording. Please hold while we upload crash data."
     );
 
-    const uploadableCrashes = nextCrashedRecordings.filter(canUpload);
-
     const promise = uploadRecordings(nextCrashedRecordings, {
       processingBehavior: "do-not-process",
       silent: true,
@@ -56,7 +56,7 @@ async function record(url: string = "about:blank") {
       messages: {
         pending: "Uploading crash data...",
         success: () => {
-          if (uploadableCrashes.some(recording => recording.uploadStatus === "failed")) {
+          if (nextCrashedRecordings.some(recording => recording.uploadStatus === "failed")) {
             return "Crash data could only be partially uploaded";
           }
           return "Crash data uploaded successfully";
