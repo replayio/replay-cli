@@ -589,19 +589,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     debug("Starting upload of %s", recording.id);
 
     try {
-      const result = await uploadRecording(recording.id, {
+      await uploadRecording(recording.id, {
         apiKey: this.apiKey,
         // Per TT-941, we want to throw on any error so it can be caught below
         // and reported back to the user rather than just returning null
         strict: true,
       });
-
-      if (result === null) {
-        return {
-          type: "upload",
-          error: new Error("Upload failed"),
-        };
-      }
 
       debug("Successfully uploaded %s", recording.id);
 
