@@ -1,9 +1,12 @@
+import { writeFileSync } from "fs-extra";
 import { v4 as uuid } from "uuid";
+import { ProcessError } from "../utils/ProcessError";
 import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
+import { getReplayPath } from "../utils/getReplayPath";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
@@ -11,6 +14,7 @@ import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
+import { dim } from "../utils/theme";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -20,7 +24,26 @@ registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: 
 async function record(url: string = "about:blank") {
   const prevRecordings = await getRecordings();
 
-  await launchBrowser(url, { processGroupId: uuid() });
+  try {
+    await launchBrowser(url, { processGroupId: uuid() });
+  } catch (error) {
+    if (error instanceof ProcessError) {
+      console.log("\nSomething went wrong while recording. Try again.");
+
+      // TODO [PRO-235] Upload recorder crash data somewhere
+
+      const { stderr } = error;
+      if (stderr.length > 0) {
+        const errorLogPath = getReplayPath("recorder-crash.log");
+
+        writeFileSync(errorLogPath, stderr, "utf8");
+
+        console.log(dim(`More information can be found in ${errorLogPath}`));
+      }
+
+      await exitProcess(1);
+    }
+  }
 
   const recordingsAfter = await getRecordings();
 

@@ -1,5 +1,6 @@
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
 import { createDeferred, Deferred } from "./async/createDeferred";
+import { ProcessError } from "./ProcessError";
 
 export function spawnProcess(
   executablePath: string,
@@ -53,11 +54,9 @@ export function spawnProcess(
 
     spawned.on("exit", (code, signal) => {
       if (code || signal) {
-        let message = `Process failed (${code ? `code: ${code}` : `signal: ${signal}`})`;
-        if (stderr.length) {
-          message += `:\n${stderr}`;
-        }
-        deferred.rejectIfPending(new Error(message));
+        const message = `Process failed (${code ? `code: ${code}` : `signal: ${signal}`})`;
+
+        deferred.rejectIfPending(new ProcessError(message, stderr));
       } else {
         deferred.resolveIfPending();
       }
