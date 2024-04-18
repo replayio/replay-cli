@@ -591,6 +591,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     try {
       const result = await uploadRecording(recording.id, {
         apiKey: this.apiKey,
+        // Per TT-941, we want to throw on any error so it can be caught below
+        // and reported back to the user rather than just returning null
+        strict: true,
       });
 
       if (result === null) {
