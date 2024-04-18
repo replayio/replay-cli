@@ -1,6 +1,7 @@
 import differenceInCalendarDays from "date-fns/differenceInCalendarDays";
 import differenceInMinutes from "date-fns/differenceInMinutes";
 import differenceInMonths from "date-fns/differenceInMonths";
+import differenceInSeconds from "date-fns/differenceInSeconds";
 import differenceInWeeks from "date-fns/differenceInWeeks";
 import differenceInYears from "date-fns/differenceInYears";
 import prettyMilliseconds from "pretty-ms";
@@ -10,6 +11,7 @@ export function formatDuration(ms: number) {
 }
 
 export function formatRelativeDate(date: Date): string {
+  const seconds = differenceInSeconds(Date.now(), date);
   const minutes = differenceInMinutes(Date.now(), date);
   const days = differenceInCalendarDays(Date.now(), date);
   const weeks = differenceInWeeks(Date.now(), date);
@@ -28,6 +30,8 @@ export function formatRelativeDate(date: Date): string {
     return `${Math.floor(minutes / 60)}h ago`;
   } else if (minutes > 0) {
     return `${minutes}m ago`;
+  } else if (seconds > 0) {
+    return `${seconds}s ago`;
   }
 
   return "Now";
