@@ -1,9 +1,9 @@
 import { formatDuration, formatRelativeDate } from "../date";
 import { parseBuildId } from "../installation/parseBuildId";
-import { dim, link, transparent } from "../theme";
+import { dim, link } from "../theme";
 import { LocalRecording } from "./types";
 
-const MAX_TITLE_LENGTH = 35;
+const MAX_TITLE_LENGTH = 50;
 
 function truncateRecordingTitle(title: string) {
   title = title.trimEnd();
@@ -33,7 +33,7 @@ export function formatRecording(recording: LocalRecording) {
     }
     default: {
       if (metadata.host) {
-        title = link(metadata.host);
+        title = link(truncateRecordingTitle(metadata.host));
       } else {
         title = "(untitled)";
       }
