@@ -1,3 +1,4 @@
+import debug from "debug";
 import { writeFileSync } from "fs-extra";
 import { v4 as uuid } from "uuid";
 import { ProcessError } from "../utils/ProcessError";
@@ -19,13 +20,21 @@ import { dim } from "../utils/theme";
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
   .description("Launch the replay browser in recording mode")
-  .action(record);
+  .action(record)
+  .allowUnknownOption();
 
 async function record(url: string = "about:blank") {
+  // This flag is intentionally not listed in the command options
+  // but if specified, it will both enable "debug" logging and Replay Browser's "verbose" mode
+  const verbose = process.argv.includes("--verbose");
+  if (verbose) {
+    debug.enable("replayio:browser");
+  }
+
   const prevRecordings = await getRecordings();
 
   try {
-    await launchBrowser(url, { processGroupId: uuid() });
+    await launchBrowser(url, { processGroupId: uuid(), verbose });
   } catch (error) {
     if (error instanceof ProcessError) {
       console.log("\nSomething went wrong while recording. Try again.");
