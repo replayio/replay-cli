@@ -1,7 +1,6 @@
 import findProcess from "find-process";
 import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
-import { retryWithLinearBackoff } from "../async/retry";
 import { timeoutAfter } from "../async/timeoutAfter";
 import { getReplayPath } from "../getReplayPath";
 import { runtimeMetadata, runtimePath } from "../installation/config";
@@ -57,17 +56,13 @@ export async function launchBrowser(
     spawnProcess(browserExecutablePath, args, processOptions);
 
     // The best we can do in this case is to regularly poll to see when the process exits
-    await retryWithLinearBackoff(
-      async () => {
-        await timeoutAfter(1_000);
-        const processes = await findProcess("name", browserExecutablePath);
-        if (processes.length > 0) {
-          throw Error("Still running");
-        }
-      },
-      undefined,
-      Number.POSITIVE_INFINITY
-    );
+    while (true) {
+      await timeoutAfter(1_000);
+      const processes = await findProcess("name", browserExecutablePath);
+      if (processes.length === 0) {
+        break;
+      }
+    }
   } else {
     debug(
       `Launching browser: ${browserExecutablePath} with args:\n`,
