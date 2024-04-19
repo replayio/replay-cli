@@ -4092,6 +4092,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"find-process@npm:^1.4.7":
+  version: 1.4.7
+  resolution: "find-process@npm:1.4.7"
+  dependencies:
+    chalk: "npm:^4.0.0"
+    commander: "npm:^5.1.0"
+    debug: "npm:^4.1.1"
+  bin:
+    find-process: bin/find-process.js
+  checksum: 10c0/cea8cd43f41e0a9d26dfb70db73fdbc5d14d3ed0f8975e1688492babfa3a2a5f97f52dd986679ee8ddc0e6ff5e8f0a6013821f15eb9970e8031d44ad3c0b2deb
+  languageName: node
+  linkType: hard
+
 "find-up@npm:^3.0.0":
   version: 3.0.0
   resolution: "find-up@npm:3.0.0"
@@ -7299,6 +7312,7 @@ __metadata:
     commander: "npm:^12.0.0"
     date-fns: "npm:^2.28.0"
     debug: "npm:^4.3.4"
+    find-process: "npm:^1.4.7"
     fs-extra: "npm:latest"
     inquirer: "npm:^8.0.0"
     is-uuid: "npm:^1.0.2"
