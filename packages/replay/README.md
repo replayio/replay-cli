@@ -18,7 +18,7 @@ When using the Replay plugins to record automated tests or the Replay version of
 npx @replayio/replay <command>
 ```
 
-Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `RECORD_REPLAY_API_KEY` environment variable.
+Possible commands are given below. These may be used with the `--directory <dir>` option to override the default recording directory, or `--server <address>` to override the default server address. When uploading, an API key is required, which can be passed via `--api-key <key>` or by setting the `REPLAY_API_KEY` environment variable.
 
 ### launch
 
@@ -111,7 +111,7 @@ The CLI command `replay upload-sourcemaps [opts] <paths...>` has the following o
   require uploaded names to have an overall group name associated with them.
   This could for instance be a version number, or commit hash.
 - `--api-key`: The API key to use when connecting to Replay's servers.
-  Defaults to `process.env.RECORD_REPLAY_API_KEY`.
+  Defaults to `process.env.REPLAY_API_KEY`.
 - `--root`: Set the directory that relative paths should be computed with respect to. The relative path
   of sourcemaps is included in the uploaded entry, and will be visible in the uploaded-asset UI, so this
   can be used to strip off unimportant directories in the build path. Defaults to `process.cwd()`.
