@@ -46,7 +46,7 @@ interface Options {
 
   /**
    * The API key to use when connecting to Replay's servers.
-   * Defaults to `process.env.RECORD_REPLAY_API_KEY`.
+   * Defaults to `process.env.REPLAY_API_KEY`.
    */
   key?: string;
 
