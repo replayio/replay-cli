@@ -394,5 +394,5 @@ export async function initLDContextFromApiKey(options: Options = {}) {
     await writeAuthInfoCache(apiKey, targetId, options);
   }
 
-  await getLaunchDarkly().identify({ type: "user", id: targetId });
+  await getLaunchDarkly().initialize().identify({ type: "user", id: targetId });
 }
