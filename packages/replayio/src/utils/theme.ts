@@ -9,4 +9,6 @@ export const select = chalk.bold;
 export const statusPending = chalk.yellowBright;
 export const statusFailed = chalk.redBright;
 export const statusSuccess = chalk.greenBright;
+export const stderrPrefix = chalk.bgRedBright;
+export const stdoutPrefix = chalk.bgWhite.black;
 export const transparent = chalk.dim;

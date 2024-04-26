@@ -6,7 +6,10 @@ import { UpdateCheckResult } from "./types";
 
 const PROMPT_ID = "npm-update";
 
-export async function promptForNpmUpdate(updateCheck: UpdateCheckResult<string>) {
+export async function promptForNpmUpdate(
+  updateCheck: UpdateCheckResult<string>,
+  promptBeforeContinuing: boolean = true
+) {
   const { fromVersion, toVersion } = updateCheck;
 
   console.log("");
@@ -17,10 +20,15 @@ export async function promptForNpmUpdate(updateCheck: UpdateCheckResult<string>)
   console.log("To upgrade, run the following:");
   console.log(highlight(`  npm install --global ${packageName}@${toVersion}`));
   console.log("");
-  console.log("Press any key to continue");
-  console.log("");
 
-  await prompt();
+  if (promptBeforeContinuing) {
+    if (process.stdin.isTTY) {
+      console.log("Press any key to continue");
+      console.log("");
+
+      await prompt();
+    }
+  }
 
   updateCachedPromptData({
     id: PROMPT_ID,

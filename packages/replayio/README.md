@@ -22,7 +22,7 @@ For help on a specific command, use the `help` command:
 replayio help list
 ```
 
-This CLI will automatically prompt you to log into your Replay account (or to register one). You can use an `RECORD_REPLAY_API_KEY` environment variable for authentication instead if you prefer.
+This CLI will automatically prompt you to log into your Replay account (or to register one). You can use an `REPLAY_API_KEY` environment variable for authentication instead if you prefer.
 
 The CLI will also prompt you to download the Replay runtime if you have not already done so.
 

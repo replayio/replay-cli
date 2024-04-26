@@ -3,7 +3,7 @@ import { exitProcess } from "../utils/exitProcess";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 
-registerCommand("list", { requireAuthentication: true })
+registerCommand("list")
   .description("List all local recordings")
   .option("--json", "Format output as JSON")
   .action(list);

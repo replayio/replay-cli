@@ -10,6 +10,7 @@ export async function prompt({
     }
     const stdin = process.stdin;
     const prevRaw = stdin.isRaw;
+
     stdin.setRawMode(true);
     stdin.resume();
     stdin.setEncoding("utf8");

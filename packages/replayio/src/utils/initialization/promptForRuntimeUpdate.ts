@@ -1,3 +1,4 @@
+import { name as packageName } from "../../../package.json";
 import { installLatestRelease } from "../installation/installLatestRelease";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
@@ -15,12 +16,17 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
   let confirmed = fromVersion == null;
 
   if (fromVersion) {
-    console.log("");
-    console.log(`A new version of the Replay browser is available.`);
-    console.log(`Press ${emphasize("[Enter]")} to upgrade or press any other key to skip.`);
-    console.log("");
+    if (!process.stdin.isTTY) {
+      console.log("A new version of the Replay browser is available.");
+      console.log(`Run "${emphasize(`${packageName} upgrade`)}" to update`);
+    } else {
+      console.log("");
+      console.log(`A new version of the Replay browser is available.`);
+      console.log(`Press ${emphasize("[Enter]")} to upgrade or press any other key to skip.`);
+      console.log("");
 
-    confirmed = await prompt();
+      confirmed = await prompt();
+    }
   } else {
     console.log("");
     console.log("In order to record a Replay, you'll have to first install the browser.");

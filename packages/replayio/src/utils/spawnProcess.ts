@@ -1,12 +1,6 @@
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
-import { Readable } from "stream";
 import { createDeferred, Deferred } from "./async/createDeferred";
-
-function collectData(readable: Readable | null) {
-  const buffers: Uint8Array[] = [];
-  readable?.on("data", data => buffers.push(data));
-  return buffers;
-}
+import { ProcessError } from "./ProcessError";
 
 export function spawnProcess(
   executablePath: string,
@@ -14,8 +8,12 @@ export function spawnProcess(
   options: SpawnOptions = {},
   {
     onSpawn,
+    printStderr,
+    printStdout,
   }: {
     onSpawn?: () => void;
+    printStderr?: (text: string) => void;
+    printStdout?: (text: string) => void;
   } = {}
 ): Deferred<void, ChildProcess> {
   const spawned = spawn(executablePath, args, {
@@ -34,8 +32,6 @@ export function spawnProcess(
     // github.com/replayio/replay-cli/pull/344#discussion_r1553258356
     spawned.unref();
   } else {
-    const stderr = collectData(spawned.stderr);
-
     spawned.on("error", error => {
       deferred.rejectIfPending(error);
     });
@@ -44,15 +40,23 @@ export function spawnProcess(
       onSpawn?.();
     });
 
-    spawned.on("exit", (code, signal) => {
-      if (code) {
-        const buffered = Buffer.concat(stderr).toString();
+    let stderr = "";
+    spawned.stderr?.setEncoding("utf8");
+    spawned.stderr?.on("data", (data: string) => {
+      stderr += data;
+      printStderr?.(data);
+    });
 
-        let message = `Process failed (code: ${code})`;
-        if (buffered.length) {
-          message += `:\n${buffered}`;
-        }
-        deferred.rejectIfPending(new Error(message));
+    if (printStdout) {
+      spawned.stdout?.setEncoding("utf8");
+      spawned.stdout?.on("data", printStdout);
+    }
+
+    spawned.on("exit", (code, signal) => {
+      if (code || signal) {
+        const message = `Process failed (${code ? `code: ${code}` : `signal: ${signal}`})`;
+
+        deferred.rejectIfPending(new ProcessError(message, stderr));
       } else {
         deferred.resolveIfPending();
       }

@@ -63,11 +63,11 @@ class ProtocolClient {
   }
 
   async setAccessToken(accessToken?: string) {
-    accessToken = accessToken || process.env.RECORD_REPLAY_API_KEY;
+    accessToken = accessToken || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
 
     if (!accessToken) {
       throw new Error(
-        "Access token must be passed or set via the RECORD_REPLAY_API_KEY environment variable."
+        "Access token must be passed or set via the REPLAY_API_KEY environment variable."
       );
     }
 

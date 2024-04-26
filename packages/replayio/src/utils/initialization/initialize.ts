@@ -9,9 +9,11 @@ import { promptForNpmUpdate } from "./promptForNpmUpdate";
 import { promptForRuntimeUpdate } from "./promptForRuntimeUpdate";
 
 export async function initialize({
+  checkForNpmUpdate: shouldCheckForNpmUpdate,
   checkForRuntimeUpdate: shouldCheckForRuntimeUpdate,
   requireAuthentication,
 }: {
+  checkForNpmUpdate: boolean;
   checkForRuntimeUpdate: boolean;
   requireAuthentication: boolean;
 }) {
@@ -22,7 +24,7 @@ export async function initialize({
     shouldCheckForRuntimeUpdate
       ? raceWithTimeout(checkForRuntimeUpdate(), 5_000)
       : Promise.resolve(),
-    raceWithTimeout(checkForNpmUpdate(), 5_000),
+    shouldCheckForNpmUpdate ? raceWithTimeout(checkForNpmUpdate(), 5_000) : Promise.resolve(),
   ]);
 
   logPromise(promises, {

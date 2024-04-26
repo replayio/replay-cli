@@ -3,11 +3,9 @@ import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRuntimeMetadata";
 import { parseBuildId } from "../utils/installation/parseBuildId";
-import { dim, highlight } from "../utils/theme";
+import { highlight } from "../utils/theme";
 
-registerCommand("info", { requireAuthentication: false })
-  .description("Display info for installed Replay dependencies")
-  .action(info);
+registerCommand("info").description("Display info for installed Replay dependencies").action(info);
 
 async function info() {
   console.log(`Currently using ${highlight(`${packageName}@${packageVersion}`)}`);
