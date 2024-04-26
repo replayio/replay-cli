@@ -1,7 +1,6 @@
-import { existsSync } from "fs";
 import install from "./install";
 
-if (!process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && existsSync("dist")) {
+if (!process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD) {
   console.log("Installing Replay browsers for puppeteer");
 
   install().then(
