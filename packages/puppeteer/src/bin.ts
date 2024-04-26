@@ -2,10 +2,6 @@ import install from "./install";
 
 let [, , cmd] = process.argv;
 
-if (cmd === "first-run" && !process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD) {
-  cmd = "install";
-}
-
 function commandInstall() {
   console.log("Installing Replay browsers for puppeteer");
 
