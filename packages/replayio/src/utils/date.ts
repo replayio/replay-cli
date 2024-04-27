@@ -1,40 +1,88 @@
-import differenceInCalendarDays from "date-fns/differenceInCalendarDays";
-import differenceInMinutes from "date-fns/differenceInMinutes";
-import differenceInMonths from "date-fns/differenceInMonths";
-import differenceInSeconds from "date-fns/differenceInSeconds";
-import differenceInWeeks from "date-fns/differenceInWeeks";
-import differenceInYears from "date-fns/differenceInYears";
-import prettyMilliseconds from "pretty-ms";
+export function getRelativeDate({
+  daysAgo,
+  hoursAgo,
+  minutesAgo,
+  monthsAgo,
+  secondsAgo,
+  weeksAgo,
+  yearsAgo,
+}: {
+  daysAgo?: number;
+  hoursAgo?: number;
+  minutesAgo?: number;
+  monthsAgo?: number;
+  secondsAgo?: number;
+  weeksAgo?: number;
+  yearsAgo?: number;
+}) {
+  const date = new Date();
+
+  if (yearsAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * 60 * 24 * 356 * yearsAgo);
+  }
+
+  if (monthsAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * 60 * 24 * 30 * monthsAgo);
+  }
+
+  if (weeksAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * 60 * 24 * 7 * weeksAgo);
+  }
+
+  if (daysAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * 60 * 24 * daysAgo);
+  }
+
+  if (hoursAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * 60 * hoursAgo);
+  }
+
+  if (minutesAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * 60 * minutesAgo);
+  }
+
+  if (secondsAgo !== undefined) {
+    date.setTime(date.getTime() - 1000 * secondsAgo);
+  }
+
+  return date;
+}
 
 export function formatDuration(ms: number) {
-  return prettyMilliseconds(ms, { millisecondsDecimalDigits: 1 });
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 356);
+
+  if (years > 0) {
+    return years === 1 ? "1 year" : `${years} years`;
+  } else if (months > 0) {
+    return months === 1 ? "1 month" : `${months} months`;
+  } else if (weeks > 0) {
+    return weeks === 1 ? "1 week" : `${weeks} weeks`;
+  } else if (days > 0) {
+    return days === 1 ? "1 day" : `${days} days`;
+  } else if (hours > 0) {
+    return hours === 1 ? "1 hour" : `${hours} hours`;
+  } else if (minutes > 0) {
+    return minutes === 1 ? "1 min" : `${minutes} mins`;
+  } else if (seconds > 0) {
+    return seconds === 1 ? "1 sec" : `${seconds} secs`;
+  }
+
+  return "0sec";
 }
 
 export function formatRelativeDate(date: Date): string {
-  const seconds = differenceInSeconds(Date.now(), date);
-  const minutes = differenceInMinutes(Date.now(), date);
-  const days = differenceInCalendarDays(Date.now(), date);
-  const weeks = differenceInWeeks(Date.now(), date);
-  const months = differenceInMonths(Date.now(), date);
-  const years = differenceInYears(Date.now(), date);
-
-  if (years > 0) {
-    return `${years}y ago`;
-  } else if (months > 0) {
-    return `${months}mo ago`;
-  } else if (weeks > 0) {
-    return `${weeks}w ago`;
-  } else if (days > 0) {
-    return `${days}d ago`;
-  } else if (minutes >= 60) {
-    return `${Math.floor(minutes / 60)}h ago`;
-  } else if (minutes > 0) {
-    return `${minutes}m ago`;
-  } else if (seconds > 0) {
-    return `${seconds}s ago`;
+  const ms = Date.now() - date.getTime();
+  if (ms < 1000) {
+    return "now";
   }
 
-  return "Now";
+  return formatDuration(ms) + " ago";
 }
 
 export function formatTimestamp(ms: number, showHighPrecision: boolean = false) {

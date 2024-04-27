@@ -1,0 +1,41 @@
+{
+  "name": "replayio-ink",
+  "version": "0.0.1",
+  "license": "MIT",
+  "bin": "dist/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "build": "clear && tsc && chmod +x dist/index.js",
+    "clean": "rimraf dist",
+    "prettier": "prettier --write .",
+    "typecheck": "tsc --watch",
+    "test": "prettier --check . && xo && ava"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "deep-equal": "^2.2.3",
+    "ink": "^4.1.0",
+    "meow": "^11.0.0",
+    "react": "^18.2.0",
+    "replayio": "workspace:^"
+  },
+  "devDependencies": {
+    "@sindresorhus/tsconfig": "^3.0.1",
+    "@types/deep-equal": "^1.0.4",
+    "@types/react": "^18.0.32",
+    "@vdemedes/prettier-config": "^2.0.1",
+    "chalk": "^5.2.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "ink-testing-library": "^3.0.0",
+    "prettier": "^2.8.7",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.3"
+  }
+}

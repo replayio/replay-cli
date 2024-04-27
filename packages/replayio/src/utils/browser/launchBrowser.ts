@@ -13,11 +13,12 @@ import { getBrowserPath } from "./getBrowserPath";
 export async function launchBrowser(
   url: string,
   options: {
-    processGroupId: string;
+    processGroupId?: string;
+    silent?: boolean;
     verbose?: boolean;
   }
 ) {
-  const { processGroupId, verbose } = options;
+  const { processGroupId, silent = false, verbose } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -50,7 +51,9 @@ export async function launchBrowser(
 
     debug(`Browser process already running at ${highlight(match.pid)}`);
 
-    console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+    if (!silent) {
+      console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+    }
 
     // Ask the browser to open a new tab
     spawnProcess(browserExecutablePath, args, processOptions);
@@ -77,16 +80,18 @@ export async function launchBrowser(
 
     const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
       onSpawn: () => {
-        if (process.stdin.isTTY) {
-          console.log(`Recording... ${dim("(press any key to stop recording)")}`);
+        if (!silent) {
+          if (process.stdin.isTTY) {
+            console.log(`Recording... ${dim("(press any key to stop recording)")}`);
 
-          prompt({
-            signal: abortControllerForPrompt.signal,
-          }).then(() => {
-            spawnDeferred.data.kill();
-          });
-        } else {
-          console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+            prompt({
+              signal: abortControllerForPrompt.signal,
+            }).then(() => {
+              spawnDeferred.data.kill();
+            });
+          } else {
+            console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+          }
         }
       },
       printStderr: (text: string) => {
