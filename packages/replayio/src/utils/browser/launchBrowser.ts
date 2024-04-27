@@ -13,12 +13,13 @@ import { getBrowserPath } from "./getBrowserPath";
 export async function launchBrowser(
   url: string,
   options: {
+    onQuit?: () => void;
     processGroupId?: string;
     silent?: boolean;
     verbose?: boolean;
   }
 ) {
-  const { processGroupId, silent = false, verbose } = options;
+  const { onQuit, processGroupId, silent = false, verbose } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -63,6 +64,7 @@ export async function launchBrowser(
       await timeoutAfter(1_000);
       const processes = await findProcess("name", browserExecutablePath);
       if (processes.length === 0) {
+        onQuit?.();
         break;
       }
     }
@@ -106,6 +108,7 @@ export async function launchBrowser(
       await spawnDeferred.promise;
     } finally {
       abortControllerForPrompt.abort();
+      onQuit?.();
     }
   }
 }
