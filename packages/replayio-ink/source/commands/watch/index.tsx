@@ -1,8 +1,9 @@
-import { Text, render, useInput, useStdout } from "ink";
-import { useEffect, useRef, useState } from "react";
+import { Box, Text, render, useInput, useStdout } from "ink";
+import { useEffect, useRef } from "react";
 import { launchBrowser } from "replayio";
 import { FlexBox } from "../../components/FlexBox.js";
 import { FullScreen } from "../../components/Fullscreen.js";
+import { useExitSignal } from "../../hooks/useExitSignal.js";
 import { RecordingsTable } from "./RecordingsTable.js";
 import { Recording } from "./types.js";
 import { uploadRecording } from "./uploadRecording.js";
@@ -11,8 +12,6 @@ import { useRecordings } from "./useRecordings.js";
 export function watch() {
   render(<App />);
 }
-
-type ExitSignal = "beforeExit" | "exit";
 
 function App() {
   const recordings = useRecordings();
@@ -26,19 +25,17 @@ function App() {
     recordings,
   });
 
-  const [exitSignal, setExitSignal] = useState<ExitSignal | null>(null);
+  const { beforeExit, exit, exitSignal } = useExitSignal();
 
   // Listen for any key press to start exit process
-  useInput(() => setExitSignal("beforeExit"), {
+  useInput(beforeExit, {
     isActive: exitSignal === null,
   });
 
   // Auto-open Replay browser on start
   useEffect(() => {
     launchBrowser("about:blank", {
-      onQuit: () => {
-        setExitSignal("beforeExit");
-      },
+      onQuit: beforeExit,
       silent: true,
     });
   }, []);
@@ -69,12 +66,12 @@ function App() {
 
     if (exitSignal === "beforeExit") {
       if (numUnfinishedRecordings === 0) {
-        setExitSignal("exit");
+        exit();
       }
     }
 
     stateRef.current.recordings = recordings;
-  }, [recordings, stdout]);
+  }, [exit, recordings, stdout]);
 
   useEffect(() => {
     if (exitSignal === "exit") {
@@ -82,23 +79,21 @@ function App() {
     }
   }, [exitSignal]);
 
-  let children = (
-    <FlexBox direction="column">
-      <Text>{"New recordings\n"}</Text>
-      <RecordingsTable recordings={recordings} />
-      {recordings.length === 0 ? (
-        <Text dimColor>{"Open a website to make a new recording"}</Text>
-      ) : exitSignal === "beforeExit" ? (
-        <Text dimColor>{"\nWaiting for uploads to finish..."}</Text>
-      ) : (
-        <Text dimColor>{"\nPress any key to stop recording"}</Text>
-      )}
-    </FlexBox>
+  const Wrapper = exitSignal === "exit" ? Box : FullScreen;
+
+  return (
+    <Wrapper>
+      <FlexBox direction="column">
+        <Text>{"New recordings\n"}</Text>
+        <RecordingsTable recordings={recordings} />
+        {recordings.length === 0 ? (
+          <Text dimColor>{"Open a website to make a new recording"}</Text>
+        ) : exitSignal === "beforeExit" ? (
+          <Text dimColor>{"\nWaiting for uploads to finish..."}</Text>
+        ) : (
+          <Text dimColor>{"\nPress any key to stop recording"}</Text>
+        )}
+      </FlexBox>
+    </Wrapper>
   );
-
-  if (exitSignal !== "exit") {
-    children = <FullScreen>{children}</FullScreen>;
-  }
-
-  return children;
 }
