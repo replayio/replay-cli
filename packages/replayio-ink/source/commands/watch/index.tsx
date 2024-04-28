@@ -1,4 +1,4 @@
-import { Text, render, useInput } from "ink";
+import { Text, render, useInput, useStdout } from "ink";
 import { useEffect, useRef, useState } from "react";
 import { launchBrowser } from "replayio";
 import { FlexBox } from "../../components/FlexBox.js";
@@ -14,6 +14,7 @@ export function watch() {
 
 function App() {
   const recordings = useRecordings();
+  const stdout = useStdout();
 
   const stateRef = useRef<{
     uploadedRecordingIds: Set<string>;
@@ -23,14 +24,16 @@ function App() {
     recordings,
   });
 
-  const [shouldQuit, setShouldQuit] = useState(false);
+  const [signal, setSignal] = useState<"ready" | "finalize" | "exit">("ready");
 
-  useInput(() => setShouldQuit(true));
+  useInput(() => setSignal("finalize"), {
+    isActive: signal === "ready",
+  });
 
   useEffect(() => {
     launchBrowser("about:blank", {
       onQuit: () => {
-        setShouldQuit(true);
+        setSignal("finalize");
       },
       silent: true,
     });
@@ -59,28 +62,38 @@ function App() {
       }
     });
 
-    if (shouldQuit) {
+    if (signal === "finalize") {
       if (numUnfinishedRecordings === 0) {
-        process.exit(0);
+        setSignal("exit");
       }
     }
 
     stateRef.current.recordings = recordings;
-  }, [recordings]);
+  }, [recordings, stdout]);
 
-  return (
-    <FullScreen>
-      <FlexBox direction="column">
-        <Text>{"New recordings\n"}</Text>
-        <RecordingsTable recordings={recordings} />
-        {shouldQuit ? (
-          <Text dimColor>{"Waiting for uploads to finish..."}</Text>
-        ) : recordings.length === 0 ? (
-          <Text dimColor>{"Open a website to make a new recording"}</Text>
-        ) : (
-          <Text dimColor>{"\nPress any key to stop recording"}</Text>
-        )}
-      </FlexBox>
-    </FullScreen>
+  useEffect(() => {
+    if (signal === "exit") {
+      process.exit(0);
+    }
+  }, [signal]);
+
+  let children = (
+    <FlexBox direction="column">
+      <Text>{"New recordings\n"}</Text>
+      <RecordingsTable recordings={recordings} />
+      {recordings.length === 0 ? (
+        <Text dimColor>{"Open a website to make a new recording"}</Text>
+      ) : signal === "finalize" ? (
+        <Text dimColor>{"\nWaiting for uploads to finish..."}</Text>
+      ) : (
+        <Text dimColor>{"\nPress any key to stop recording"}</Text>
+      )}
+    </FlexBox>
   );
+
+  if (signal !== "exit") {
+    children = <FullScreen>{children}</FullScreen>;
+  }
+
+  return children;
 }

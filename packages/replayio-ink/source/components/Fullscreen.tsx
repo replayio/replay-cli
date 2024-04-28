@@ -1,6 +1,10 @@
 import { Box, useStdout } from "ink";
 import { PropsWithChildren, useLayoutEffect } from "react";
-import { ENTER_ALT_SCREEN_COMMAND, EXIT_ALT_SCREEN_COMMAND } from "../constants.js";
+import {
+  CLEAR_SCREEN_COMMAND,
+  ENTER_ALT_SCREEN_COMMAND,
+  EXIT_ALT_SCREEN_COMMAND,
+} from "../constants.js";
 import { useScreenSize } from "../hooks/useScreenSize.js";
 
 export function FullScreen({ children }: PropsWithChildren) {
@@ -13,6 +17,7 @@ export function FullScreen({ children }: PropsWithChildren) {
 
     return () => {
       stdout.write(EXIT_ALT_SCREEN_COMMAND);
+      stdout.write(CLEAR_SCREEN_COMMAND);
     };
   }, [stdout]);
 
