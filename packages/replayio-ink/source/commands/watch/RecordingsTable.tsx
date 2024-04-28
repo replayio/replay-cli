@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { formatDuration } from "replayio";
 import { Table } from "../../components/Table.js";
+import { BASE_URL } from "../../constants.js";
 import { Recording } from "./types.js";
 
 export function RecordingsTable({ recordings }: { recordings: Recording[] }) {
@@ -8,10 +9,10 @@ export function RecordingsTable({ recordings }: { recordings: Recording[] }) {
     <Table
       gap={2}
       rows={recordings.map(recording => {
-        const { duration, id, status, title } = recording;
+        const { duration, shortId, status, title } = recording;
 
         if (status === "uploaded") {
-          const url = `app.replay.io/recording/${id}`;
+          const url = `${BASE_URL}/${shortId}`;
 
           return [title, chalk.dim(formatDuration(duration)), chalk.underline(url)];
         } else {
