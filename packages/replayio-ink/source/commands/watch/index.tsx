@@ -12,6 +12,8 @@ export function watch() {
   render(<App />);
 }
 
+type ExitSignal = "beforeExit" | "exit";
+
 function App() {
   const recordings = useRecordings();
   const stdout = useStdout();
@@ -24,21 +26,24 @@ function App() {
     recordings,
   });
 
-  const [signal, setSignal] = useState<"ready" | "finalize" | "exit">("ready");
+  const [exitSignal, setExitSignal] = useState<ExitSignal | null>(null);
 
-  useInput(() => setSignal("finalize"), {
-    isActive: signal === "ready",
+  // Listen for any key press to start exit process
+  useInput(() => setExitSignal("beforeExit"), {
+    isActive: exitSignal === null,
   });
 
+  // Auto-open Replay browser on start
   useEffect(() => {
     launchBrowser("about:blank", {
       onQuit: () => {
-        setSignal("finalize");
+        setExitSignal("beforeExit");
       },
       silent: true,
     });
   }, []);
 
+  // Auto-upload newly finished recordings
   useEffect(() => {
     let numUnfinishedRecordings = 0;
 
@@ -62,9 +67,9 @@ function App() {
       }
     });
 
-    if (signal === "finalize") {
+    if (exitSignal === "beforeExit") {
       if (numUnfinishedRecordings === 0) {
-        setSignal("exit");
+        setExitSignal("exit");
       }
     }
 
@@ -72,10 +77,10 @@ function App() {
   }, [recordings, stdout]);
 
   useEffect(() => {
-    if (signal === "exit") {
+    if (exitSignal === "exit") {
       process.exit(0);
     }
-  }, [signal]);
+  }, [exitSignal]);
 
   let children = (
     <FlexBox direction="column">
@@ -83,7 +88,7 @@ function App() {
       <RecordingsTable recordings={recordings} />
       {recordings.length === 0 ? (
         <Text dimColor>{"Open a website to make a new recording"}</Text>
-      ) : signal === "finalize" ? (
+      ) : exitSignal === "beforeExit" ? (
         <Text dimColor>{"\nWaiting for uploads to finish..."}</Text>
       ) : (
         <Text dimColor>{"\nPress any key to stop recording"}</Text>
@@ -91,7 +96,7 @@ function App() {
     </FlexBox>
   );
 
-  if (signal !== "exit") {
+  if (exitSignal !== "exit") {
     children = <FullScreen>{children}</FullScreen>;
   }
 

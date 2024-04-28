@@ -14,13 +14,11 @@ export function getRecordingStatus(localRecording: LocalRecording): RecordingSta
   }
 
   switch (localRecording.recordingStatus) {
-    case "crashed":
-      return "recording-failed";
     case "finished":
       return "recorded";
     case "recording":
       return "recording";
-    case "unusable":
+    default:
       return "recording-failed";
   }
 }
