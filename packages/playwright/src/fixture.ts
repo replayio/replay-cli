@@ -1,22 +1,22 @@
-import { Browser, Page, TestInfo, test } from "@playwright/test";
+import { Browser, TestInfo, test } from "@playwright/test";
+import { ReporterError, warn } from "@replayio/test-utils";
+import assert from "assert";
 import dbg from "debug";
+import WebSocket from "ws";
+import { Errors } from "./error";
 import {
   ClientInstrumentationListener,
-  ParsedStackTrace,
+  StackFrame,
   TestInfoInternal,
   TestInfoStep,
 } from "./playwrightTypes";
-import WebSocket from "ws";
 import { getServerPort } from "./server";
-import { ReporterError, warn } from "@replayio/test-utils";
-import assert from "assert";
-import { Errors } from "./error";
 
 export interface FixtureStepStart {
   id: string;
   apiName: string;
   params: Record<string, any>;
-  stackTrace: ParsedStackTrace;
+  frames: StackFrame[];
 }
 
 export interface TestIdData {
@@ -87,9 +87,18 @@ function parseLocation(stack?: string) {
   };
 }
 
-function parseError<T extends { name?: string; message: string; stack?: string }>(error: T) {
+export interface ParsedErrorFrame {
+  name: string;
+  message: string;
+  line: number | undefined;
+  column: number | undefined;
+}
+
+function parseError<T extends { name?: string; message: string; stack?: string }>(
+  error: T
+): ParsedErrorFrame | null {
   if (!error) {
-    return;
+    return null;
   }
 
   const location = parseLocation(error.stack);
@@ -174,12 +183,24 @@ export async function replayFixture(
     }
   }
 
-  function handlePlaywrightEvent(
-    event: "step:start" | "step:end",
-    stepId: string | undefined,
-    params: Record<string, any> | undefined,
-    detail: Record<string, any>
-  ) {
+  function handlePlaywrightEvent({
+    event,
+    stepId,
+    params,
+    detail,
+  }:
+    | {
+        event: "step:start";
+        stepId: string | undefined;
+        params: Record<string, any> | undefined;
+        detail: { apiName: string; params: Record<string, any>; frames: StackFrame[] };
+      }
+    | {
+        event: "step:end";
+        stepId: string | undefined;
+        params: Record<string, any> | undefined;
+        detail: { error: ParsedErrorFrame | null };
+      }) {
     try {
       assert(
         stepId != null,
@@ -240,13 +261,13 @@ export async function replayFixture(
         return;
       }
 
-      handlePlaywrightEvent("step:start", step.stepId, step.params, {
-        apiName: "expect",
-        params: step.params || {},
-        stackTrace: {
+      handlePlaywrightEvent({
+        event: "step:start",
+        stepId: step.stepId,
+        params: step.params,
+        detail: {
           apiName: "expect",
-          frameTexts: [],
-          allFrames: step.location ? [step.location] : [],
+          params: step.params || {},
           frames: step.location ? [step.location] : [],
         },
       });
@@ -255,26 +276,45 @@ export async function replayFixture(
     },
     function handleStepEnd(step) {
       if (expectSteps.has(step.stepId)) {
-        handlePlaywrightEvent("step:end", step.stepId, undefined, {
-          error: step.error ? parseError(step.error) : null,
+        handlePlaywrightEvent({
+          event: "step:end",
+          stepId: step.stepId,
+          params: undefined,
+          detail: {
+            error: step.error ? parseError(step.error) : null,
+          },
         });
       }
     }
   );
 
   const csiListener: ClientInstrumentationListener = {
-    onApiCallBegin: (apiName, params, stackTrace, _wallTime) => {
+    onApiCallBegin: (apiName, params, stackTraceOrFrames, _wallTime) => {
       currentStepId = getLastStepId(testInfo);
-      handlePlaywrightEvent("step:start", currentStepId, params, {
-        apiName,
-        params: params ?? {},
-        stackTrace,
+      handlePlaywrightEvent({
+        event: "step:start",
+        stepId: currentStepId,
+        params,
+        detail: {
+          apiName,
+          params: params ?? {},
+          frames: stackTraceOrFrames
+            ? "frames" in stackTraceOrFrames
+              ? stackTraceOrFrames.frames
+              : stackTraceOrFrames
+            : [],
+        },
       });
     },
 
     onApiCallEnd: (userData, error) => {
-      handlePlaywrightEvent("step:end", currentStepId, userData?.userObject?.params, {
-        error: error ? parseError(error) : null,
+      handlePlaywrightEvent({
+        event: "step:end",
+        stepId: currentStepId,
+        params: userData?.userObject?.params,
+        detail: {
+          error: error ? parseError(error) : null,
+        },
       });
     },
   };
