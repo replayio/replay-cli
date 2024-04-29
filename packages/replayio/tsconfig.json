@@ -1,0 +1,18 @@
+{
+  "extends": "@replay-cli/tsconfig/base.json",
+  "compilerOptions": {
+    "target": "ES2021",
+    "lib": ["ES2021"],
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "rootDir": "./src",
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../sourcemap-upload"
+    }
+  ]
+}

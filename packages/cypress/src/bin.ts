@@ -6,13 +6,6 @@ import run from "./run";
 
 let [, , cmd, ...args] = process.argv;
 
-let firstRun = false;
-if (cmd === "first-run" && !process.env.REPLAY_SKIP_BROWSER_DOWNLOAD) {
-  args = [];
-  cmd = "install";
-  firstRun = true;
-}
-
 function commandInstall() {
   console.log("Installing Replay browsers for cypress");
 
@@ -100,25 +93,16 @@ Available commands:
 }
 
 (async () => {
-  try {
-    switch (cmd) {
-      case "install":
-        commandInstall();
-        break;
-      case "run":
-        await commandRun();
-        break;
-      case "help":
-      default:
-        help();
-        break;
-    }
-  } catch (e) {
-    if (firstRun) {
-      // Log install errors during first-run but don't fail package install
-      console.error(e);
-    } else {
-      throw e;
-    }
+  switch (cmd) {
+    case "install":
+      commandInstall();
+      break;
+    case "run":
+      await commandRun();
+      break;
+    case "help":
+    default:
+      help();
+      break;
   }
 })();

@@ -58,7 +58,11 @@ export const devices = {
 };
 
 export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
-  return ["@replayio/playwright/reporter", config];
+  // intentionally produce a mutable array here with the help of satisfies
+  // this has to be kept for a foreseeable future to keep compat with older Playwright versions
+  // even after the fix for this gets released: https://github.com/microsoft/playwright/pull/30387
+  return ["@replayio/playwright/reporter", config] as const satisfies unknown[];
 }
 
 export { getMetadataFilePath, replayFixture, addReplayFixture };
+export type { ReplayPlaywrightConfig };
