@@ -1,5 +1,5 @@
 import { tokenParameters, tokenResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function getResourceToken(client: ProtocolClient, params: tokenParameters) {
   await client.waitUntilAuthenticated();

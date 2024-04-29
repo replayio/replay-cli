@@ -1,5 +1,5 @@
 import { table } from "table";
-import { emphasize } from "./theme";
+import { emphasize } from "./theme.js";
 
 export function printTable({
   headers,

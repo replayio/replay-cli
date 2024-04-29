@@ -1,4 +1,5 @@
-import { ensureFileSync, existsSync, readFileSync, removeSync, writeFileSync } from "fs-extra";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { ensureFileSync, removeSync } from "fs-extra/esm";
 
 export function readFromCache<Type>(path: string): Type | undefined {
   if (existsSync(path)) {

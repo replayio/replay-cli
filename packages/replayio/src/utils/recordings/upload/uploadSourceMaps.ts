@@ -1,14 +1,14 @@
 import fs from "fs/promises";
-import { createPromiseQueue } from "../../async/createPromiseQueue";
-import { hashValue } from "../../hashValue";
-import ProtocolClient from "../../protocol/ProtocolClient";
-import { addOriginalSource } from "../../protocol/api/addOriginalSource";
-import { addSourceMap } from "../../protocol/api/addSourceMap";
-import { checkIfResourceExists } from "../../protocol/api/checkIfResourceExists";
-import { createResource } from "../../protocol/api/createResource";
-import { getResourceToken } from "../../protocol/api/getResourceToken";
-import { debug } from "../debug";
-import { LocalRecording } from "../types";
+import { createPromiseQueue } from "../../async/createPromiseQueue.js";
+import { hashValue } from "../../hashValue.js";
+import ProtocolClient from "../../protocol/ProtocolClient.js";
+import { addOriginalSource } from "../../protocol/api/addOriginalSource.js";
+import { addSourceMap } from "../../protocol/api/addSourceMap.js";
+import { checkIfResourceExists } from "../../protocol/api/checkIfResourceExists.js";
+import { createResource } from "../../protocol/api/createResource.js";
+import { getResourceToken } from "../../protocol/api/getResourceToken.js";
+import { debug } from "../debug.js";
+import { LocalRecording } from "../types.js";
 
 async function ensureResource(client: ProtocolClient, content: string) {
   const { token } = await getResourceToken(client, { hash: `sha256:${hashValue(content)}` });

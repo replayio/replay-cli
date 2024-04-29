@@ -1,9 +1,9 @@
 import chalk from "chalk";
-import { getAccessToken } from "../utils/authentication/getAccessToken";
-import { logoutIfAuthenticated } from "../utils/authentication/logoutIfAuthenticated";
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { highlight } from "../utils/theme";
+import { getAccessToken } from "../utils/authentication/getAccessToken.js";
+import { logoutIfAuthenticated } from "../utils/authentication/logoutIfAuthenticated.js";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { highlight } from "../utils/theme.js";
 
 registerCommand("logout").description("Log out of your Replay account").action(logout);
 

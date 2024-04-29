@@ -1,7 +1,7 @@
-import { formatDuration, formatRelativeDate } from "../date";
-import { parseBuildId } from "../installation/parseBuildId";
-import { dim, link } from "../theme";
-import { LocalRecording } from "./types";
+import { formatDuration, formatRelativeDate } from "../date.js";
+import { parseBuildId } from "../installation/parseBuildId.js";
+import { dim, link } from "../theme.js";
+import { LocalRecording } from "./types.js";
 
 const MAX_TITLE_LENGTH = 50;
 

@@ -1,7 +1,7 @@
-import { version as currentVersion, name as packageName } from "../../../package.json";
-import { shouldPrompt } from "../prompt/shouldPrompt";
-import { debug } from "./debug";
-import { UpdateCheck } from "./types";
+import { version as currentVersion, name as packageName } from "../../package.js";
+import { shouldPrompt } from "../prompt/shouldPrompt.js";
+import { debug } from "./debug.js";
+import { UpdateCheck } from "./types.js";
 
 const PROMPT_ID = "npm-update";
 

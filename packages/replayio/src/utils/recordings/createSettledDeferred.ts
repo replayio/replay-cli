@@ -1,5 +1,5 @@
-import { createDeferred } from "../async/createDeferred";
-import { debug } from "./debug";
+import { createDeferred } from "../async/createDeferred.js";
+import { debug } from "./debug.js";
 
 export function createSettledDeferred<Data>(data: Data, promise: Promise<void>) {
   const deferred = createDeferred<boolean, Data>(data);

@@ -1,4 +1,4 @@
-import { timeoutAfter } from "./timeoutAfter";
+import { timeoutAfter } from "./timeoutAfter.js";
 
 async function retry<T>(
   asyncFunction: () => Promise<T>,

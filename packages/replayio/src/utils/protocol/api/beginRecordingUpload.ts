@@ -1,5 +1,5 @@
 import { beginRecordingUploadParameters, beginRecordingUploadResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function beginRecordingUpload(
   client: ProtocolClient,

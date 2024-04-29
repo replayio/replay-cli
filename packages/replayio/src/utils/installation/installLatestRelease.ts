@@ -1,15 +1,16 @@
 import { spawnSync } from "child_process";
-import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
+import { renameSync, rmSync, unlinkSync, writeFileSync } from "fs";
+import { ensureDirSync } from "fs-extra/esm";
 import { get } from "https";
 import { join } from "path";
-import { logAsyncOperation } from "../async/logAsyncOperation";
-import { writeToCache } from "../cache";
-import { getReplayPath } from "../getReplayPath";
-import { dim, link } from "../theme";
-import { metadataPath, runtimeMetadata } from "./config";
-import { debug } from "./debug";
-import { getLatestRelease } from "./getLatestReleases";
-import { MetadataJSON } from "./types";
+import { logAsyncOperation } from "../async/logAsyncOperation.js";
+import { writeToCache } from "../cache.js";
+import { getReplayPath } from "../getReplayPath.js";
+import { dim, link } from "../theme.js";
+import { metadataPath, runtimeMetadata } from "./config.js";
+import { debug } from "./debug.js";
+import { getLatestRelease } from "./getLatestReleases.js";
+import { MetadataJSON } from "./types.js";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
 

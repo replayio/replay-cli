@@ -1,10 +1,10 @@
 import assert from "assert";
-import { existsSync } from "fs-extra";
+import { existsSync } from "fs";
 import { basename } from "path";
-import { recordingLogPath } from "./config";
-import { debug } from "./debug";
-import { readRecordingLogLines } from "./readRecordingLogLines";
-import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
+import { recordingLogPath } from "./config.js";
+import { debug } from "./debug.js";
+import { readRecordingLogLines } from "./readRecordingLogLines.js";
+import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types.js";
 
 export function getRecordings(): LocalRecording[] {
   const recordings: LocalRecording[] = [];

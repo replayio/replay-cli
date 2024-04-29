@@ -1,6 +1,6 @@
-import { readFromCache } from "../cache";
-import { promptHistoryPath } from "./config";
-import { PromptHistory } from "./types";
+import { readFromCache } from "../cache.js";
+import { promptHistoryPath } from "./config.js";
+import { PromptHistory } from "./types.js";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
 

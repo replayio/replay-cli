@@ -1,15 +1,15 @@
 import { spawn } from "child_process";
-import { replayAppHost } from "../../config";
-import { raceWithTimeout } from "../async/raceWithTimeout";
-import { timeoutAfter } from "../async/timeoutAfter";
-import { writeToCache } from "../cache";
-import { getSystemOpenCommand } from "../getSystemOpenCommand";
-import { queryGraphQL } from "../graphql/queryGraphQL";
-import { hashValue } from "../hashValue";
-import { AuthenticationError } from "./AuthenticationError";
-import { cachedAuthPath } from "./config";
-import { debug } from "./debug";
-import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
+import { replayAppHost } from "../../config.js";
+import { raceWithTimeout } from "../async/raceWithTimeout.js";
+import { timeoutAfter } from "../async/timeoutAfter.js";
+import { writeToCache } from "../cache.js";
+import { getSystemOpenCommand } from "../getSystemOpenCommand.js";
+import { queryGraphQL } from "../graphql/queryGraphQL.js";
+import { hashValue } from "../hashValue.js";
+import { AuthenticationError } from "./AuthenticationError.js";
+import { cachedAuthPath } from "./config.js";
+import { debug } from "./debug.js";
+import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow.js";
 
 // TODO [PRO-24] Change authentication to remove polling and GraphQL mutation
 

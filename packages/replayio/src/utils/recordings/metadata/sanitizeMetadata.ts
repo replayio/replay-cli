@@ -1,7 +1,7 @@
-import { debug } from "../debug";
-import { UnstructuredMetadata } from "../types";
-import { validate as validateSource } from "./legacy/source";
-import { validate as validateTest } from "./legacy/test";
+import { debug } from "../debug.js";
+import { UnstructuredMetadata } from "../types.js";
+import { validate as validateSource } from "./legacy/source.js";
+import { validate as validateTest } from "./legacy/test/index.js";
 
 export async function sanitizeMetadata(metadata: UnstructuredMetadata) {
   const updated: UnstructuredMetadata = {};

@@ -1,3 +1,3 @@
-import { authenticateByBrowser as promptForAuthentication } from "../authentication/authenticateByBrowser";
+import { authenticateByBrowser as promptForAuthentication } from "../authentication/authenticateByBrowser.js";
 
 export { promptForAuthentication };

@@ -1,4 +1,4 @@
-import { getReplayPath } from "../getReplayPath";
+import { getReplayPath } from "../getReplayPath.js";
 
 export const debugLogPath = getReplayPath(
   "logs",

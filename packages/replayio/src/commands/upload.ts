@@ -1,14 +1,14 @@
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { canUpload } from "../utils/recordings/canUpload";
-import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
-import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { dim } from "../utils/theme";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { canUpload } from "../utils/recordings/canUpload.js";
+import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording.js";
+import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds.js";
+import { getRecordings } from "../utils/recordings/getRecordings.js";
+import { printRecordings } from "../utils/recordings/printRecordings.js";
+import { selectRecordings } from "../utils/recordings/selectRecordings.js";
+import { LocalRecording } from "../utils/recordings/types.js";
+import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings.js";
+import { dim } from "../utils/theme.js";
 
 registerCommand("upload", { requireAuthentication: true })
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))

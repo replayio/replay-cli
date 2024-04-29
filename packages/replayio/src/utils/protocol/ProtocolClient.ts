@@ -1,12 +1,12 @@
 import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "assert";
 import WebSocket from "ws";
-import { replayWsServer } from "../../config";
-import { getAccessToken } from "../authentication/getAccessToken";
-import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
-import { ProtocolError } from "./ProtocolError";
-import { setAccessToken } from "./api/setAccessToken";
-import { debug } from "./debug";
+import { replayWsServer } from "../../config.js";
+import { getAccessToken } from "../authentication/getAccessToken.js";
+import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred.js";
+import { ProtocolError } from "./ProtocolError.js";
+import { setAccessToken } from "./api/setAccessToken.js";
+import { debug } from "./debug.js";
 
 type Callback = (params: any) => void;
 

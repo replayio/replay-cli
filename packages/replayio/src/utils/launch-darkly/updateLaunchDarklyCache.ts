@@ -1,6 +1,6 @@
-import { readFromCache, writeToCache } from "../cache";
-import { cachePath } from "./config";
-import { Cached } from "./types";
+import { readFromCache, writeToCache } from "../cache.js";
+import { cachePath } from "./config.js";
+import { Cached } from "./types.js";
 
 export function updateLaunchDarklyCache(accessToken: string, id: string | undefined) {
   const cached = readFromCache<Cached>(cachePath) ?? {};

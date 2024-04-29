@@ -1,11 +1,11 @@
-import { readFromCache } from "../cache";
-import { GraphQLError } from "../graphql/GraphQLError";
-import { queryGraphQL } from "../graphql/queryGraphQL";
-import { cachePath } from "./config";
-import { debug } from "./debug";
-import { identifyUserProfile } from "./identifyUserProfile";
-import { Cached } from "./types";
-import { updateLaunchDarklyCache } from "./updateLaunchDarklyCache";
+import { readFromCache } from "../cache.js";
+import { GraphQLError } from "../graphql/GraphQLError.js";
+import { queryGraphQL } from "../graphql/queryGraphQL.js";
+import { cachePath } from "./config.js";
+import { debug } from "./debug.js";
+import { identifyUserProfile } from "./identifyUserProfile.js";
+import { Cached } from "./types.js";
+import { updateLaunchDarklyCache } from "./updateLaunchDarklyCache.js";
 
 export async function initLaunchDarklyFromAccessToken(
   accessToken: string,

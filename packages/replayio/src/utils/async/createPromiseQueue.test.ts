@@ -1,5 +1,5 @@
-import { createPromiseQueue } from "./createPromiseQueue";
-import { timeoutAfter } from "./timeoutAfter";
+import { createPromiseQueue } from "./createPromiseQueue.js";
+import { timeoutAfter } from "./timeoutAfter.js";
 
 function asyncSpy(implementation: () => unknown = () => {}) {
   return jest.fn().mockImplementation(async () => implementation());

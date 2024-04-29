@@ -1,6 +1,6 @@
-import { raceWithTimeout } from "../async/raceWithTimeout";
-import { debug } from "./debug";
-import { getLaunchDarklyClient } from "./getLaunchDarklyClient";
+import { raceWithTimeout } from "../async/raceWithTimeout.js";
+import { debug } from "./debug.js";
+import { getLaunchDarklyClient } from "./getLaunchDarklyClient.js";
 
 export async function close() {
   const client = getLaunchDarklyClient(false);

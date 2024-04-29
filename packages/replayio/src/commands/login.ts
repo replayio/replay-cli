@@ -1,7 +1,7 @@
-import { checkAuthentication } from "../utils/initialization/checkAuthentication";
-import { promptForAuthentication } from "../utils/initialization/promptForAuthentication";
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
+import { checkAuthentication } from "../utils/initialization/checkAuthentication.js";
+import { promptForAuthentication } from "../utils/initialization/promptForAuthentication.js";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
 
 registerCommand("login").description("Log into your Replay account (or register)").action(login);
 

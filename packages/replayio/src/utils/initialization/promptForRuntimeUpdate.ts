@@ -1,10 +1,10 @@
-import { name as packageName } from "../../../package.json";
-import { installLatestRelease } from "../installation/installLatestRelease";
-import { prompt } from "../prompt/prompt";
-import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
-import { emphasize } from "../theme";
-import { Version } from "./checkForRuntimeUpdate";
-import { UpdateCheckResult } from "./types";
+import { name as packageName } from "../../package.js";
+import { installLatestRelease } from "../installation/installLatestRelease.js";
+import { prompt } from "../prompt/prompt.js";
+import { updateCachedPromptData } from "../prompt/updateCachedPromptData.js";
+import { emphasize } from "../theme.js";
+import { Version } from "./checkForRuntimeUpdate.js";
+import { UpdateCheckResult } from "./types.js";
 
 const PROMPT_ID = "runtime-update";
 

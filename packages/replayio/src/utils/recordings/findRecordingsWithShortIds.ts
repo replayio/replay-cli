@@ -1,5 +1,5 @@
 import assert from "assert";
-import { LocalRecording } from "./types";
+import { LocalRecording } from "./types.js";
 
 export function findRecordingsWithShortIds(
   recordings: LocalRecording[],

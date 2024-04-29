@@ -1,8 +1,8 @@
 import strip from "strip-ansi";
-import { replayAppHost } from "../../config";
-import { link } from "../theme";
-import { formatRecording } from "./formatRecording";
-import { LocalRecording } from "./types";
+import { replayAppHost } from "../../config.js";
+import { link } from "../theme.js";
+import { formatRecording } from "./formatRecording.js";
+import { LocalRecording } from "./types.js";
 
 export function printViewRecordingLinks(recordings: LocalRecording[]) {
   switch (recordings.length) {

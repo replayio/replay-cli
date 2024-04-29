@@ -1,5 +1,5 @@
 import { createParameters, createResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function createResource(client: ProtocolClient, params: createParameters) {
   await client.waitUntilAuthenticated();

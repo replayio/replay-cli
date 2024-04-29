@@ -1,26 +1,27 @@
 import assert from "assert";
-import { ReadStream, createReadStream, stat } from "fs-extra";
+import { ReadStream, createReadStream } from "fs";
+import fsExtra from "fs-extra";
 import fetch from "node-fetch";
-import { replayWsServer } from "../../../config";
-import { createDeferred } from "../../async/createDeferred";
-import { createPromiseQueue } from "../../async/createPromiseQueue";
-import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
-import { getUserAgent } from "../../getUserAgent";
-import ProtocolClient from "../../protocol/ProtocolClient";
-import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
-import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload";
-import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMultipartUpload";
-import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
-import { processRecording } from "../../protocol/api/processRecording";
-import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { getKeepAliveAgent } from "../../protocol/getKeepAliveAgent";
-import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
-import { debug } from "../debug";
-import { LocalRecording, RECORDING_LOG_KIND } from "../types";
-import { updateRecordingLog } from "../updateRecordingLog";
-import { ProcessingBehavior } from "./types";
-import { uploadSourceMaps } from "./uploadSourceMaps";
-import { validateRecordingMetadata } from "./validateRecordingMetadata";
+import { replayWsServer } from "../../../config.js";
+import { createDeferred } from "../../async/createDeferred.js";
+import { createPromiseQueue } from "../../async/createPromiseQueue.js";
+import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry.js";
+import { getUserAgent } from "../../getUserAgent.js";
+import ProtocolClient from "../../protocol/ProtocolClient.js";
+import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload.js";
+import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload.js";
+import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMultipartUpload.js";
+import { endRecordingUpload } from "../../protocol/api/endRecordingUpload.js";
+import { processRecording } from "../../protocol/api/processRecording.js";
+import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata.js";
+import { getKeepAliveAgent } from "../../protocol/getKeepAliveAgent.js";
+import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config.js";
+import { debug } from "../debug.js";
+import { LocalRecording, RECORDING_LOG_KIND } from "../types.js";
+import { updateRecordingLog } from "../updateRecordingLog.js";
+import { ProcessingBehavior } from "./types.js";
+import { uploadSourceMaps } from "./uploadSourceMaps.js";
+import { validateRecordingMetadata } from "./validateRecordingMetadata.js";
 
 const uploadQueue = createPromiseQueue({ concurrency: 10 });
 
@@ -37,7 +38,7 @@ export async function uploadRecording(
 
   const { multiPartUpload, processingBehavior } = options;
 
-  const { size } = await stat(path);
+  const { size } = await fsExtra.stat(path);
 
   debug("Uploading recording %s of size %s", recording.id, size);
 
@@ -210,7 +211,7 @@ async function uploadRecordingFileInParts({
   partLinks: string[];
   recordingPath: string;
 }): Promise<string[]> {
-  const { size: totalSize } = await stat(recordingPath);
+  const { size: totalSize } = await fsExtra.stat(recordingPath);
   const abortController = new AbortController();
 
   const partsUploads = partLinks.map((url: string, index: number) => {

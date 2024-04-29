@@ -1,4 +1,4 @@
-import { logAsyncOperation, LogProgressOptions } from "./logAsyncOperation";
+import { logAsyncOperation, LogProgressOptions } from "./logAsyncOperation.js";
 
 export async function logPromise<PromiseType>(
   promise: Promise<PromiseType>,

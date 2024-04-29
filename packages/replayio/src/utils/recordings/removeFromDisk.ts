@@ -1,10 +1,11 @@
-import { readdirSync, removeSync, writeFileSync } from "fs-extra";
+import { readdirSync, writeFileSync } from "fs";
+import { removeSync } from "fs-extra/esm";
 import { join } from "path";
-import { recordingLogPath, recordingsPath } from "./config";
-import { debug } from "./debug";
-import { getRecordings } from "./getRecordings";
-import { readRecordingLogLines } from "./readRecordingLogLines";
-import { LogEntry, RECORDING_LOG_KIND } from "./types";
+import { recordingLogPath, recordingsPath } from "./config.js";
+import { debug } from "./debug.js";
+import { getRecordings } from "./getRecordings.js";
+import { readRecordingLogLines } from "./readRecordingLogLines.js";
+import { LogEntry, RECORDING_LOG_KIND } from "./types.js";
 
 export function removeFromDisk(id?: string) {
   if (id) {

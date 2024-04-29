@@ -1,6 +1,6 @@
 import { LDContext } from "launchdarkly-node-client-sdk";
-import { debug } from "./debug";
-import { getLaunchDarklyClient } from "./getLaunchDarklyClient";
+import { debug } from "./debug.js";
+import { getLaunchDarklyClient } from "./getLaunchDarklyClient.js";
 
 export async function identifyUserProfile(id: string) {
   const client = getLaunchDarklyClient();

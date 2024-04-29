@@ -1,5 +1,5 @@
 import { addSourceMapParameters, addSourceMapResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function addSourceMap(client: ProtocolClient, params: addSourceMapParameters) {
   await client.waitUntilAuthenticated();

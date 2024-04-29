@@ -1,5 +1,5 @@
 import { createSessionParameters, createSessionResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function createSession(client: ProtocolClient, params: createSessionParameters) {
   await client.waitUntilAuthenticated();

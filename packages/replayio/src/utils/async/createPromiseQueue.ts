@@ -1,4 +1,4 @@
-import { Deferred, createDeferred } from "./createDeferred";
+import { Deferred, createDeferred } from "./createDeferred.js";
 
 interface PromiseQueueRoot {
   add: <T>(action: () => Promise<T>) => Promise<T>;

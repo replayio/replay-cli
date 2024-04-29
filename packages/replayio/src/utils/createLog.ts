@@ -1,7 +1,8 @@
 import debug from "debug";
-import { appendFileSync, ensureFileSync } from "fs-extra";
+import { appendFileSync } from "fs";
+import { ensureFileSync } from "fs-extra/esm";
 import util from "util";
-import { getReplayPath } from "./getReplayPath";
+import { getReplayPath } from "./getReplayPath.js";
 
 export function createLog(name: string, logFilePath?: string) {
   const logger = debug(`replayio:${name}`);

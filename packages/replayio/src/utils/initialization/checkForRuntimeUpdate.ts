@@ -1,12 +1,12 @@
-import { existsSync } from "fs-extra";
+import { existsSync } from "fs";
 import { join } from "path";
-import { runtimeMetadata, runtimePath } from "../installation/config";
-import { getLatestRelease } from "../installation/getLatestReleases";
-import { Release } from "../installation/types";
-import { shouldPrompt } from "../prompt/shouldPrompt";
-import { debug } from "./debug";
-import { getCurrentRuntimeMetadata } from "./getCurrentRuntimeMetadata";
-import { UpdateCheck } from "./types";
+import { runtimeMetadata, runtimePath } from "../installation/config.js";
+import { getLatestRelease } from "../installation/getLatestReleases.js";
+import { Release } from "../installation/types.js";
+import { shouldPrompt } from "../prompt/shouldPrompt.js";
+import { debug } from "./debug.js";
+import { getCurrentRuntimeMetadata } from "./getCurrentRuntimeMetadata.js";
+import { UpdateCheck } from "./types.js";
 
 const PROMPT_ID = "runtime-update";
 

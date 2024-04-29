@@ -1,7 +1,7 @@
-import { drawBoxAroundText } from "../formatting";
-import { highlight, highlightAlternate } from "../theme";
-import { formatCommandOrOptionLine } from "./formatCommandOrOptionLine";
-import { Block } from "./types";
+import { drawBoxAroundText } from "../formatting.js";
+import { highlight, highlightAlternate } from "../theme.js";
+import { formatCommandOrOptionLine } from "./formatCommandOrOptionLine.js";
+import { Block } from "./types.js";
 
 export function formatOutput(originalText: string): string {
   const blocks: Block[] = [];

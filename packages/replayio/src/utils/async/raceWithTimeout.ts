@@ -1,4 +1,4 @@
-import { isTimeoutResult, timeoutAfter } from "./timeoutAfter";
+import { isTimeoutResult, timeoutAfter } from "./timeoutAfter.js";
 
 export async function raceWithTimeout<Type>(
   promise: Promise<Type>,

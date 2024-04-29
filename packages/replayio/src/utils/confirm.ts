@@ -1,5 +1,7 @@
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
-import { Confirm } from "bvaughn-enquirer";
+import enquirer from "bvaughn-enquirer";
+
+const { Confirm } = enquirer as any;
 
 export async function confirm(message: string, defaultValue: boolean, footer?: string) {
   const confirm = new Confirm({

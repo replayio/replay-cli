@@ -10,9 +10,11 @@ import {
   any,
   Infer,
 } from "superstruct";
-const isUuid = require("is-uuid");
 
-import { envString, firstEnvValueOf } from "../env";
+// https://github.com/afram/is-uuid/blob/master/lib/is-uuid.js
+const isUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+import { envString, firstEnvValueOf } from "../env.js";
 
 const testResult = enums(["passed", "failed", "timedOut", "skipped", "unknown"]);
 const testError = object({
@@ -68,7 +70,7 @@ const v1_0_0 = object({
     defaulted(
       object({
         id: defaulted(
-          define("uuid", (v: any) => isUuid.v4(v)),
+          define("uuid", (v: any) => isUuidRegex.test(v)),
           firstEnvValueOf("RECORD_REPLAY_METADATA_TEST_RUN_ID", "RECORD_REPLAY_TEST_RUN_ID")
         ),
         title: optional(envString("RECORD_REPLAY_METADATA_TEST_RUN_TITLE")),

@@ -1,12 +1,12 @@
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { removeFromDisk } from "../utils/recordings/removeFromDisk";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { dim } from "../utils/theme";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds.js";
+import { getRecordings } from "../utils/recordings/getRecordings.js";
+import { printRecordings } from "../utils/recordings/printRecordings.js";
+import { removeFromDisk } from "../utils/recordings/removeFromDisk.js";
+import { selectRecordings } from "../utils/recordings/selectRecordings.js";
+import { LocalRecording } from "../utils/recordings/types.js";
+import { dim } from "../utils/theme.js";
 
 registerCommand("remove")
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))

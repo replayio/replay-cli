@@ -1,5 +1,6 @@
 {
   "name": "replayio",
+  "type": "module",
   "version": "1.0.5",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./replayio.js",
@@ -33,6 +34,7 @@
   "dependencies": {
     "@replayio/protocol": "^0.71.0",
     "@replayio/sourcemap-upload": "workspace:^",
+    "@types/react": "^18.3.1",
     "@types/semver": "^7.5.6",
     "assert": "latest",
     "bvaughn-enquirer": "2.4.2",
@@ -42,8 +44,8 @@
     "debug": "^4.3.4",
     "find-process": "^1.4.7",
     "fs-extra": "latest",
+    "ink": "^4.4.1",
     "inquirer": "^8.0.0",
-    "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
     "launchdarkly-node-client-sdk": "^3.1.0",
     "log-update": "^4",
@@ -58,7 +60,7 @@
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
-    "@types/fs-extra": "latest",
+    "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9",
     "@types/jest": "^28.1.5",
     "@types/node-fetch": "^2.6.3",

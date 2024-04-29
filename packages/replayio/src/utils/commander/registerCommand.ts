@@ -1,5 +1,5 @@
 import { program } from "commander";
-import { initialize } from "../initialization/initialize";
+import { initialize } from "../initialization/initialize.js";
 
 export function registerCommand(
   commandName: string,

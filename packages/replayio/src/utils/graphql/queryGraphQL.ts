@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
-import { replayApiServer } from "../../config";
-import { getUserAgent } from "../getUserAgent";
-import { debug } from "./debug";
+import { replayApiServer } from "../../config.js";
+import { getUserAgent } from "../getUserAgent.js";
+import { debug } from "./debug.js";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
   const options = {

@@ -1,3 +1,3 @@
-import { createLog } from "../createLog";
+import { createLog } from "../createLog.js";
 
 export const debug = createLog("installation");

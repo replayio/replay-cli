@@ -1,18 +1,18 @@
-import { exitProcess } from "../../exitProcess";
-import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
-import ProtocolClient from "../../protocol/ProtocolClient";
-import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
-import { dim, highlight, statusFailed } from "../../theme";
-import { canUpload } from "../canUpload";
-import { createSettledDeferred } from "../createSettledDeferred";
-import { debug } from "../debug";
-import { printDeferredRecordingActions } from "../printDeferredRecordingActions";
-import { printViewRecordingLinks } from "../printViewRecordingLinks";
-import { removeFromDisk } from "../removeFromDisk";
-import { LocalRecording } from "../types";
-import { ProcessingBehavior } from "./types";
-import { uploadCrashedData } from "./uploadCrashData";
-import { uploadRecording } from "./uploadRecording";
+import { exitProcess } from "../../exitProcess.js";
+import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue.js";
+import ProtocolClient from "../../protocol/ProtocolClient.js";
+import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError.js";
+import { dim, highlight, statusFailed } from "../../theme.js";
+import { canUpload } from "../canUpload.js";
+import { createSettledDeferred } from "../createSettledDeferred.js";
+import { debug } from "../debug.js";
+import { printDeferredRecordingActions } from "../printDeferredRecordingActions.js";
+import { printViewRecordingLinks } from "../printViewRecordingLinks.js";
+import { removeFromDisk } from "../removeFromDisk.js";
+import { LocalRecording } from "../types.js";
+import { ProcessingBehavior } from "./types.js";
+import { uploadCrashedData } from "./uploadCrashData.js";
+import { uploadRecording } from "./uploadRecording.js";
 
 export async function uploadRecordings(
   recordings: LocalRecording[],

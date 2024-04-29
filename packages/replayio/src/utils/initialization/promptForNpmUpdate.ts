@@ -1,8 +1,8 @@
-import { name as packageName } from "../../../package.json";
-import { prompt } from "../prompt/prompt";
-import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
-import { highlight } from "../theme";
-import { UpdateCheckResult } from "./types";
+import { name as packageName } from "../../package.js";
+import { prompt } from "../prompt/prompt.js";
+import { updateCachedPromptData } from "../prompt/updateCachedPromptData.js";
+import { highlight } from "../theme.js";
+import { UpdateCheckResult } from "./types.js";
 
 const PROMPT_ID = "npm-update";
 

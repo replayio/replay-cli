@@ -1,5 +1,5 @@
 import { ensureProcessedParameters, ensureProcessedResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function ensureProcessed(client: ProtocolClient, sessionId: string) {
   await client.waitUntilAuthenticated();

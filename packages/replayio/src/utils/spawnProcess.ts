@@ -1,6 +1,6 @@
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
-import { createDeferred, Deferred } from "./async/createDeferred";
-import { ProcessError } from "./ProcessError";
+import { createDeferred, Deferred } from "./async/createDeferred.js";
+import { ProcessError } from "./ProcessError.js";
 
 export function spawnProcess(
   executablePath: string,

@@ -1,6 +1,6 @@
 import { RecordingData } from "@replayio/protocol";
-import { sanitizeMetadata } from "../metadata/sanitizeMetadata";
-import { LocalRecording } from "../types";
+import { sanitizeMetadata } from "../metadata/sanitizeMetadata.js";
+import { LocalRecording } from "../types.js";
 
 export async function validateRecordingMetadata(recording: LocalRecording): Promise<{
   metadata: Object;

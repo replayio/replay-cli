@@ -1,5 +1,5 @@
 import strip from "strip-ansi";
-import { dim } from "./theme";
+import { dim } from "./theme.js";
 
 export function drawBoxAroundText(
   text: string,

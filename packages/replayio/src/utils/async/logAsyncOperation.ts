@@ -1,8 +1,10 @@
-import { dots } from "cli-spinners";
-import { disableAnimatedLog } from "../../config";
-import { logUpdate } from "../logUpdate";
-import { statusFailed, statusPending, statusSuccess } from "../theme";
-import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, Status } from "./createDeferred";
+import spinners from "cli-spinners";
+import { disableAnimatedLog } from "../../config.js";
+import { logUpdate } from "../logUpdate.js";
+import { statusFailed, statusPending, statusSuccess } from "../theme.js";
+import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, Status } from "./createDeferred.js";
+
+const { dots } = spinners;
 
 export type LogProgressOptions = { delayBeforeLoggingMs?: number };
 

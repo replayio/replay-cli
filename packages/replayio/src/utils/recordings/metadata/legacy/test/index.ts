@@ -1,7 +1,7 @@
 import { Struct, any, create } from "superstruct";
-import { UnstructuredMetadata } from "../../../types";
-import v1, { TestMetadataV1 } from "./v1";
-import v2, { TestMetadataV2 } from "./v2";
+import { UnstructuredMetadata } from "../../../types.js";
+import v1, { TestMetadataV1 } from "./v1.js";
+import v2, { TestMetadataV2 } from "./v2.js";
 
 const VERSION = "2.1.0";
 

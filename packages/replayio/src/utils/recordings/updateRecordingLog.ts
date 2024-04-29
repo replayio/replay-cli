@@ -1,8 +1,8 @@
-import { writeFileSync } from "fs-extra";
-import { recordingLogPath } from "./config";
-import { debug } from "./debug";
-import { readRecordingLogLines } from "./readRecordingLogLines";
-import { LocalRecording, LogEntry } from "./types";
+import { writeFileSync } from "fs";
+import { recordingLogPath } from "./config.js";
+import { debug } from "./debug.js";
+import { readRecordingLogLines } from "./readRecordingLogLines.js";
+import { LocalRecording, LogEntry } from "./types.js";
 
 export function updateRecordingLog(
   recording: LocalRecording,

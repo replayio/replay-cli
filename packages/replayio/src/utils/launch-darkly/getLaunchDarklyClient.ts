@@ -1,5 +1,5 @@
 import { LDClient, LDUser, initialize as initializeLDClient } from "launchdarkly-node-client-sdk";
-import { getReplayPath } from "../getReplayPath";
+import { getReplayPath } from "../getReplayPath.js";
 
 let client: LDClient;
 

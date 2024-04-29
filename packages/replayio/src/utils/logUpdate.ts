@@ -1,5 +1,5 @@
 import logUpdateExternal, { LogUpdate } from "log-update";
-import { disableAnimatedLog } from "../config";
+import { disableAnimatedLog } from "../config.js";
 
 function logUpdateDebugging(...text: string[]) {
   console.log(...text);

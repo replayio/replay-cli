@@ -1,6 +1,6 @@
-import { printTable } from "../table";
-import { formatRecording } from "./formatRecording";
-import { LocalRecording } from "./types";
+import { printTable } from "../table.js";
+import { formatRecording } from "./formatRecording.js";
+import { LocalRecording } from "./types.js";
 
 export function printRecordings(
   recordings: LocalRecording[],

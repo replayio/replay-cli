@@ -1,5 +1,5 @@
-import { getReplayPath } from "../getReplayPath";
-import { Platform, Runtime } from "./types";
+import { getReplayPath } from "../getReplayPath.js";
+import { Platform, Runtime } from "./types.js";
 
 type Metadata = {
   destinationName: string;

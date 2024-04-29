@@ -3,10 +3,12 @@
   "compilerOptions": {
     "target": "ES2021",
     "lib": ["ES2021"],
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "outDir": "./dist",
     "resolveJsonModule": true,
     "rootDir": "./src",
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "react", "@types/fs-extra"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["**/*.test.ts"],

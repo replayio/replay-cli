@@ -1,5 +1,5 @@
 import { existsParameters, existsResult } from "@replayio/protocol";
-import ProtocolClient from "../ProtocolClient";
+import ProtocolClient from "../ProtocolClient.js";
 
 export async function checkIfResourceExists(client: ProtocolClient, params: existsParameters) {
   await client.waitUntilAuthenticated();

@@ -1,4 +1,4 @@
-import { dim, highlight, highlightAlternate } from "../theme";
+import { dim, highlight, highlightAlternate } from "../theme.js";
 
 export function formatCommandOrOptionLine(line: string): string {
   line = line.replace(/ (-{1,2}[a-zA-Z0-9\-\_]+)/g, highlightAlternate(" $1"));

@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
-import { AuthenticationError } from "./AuthenticationError";
-import { authClientId, authHost } from "./config";
-import { debug } from "./debug";
+import { AuthenticationError } from "./AuthenticationError.js";
+import { authClientId, authHost } from "./config.js";
+import { debug } from "./debug.js";
 
 export async function refreshAccessTokenOrThrow(refreshToken: string): Promise<string> {
   const resp = await fetch(`https://${authHost}/oauth/token`, {

@@ -1,10 +1,10 @@
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
-import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
-import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";
-import { installLatestRelease } from "../utils/installation/installLatestRelease";
-import { statusSuccess } from "../utils/theme";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate.js";
+import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate.js";
+import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate.js";
+import { installLatestRelease } from "../utils/installation/installLatestRelease.js";
+import { statusSuccess } from "../utils/theme.js";
 
 registerCommand("update", {
   checkForRuntimeUpdate: false,

@@ -1,9 +1,9 @@
 import fs from "fs";
 import fetch, { RequestInit } from "node-fetch";
 import { create, defaulted, number, object, optional, Struct } from "superstruct";
-import { createLog } from "../../../createLog";
-import { UnstructuredMetadata } from "../../types";
-import { envString } from "./env";
+import { createLog } from "../../../createLog.js";
+import { UnstructuredMetadata } from "../../types.js";
+import { envString } from "./env.js";
 
 const defaultObject = (value: any) => optional(defaulted(object(value), {}));
 

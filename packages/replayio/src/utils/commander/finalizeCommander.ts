@@ -1,5 +1,5 @@
 import { Help, program } from "commander";
-import { formatOutput } from "./formatOutput";
+import { formatOutput } from "./formatOutput.js";
 
 export function finalizeCommander() {
   try {

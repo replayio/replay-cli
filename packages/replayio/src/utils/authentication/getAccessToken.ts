@@ -1,10 +1,10 @@
-import { readFromCache, writeToCache } from "../cache";
-import { updateLaunchDarklyCache } from "../launch-darkly/updateLaunchDarklyCache";
-import { maskString } from "../maskString";
-import { cachedAuthPath } from "./config";
-import { debug } from "./debug";
-import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
-import { CachedAuthDetails } from "./types";
+import { readFromCache, writeToCache } from "../cache.js";
+import { updateLaunchDarklyCache } from "../launch-darkly/updateLaunchDarklyCache.js";
+import { maskString } from "../maskString.js";
+import { cachedAuthPath } from "./config.js";
+import { debug } from "./debug.js";
+import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow.js";
+import { CachedAuthDetails } from "./types.js";
 
 export async function getAccessToken(): Promise<string | undefined> {
   if (process.env.REPLAY_API_KEY) {

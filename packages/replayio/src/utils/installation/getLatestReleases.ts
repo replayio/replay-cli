@@ -1,9 +1,9 @@
 import assert from "assert";
 import fetch from "node-fetch";
-import { replayAppHost } from "../../config";
-import { runtimeMetadata } from "./config";
-import { debug } from "./debug";
-import { Release } from "./types";
+import { replayAppHost } from "../../config.js";
+import { runtimeMetadata } from "./config.js";
+import { debug } from "./debug.js";
+import { Release } from "./types.js";
 
 const { platform, runtime } = runtimeMetadata;
 

@@ -1,9 +1,9 @@
-import { replayWsServer } from "../../../config";
-import ProtocolClient from "../../protocol/ProtocolClient";
-import { reportCrash } from "../../protocol/api/reportCrash";
-import { debug } from "../debug";
-import { LocalRecording, RECORDING_LOG_KIND } from "../types";
-import { updateRecordingLog } from "../updateRecordingLog";
+import { replayWsServer } from "../../../config.js";
+import ProtocolClient from "../../protocol/ProtocolClient.js";
+import { reportCrash } from "../../protocol/api/reportCrash.js";
+import { debug } from "../debug.js";
+import { LocalRecording, RECORDING_LOG_KIND } from "../types.js";
+import { updateRecordingLog } from "../updateRecordingLog.js";
 
 export async function uploadCrashedData(client: ProtocolClient, recording: LocalRecording) {
   debug(`Uploading crash data for ${recording.id}`);

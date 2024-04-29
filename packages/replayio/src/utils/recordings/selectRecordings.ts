@@ -1,8 +1,10 @@
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
-import { MultiSelect } from "bvaughn-enquirer";
-import { dim, select, transparent } from "../theme";
-import { printRecordings } from "./printRecordings";
-import { LocalRecording } from "./types";
+import enquirer from "bvaughn-enquirer";
+import { dim, select, transparent } from "../theme.js";
+import { printRecordings } from "./printRecordings.js";
+import { LocalRecording } from "./types.js";
+
+const { MultiSelect } = enquirer as any;
 
 export async function selectRecordings(
   recordings: LocalRecording[],

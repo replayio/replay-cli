@@ -1,21 +1,21 @@
 import debug from "debug";
-import { writeFileSync } from "fs-extra";
+import { writeFileSync } from "fs";
 import { v4 as uuid } from "uuid";
-import { ProcessError } from "../utils/ProcessError";
-import { logAsyncOperation } from "../utils/async/logAsyncOperation";
-import { launchBrowser } from "../utils/browser/launchBrowser";
-import { registerCommand } from "../utils/commander/registerCommand";
-import { confirm } from "../utils/confirm";
-import { exitProcess } from "../utils/exitProcess";
-import { getReplayPath } from "../utils/getReplayPath";
-import { canUpload } from "../utils/recordings/canUpload";
-import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { dim } from "../utils/theme";
+import { ProcessError } from "../utils/ProcessError.js";
+import { logAsyncOperation } from "../utils/async/logAsyncOperation.js";
+import { launchBrowser } from "../utils/browser/launchBrowser.js";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { confirm } from "../utils/confirm.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { getReplayPath } from "../utils/getReplayPath.js";
+import { canUpload } from "../utils/recordings/canUpload.js";
+import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording.js";
+import { getRecordings } from "../utils/recordings/getRecordings.js";
+import { printRecordings } from "../utils/recordings/printRecordings.js";
+import { selectRecordings } from "../utils/recordings/selectRecordings.js";
+import { LocalRecording } from "../utils/recordings/types.js";
+import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings.js";
+import { dim } from "../utils/theme.js";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)

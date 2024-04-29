@@ -1,5 +1,5 @@
-import { readFileSync } from "fs-extra";
-import { recordingLogPath } from "./config";
+import { readFileSync } from "fs";
+import { recordingLogPath } from "./config.js";
 
 export function readRecordingLogLines() {
   const rawText = readFileSync(recordingLogPath, "utf8");

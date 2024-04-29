@@ -1,12 +1,12 @@
-import { logPromise } from "../async/logPromise";
-import { raceWithTimeout } from "../async/raceWithTimeout";
-import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
-import { checkAuthentication } from "./checkAuthentication";
-import { checkForNpmUpdate } from "./checkForNpmUpdate";
-import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
-import { promptForAuthentication } from "./promptForAuthentication";
-import { promptForNpmUpdate } from "./promptForNpmUpdate";
-import { promptForRuntimeUpdate } from "./promptForRuntimeUpdate";
+import { logPromise } from "../async/logPromise.js";
+import { raceWithTimeout } from "../async/raceWithTimeout.js";
+import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken.js";
+import { checkAuthentication } from "./checkAuthentication.js";
+import { checkForNpmUpdate } from "./checkForNpmUpdate.js";
+import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate.js";
+import { promptForAuthentication } from "./promptForAuthentication.js";
+import { promptForNpmUpdate } from "./promptForNpmUpdate.js";
+import { promptForRuntimeUpdate } from "./promptForRuntimeUpdate.js";
 
 export async function initialize({
   checkForNpmUpdate: shouldCheckForNpmUpdate,

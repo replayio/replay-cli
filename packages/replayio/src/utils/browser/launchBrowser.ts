@@ -1,14 +1,15 @@
 import findProcess from "find-process";
-import { ensureDirSync, existsSync } from "fs-extra";
+import { existsSync } from "fs";
+import { ensureDirSync } from "fs-extra/esm";
 import { join } from "path";
-import { timeoutAfter } from "../async/timeoutAfter";
-import { getReplayPath } from "../getReplayPath";
-import { runtimeMetadata, runtimePath } from "../installation/config";
-import { prompt } from "../prompt/prompt";
-import { spawnProcess } from "../spawnProcess";
-import { dim, highlight, stderrPrefix, stdoutPrefix } from "../theme";
-import { debug } from "./debug";
-import { getBrowserPath } from "./getBrowserPath";
+import { timeoutAfter } from "../async/timeoutAfter.js";
+import { getReplayPath } from "../getReplayPath.js";
+import { runtimeMetadata, runtimePath } from "../installation/config.js";
+import { prompt } from "../prompt/prompt.js";
+import { spawnProcess } from "../spawnProcess.js";
+import { dim, highlight, stderrPrefix, stdoutPrefix } from "../theme.js";
+import { debug } from "./debug.js";
+import { getBrowserPath } from "./getBrowserPath.js";
 
 export async function launchBrowser(
   url: string,

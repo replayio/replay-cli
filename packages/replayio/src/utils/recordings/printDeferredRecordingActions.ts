@@ -1,11 +1,13 @@
-import { dots } from "cli-spinners";
-import { disableAnimatedLog } from "../../config";
-import { Deferred, STATUS_RESOLVED } from "../async/createDeferred";
-import { logUpdate } from "../logUpdate";
-import { printTable } from "../table";
-import { statusFailed, statusPending, statusSuccess } from "../theme";
-import { formatRecording } from "./formatRecording";
-import { LocalRecording } from "./types";
+import spinners from "cli-spinners";
+import { disableAnimatedLog } from "../../config.js";
+import { Deferred, STATUS_RESOLVED } from "../async/createDeferred.js";
+import { logUpdate } from "../logUpdate.js";
+import { printTable } from "../table.js";
+import { statusFailed, statusPending, statusSuccess } from "../theme.js";
+import { formatRecording } from "./formatRecording.js";
+import { LocalRecording } from "./types.js";
+
+const { dots } = spinners;
 
 export async function printDeferredRecordingActions(
   deferredActions: Deferred<boolean, LocalRecording>[],

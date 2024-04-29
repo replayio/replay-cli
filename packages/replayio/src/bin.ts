@@ -1,16 +1,16 @@
-import { finalizeCommander } from "./utils/commander/finalizeCommander";
-import { exitProcess } from "./utils/exitProcess";
+import { finalizeCommander } from "./utils/commander/finalizeCommander.js";
+import { exitProcess } from "./utils/exitProcess.js";
 
 // Commands self-register with "commander"
-import "./commands/info";
-import "./commands/list";
-import "./commands/login";
-import "./commands/logout";
-import "./commands/record";
-import "./commands/remove";
-import "./commands/update";
-import "./commands/upload";
-import "./commands/upload-source-maps";
+import "./commands/info.js";
+import "./commands/list.js";
+import "./commands/login.js";
+import "./commands/logout.js";
+import "./commands/record.js";
+import "./commands/remove.js";
+import "./commands/update.js";
+import "./commands/upload.js";
+import "./commands/upload-source-maps.js";
 
 finalizeCommander();
 

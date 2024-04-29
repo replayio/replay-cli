@@ -1,9 +1,9 @@
-import { name as packageName, version as packageVersion } from "../../package.json";
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRuntimeMetadata";
-import { parseBuildId } from "../utils/installation/parseBuildId";
-import { highlight } from "../utils/theme";
+import { name as packageName, version as packageVersion } from "../package.js";
+import { registerCommand } from "../utils/commander/registerCommand.js";
+import { exitProcess } from "../utils/exitProcess.js";
+import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRuntimeMetadata.js";
+import { parseBuildId } from "../utils/installation/parseBuildId.js";
+import { highlight } from "../utils/theme.js";
 
 registerCommand("info").description("Display info for installed Replay dependencies").action(info);
 

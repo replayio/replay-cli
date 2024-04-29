@@ -12,7 +12,7 @@ import {
   record,
 } from "superstruct";
 
-import { firstEnvValueOf } from "../env";
+import { firstEnvValueOf } from "../env.js";
 
 const testError = object({
   name: string(),

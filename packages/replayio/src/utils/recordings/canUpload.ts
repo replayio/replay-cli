@@ -1,4 +1,4 @@
-import { LocalRecording } from "./types";
+import { LocalRecording } from "./types.js";
 
 export function canUpload(recording: LocalRecording) {
   return (

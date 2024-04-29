@@ -1,5 +1,5 @@
-import { debug } from "./debug";
-import { getLaunchDarklyClient } from "./getLaunchDarklyClient";
+import { debug } from "./debug.js";
+import { getLaunchDarklyClient } from "./getLaunchDarklyClient.js";
 
 export async function getFeatureFlagValue<Type>(flag: string, defaultValue: boolean) {
   const client = getLaunchDarklyClient();
