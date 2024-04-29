@@ -1,7 +1,7 @@
-import dbg from "debug";
-import WebSocket, { WebSocketServer } from "ws";
-import { FixtureEvent, FixtureStepEnd, FixtureStepStart, TestIdData } from "./fixture";
 import { ReporterError } from "@replayio/test-utils";
+import dbg from "debug";
+import { WebSocketServer } from "ws";
+import { FixtureEvent, FixtureStepEnd, FixtureStepStart, TestIdData } from "./fixture";
 
 const debug = dbg("replay:playwright:server");
 const debugMessages = debug.extend("messages");
