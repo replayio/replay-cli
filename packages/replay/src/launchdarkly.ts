@@ -23,16 +23,12 @@ class NoOpLogger implements LDLogger {
 }
 
 class LaunchDarkly {
-  private client: LDClient;
+  private client: LDClient | undefined;
 
-  constructor() {
-    this.client = LaunchDarkly.initializeClient();
-  }
-
-  private static initializeClient() {
+  public initialize() {
     const key = "60ca05fb43d6f10d234bb3cf";
     const defaultProfile = { type: "anonymous", id: "anonymous" };
-    return initialize(
+    this.client = initialize(
       key,
       {
         kind: "user",
@@ -43,9 +39,13 @@ class LaunchDarkly {
         logger: new NoOpLogger(),
       }
     );
+    return this;
   }
 
   public async identify(profile: FeatureProfile): Promise<void> {
+    if (!this.client) {
+      return;
+    }
     try {
       await this.client.waitForInitialization();
     } catch (e) {
@@ -61,10 +61,16 @@ class LaunchDarkly {
   }
 
   public async isEnabled(flag: string, defaultValue: boolean): Promise<boolean> {
+    if (!this.client) {
+      return defaultValue;
+    }
     return await this.variant(flag, defaultValue);
   }
 
   public async variant<T>(name: string, defaultValue: T): Promise<T> {
+    if (!this.client) {
+      return defaultValue;
+    }
     try {
       await this.client.waitForInitialization();
     } catch (e) {
@@ -77,6 +83,9 @@ class LaunchDarkly {
   }
 
   public async close() {
+    if (!this.client) {
+      return;
+    }
     try {
       await this.client.close();
     } catch (e) {

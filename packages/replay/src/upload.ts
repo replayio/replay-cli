@@ -1,15 +1,15 @@
+import crypto from "crypto";
 import fs from "fs";
+import type { Agent, AgentOptions } from "http";
+import fetch from "node-fetch";
+import pMap from "p-map";
 import path from "path";
 import { Worker } from "worker_threads";
-import crypto from "crypto";
-import fetch from "node-fetch";
 import ProtocolClient from "./client";
-import { defer, maybeLog, isValidUUID, getUserAgent, linearBackoffRetry } from "./utils";
+import dbg, { logPath } from "./debug";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import dbg, { logPath } from "./debug";
-import pMap from "p-map";
-import type { Agent, AgentOptions } from "http";
+import { defer, getUserAgent, isValidUUID, linearBackoffRetry, maybeLog } from "./utils";
 
 const debug = dbg("replay:cli:upload");
 

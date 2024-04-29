@@ -1,6 +1,6 @@
 {
   "name": "@replayio/sourcemap-upload",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "description": "A utility library for uploading sourcemaps to Replay for use while replaying recordings.",
   "engines": {
     "node": ">=10.13"
@@ -53,6 +53,7 @@
     "debug": "^4.3.1",
     "glob": "^7.1.6",
     "node-fetch": "^2.6.1",
+    "p-map": "^4.0.0",
     "string.prototype.matchall": "^4.0.5"
   }
 }
