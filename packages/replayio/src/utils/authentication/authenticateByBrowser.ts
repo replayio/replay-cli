@@ -75,7 +75,7 @@ async function fetchRefreshTokenFromGraphQLOrThrow(key: string) {
   return data.closeAuthRequest.token as string;
 }
 
-async function pollForAuthentication(key: string) {
+export async function pollForAuthentication(key: string) {
   let refreshToken: string | undefined = undefined;
   while (!refreshToken) {
     try {
