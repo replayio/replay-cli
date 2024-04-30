@@ -5,6 +5,7 @@ import dbg from "debug";
 import WebSocket from "ws";
 import { Errors } from "./error";
 import {
+  ClientInstrumentation,
   ClientInstrumentationListener,
   StackFrame,
   TestInfoInternal,
@@ -138,8 +139,12 @@ function maybeMonkeyPatchTestInfo(
   }
 }
 
+type Playwright = typeof import("playwright-core") & {
+  _instrumentation: ClientInstrumentation;
+};
+
 export async function replayFixture(
-  { playwright, browser }: { playwright: any; browser: Browser },
+  { playwright, browser }: { playwright: Playwright; browser: Browser },
   use: () => Promise<void>,
   testInfo: TestInfo
 ) {
@@ -347,8 +352,4 @@ export function addReplayFixture() {
       column: 1,
     },
   });
-}
-
-export function isFixtureEnabled() {
-  return !!process.env.REPLAY_PLAYWRIGHT_FIXTURE;
 }
