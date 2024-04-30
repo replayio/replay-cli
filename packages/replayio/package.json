@@ -14,7 +14,7 @@
   "scripts": {
     "build": "rm -rf dist/ metadata/ tsconfig.tsbuildinfo && tsc",
     "lint": "prettier --write .",
-    "test": "jest --ci",
+    "test": "yarn node --experimental-vm-modules $(yarn bin jest) --ci",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch"
   },

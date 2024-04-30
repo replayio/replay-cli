@@ -11,6 +11,7 @@ import "./commands/remove.js";
 import "./commands/update.js";
 import "./commands/upload.js";
 import "./commands/upload-source-maps.js";
+import "./commands/watch.js";
 
 finalizeCommander();
 
