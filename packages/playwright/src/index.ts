@@ -2,11 +2,6 @@ import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { ReplayPlaywrightConfig, getMetadataFilePath } from "./reporter";
-import { addReplayFixture, isFixtureEnabled, replayFixture } from "./fixture";
-
-if (isFixtureEnabled()) {
-  addReplayFixture();
-}
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -64,5 +59,5 @@ export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
   return ["@replayio/playwright/reporter", config] as const satisfies unknown[];
 }
 
-export { getMetadataFilePath, replayFixture, addReplayFixture };
+export { getMetadataFilePath };
 export type { ReplayPlaywrightConfig };

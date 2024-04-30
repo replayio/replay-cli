@@ -42,9 +42,31 @@ export type StepEndPayload = {
 };
 
 // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright-core/src/client/clientInstrumentation.ts#L21-L32
+// we keep some of the methods optional here because this evolves over time
+export interface ClientInstrumentation {
+  addListener(listener: ClientInstrumentationListener): void;
+  removeListener(listener: ClientInstrumentationListener): void;
+  removeAllListeners?(): void;
+  onApiCallBegin(
+    apiCall: string,
+    params: Record<string, any>,
+    // this got changed in https://github.com/microsoft/playwright/pull/27496
+    stackTraceOrFrames: ParsedStackTrace | StackFrame[] | null,
+    wallTime: number,
+    userData: any
+  ): void;
+  onApiCallEnd(userData: any, error?: Error): void;
+  onDidCreateBrowserContext?(context: BrowserContext): Promise<void>;
+  onDidCreateRequestContext?(context: APIRequestContext): Promise<void>;
+  onWillPause?(): void;
+  onWillCloseBrowserContext?(context: BrowserContext): Promise<void>;
+  onWillCloseRequestContext?(context: APIRequestContext): Promise<void>;
+}
+
+// https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright-core/src/client/clientInstrumentation.ts#L34-L42
 export interface ClientInstrumentationListener {
   onApiCallBegin?(
-    apiCall: string,
+    apiName: string,
     params: Record<string, any>,
     // this got changed in https://github.com/microsoft/playwright/pull/27496
     stackTraceOrFrames: ParsedStackTrace | StackFrame[] | null,

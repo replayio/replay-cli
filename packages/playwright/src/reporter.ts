@@ -23,7 +23,7 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
-import { FixtureStepStart, ParsedErrorFrame, TestIdData, isFixtureEnabled } from "./fixture";
+import { FixtureStepStart, ParsedErrorFrame, TestIdData, addReplayFixture } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 
 const debug = dbg("replay:playwright:reporter");
@@ -108,6 +108,7 @@ class ReplayPlaywrightReporter implements Reporter {
   > = {};
 
   constructor() {
+    addReplayFixture();
     const port = getServerPort();
     debug(`Starting plugin WebSocket server on ${port}`);
     this.wss = startServer({
@@ -212,53 +213,6 @@ class ReplayPlaywrightReporter implements Reporter {
     );
   }
 
-  getStepsFromResult(result: TestResult) {
-    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
-    const steps: UserActionEvent[] = [];
-
-    for (let [i, s] of result.steps.entries()) {
-      const hook = mapTestStepHook(s);
-      const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
-
-      const step: UserActionEvent = {
-        data: {
-          id: String(i),
-          parentId: null,
-          command: {
-            name: s.title,
-            arguments: [],
-          },
-          scope: s.titlePath(),
-          error: stepErrorMessage
-            ? {
-                name: "AssertionError",
-                message: stepErrorMessage,
-                line: s.location?.line || 0,
-                column: s.location?.column || 0,
-              }
-            : null,
-          category: mapTestStepCategory(s),
-        },
-      };
-
-      if (hook) {
-        const hookSteps = hookMap.get(hook) || [];
-        hookSteps.push(step);
-        hookMap.set(hook, hookSteps);
-      } else {
-        steps.push(step);
-      }
-    }
-
-    return {
-      beforeAll: [],
-      afterAll: [],
-      beforeEach: hookMap.get("beforeEach") || [],
-      afterEach: hookMap.get("afterEach") || [],
-      main: steps,
-    };
-  }
-
   getStepsFromFixture(test: TestIdData) {
     const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
@@ -325,9 +279,7 @@ class ReplayPlaywrightReporter implements Reporter {
       source: this.getSource(test),
     };
 
-    const events = isFixtureEnabled()
-      ? this.getStepsFromFixture(testMetadata)
-      : this.getStepsFromResult(result);
+    const events = this.getStepsFromFixture(testMetadata);
 
     const relativePath = test.titlePath()[2];
     const { stacks, filenames } = this.getFixtureData(testMetadata);
@@ -362,8 +314,8 @@ class ReplayPlaywrightReporter implements Reporter {
             ? {
                 name: "Error",
                 message: extractErrorMessage(result.error),
-                line: (result.error as any).location?.line || 0,
-                column: (result.error as any).location?.column || 0,
+                line: result.error.location?.line ?? 0,
+                column: result.error.location?.column ?? 0,
               }
             : null,
           events,
