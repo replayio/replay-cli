@@ -23,7 +23,7 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
-import { FixtureStepStart, TestIdData, isFixtureEnabled } from "./fixture";
+import { FixtureStepStart, ParsedErrorFrame, TestIdData, isFixtureEnabled } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 
 const debug = dbg("replay:playwright:reporter");
@@ -69,7 +69,9 @@ function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"
   }
 }
 
-function mapTestStepHook(step: TestStep): "beforeEach" | "afterEach" | undefined {
+function mapTestStepHook(
+  step: Pick<TestStep, "category" | "title">
+): "beforeEach" | "afterEach" | undefined {
   if (step.category !== "hook") return;
 
   switch (step.title) {
@@ -91,7 +93,7 @@ export interface ReplayPlaywrightConfig
 }
 
 interface FixtureStep extends FixtureStepStart {
-  error?: Error | undefined;
+  error?: ParsedErrorFrame | undefined;
 }
 
 class ReplayPlaywrightReporter implements Reporter {
@@ -115,6 +117,9 @@ class ReplayPlaywrightReporter implements Reporter {
         steps.push(step);
       },
       onStepEnd: (test, step) => {
+        if (!step.error) {
+          return;
+        }
         const { steps } = this.getFixtureData(test);
         const s = steps.find(f => f.id === step.id);
 
@@ -255,10 +260,13 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   getStepsFromFixture(test: TestIdData) {
+    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
     const steps: UserActionEvent[] = [];
 
     const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
     fixtureSteps?.forEach(fixtureStep => {
+      const hook = mapTestStepHook(fixtureStep);
+
       const step: UserActionEvent = {
         data: {
           id: fixtureStep.id,
@@ -288,14 +296,20 @@ class ReplayPlaywrightReporter implements Reporter {
         }
       }
 
-      steps.push(step);
+      if (hook) {
+        const hookSteps = hookMap.get(hook) || [];
+        hookSteps.push(step);
+        hookMap.set(hook, hookSteps);
+      } else {
+        steps.push(step);
+      }
     });
 
     return {
       beforeAll: [],
       afterAll: [],
-      beforeEach: [], // hookMap.get("beforeEach") || [],
-      afterEach: [], // hookMap.get("afterEach") || [],
+      beforeEach: hookMap.get("beforeEach") || [],
+      afterEach: hookMap.get("afterEach") || [],
       main: steps,
     };
   }

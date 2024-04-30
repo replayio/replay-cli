@@ -1,4 +1,4 @@
-import { Browser, TestInfo, test } from "@playwright/test";
+import { Browser, TestInfo, TestInfoError, test } from "@playwright/test";
 import { ReporterError, warn } from "@replayio/test-utils";
 import assert from "assert";
 import dbg from "debug";
@@ -8,15 +8,20 @@ import {
   ClientInstrumentationListener,
   StackFrame,
   TestInfoInternal,
-  TestInfoStep,
+  TestStepInternal,
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
 
-export interface FixtureStepStart {
-  id: string;
+interface StepStartDetail {
   apiName: string;
-  params: Record<string, any>;
+  category: TestStepInternal["category"];
   frames: StackFrame[];
+  params: Record<string, any>;
+  title: TestStepInternal["title"];
+}
+
+export interface FixtureStepStart extends StepStartDetail {
+  id: string;
 }
 
 export interface TestIdData {
@@ -33,9 +38,12 @@ interface FixtureStepStartEvent extends FixtureStepStart {
   test: TestIdData;
 }
 
-export interface FixtureStepEnd {
+interface StepEndDetail {
+  error: ParsedErrorFrame | null;
+}
+
+export interface FixtureStepEnd extends StepEndDetail {
   id: string;
-  error: Error | undefined;
 }
 
 interface FixtureStepEndEvent extends FixtureStepEnd {
@@ -61,8 +69,9 @@ function ReplayAddAnnotation([event, id, data]: any) {
   });
 }
 
-function getLastStepId(testInfo: any) {
-  return testInfo._steps[testInfo._steps.length - 1].stepId;
+function getCurrentStep(testInfo: TestInfo): TestStepInternal {
+  const steps = (testInfo as any)._steps;
+  return steps[steps.length - 1];
 }
 
 function isReplayAnnotation(params?: any) {
@@ -94,18 +103,12 @@ export interface ParsedErrorFrame {
   column: number | undefined;
 }
 
-function parseError<T extends { name?: string; message: string; stack?: string }>(
-  error: T
-): ParsedErrorFrame | null {
-  if (!error) {
-    return null;
-  }
-
+function parseError(error: TestInfoError): ParsedErrorFrame {
   const location = parseLocation(error.stack);
 
   return {
-    name: error.name || "Error",
-    message: error.message,
+    name: "name" in error ? (error.name as string) : "Error",
+    message: error.message ?? "Unknown",
     line: location?.line,
     column: location?.column,
   };
@@ -113,25 +116,23 @@ function parseError<T extends { name?: string; message: string; stack?: string }
 
 function maybeMonkeyPatchTestInfo(
   testInfo: TestInfoInternal,
-  addStepHandler: (step: TestInfoStep) => void,
-  stepEndHandler: TestInfoInternal["_onStepEnd"]
+  addStepHandler: (step: TestStepInternal) => void,
+  stepEndHandler: NonNullable<TestInfoInternal["_onStepEnd"]>
 ) {
   if (testInfo._addStep) {
-    const original = testInfo._addStep.bind(testInfo);
-    testInfo._addStep = (data, parentStep) => {
-      const result = original(data, parentStep);
-      addStepHandler?.(result);
-
+    const original = testInfo._addStep;
+    testInfo._addStep = function (...args) {
+      const result = original.call(this, ...args);
+      addStepHandler(result);
       return result;
     };
   }
 
   if (testInfo._onStepEnd) {
-    const original = testInfo._onStepEnd.bind(testInfo);
-    testInfo._onStepEnd = step => {
-      const result = original(step);
-      stepEndHandler?.(step);
-
+    const original = testInfo._onStepEnd;
+    testInfo._onStepEnd = function (step) {
+      const result = original.call(this, step);
+      stepEndHandler(step);
       return result;
     };
   }
@@ -147,7 +148,7 @@ export async function replayFixture(
   const port = getServerPort();
   const ws = new WebSocket(`ws://localhost:${port}`);
   const expectSteps = new Set<string>();
-  let currentStepId: string | undefined;
+  let currentStep: TestStepInternal | undefined;
 
   await new Promise<void>((resolve, reject) => {
     ws.on("open", () => resolve());
@@ -163,7 +164,7 @@ export async function replayFixture(
     },
   };
 
-  function addAnnotation(event: string, id?: string, data?: Record<string, any>) {
+  function addAnnotation(event: string, id?: string, detail?: Record<string, any>) {
     if (id) {
       return Promise.allSettled(
         browser.contexts().flatMap(context => {
@@ -172,7 +173,7 @@ export async function replayFixture(
               await page.evaluate(ReplayAddAnnotation, [
                 event,
                 id,
-                JSON.stringify({ ...data, test: testIdData }),
+                JSON.stringify({ ...detail, test: testIdData }),
               ]);
             } catch (e) {
               warn("Failed to add annotation", e);
@@ -184,37 +185,35 @@ export async function replayFixture(
   }
 
   function handlePlaywrightEvent({
-    event,
-    stepId,
-    params,
     detail,
+    ...data
   }:
     | {
         event: "step:start";
-        stepId: string | undefined;
+        id: string;
         params: Record<string, any> | undefined;
-        detail: { apiName: string; params: Record<string, any>; frames: StackFrame[] };
+        detail: StepStartDetail;
       }
     | {
         event: "step:end";
-        stepId: string | undefined;
+        id: string;
         params: Record<string, any> | undefined;
-        detail: { error: ParsedErrorFrame | null };
+        detail: StepEndDetail;
       }) {
     try {
       assert(
-        stepId != null,
+        data.id != null,
         new ReporterError(Errors.MissingCurrentStep, "No current step for API call end")
       );
 
       if (
         // Do not emit replay annotations so we don't enter an infinite loop
-        isReplayAnnotation(params) ||
+        isReplayAnnotation(data.params) ||
         // Some `expect` calls (e.g. `expect.toBeVisible`) are API calls and
         // will be emitted by both the addStep "hook" and this method. addStep
         // is called before this so since we've already dispatched a step:start,
         // we'll skip emitting another here.
-        expectSteps.has(stepId)
+        expectSteps.has(data.id)
       ) {
         return;
       }
@@ -222,13 +221,12 @@ export async function replayFixture(
       ws.send(
         JSON.stringify({
           ...detail,
-          event: event,
-          id: stepId,
+          ...data,
           test: testIdData,
         })
       );
 
-      addAnnotation(event, stepId, detail);
+      addAnnotation(data.event, data.id, detail);
     } catch (e) {
       let reporterError: ReporterError;
 
@@ -263,10 +261,12 @@ export async function replayFixture(
 
       handlePlaywrightEvent({
         event: "step:start",
-        stepId: step.stepId,
+        id: step.stepId,
         params: step.params,
         detail: {
           apiName: "expect",
+          category: step.category,
+          title: step.title,
           params: step.params || {},
           frames: step.location ? [step.location] : [],
         },
@@ -278,7 +278,7 @@ export async function replayFixture(
       if (expectSteps.has(step.stepId)) {
         handlePlaywrightEvent({
           event: "step:end",
-          stepId: step.stepId,
+          id: step.stepId,
           params: undefined,
           detail: {
             error: step.error ? parseError(step.error) : null,
@@ -290,19 +290,21 @@ export async function replayFixture(
 
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTraceOrFrames, _wallTime) => {
-      currentStepId = getLastStepId(testInfo);
+      currentStep = getCurrentStep(testInfo);
       handlePlaywrightEvent({
         event: "step:start",
-        stepId: currentStepId,
+        id: currentStep.stepId,
         params,
         detail: {
           apiName,
-          params: params ?? {},
+          category: currentStep.category,
           frames: stackTraceOrFrames
             ? "frames" in stackTraceOrFrames
               ? stackTraceOrFrames.frames
               : stackTraceOrFrames
             : [],
+          params: params ?? {},
+          title: currentStep.title,
         },
       });
     },
@@ -310,7 +312,7 @@ export async function replayFixture(
     onApiCallEnd: (userData, error) => {
       handlePlaywrightEvent({
         event: "step:end",
-        stepId: currentStepId,
+        id: currentStep!.stepId,
         params: userData?.userObject?.params,
         detail: {
           error: error ? parseError(error) : null,
