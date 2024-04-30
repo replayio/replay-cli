@@ -48,6 +48,9 @@ export function formatRecording(recording: LocalRecording) {
   let status;
   if (uploadStatus) {
     switch (uploadStatus) {
+      case "failed":
+        status = "Upload failed";
+        break;
       case "uploaded":
         status = "Uploaded";
         break;
