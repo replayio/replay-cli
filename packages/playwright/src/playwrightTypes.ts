@@ -42,7 +42,7 @@ export interface ClientInstrumentationListener {
   onApiCallBegin?(
     apiCall: string,
     params: Record<string, any>,
-    stackTrace: ParsedStackTrace | null,
+    stackTraceOrFrames: ParsedStackTrace | StackFrame[] | null,
     wallTime: number,
     userData: any
   ): void;

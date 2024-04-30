@@ -24,6 +24,7 @@ type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
 import { FixtureStepStart, TestIdData, isFixtureEnabled } from "./fixture";
+import { StackFrame } from "./playwrightTypes";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("@replayio/playwright/package.json").version;
@@ -101,7 +102,7 @@ class ReplayPlaywrightReporter implements Reporter {
   wss: WebSocketServer;
   fixtureData: Record<
     string,
-    { steps: FixtureStep[]; stacks: Record<string, any>; filenames: Set<string> }
+    { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
 
   constructor() {
@@ -129,7 +130,7 @@ class ReplayPlaywrightReporter implements Reporter {
 
   getFixtureData(test: TestIdData) {
     const key = this.getTestKey(test);
-    this.fixtureData[key] = this.fixtureData[key] || {
+    this.fixtureData[key] ??= {
       steps: [],
       stacks: {},
       filenames: new Set(),
@@ -272,7 +273,7 @@ class ReplayPlaywrightReporter implements Reporter {
         },
       };
 
-      const stack = fixtureStep.stackTrace.frames.map(frame => ({
+      const stack = fixtureStep.frames.map(frame => ({
         line: frame.line,
         column: frame.column,
         functionName: frame.function,
@@ -320,18 +321,21 @@ class ReplayPlaywrightReporter implements Reporter {
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
-      try {
-        playwrightMetadata = {
-          "x-replay-playwright": {
-            sources: Object.fromEntries(
-              [...filenames].map(filename => [filename, readFileSync(filename, "utf8")])
-            ),
-            stacks,
-          },
-        };
-      } catch (e) {
-        warn("Failed to read playwright test sources", e);
-      }
+      playwrightMetadata = {
+        "x-replay-playwright": {
+          sources: Object.fromEntries(
+            [...filenames].map(filename => {
+              try {
+                return [filename, readFileSync(filename, "utf8")];
+              } catch (e) {
+                warn(`Failed to read playwright test source for: ${filename}`, e);
+                return [filename, undefined];
+              }
+            })
+          ),
+          stacks,
+        },
+      };
     }
 
     this.reporter?.onTestEnd({
