@@ -16,12 +16,11 @@ Use with [action-playwright](https://github.com/Replayio/action-playwright) to a
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 import { devices as replayDevices } from "@replayio/playwright";
 
-
 const config: PlaywrightTestConfig = {
   projects: [
     {
       name: "replay-chromium",
-      use: { ...replayDevices["Replay Chromium"] as any },
+      use: { ...replayDevices["Replay Chromium"] },
     },
     {
       name: "firefox",
