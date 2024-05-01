@@ -249,7 +249,9 @@ export function getRecordings(): LocalRecording[] {
   return recordings
     .filter(recording => {
       if (!recording.metadata.host) {
-        // Ignore new tab recordings (see TT-1036)
+        // Ignore new/empty tab recordings (see TT-1036)
+        // Note that we filter all "empty" recordings, not just root recordings,
+        // because Chrome loads its default new tab content via an <iframe>
         return false;
       }
 
