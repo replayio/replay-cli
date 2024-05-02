@@ -334,6 +334,8 @@ export async function replayFixture(
   clientInstrumentation.removeListener(csiListener);
 }
 
+// this doesn't work for users using `_baseTest` (the one without any builtin fixtures)
+// it's not quite a public API though - it's exported at runtime but it's underscored, not documented and not available in the types
 export function addReplayFixture() {
   const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
   const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;

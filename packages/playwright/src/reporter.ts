@@ -23,7 +23,7 @@ import {
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getServerPort, startServer } from "./server";
-import { FixtureStepStart, ParsedErrorFrame, TestIdData, addReplayFixture } from "./fixture";
+import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 
 const debug = dbg("replay:playwright:reporter");
@@ -108,7 +108,6 @@ class ReplayPlaywrightReporter implements Reporter {
   > = {};
 
   constructor() {
-    addReplayFixture();
     const port = getServerPort();
     debug(`Starting plugin WebSocket server on ${port}`);
     this.wss = startServer({
