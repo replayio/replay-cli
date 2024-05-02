@@ -2,6 +2,7 @@ import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { ReplayPlaywrightConfig, getMetadataFilePath } from "./reporter";
+import { addReplayFixture } from "./fixture";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -61,3 +62,17 @@ export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
 
 export { getMetadataFilePath };
 export type { ReplayPlaywrightConfig };
+
+// ⚠️ this is an initialization-time side-effect
+// there is no other way to add this fixture reliably to make it available automatically
+//
+// `globalSetup` doesn't work because this has to be executed in a worker context
+// and `globalSetup` is executed in the worker's parent process
+//
+// project dependencies can't be used because they can't execute files from node_modules
+// but since setup/teardown is done using `test` when using this strategy
+// it would likely be too late for this to be added there anyway
+//
+// currently this works somewhat accidentally, it only works because Playwright workers load config files
+// if the config would be serialized and passed down to them from the parent it wouldn't work
+addReplayFixture();
