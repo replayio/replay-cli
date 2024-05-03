@@ -16,6 +16,7 @@ import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { dim } from "../utils/theme";
+import { sendEvent } from "../utils/telemetry";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -46,6 +47,10 @@ async function record(url: string = "about:blank") {
         const errorLogPath = getReplayPath("recorder-crash.log");
 
         writeFileSync(errorLogPath, stderr, "utf8");
+
+        sendEvent("cli-recorder-crash", {
+          message: stderr,
+        });
 
         console.log(dim(`More information can be found in ${errorLogPath}`));
       }
