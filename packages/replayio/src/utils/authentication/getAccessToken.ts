@@ -55,7 +55,9 @@ export async function getAccessToken(): Promise<string | undefined> {
     );
 
     try {
-      accessToken = await refreshAccessTokenOrThrow(refreshToken);
+      const refreshedTokens = await refreshAccessTokenOrThrow(refreshToken);
+      writeToCache(cachedAuthPath, refreshedTokens);
+      accessToken = refreshedTokens.accessToken;
     } catch (error) {
       writeToCache(cachedAuthPath, undefined);
       updateLaunchDarklyCache(accessToken, undefined);
