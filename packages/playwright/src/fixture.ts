@@ -165,7 +165,11 @@ export async function replayFixture(
     attempt: testInfo.retry + 1,
     source: {
       title: testInfo.title,
-      scope: testInfo.titlePath.slice(3, -1),
+      // this one only drops the filename (first segment) and the test title (last segment)
+      // it's different from the one in the reporter, since the "root" suites are just the file suites created here:
+      // https://github.com/microsoft/playwright/blob/a6488c4a2879a22e8da0f6708114ef7b9f4d253f/packages/playwright/src/common/testLoader.ts#L36
+      // in this context they are not attached to the root and project suites
+      scope: testInfo.titlePath.slice(1, -1),
     },
   };
 
