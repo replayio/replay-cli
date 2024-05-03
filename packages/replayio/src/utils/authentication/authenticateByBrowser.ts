@@ -91,7 +91,5 @@ async function pollForAuthentication(key: string) {
     }
   }
 
-  const accessToken = await refreshAccessTokenOrThrow(refreshToken);
-
-  return { accessToken, refreshToken };
+  return await refreshAccessTokenOrThrow(refreshToken);
 }

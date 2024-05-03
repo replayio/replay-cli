@@ -3,7 +3,9 @@ import { AuthenticationError } from "./AuthenticationError";
 import { authClientId, authHost } from "./config";
 import { debug } from "./debug";
 
-export async function refreshAccessTokenOrThrow(refreshToken: string): Promise<string> {
+export async function refreshAccessTokenOrThrow(
+  refreshToken: string
+): Promise<{ accessToken: string; refreshToken: string }> {
   const resp = await fetch(`https://${authHost}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,11 +26,17 @@ export async function refreshAccessTokenOrThrow(refreshToken: string): Promise<s
     throw new AuthenticationError("auth0-error", json.error);
   }
 
-  if (!json.access_token) {
-    debug("OAuth token request was missing access token: %O", json);
+  if (!json.access_token || !json.refresh_token) {
+    debug("OAuth token request was missing access or refresh token: %O", json);
 
-    throw new AuthenticationError("no-access-token", "No access token in response");
+    throw new AuthenticationError(
+      "no-access-or-refresh-token",
+      "No access or refresh token in response"
+    );
   }
 
-  return json.access_token as string;
+  return {
+    accessToken: json.access_token as string,
+    refreshToken: json.refresh_token as string,
+  };
 }
