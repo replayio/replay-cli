@@ -47,6 +47,7 @@
     "jsonata": "^1.8.6",
     "launchdarkly-node-client-sdk": "^3.1.0",
     "log-update": "^4",
+    "mixpanel": "^0.18.0",
     "node-fetch": "^2.6.8",
     "open": "^8.4.2",
     "pretty-ms": "^7.0.1",
