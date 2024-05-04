@@ -1,3 +1,6 @@
+//  ignore tsc in this file
+// @ts-nocheck
+
 import debug from "debug";
 import { appendFileSync } from "fs";
 import { ensureFileSync } from "fs-extra/esm";

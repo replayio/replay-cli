@@ -15,4 +15,5 @@ export type Recording = {
   shortId: string;
   status: RecordingStatus;
   title: string;
+  shortLink?: string;
 };

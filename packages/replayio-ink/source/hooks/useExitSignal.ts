@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-
+import { debug } from "../utils/createLog.js";
 export type ExitSignal = "beforeExit" | "exit";
 
 export function useExitSignal() {

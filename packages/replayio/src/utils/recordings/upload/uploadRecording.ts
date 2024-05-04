@@ -2,7 +2,7 @@ import assert from "assert";
 import { ReadStream, createReadStream } from "fs";
 import fsExtra from "fs-extra";
 import fetch from "node-fetch";
-import { replayWsServer } from "../../../config.js";
+import { replayWsServer, replayAppHost } from "../../../config.js";
 import { createDeferred } from "../../async/createDeferred.js";
 import { createPromiseQueue } from "../../async/createPromiseQueue.js";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry.js";
@@ -324,3 +324,39 @@ async function uploadRecordingReadStream(
     closeStream();
   }
 }
+
+export async function createShortLink({
+  recordingId,
+}: {
+  recordingId: string;
+}): Promise<string | false> {
+  try {
+    debug("createShortLink attempt", recordingId, `${replayAppHost}/recording/api/createLink`);
+    const response = await fetch(`${replayAppHost}/recording/api/createLink`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": getUserAgent(),
+      },
+      body: JSON.stringify({
+        id: recordingId,
+        url: `https://app.replay.io/recording/${recordingId}`,
+      }),
+    });
+    const json: any = await response.json();
+    // const text: string = await response.text();
+    // console.log("resp", text);
+    debug("createShortLink response", json.shortLink);
+    return json.shortLink;
+  } catch (error) {
+    console.log("createShortLink error", error);
+    return false;
+  }
+}
+
+// (() => {
+//   const recordingId = "ef1f7ad0-c932-444b-b1e7-05f2bd77e8c5";
+//   createShortLink({ recordingId }).then(shortLink => {
+//     console.log("shortLink", shortLink);
+//   });
+// })();

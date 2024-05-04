@@ -12,6 +12,7 @@
   "scripts": {
     "bootstrap": "yarn workspaces foreach --all --exclude=. --topological run build",
     "build": "tsc -b",
+    "build:ink": "tsc -b; tsc -b packages/replayio-ink; tsc -b packages/replayio",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
