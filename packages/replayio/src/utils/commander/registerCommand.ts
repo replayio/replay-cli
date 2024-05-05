@@ -1,5 +1,6 @@
 import { program } from "commander";
 import { initialize } from "../initialization/initialize";
+import { trackEvent } from "../mixpanel/trackEvent";
 
 export function registerCommand(
   commandName: string,
@@ -16,6 +17,12 @@ export function registerCommand(
   } = config;
 
   return program.command(commandName).hook("preAction", async () => {
-    await initialize({ checkForNpmUpdate, checkForRuntimeUpdate, requireAuthentication });
+    trackEvent("command", { commandName });
+
+    await initialize({
+      checkForNpmUpdate,
+      checkForRuntimeUpdate,
+      requireAuthentication,
+    });
   });
 }

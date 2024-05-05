@@ -10,69 +10,87 @@ import { metadataPath, runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
+import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
 
-export async function installLatestRelease() {
-  const runtimeBaseDir = getReplayPath("runtimes");
-  const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
-  const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
+type Result = {
+  buildId: string;
+  forkedVersion: string | null;
+};
 
-  const progress = logAsyncOperation(getPendingDownloadMessage(0));
+export const installLatestRelease = withTrackAsyncEvent(
+  async function installLatestRelease(): Promise<Result | undefined> {
+    const runtimeBaseDir = getReplayPath("runtimes");
+    const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
+    const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
 
-  try {
-    const buffers = await downloadReplayFile({
-      onRetry: attempt => {
-        progress.setPending(getPendingDownloadMessage(attempt));
-      },
-    });
+    const progress = logAsyncOperation(getPendingDownloadMessage(0));
 
-    progress.setPending("Processing downloaded browser archive");
+    try {
+      const buffers = await downloadReplayFile({
+        onRetry: attempt => {
+          progress.setPending(getPendingDownloadMessage(attempt));
+        },
+      });
 
-    debug("Removing previous installation at %s", runtimePath);
-    rmSync(runtimePath, { force: true, recursive: true });
+      progress.setPending("Processing downloaded browser archive");
 
-    ensureDirSync(runtimeBaseDir);
+      debug("Removing previous installation at %s", runtimePath);
+      rmSync(runtimePath, { force: true, recursive: true });
 
-    debug("Writing downloaded file data to %s", downloadFilePath);
-    writeFileSync(downloadFilePath, buffers);
+      ensureDirSync(runtimeBaseDir);
 
-    extractBrowserArchive(runtimeBaseDir, runtimePath);
+      debug("Writing downloaded file data to %s", downloadFilePath);
+      writeFileSync(downloadFilePath, buffers);
 
-    debug("Deleting downloaded file %s", downloadFilePath);
-    unlinkSync(downloadFilePath);
+      extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-    // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
-    // github.com/replayio/replay-cli/commit/6d9b8b95a3a55eb9a0aa0721199242cfaf319356#r140402329
-    // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
-    if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
-      renameSync(
-        join(runtimeBaseDir, runtimeMetadata.sourceName),
-        join(runtimeBaseDir, runtimeMetadata.destinationName)
-      );
-    }
+      debug("Deleting downloaded file %s", downloadFilePath);
+      unlinkSync(downloadFilePath);
 
-    const latestRelease = await getLatestRelease();
-    const latestBuildId = latestRelease.buildId;
-    const latestVersion = latestRelease.version;
+      // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
+      // github.com/replayio/replay-cli/commit/6d9b8b95a3a55eb9a0aa0721199242cfaf319356#r140402329
+      // github.com/replayio/recordings-cli/commit/e961515bf6e6662fdce1cb76fb225e92f2b8517f
+      if (runtimeMetadata.sourceName !== runtimeMetadata.destinationName) {
+        renameSync(
+          join(runtimeBaseDir, runtimeMetadata.sourceName),
+          join(runtimeBaseDir, runtimeMetadata.destinationName)
+        );
+      }
 
-    // Write version metadata to disk so we can compare against the latest release and prompt to update
-    debug("Saving release metadata to %s", metadataPath);
-    writeToCache<MetadataJSON>(metadataPath, {
-      chromium: {
+      const latestRelease = await getLatestRelease();
+      const latestBuildId = latestRelease.buildId;
+      const latestVersion = latestRelease.version;
+
+      // Write version metadata to disk so we can compare against the latest release and prompt to update
+      debug("Saving release metadata to %s", metadataPath);
+      writeToCache<MetadataJSON>(metadataPath, {
+        chromium: {
+          buildId: latestBuildId,
+          forkedVersion: latestVersion,
+          installDate: new Date().toISOString(),
+        },
+      });
+
+      progress.setSuccess("Replay browser has been updated.");
+
+      return {
         buildId: latestBuildId,
         forkedVersion: latestVersion,
-        installDate: new Date().toISOString(),
-      },
-    });
-
-    progress.setSuccess("Replay browser has been updated.");
-  } catch (error) {
-    progress.setFailed(
-      "Something went wrong installing the Replay browser. Please try again later."
-    );
-  }
-}
+      };
+    } catch (error) {
+      progress.setFailed(
+        "Something went wrong installing the Replay browser. Please try again later."
+      );
+    }
+  },
+  "update.runtime.installed",
+  (result: Result | undefined) => ({
+    buildId: result?.buildId,
+    runtimeVersion: result?.forkedVersion,
+  })
+);
 
 function getPendingDownloadMessage(attempt: number) {
   const prefix = `Downloading from ${link("static.replay.io")}`;
