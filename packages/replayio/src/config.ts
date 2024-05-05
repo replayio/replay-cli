@@ -5,5 +5,6 @@ export const replayWsServer =
 
 const isCI = !!process.env.CI;
 const isDebugging = !!process.env.DEBUG;
+const isTTY = process.stdout.isTTY;
 
-export const disableAnimatedLog = isCI || isDebugging;
+export const disableAnimatedLog = isCI || isDebugging || !isTTY;
