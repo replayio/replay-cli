@@ -28,6 +28,8 @@ export async function launchBrowser(
     "--no-first-run",
     "--no-default-browser-check",
     `--user-data-dir=${profileDir}`,
+    // Ignore errors like USB read descriptors on devices with faulty USB
+    "--log-level=3"
   ];
   const processOptions = {
     env: {
