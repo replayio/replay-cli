@@ -54,6 +54,11 @@ export function spawnProcess(
 
     spawned.on("exit", (code, signal) => {
       if (code || signal) {
+        // Don't fail on manual closing
+        if (signal === "SIGTERM") {
+          deferred.resolveIfPending();
+          return;
+        }
         const message = `Process failed (${code ? `code: ${code}` : `signal: ${signal}`})`;
 
         deferred.rejectIfPending(new ProcessError(message, stderr));
