@@ -67,7 +67,7 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
     };
   },
   "update.runtime.check",
-  (result: UpdateCheck<Version> | undefined) => ({
+  result => ({
     hasUpdate: result?.hasUpdate,
     newBuildId: result?.hasUpdate ? result?.toVersion.buildId : null,
     newRuntimeVersion: result?.hasUpdate ? result?.toVersion.version : null,

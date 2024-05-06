@@ -20,10 +20,10 @@ export function trackEvent(eventName: string, properties: EventProperties = {}) 
   // This method does not await the deferred/promise
   // because it is meant to be used in a fire-and-forget manner
   // The application will wait for all pending events to be resolved before exiting
-  trackEventAsync(mixpanelAPI, eventName, properties);
+  trackEventImplementation(mixpanelAPI, eventName, properties);
 }
 
-async function trackEventAsync(
+async function trackEventImplementation(
   mixpanelAPI: MixpanelAPI,
   eventName: string,
   properties: EventProperties

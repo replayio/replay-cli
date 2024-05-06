@@ -130,8 +130,12 @@ export const uploadRecordings = withTrackAsyncEvent(
     return deferredActions.map(action => action.data);
   },
   "upload.results",
-  (recordings: LocalRecording[]) => ({
-    failedCount: recordings.filter(recording => recording.uploadStatus !== "uploaded").length,
-    uploadedCount: recordings.filter(recording => recording.uploadStatus === "uploaded").length,
-  })
+  recordings => {
+    return {
+      failedCount:
+        recordings?.filter(recording => recording.uploadStatus !== "uploaded").length ?? 0,
+      uploadedCount:
+        recordings?.filter(recording => recording.uploadStatus === "uploaded").length ?? 0,
+    };
+  }
 );

@@ -36,7 +36,7 @@ export const checkForNpmUpdate = withTrackAsyncEvent(
     };
   },
   "update.npm.check",
-  (result: UpdateCheck<string> | undefined) => ({
+  result => ({
     hasUpdate: result?.hasUpdate,
     newPackageVersion: result?.hasUpdate ? result?.toVersion : null,
     shouldShowPrompt: !!(result?.hasUpdate && result?.shouldShowPrompt),

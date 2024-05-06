@@ -5,12 +5,12 @@ import { join } from "path";
 import { logAsyncOperation } from "../async/logAsyncOperation";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
+import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
-import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
 
@@ -86,7 +86,7 @@ export const installLatestRelease = withTrackAsyncEvent(
     }
   },
   "update.runtime.installed",
-  (result: Result | undefined) => ({
+  result => ({
     buildId: result?.buildId,
     runtimeVersion: result?.forkedVersion,
   })

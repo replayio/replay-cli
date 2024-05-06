@@ -103,8 +103,8 @@ async function record(url: string = "about:blank") {
     successCountsByType: nextRecordings.reduce(
       (map, recording) => {
         const processType = recording.metadata.processType ?? "unknown";
-        const count = map[processType] ?? 0;
-        map[processType] = count + 1;
+        map[processType] ??= 0;
+        map[processType]++;
 
         return map;
       },
