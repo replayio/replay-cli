@@ -32,8 +32,8 @@ export type LogEntry = {
   kind: RECORDING_LOG_KIND;
   metadata?: {
     argv?: string[];
+    browserSessionId?: string;
     process?: ProcessType;
-    processGroupId?: string;
     uri?: string;
     [key: string]: unknown;
   };
@@ -72,8 +72,8 @@ export type LocalRecording = {
   id: string;
   metadata: {
     argv?: string[] | undefined;
+    browserSessionId: string | undefined;
     host: string | undefined;
-    processGroupId: string | undefined;
     processType: ProcessType | undefined;
     sourceMaps: SourceMap[];
     uri: string | undefined;

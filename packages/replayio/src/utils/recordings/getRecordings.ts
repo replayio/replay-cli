@@ -6,7 +6,7 @@ import { debug } from "./debug";
 import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
-export function getRecordings(): LocalRecording[] {
+export function getRecordings(browserSessionIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
@@ -28,7 +28,7 @@ export function getRecordings(): LocalRecording[] {
 
             Object.assign(recording.metadata, metadata);
 
-            const { argv, process, processGroupId, uri } = metadata;
+            const { argv, browserSessionId, process, uri } = metadata;
 
             if (uri) {
               let host = uri;
@@ -47,8 +47,8 @@ export function getRecordings(): LocalRecording[] {
               recording.metadata.processType = process;
             }
 
-            if (processGroupId) {
-              recording.metadata.processGroupId = processGroupId;
+            if (browserSessionId) {
+              recording.metadata.browserSessionId = browserSessionId;
             }
             break;
           }
@@ -85,8 +85,8 @@ export function getRecordings(): LocalRecording[] {
               duration: undefined,
               id: entry.id,
               metadata: {
+                browserSessionId: undefined,
                 host: undefined,
-                processGroupId: undefined,
                 processType: undefined,
                 sourceMaps: [],
                 uri: undefined,
@@ -246,28 +246,26 @@ export function getRecordings(): LocalRecording[] {
 
   debug("Found %s recordings:\n%o", recordings.length, recordings);
 
-  return recordings
-    .filter(recording => {
-      if (!recording.metadata.host) {
-        // Ignore new/empty tab recordings (see TT-1036)
-        // Note that we filter all "empty" recordings, not just root recordings,
-        // because Chrome loads its default new tab content via an <iframe>
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort recordings in reverse chronological order
-      // but group related recordings so that "root" recordings are always listed first
-      if (a.metadata.processGroupId === b.metadata.processGroupId) {
-        if (a.metadata.processType === "root") {
-          return -1;
-        } else if (b.metadata.processType === "root") {
-          return 1;
+  return (
+    recordings
+      .filter(recording => {
+        if (
+          browserSessionIdFilter &&
+          recording.metadata.browserSessionId !== browserSessionIdFilter
+        ) {
+          return false;
         }
-      }
 
-      return b.date.getTime() - a.date.getTime();
-    });
+        if (!recording.metadata.host) {
+          // Ignore new/empty tab recordings (see TT-1036)
+          // Note that we filter all "empty" recordings, not just root recordings,
+          // because Chrome loads its default new tab content via an <iframe>
+          return false;
+        }
+
+        return true;
+      })
+      // Sort recordings in reverse chronological order
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+  );
 }

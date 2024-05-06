@@ -13,11 +13,11 @@ import { getBrowserPath } from "./getBrowserPath";
 export async function launchBrowser(
   url: string,
   options: {
-    processGroupId: string;
+    browserSessionId: string;
     verbose?: boolean;
   }
 ) {
-  const { processGroupId, verbose } = options;
+  const { browserSessionId, verbose } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -33,7 +33,7 @@ export async function launchBrowser(
     env: {
       RECORD_ALL_CONTENT: "1",
       RECORD_REPLAY_DIRECTORY: getReplayPath(),
-      RECORD_REPLAY_METADATA: JSON.stringify({ processGroupId }),
+      RECORD_REPLAY_METADATA: JSON.stringify({ browserSessionId }),
       RECORD_REPLAY_VERBOSE: verbose ? "1" : undefined,
     },
     stdio: undefined,
