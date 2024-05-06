@@ -1,0 +1,1 @@
+The contents of this module (`utils/recordings/metadata/legacy`) were copied from the legacy [`replay/src/metadata`](https://github.com/replayio/replay-cli/tree/main/packages/replay/src/metadata) module with minimal modification.

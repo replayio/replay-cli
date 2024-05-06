@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.21.4",
+  "version": "0.22.3",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./bin.js",
   "main": "./dist/main.js",
@@ -9,6 +9,7 @@
     "./metadata": "./dist/metadata/index.js",
     "./metadata/test": "./dist/metadata/test/index.js",
     "./metadata/*": "./dist/metadata/*.js",
+    "./utils": "./dist/utils.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -36,10 +37,11 @@
   "dependencies": {
     "@replayio/sourcemap-upload": "workspace:^",
     "@types/semver": "^7.5.6",
-    "commander": "^7.2.0",
+    "commander": "^12.0.0",
     "debug": "^4.3.4",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
+    "launchdarkly-node-client-sdk": "^3.1.0",
     "node-fetch": "^2.6.8",
     "p-map": "^4.0.0",
     "query-registry": "^2.6.0",

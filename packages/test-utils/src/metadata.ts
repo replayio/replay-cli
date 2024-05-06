@@ -1,4 +1,4 @@
-import { getDirectory } from "@replayio/replay";
+import { getDirectory } from "@replayio/replay/utils";
 import { existsSync, writeFileSync } from "fs";
 import path from "path";
 import { warn } from "./logging";

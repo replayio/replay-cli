@@ -30,7 +30,7 @@ You can now upload that replay by copying it's id and passing that as an argumen
 npx @replayio/replay upload 1146850316
 ```
 
-\*Don't forget to set your `RECORD_REPLAY_API_KEY`, which can be created from the settings panel of `app.replay.io`.
+\*Don't forget to set your `REPLAY_API_KEY`, which can be created from the settings panel of `app.replay.io`.
 
 If all goes well you should see something like the following output:
 

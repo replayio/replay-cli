@@ -80,10 +80,14 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     "'root' must be a string or undefined"
   );
 
-  const apiKey = opts.key || process.env.RECORD_REPLAY_API_KEY || null;
+  const apiKey =
+    opts.key ||
+    process.env.REPLAY_API_KEY ||
+    process.env.RECORD_REPLAY_API_KEY ||
+    null;
   assert(
     apiKey,
-    "'key' must contain a key, or the RECORD_REPLAY_API_KEY must be set."
+    "'key' must contain a key, or the REPLAY_API_KEY must be set."
   );
 
   assert(

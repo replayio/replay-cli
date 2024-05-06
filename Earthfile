@@ -5,8 +5,7 @@ WORKDIR /usr/build
 
 build:
   COPY . .
-  RUN yarn && yarn run bootstrap
-  RUN npm link --prefix ./packages/cypress
+  RUN yarn --immutable && yarn run bootstrap
 
 lint:
   FROM +build
@@ -52,7 +51,7 @@ flake:
   ENV GITHUB_SERVER_URL=${GITHUB_SERVER_URL}
   ENV GITHUB_REF_NAME=${GITHUB_REF_NAME}
   ENV GITHUB_EVENT_PATH=/usr/build/e2e-repos/flake/github_event
-  RUN npm i && npm link @replayio/cypress
+  RUN npm i && ln -s ../../packages/cypress node_modules/@replayio/cypress
   RUN DEBUG=replay:*,-replay:cypress:plugin:task,-replay:cypress:plugin:reporter:steps,replay:cli:metadata:source npm run start-and-test || exit 0
   RUN npx @replayio/replay ls --all
   RUN echo "JUnit Output"

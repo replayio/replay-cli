@@ -1,8 +1,13 @@
 {
   "name": "@replayio/test-utils",
-  "version": "1.3.16",
+  "version": "2.0.1",
   "description": "Utilities for recording tests with replay.io",
   "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./testId": "./dist/testId.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",

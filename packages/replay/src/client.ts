@@ -1,7 +1,7 @@
 import dbg from "./debug";
 import WebSocket from "ws";
-import { Options } from "./types";
 import { defer } from "./utils";
+import { Agent } from "http";
 
 const debug = dbg("replay:protocol");
 
@@ -45,10 +45,10 @@ class ProtocolClient {
   eventListeners = new Map();
   nextMessageId = 1;
 
-  constructor(address: string, callbacks: Callbacks, opts: Options = {}) {
-    debug("Creating WebSocket for %s with %o", address, { agent: opts.agent });
+  constructor(address: string, callbacks: Callbacks, agent?: Agent) {
+    debug("Creating WebSocket for %s with %o", address, { agent });
     this.socket = new WebSocket(address, {
-      agent: opts.agent,
+      agent: agent,
     });
     this.callbacks = callbacks;
 
@@ -63,11 +63,11 @@ class ProtocolClient {
   }
 
   async setAccessToken(accessToken?: string) {
-    accessToken = accessToken || process.env.RECORD_REPLAY_API_KEY;
+    accessToken = accessToken || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
 
     if (!accessToken) {
       throw new Error(
-        "Access token must be passed or set via the RECORD_REPLAY_API_KEY environment variable."
+        "Access token must be passed or set via the REPLAY_API_KEY environment variable."
       );
     }
 
