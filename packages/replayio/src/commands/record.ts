@@ -31,10 +31,10 @@ async function record(url: string = "about:blank") {
     debug.enable("replayio:browser");
   }
 
-  const browserSessionId = uuid();
+  const processGroupId = uuid();
 
   try {
-    await launchBrowser(url, { browserSessionId, verbose });
+    await launchBrowser(url, { processGroupId, verbose });
   } catch (error) {
     if (error instanceof ProcessError) {
       console.log("\nSomething went wrong while recording. Try again.");
@@ -54,7 +54,7 @@ async function record(url: string = "about:blank") {
     }
   }
 
-  const recordingsAfter = await getRecordings(browserSessionId);
+  const recordingsAfter = await getRecordings(processGroupId);
 
   const nextCrashedRecordings: LocalRecording[] = [];
   const nextRecordings: LocalRecording[] = [];

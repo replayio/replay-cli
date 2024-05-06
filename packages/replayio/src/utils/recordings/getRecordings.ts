@@ -6,7 +6,7 @@ import { debug } from "./debug";
 import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
-export function getRecordings(browserSessionIdFilter?: string): LocalRecording[] {
+export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
@@ -28,7 +28,7 @@ export function getRecordings(browserSessionIdFilter?: string): LocalRecording[]
 
             Object.assign(recording.metadata, metadata);
 
-            const { argv, browserSessionId, process, uri } = metadata;
+            const { argv, process, processGroupId, uri } = metadata;
 
             if (uri) {
               let host = uri;
@@ -47,8 +47,8 @@ export function getRecordings(browserSessionIdFilter?: string): LocalRecording[]
               recording.metadata.processType = process;
             }
 
-            if (browserSessionId) {
-              recording.metadata.browserSessionId = browserSessionId;
+            if (processGroupId) {
+              recording.metadata.processGroupId = processGroupId;
             }
             break;
           }
@@ -85,8 +85,8 @@ export function getRecordings(browserSessionIdFilter?: string): LocalRecording[]
               duration: undefined,
               id: entry.id,
               metadata: {
-                browserSessionId: undefined,
                 host: undefined,
+                processGroupId: undefined,
                 processType: undefined,
                 sourceMaps: [],
                 uri: undefined,
@@ -249,10 +249,7 @@ export function getRecordings(browserSessionIdFilter?: string): LocalRecording[]
   return (
     recordings
       .filter(recording => {
-        if (
-          browserSessionIdFilter &&
-          recording.metadata.browserSessionId !== browserSessionIdFilter
-        ) {
+        if (processGroupIdFilter && recording.metadata.processGroupId !== processGroupIdFilter) {
           return false;
         }
 
