@@ -1,5 +1,5 @@
 import { readFromCache, writeToCache } from "../cache";
-import { updateLaunchDarklyCache } from "../launch-darkly/updateLaunchDarklyCache";
+import { updateCachedUserId } from "../graphql/updateCachedUserId";
 import { maskString } from "../maskString";
 import { cachedAuthPath } from "./config";
 import { debug } from "./debug";
@@ -60,7 +60,7 @@ export async function getAccessToken(): Promise<string | undefined> {
       accessToken = refreshedTokens.accessToken;
     } catch (error) {
       writeToCache(cachedAuthPath, undefined);
-      updateLaunchDarklyCache(accessToken, undefined);
+      updateCachedUserId(accessToken, undefined);
       return;
     }
   } else {

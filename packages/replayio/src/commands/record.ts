@@ -8,6 +8,7 @@ import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
 import { getReplayPath } from "../utils/getReplayPath";
+import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
 import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
@@ -16,6 +17,7 @@ import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { dim } from "../utils/theme";
+import { unknown } from "superstruct";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -95,6 +97,26 @@ async function record(url: string = "about:blank") {
 
     console.log(""); // Spacing for readability
   }
+
+  trackEvent("record.results", {
+    crashedCount: nextCrashedRecordings.length,
+    successCountsByType: nextRecordings.reduce(
+      (map, recording) => {
+        const processType = recording.metadata.processType ?? "unknown";
+        map[processType] ??= 0;
+        map[processType]++;
+
+        return map;
+      },
+      {
+        devtools: 0,
+        extension: 0,
+        iframe: 0,
+        root: 0,
+        unknown: 0,
+      }
+    ),
+  });
 
   // Then let the user decide what to do with the other new recordings
   if (nextRecordings.length > 0) {

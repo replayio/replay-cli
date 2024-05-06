@@ -1,6 +1,7 @@
 import { logPromise } from "../async/logPromise";
 import { raceWithTimeout } from "../async/raceWithTimeout";
 import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
+import { initMixpanelForUserSession } from "../mixpanel/initMixpanelForUserSession";
 import { checkAuthentication } from "./checkAuthentication";
 import { checkForNpmUpdate } from "./checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
@@ -44,17 +45,24 @@ export async function initialize({
     accessToken = await promptForAuthentication();
   }
 
-  // Initialize LaunchDarkly for the authenticated user
-  // This doesn't log anything so it can be done in parallel with the upgrade prompts
-  // This isn't hugely important though so we should only give it a couple of seconds before giving up
-  const launchDarklyAbortController = new AbortController();
+  // Initialize LaunchDarkly and Mixpanel for authenticated users
+  // These tasks don't print anything so they can be done in parallel with the upgrade prompts
+  // They also shouldn't block on failure, so we should only wait a couple of seconds before giving up
+  const abortController = new AbortController();
+
   const launchDarklyPromise = accessToken
     ? raceWithTimeout(
-        initLaunchDarklyFromAccessToken(accessToken, launchDarklyAbortController.signal),
+        initLaunchDarklyFromAccessToken(accessToken, abortController.signal),
         2_500,
-        launchDarklyAbortController
+        abortController
       )
     : Promise.resolve();
+
+  const mixpanelPromise = raceWithTimeout(
+    initMixpanelForUserSession(accessToken),
+    2_500,
+    abortController
+  );
 
   if (npmUpdateCheck.hasUpdate && npmUpdateCheck.shouldShowPrompt) {
     await promptForNpmUpdate(npmUpdateCheck);
@@ -64,5 +72,5 @@ export async function initialize({
     await promptForRuntimeUpdate(runtimeUpdateCheck);
   }
 
-  await launchDarklyPromise;
+  await Promise.all([launchDarklyPromise, mixpanelPromise]);
 }
