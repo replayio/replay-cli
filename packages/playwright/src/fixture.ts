@@ -13,6 +13,10 @@ import {
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
 
+function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
+  return !!error && typeof error === "object" && "code" in error && typeof error.code === code;
+}
+
 interface StepStartDetail {
   apiName: string;
   category: TestStepInternal["category"];
@@ -150,15 +154,25 @@ export async function replayFixture(
 ) {
   debug("Setting up replay fixture");
 
-  const port = getServerPort();
-  const ws = new WebSocket(`ws://localhost:${port}`);
   const expectSteps = new Set<string>();
   let currentStep: TestStepInternal | undefined;
 
-  await new Promise<void>((resolve, reject) => {
-    ws.on("open", () => resolve());
-    ws.on("error", () => reject("Socket errored"));
-  });
+  const port = getServerPort();
+  const ws = new WebSocket(`ws://localhost:${port}`);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      ws.on("open", () => resolve());
+      ws.on("error", error => reject(error));
+    });
+  } catch (error) {
+    if (isErrorWithCode(error, "ECONNREFUSED")) {
+      // the reporter didn't end up being used and thus the server is not running
+      await use();
+      return;
+    }
+    throw error;
+  }
 
   const testIdData: TestIdData = {
     id: 0,
