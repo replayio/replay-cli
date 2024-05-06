@@ -916,7 +916,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     if (this.recordingsToUpload.length && !this.apiKey) {
       output.push(`\n❌ Failed to upload ${this.recordingsToUpload.length} recordings:\n`);
       output.push(
-        "   Can't upload recordings without an API key - please set the REPLAY_API_KEY environment variable"
+        "   Can't upload recordings without an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
       );
     }
 
