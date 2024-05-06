@@ -3036,7 +3036,7 @@ __metadata:
     semver: "npm:^7.5.2"
     terminate: "npm:^2.6.1"
     txml: "npm:^3.2.5"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     uuid: "npm:^8.3.2"
     ws: "npm:^8.14.2"
   peerDependencies:
@@ -3059,7 +3059,7 @@ __metadata:
     "@types/node": "npm:^20.11.27"
     jest-circus: "npm:^27.5.1"
     jest-environment-node: "npm:^27.5.1"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     uuid: "npm:^8.3.2"
   bin:
     replayio-jest: ./bin.js
@@ -3084,7 +3084,7 @@ __metadata:
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
     "@types/uuid": "npm:^8.3.4"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     uuid: "npm:^8.3.2"
   peerDependencies:
     "@playwright/test": 1.19.x
@@ -3108,7 +3108,7 @@ __metadata:
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
   bin:
     replayio-puppeteer: ./bin.js
   languageName: unknown
@@ -3139,7 +3139,7 @@ __metadata:
     superstruct: "npm:^0.15.4"
     text-table: "npm:^0.2.0"
     ts-jest: "npm:^28.0.6"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     ws: "npm:^7.5.0"
   bin:
     replay: ./bin.js
@@ -3162,7 +3162,7 @@ __metadata:
     eslint-config-prettier: "npm:^8.3.0"
     eslint-plugin-prettier: "npm:^3.4.0"
     prettier: "npm:^2.2.1"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     webpack: "npm:^5.90.3"
   peerDependencies:
     webpack: ^4.0.0 || ^5.76.0
@@ -3191,7 +3191,7 @@ __metadata:
     p-map: "npm:^4.0.0"
     prettier: "npm:^2.2.1"
     string.prototype.matchall: "npm:^4.0.5"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 
@@ -3206,7 +3206,7 @@ __metadata:
     debug: "npm:^4.3.4"
     node-fetch: "npm:^2.6.7"
     sha-1: "npm:^1.0.0"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     uuid: "npm:^8.3.2"
   languageName: unknown
   linkType: soft
@@ -14107,7 +14107,7 @@ __metadata:
     "@replayio/replay": "workspace:^"
     node-fetch: "npm:^3.3.1"
     prettier: "npm:^2.7.1"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 
@@ -14150,7 +14150,7 @@ __metadata:
     superstruct: "npm:^0.15.4"
     table: "npm:^6.8.2"
     ts-jest: "npm:^28.0.6"
-    typescript: "npm:^5.4.2"
+    typescript: "npm:^5.4.5"
     ws: "npm:^7.5.0"
   bin:
     replayio: ./replayio.js
@@ -16000,23 +16000,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.4.2":
-  version: 5.4.2
-  resolution: "typescript@npm:5.4.2"
+"typescript@npm:^5.4.5":
+  version: 5.4.5
+  resolution: "typescript@npm:5.4.5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/583ff68cafb0c076695f72d61df6feee71689568179fb0d3a4834dac343df6b6ed7cf7b6f6c801fa52d43cd1d324e2f2d8ae4497b09f9e6cfe3d80a6d6c9ca52
+  checksum: 10c0/2954022ada340fd3d6a9e2b8e534f65d57c92d5f3989a263754a78aba549f7e6529acc1921913560a4b816c46dce7df4a4d29f9f11a3dc0d4213bb76d043251e
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.4.2#optional!builtin<compat/typescript>":
-  version: 5.4.2
-  resolution: "typescript@patch:typescript@npm%3A5.4.2#optional!builtin<compat/typescript>::version=5.4.2&hash=5adc0c"
+"typescript@patch:typescript@npm%3A^5.4.5#optional!builtin<compat/typescript>":
+  version: 5.4.5
+  resolution: "typescript@patch:typescript@npm%3A5.4.5#optional!builtin<compat/typescript>::version=5.4.5&hash=5adc0c"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/fcf6658073d07283910d9a0e04b1d5d0ebc822c04dbb7abdd74c3151c7aa92fcddbac7d799404e358197222006ccdc4c0db219d223d2ee4ccd9e2b01333b49be
+  checksum: 10c0/db2ad2a16ca829f50427eeb1da155e7a45e598eec7b086d8b4e8ba44e5a235f758e606d681c66992230d3fc3b8995865e5fd0b22a2c95486d0b3200f83072ec9
   languageName: node
   linkType: hard
 
