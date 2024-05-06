@@ -1,8 +1,8 @@
 {
   "extends": "@replay-cli/tsconfig/base.json",
   "compilerOptions": {
-    "target": "esnext",
-    "lib": ["esnext"],
+    "target": "es2022",
+    "lib": ["es2023"],
     "outDir": "./dist",
     "resolveJsonModule": true,
     "rootDir": "./src",
