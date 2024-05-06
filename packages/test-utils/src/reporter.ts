@@ -277,8 +277,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       process.env.RECORD_REPLAY_METADATA_TEST_RUN_TITLE ||
       config.runTitle;
 
-    this.apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY || config.apiKey;
-    this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
+    this.apiKey = config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
+    this.upload = "upload" in config ? !!config.upload : !!process.env.REPLAY_UPLOAD;
     this.filter = config.filter;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
@@ -800,7 +800,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async enqueueUpload() {
-    if (this.recordingsToUpload.length && this.apiKey) {
+    if (this.recordingsToUpload.length) {
       const recordings = [...this.recordingsToUpload];
       this.recordingsToUpload = [];
 
@@ -911,13 +911,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           output.push(`      ${getErrorMessage(err.error)}\n`);
         }
       });
-    }
-
-    if (this.recordingsToUpload.length && !this.apiKey) {
-      output.push(`\n❌ Failed to upload ${this.recordingsToUpload.length} recordings:\n`);
-      output.push(
-        "   Can't upload recordings without an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
-      );
     }
 
     if (uploads.length > 0) {

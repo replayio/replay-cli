@@ -57,7 +57,16 @@ class CypressReporter {
     initFixtureFile();
 
     this.config = config;
-    this.options = options;
+    this.options = {
+      ...config,
+      apiKey: options.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY,
+    };
+    if (!this.options.apiKey) {
+      throw new Error(
+        "`@replayio/cypress/reporter` requires an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
+      );
+    }
+
     this.reporter = new ReplayReporter(
       {
         name: "cypress",

@@ -78,34 +78,35 @@ export interface ReplayPlaywrightConfig
 
 class ReplayPlaywrightReporter implements Reporter {
   reporter?: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
-  captureTestFile = ["1", "true"].includes(
-    process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
-  );
+  captureTestFile: boolean;
+  config: ReplayPlaywrightConfig;
+
+  constructor(config: ReplayPlaywrightConfig) {
+    if (!config || typeof config !== "object") {
+      throw new Error(
+        `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
+      );
+    }
+
+    this.config = {
+      ...config,
+      apiKey: config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY,
+    };
+    if (!this.config.apiKey) {
+      throw new Error(
+        "`@replayio/playwright/reporter` requires an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
+      );
+    }
+    this.captureTestFile =
+      "captureTestFile" in config
+        ? !!config.captureTestFile
+        : ["1", "true"].includes(
+            process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
+          );
+  }
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
-  }
-
-  parseConfig(config: FullConfig) {
-    let cfg: ReplayPlaywrightConfig = {};
-    config.reporter.forEach(r => {
-      // the reporter is imported from the root reporter.js which imports this
-      // file so we compare the base directory to see if this is our config
-      if (r[0].startsWith(path.resolve(__dirname, ".."))) {
-        if (r[1]) {
-          if (typeof r[1] === "object") {
-            cfg = r[1];
-          } else {
-            console.warn(
-              "Expected an object for @replayio/playwright/reporter configuration but received",
-              typeof r[1]
-            );
-          }
-        }
-      }
-    });
-
-    return cfg;
   }
 
   getSource(test: TestCase) {
@@ -122,21 +123,16 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  onBegin(config: FullConfig) {
-    const cfg = this.parseConfig(config);
+  onBegin({ version }: FullConfig) {
     this.reporter = new ReplayReporter(
       {
         name: "playwright",
-        version: config.version,
+        version,
         plugin: pluginVersion,
       },
       "2.1.0"
     );
-    this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
-
-    if (cfg.captureTestFile === false) {
-      this.captureTestFile = false;
-    }
+    this.reporter.onTestSuiteBegin(this.config, "PLAYWRIGHT_REPLAY_METADATA");
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
