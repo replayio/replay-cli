@@ -800,7 +800,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async enqueueUpload() {
-    if (this.recordingsToUpload.length) {
+    if (this.recordingsToUpload.length && this.apiKey) {
       const recordings = [...this.recordingsToUpload];
       this.recordingsToUpload = [];
 
@@ -911,6 +911,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           output.push(`      ${getErrorMessage(err.error)}\n`);
         }
       });
+    }
+
+    if (this.recordingsToUpload.length && !this.apiKey) {
+      output.push(`\n❌ Failed to upload ${this.recordingsToUpload.length} recordings:\n`);
+      output.push(
+        "   Can't upload recordings without an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
+      );
     }
 
     if (uploads.length > 0) {
