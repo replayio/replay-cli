@@ -25,7 +25,7 @@
     "@replayio/playwright": "workspace:^",
     "@replayio/replay": "workspace:^",
     "prettier": "^2.7.1",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.5"
   },
   "dependencies": {
     "node-fetch": "^3.3.1"

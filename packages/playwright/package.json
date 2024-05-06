@@ -28,7 +28,7 @@
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
     "@types/uuid": "^8.3.4",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.5"
   },
   "repository": {
     "type": "git",
