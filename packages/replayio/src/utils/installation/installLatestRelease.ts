@@ -86,7 +86,7 @@ export const installLatestRelease = withTrackAsyncEvent(
     }
   },
   "update.runtime.installed",
-  (result: Result | undefined) => ({
+  result => ({
     buildId: result?.buildId,
     runtimeVersion: result?.forkedVersion,
   })

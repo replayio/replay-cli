@@ -1,3 +1,4 @@
+import assert from "assert";
 import { exitProcess } from "../../exitProcess";
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import { withTrackAsyncEvent } from "../../mixpanel/withTrackAsyncEvent";
@@ -130,8 +131,11 @@ export const uploadRecordings = withTrackAsyncEvent(
     return deferredActions.map(action => action.data);
   },
   "upload.results",
-  (recordings: LocalRecording[]) => ({
-    failedCount: recordings.filter(recording => recording.uploadStatus !== "uploaded").length,
-    uploadedCount: recordings.filter(recording => recording.uploadStatus === "uploaded").length,
-  })
+  recordings => {
+    assert(!!recordings);
+    return {
+      failedCount: recordings.filter(recording => recording.uploadStatus !== "uploaded").length,
+      uploadedCount: recordings.filter(recording => recording.uploadStatus === "uploaded").length,
+    };
+  }
 );
