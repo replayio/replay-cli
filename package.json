@@ -4,16 +4,17 @@
   "packageManager": "yarn@4.1.1",
   "workspaces": [
     "packages/*",
+    "packages/*/example",
     "scripts/*"
   ],
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "yarn workspaces foreach --all --exclude=. --topological run build",
+    "bootstrap": "yarn workspaces foreach --all --exclude=. --exclude=packages/cypress/example --topological run build",
     "build": "tsc -b",
     "test": "yarn run test:unit",
-    "test:unit": "yarn workspaces foreach --all --exclude=. --topological run test",
+    "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=packages/cypress/example --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check .",
     "release": "yarn run bootstrap && yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish --access public"
@@ -30,6 +31,7 @@
     "node-fetch": "^3.3.1"
   },
   "resolutions": {
+    "@jest/types": "^27.5.1",
     "@types/jest": "^28.1.5",
     "@types/node": "^20.11.27",
     "@jest/environment@npm:^27.5.1": "patch:@jest/environment@npm%3A28.1.3#~/.yarn/patches/@jest-environment-npm-28.1.3-506a81a227.patch",
