@@ -777,7 +777,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           id: testRun.source.path + "#" + testRun.source.title,
           source: testRun.source,
           approximateDuration: testRun.approximateDuration,
-          recorded: firstRecording != null,
+          recorded: firstRecording !== undefined,
           runtime: parseRuntime(firstRecording?.runtime),
           runner: this.runner.name,
           result: testRun.result,
