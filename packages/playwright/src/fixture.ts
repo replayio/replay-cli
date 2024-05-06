@@ -171,6 +171,7 @@ export async function replayFixture(
       await use();
       return;
     }
+    throw error;
   }
 
   const testIdData: TestIdData = {
