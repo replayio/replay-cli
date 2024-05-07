@@ -14,7 +14,7 @@ import {
 import { getServerPort } from "./server";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
-  return !!error && typeof error === "object" && "code" in error && typeof error.code === code;
+  return !!error && typeof error === "object" && "code" in error && error.code === code;
 }
 
 interface StepStartDetail {
