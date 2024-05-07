@@ -249,7 +249,7 @@ async function multipartUploadRecording(
       size,
       requestPartChunkSize
     );
-  setMetadata(client, recordingId, metadata, strict, verbose);
+  await setMetadata(client, recordingId, metadata, strict, verbose);
   addRecordingEvent(dir, "uploadStarted", recording.id, {
     server,
     recordingId,
@@ -280,7 +280,7 @@ async function directUploadRecording(
     recording.buildId!,
     size
   );
-  setMetadata(client, recordingId, metadata, strict, verbose);
+  await setMetadata(client, recordingId, metadata, strict, verbose);
   addRecordingEvent(dir, "uploadStarted", recording.id, {
     server,
     recordingId,
