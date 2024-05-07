@@ -13,6 +13,10 @@ Add unreleased changes here.
 
 - Basic usage telemetry added using Mixpanel; note that no personal information is stored (#430)
 
+### Changed
+
+- Don't try to group related recordings; just sort them reverse chronologically (#442)
+
 ## [1.0.7](#1.0.7) - 2024-05-05
 
 ### Fixed
