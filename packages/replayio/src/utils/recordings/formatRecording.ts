@@ -18,9 +18,6 @@ export function formatRecording(recording: LocalRecording) {
 
   const { runtime } = parseBuildId(buildId);
 
-  const category =
-    metadata.processType === undefined || metadata.processType === "root" ? "primary" : "secondary";
-
   let id = recording.id.substring(0, 8) + "…";
 
   let title;
@@ -72,16 +69,6 @@ export function formatRecording(recording: LocalRecording) {
       case "unusable":
         status = "Unusable";
         break;
-    }
-  }
-
-  switch (category) {
-    case "primary": {
-      break;
-    }
-    case "secondary": {
-      id = `${dim("↘")} ${id}`;
-      break;
     }
   }
 

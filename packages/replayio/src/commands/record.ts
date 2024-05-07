@@ -10,14 +10,12 @@ import { exitProcess } from "../utils/exitProcess";
 import { getReplayPath } from "../utils/getReplayPath";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
-import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
 import { dim } from "../utils/theme";
-import { unknown } from "superstruct";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -33,10 +31,10 @@ async function record(url: string = "about:blank") {
     debug.enable("replayio:browser");
   }
 
-  const prevRecordings = await getRecordings();
+  const processGroupId = uuid();
 
   try {
-    await launchBrowser(url, { processGroupId: uuid(), verbose });
+    await launchBrowser(url, { processGroupId, verbose });
   } catch (error) {
     if (error instanceof ProcessError) {
       console.log("\nSomething went wrong while recording. Try again.");
@@ -56,20 +54,18 @@ async function record(url: string = "about:blank") {
     }
   }
 
-  const recordingsAfter = await getRecordings();
+  const recordingsAfter = await getRecordings(processGroupId);
 
   const nextCrashedRecordings: LocalRecording[] = [];
   const nextRecordings: LocalRecording[] = [];
 
   recordingsAfter.filter(recording => {
-    if (!prevRecordings.some(({ id }) => id === recording.id)) {
-      if (recording.recordingStatus === "crashed") {
-        if (canUpload(recording)) {
-          nextCrashedRecordings.push(recording);
-        }
-      } else {
-        nextRecordings.push(recording);
+    if (recording.recordingStatus === "crashed") {
+      if (canUpload(recording)) {
+        nextCrashedRecordings.push(recording);
       }
+    } else {
+      nextRecordings.push(recording);
     }
   });
 
@@ -144,10 +140,8 @@ async function record(url: string = "about:blank") {
 
         console.log(""); // Spacing for readability
       } else {
-        const defaultRecording = findMostRecentPrimaryRecording(nextRecordings);
-
         selectedRecordings = await selectRecordings(nextRecordings, {
-          defaultSelected: recording => recording === defaultRecording,
+          defaultSelected: recording => recording.metadata.processType === "root",
           prompt: "New recordings found. Which would you like to upload?",
           selectionMessage: "The following recording(s) will be uploaded:",
         });

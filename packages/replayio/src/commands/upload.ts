@@ -1,7 +1,6 @@
 import { registerCommand } from "../utils/commander/registerCommand";
 import { exitProcess } from "../utils/exitProcess";
 import { canUpload } from "../utils/recordings/canUpload";
-import { findMostRecentPrimaryRecording } from "../utils/recordings/findMostRecentPrimaryRecording";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
@@ -40,10 +39,8 @@ async function upload(
       await exitProcess(1);
     }
 
-    const defaultRecording = findMostRecentPrimaryRecording(recordings);
-
     selectedRecordings = await selectRecordings(recordings, {
-      defaultSelected: recording => recording === defaultRecording,
+      defaultSelected: recording => recording.metadata.processType === "root",
       disabledSelector: recording => !canUpload(recording),
       noSelectableRecordingsMessage:
         "The recording(s) below cannot be uploaded.\n" +

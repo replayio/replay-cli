@@ -6,7 +6,7 @@ import { debug } from "./debug";
 import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
-export function getRecordings(): LocalRecording[] {
+export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
@@ -246,28 +246,23 @@ export function getRecordings(): LocalRecording[] {
 
   debug("Found %s recordings:\n%o", recordings.length, recordings);
 
-  return recordings
-    .filter(recording => {
-      if (!recording.metadata.host) {
-        // Ignore new/empty tab recordings (see TT-1036)
-        // Note that we filter all "empty" recordings, not just root recordings,
-        // because Chrome loads its default new tab content via an <iframe>
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort recordings in reverse chronological order
-      // but group related recordings so that "root" recordings are always listed first
-      if (a.metadata.processGroupId === b.metadata.processGroupId) {
-        if (a.metadata.processType === "root") {
-          return -1;
-        } else if (b.metadata.processType === "root") {
-          return 1;
+  return (
+    recordings
+      .filter(recording => {
+        if (processGroupIdFilter && recording.metadata.processGroupId !== processGroupIdFilter) {
+          return false;
         }
-      }
 
-      return b.date.getTime() - a.date.getTime();
-    });
+        if (!recording.metadata.host) {
+          // Ignore new/empty tab recordings (see TT-1036)
+          // Note that we filter all "empty" recordings, not just root recordings,
+          // because Chrome loads its default new tab content via an <iframe>
+          return false;
+        }
+
+        return true;
+      })
+      // Sort recordings in reverse chronological order
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+  );
 }
