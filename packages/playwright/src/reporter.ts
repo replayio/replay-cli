@@ -77,7 +77,7 @@ export interface ReplayPlaywrightConfig
 }
 
 class ReplayPlaywrightReporter implements Reporter {
-  reporter?: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
+  reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile: boolean;
   config: ReplayPlaywrightConfig;
 
@@ -87,16 +87,17 @@ class ReplayPlaywrightReporter implements Reporter {
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
       );
     }
+    this.config = config;
+    this.reporter = new ReplayReporter(
+      {
+        name: "playwright",
+        version: undefined,
+        plugin: pluginVersion,
+      },
+      "2.1.0",
+      { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
+    );
 
-    this.config = {
-      ...config,
-      apiKey: config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY,
-    };
-    if (!this.config.apiKey) {
-      throw new Error(
-        "`@replayio/playwright/reporter` requires an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
-      );
-    }
     this.captureTestFile =
       "captureTestFile" in config
         ? !!config.captureTestFile
@@ -124,19 +125,12 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin({ version }: FullConfig) {
-    this.reporter = new ReplayReporter(
-      {
-        name: "playwright",
-        version,
-        plugin: pluginVersion,
-      },
-      "2.1.0"
-    );
-    this.reporter.onTestSuiteBegin(this.config, "PLAYWRIGHT_REPLAY_METADATA");
+    this.reporter.setTestRunnerVersion(version);
+    this.reporter.onTestSuiteBegin();
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter?.onTestBegin(
+    this.reporter.onTestBegin(
       this.getTestIdContext(test, testResult),
       getMetadataFilePath(testResult.workerIndex)
     );
@@ -200,7 +194,7 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
-    this.reporter?.onTestEnd({
+    this.reporter.onTestEnd({
       tests: [
         {
           id: 0,
@@ -232,7 +226,7 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   async onEnd() {
-    await this.reporter?.onEnd();
+    await this.reporter.onEnd();
   }
 }
 

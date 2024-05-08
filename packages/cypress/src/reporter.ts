@@ -57,15 +57,7 @@ class CypressReporter {
     initFixtureFile();
 
     this.config = config;
-    this.options = {
-      ...config,
-      apiKey: options.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY,
-    };
-    if (!this.options.apiKey) {
-      throw new Error(
-        "`@replayio/cypress/reporter` requires an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
-      );
-    }
+    this.options = options;
 
     this.reporter = new ReplayReporter(
       {
@@ -73,7 +65,8 @@ class CypressReporter {
         version: config.version,
         plugin: require("@replayio/cypress/package.json").version,
       },
-      "2.1.0"
+      "2.1.0",
+      { ...this.options, metadataKey: "CYPRESS_REPLAY_METADATA" }
     );
 
     this.configureDiagnostics();
@@ -106,7 +99,7 @@ class CypressReporter {
 
   onLaunchBrowser(browser: string) {
     this.setSelectedBrowser(browser);
-    this.reporter.onTestSuiteBegin(this.options, "CYPRESS_REPLAY_METADATA");
+    this.reporter.onTestSuiteBegin();
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
