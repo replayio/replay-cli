@@ -45,6 +45,7 @@ export interface ReplayReporterConfig<
 > {
   runTitle?: string;
   metadata?: Record<string, any> | string;
+  metadataKey?: string;
   upload?: boolean;
   apiKey?: string;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
@@ -52,7 +53,7 @@ export interface ReplayReporterConfig<
 
 export interface TestRunner {
   name: string;
-  version: string;
+  version: string | undefined;
   plugin: string;
 }
 
@@ -195,9 +196,24 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
 
-  constructor(runner: TestRunner, schemaVersion: string) {
+  constructor(
+    runner: TestRunner,
+    schemaVersion: string,
+    config?: ReplayReporterConfig<TRecordingMetadata>
+  ) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
+    if (config) {
+      const { metadataKey, ...rest } = config;
+      this.parseConfig(rest, metadataKey);
+    }
+  }
+
+  setTestRunnerVersion(version: TestRunner["version"]) {
+    this.runner = {
+      ...this.runner,
+      version: version,
+    };
   }
 
   setApiKey(apiKey: string) {
@@ -269,6 +285,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   parseConfig(config: ReplayReporterConfig<TRecordingMetadata> = {}, metadataKey?: string) {
+    this.apiKey = config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
+    this.upload = "upload" in config ? !!config.upload : !!process.env.REPLAY_UPLOAD;
+    if (this.upload && !this.apiKey) {
+      throw new Error(
+        `\`@replayio/${this.runner.name}/reporter\` requires an API key to upload recordings. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable`
+      );
+    }
     // always favor environment variables over config so the config can be
     // overwritten at runtime
     this.runTitle =
@@ -277,8 +300,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       process.env.RECORD_REPLAY_METADATA_TEST_RUN_TITLE ||
       config.runTitle;
 
-    this.apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY || config.apiKey;
-    this.upload = !!process.env.REPLAY_UPLOAD || !!config.upload;
     this.filter = config.filter;
 
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
@@ -332,7 +353,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
-    this.parseConfig(config, metadataKey);
+    if (config || metadataKey) {
+      this.parseConfig(config, metadataKey);
+    }
 
     debug("onTestSuiteBegin: Reporter Configuration: %o", {
       baseId: this.baseId,
@@ -665,7 +688,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         pluginVersion: this.runner.plugin,
         testRunner: {
           name: this.runner.name,
-          version: this.runner.version,
+          version: this.runner.version || "unknown",
         },
       },
       schemaVersion: this.schemaVersion,
@@ -800,7 +823,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async enqueueUpload() {
-    if (this.recordingsToUpload.length && this.apiKey) {
+    if (this.recordingsToUpload.length) {
       const recordings = [...this.recordingsToUpload];
       this.recordingsToUpload = [];
 
@@ -911,13 +934,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           output.push(`      ${getErrorMessage(err.error)}\n`);
         }
       });
-    }
-
-    if (this.recordingsToUpload.length && !this.apiKey) {
-      output.push(`\n❌ Failed to upload ${this.recordingsToUpload.length} recordings:\n`);
-      output.push(
-        "   Can't upload recordings without an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
-      );
     }
 
     if (uploads.length > 0) {

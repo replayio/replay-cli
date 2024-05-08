@@ -77,35 +77,37 @@ export interface ReplayPlaywrightConfig
 }
 
 class ReplayPlaywrightReporter implements Reporter {
-  reporter?: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
-  captureTestFile = ["1", "true"].includes(
-    process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
-  );
+  reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
+  captureTestFile: boolean;
+  config: ReplayPlaywrightConfig;
+
+  constructor(config: ReplayPlaywrightConfig) {
+    if (!config || typeof config !== "object") {
+      throw new Error(
+        `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
+      );
+    }
+    this.config = config;
+    this.reporter = new ReplayReporter(
+      {
+        name: "playwright",
+        version: undefined,
+        plugin: pluginVersion,
+      },
+      "2.1.0",
+      { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
+    );
+
+    this.captureTestFile =
+      "captureTestFile" in config
+        ? !!config.captureTestFile
+        : ["1", "true"].includes(
+            process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
+          );
+  }
 
   getTestId(test: TestCase) {
     return test.titlePath().join("-");
-  }
-
-  parseConfig(config: FullConfig) {
-    let cfg: ReplayPlaywrightConfig = {};
-    config.reporter.forEach(r => {
-      // the reporter is imported from the root reporter.js which imports this
-      // file so we compare the base directory to see if this is our config
-      if (r[0].startsWith(path.resolve(__dirname, ".."))) {
-        if (r[1]) {
-          if (typeof r[1] === "object") {
-            cfg = r[1];
-          } else {
-            console.warn(
-              "Expected an object for @replayio/playwright/reporter configuration but received",
-              typeof r[1]
-            );
-          }
-        }
-      }
-    });
-
-    return cfg;
   }
 
   getSource(test: TestCase) {
@@ -122,25 +124,13 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  onBegin(config: FullConfig) {
-    const cfg = this.parseConfig(config);
-    this.reporter = new ReplayReporter(
-      {
-        name: "playwright",
-        version: config.version,
-        plugin: pluginVersion,
-      },
-      "2.1.0"
-    );
-    this.reporter.onTestSuiteBegin(cfg, "PLAYWRIGHT_REPLAY_METADATA");
-
-    if (cfg.captureTestFile === false) {
-      this.captureTestFile = false;
-    }
+  onBegin({ version }: FullConfig) {
+    this.reporter.setTestRunnerVersion(version);
+    this.reporter.onTestSuiteBegin();
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter?.onTestBegin(
+    this.reporter.onTestBegin(
       this.getTestIdContext(test, testResult),
       getMetadataFilePath(testResult.workerIndex)
     );
@@ -204,7 +194,7 @@ class ReplayPlaywrightReporter implements Reporter {
       }
     }
 
-    this.reporter?.onTestEnd({
+    this.reporter.onTestEnd({
       tests: [
         {
           id: 0,
@@ -236,7 +226,7 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   async onEnd() {
-    await this.reporter?.onEnd();
+    await this.reporter.onEnd();
   }
 }
 
