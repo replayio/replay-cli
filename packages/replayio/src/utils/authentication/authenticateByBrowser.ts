@@ -1,9 +1,8 @@
-import { spawn } from "child_process";
+import open from "open";
 import { replayAppHost } from "../../config";
 import { raceWithTimeout } from "../async/raceWithTimeout";
 import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
-import { getSystemOpenCommand } from "../getSystemOpenCommand";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
 import { AuthenticationError } from "./AuthenticationError";
@@ -19,7 +18,7 @@ export async function authenticateByBrowser() {
   console.log("Please log in or register to continue.");
 
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
-  spawn(getSystemOpenCommand(), [`${replayAppHost}/api/browser/auth?key=${key}&source=cli`]);
+  await open(`${replayAppHost}/api/browser/auth?key=${key}&source=cli`);
 
   const result = await raceWithTimeout(pollForAuthentication(key), 60_000);
   if (result == null) {
@@ -91,7 +90,5 @@ async function pollForAuthentication(key: string) {
     }
   }
 
-  const accessToken = await refreshAccessTokenOrThrow(refreshToken);
-
-  return { accessToken, refreshToken };
+  return await refreshAccessTokenOrThrow(refreshToken);
 }

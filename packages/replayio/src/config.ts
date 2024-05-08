@@ -5,5 +5,10 @@ export const replayWsServer =
 
 const isCI = !!process.env.CI;
 const isDebugging = !!process.env.DEBUG;
+const isTTY = process.stdout.isTTY;
 
-export const disableAnimatedLog = isCI || isDebugging;
+export const disableAnimatedLog = isCI || isDebugging || !isTTY;
+
+export const disableMixpanel = isCI || process.env.NODE_ENV === "test";
+export const mixpanelToken =
+  process.env.REPLAY_MIXPANEL_TOKEN || "ffaeda9ef8fb976a520ca3a65bba5014";

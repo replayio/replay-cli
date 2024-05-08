@@ -72,8 +72,14 @@ type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
   ? TestMetadataV1.TestRun
   : TestMetadataV2.TestRun;
 
-type PendingWorkType = "test-run" | "upload" | "test-run-tests" | "post-test";
-type PendingWorkError<K extends PendingWorkType> = { type: K; error: Error };
+type PendingWorkType = "test-run" | "test-run-tests" | "post-test" | "upload";
+export interface PendingWorkError<K extends PendingWorkType> {
+  type: K;
+  error: Error;
+}
+export interface PendingUploadError extends PendingWorkError<"upload"> {
+  recording: RecordingEntry;
+}
 type PendingWorkEntry<K extends PendingWorkType, T = {}> = PendingWorkError<K> | (T & { type: K });
 type TestRunPendingWork = PendingWorkEntry<
   "test-run",
@@ -608,7 +614,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       debug("upload error: %s", e);
       return {
         type: "upload",
-        error: new Error(`Failed to upload recording: ${getErrorMessage(e)}`),
+        recording,
+        error: new Error(getErrorMessage(e)),
       };
     }
   }
@@ -770,7 +777,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           id: testRun.source.path + "#" + testRun.source.title,
           source: testRun.source,
           approximateDuration: testRun.approximateDuration,
-          recorded: true,
+          recorded: firstRecording !== undefined,
           runtime: parseRuntime(firstRecording?.runtime),
           runner: this.runner.name,
           result: testRun.result,
@@ -793,7 +800,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async enqueueUpload() {
-    if (this.recordingsToUpload.length) {
+    if (this.recordingsToUpload.length && this.apiKey) {
       const recordings = [...this.recordingsToUpload];
       this.recordingsToUpload = [];
 
@@ -882,20 +889,35 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       }
     }
 
-    if (errors["post-test"].length > 0 || errors["upload"].length > 0) {
-      output.push(
-        `\n❌ We encountered some unexpected errors processing your recordings and ${
-          uploads.length > 0 ? "some were not uploaded.`" : "was unable to upload them."
-        }`
-      );
+    if (errors["post-test"].length > 0) {
+      output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
       output.push(...logPendingWorkErrors(errors["post-test"]));
-      output.push(...logPendingWorkErrors(errors["upload"]));
     }
 
     if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
       output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
       output.push(...logPendingWorkErrors(errors["test-run-tests"]));
       output.push(...logPendingWorkErrors(errors["test-run"]));
+    }
+
+    if (errors["upload"].length > 0) {
+      output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
+
+      errors["upload"].forEach(err => {
+        if ("recording" in err) {
+          const r = (err as PendingUploadError).recording;
+
+          output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
+          output.push(`      ${getErrorMessage(err.error)}\n`);
+        }
+      });
+    }
+
+    if (this.recordingsToUpload.length && !this.apiKey) {
+      output.push(`\n❌ Failed to upload ${this.recordingsToUpload.length} recordings:\n`);
+      output.push(
+        "   Can't upload recordings without an API key. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable"
+      );
     }
 
     if (uploads.length > 0) {

@@ -1,5 +1,6 @@
 import { name as packageName } from "../../../package.json";
 import { installLatestRelease } from "../installation/installLatestRelease";
+import { trackEvent } from "../mixpanel/trackEvent";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
 import { emphasize } from "../theme";
@@ -48,6 +49,8 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
       // A failed update is not a critical error;
       // A failed install will be handled later
     }
+  } else {
+    trackEvent("update.runtime.skipped", { newRuntimeVersion: toVersion });
   }
 
   console.log("");

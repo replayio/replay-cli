@@ -35,9 +35,10 @@
   "devDependencies": {
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",
+    "@jest/types": "^27.5.1",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.5"
   },
   "dependencies": {
     "@replayio/replay": "workspace:^",
