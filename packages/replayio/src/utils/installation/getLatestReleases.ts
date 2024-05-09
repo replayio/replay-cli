@@ -22,7 +22,10 @@ export async function getLatestRelease() {
     }
   });
 
-  assert(latestRelease, `No release found for ${platform}:${runtime}`);
+  debug("Latest release", latestRelease);
+  if (!latestRelease) {
+    throw new Error(`No release found for ${platform}:${runtime}`);
+  }
 
   debug("Latest release on", new Date(latestRelease.time).toLocaleDateString());
 
