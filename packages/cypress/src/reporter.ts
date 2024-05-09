@@ -58,13 +58,15 @@ class CypressReporter {
 
     this.config = config;
     this.options = options;
+
     this.reporter = new ReplayReporter(
       {
         name: "cypress",
         version: config.version,
         plugin: require("@replayio/cypress/package.json").version,
       },
-      "2.1.0"
+      "2.1.0",
+      { ...this.options, metadataKey: "CYPRESS_REPLAY_METADATA" }
     );
 
     this.configureDiagnostics();
@@ -97,7 +99,7 @@ class CypressReporter {
 
   onLaunchBrowser(browser: string) {
     this.setSelectedBrowser(browser);
-    this.reporter.onTestSuiteBegin(this.options, "CYPRESS_REPLAY_METADATA");
+    this.reporter.onTestSuiteBegin();
 
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
