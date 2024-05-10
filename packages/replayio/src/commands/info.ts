@@ -27,6 +27,7 @@ async function info() {
     if (forkedVersion) {
       console.log(`• Forked version: ${highlight(forkedVersion)}`);
     }
+    console.log(`• Build id: ${highlight(buildId)}`);
   }
 
   await exitProcess(0);
