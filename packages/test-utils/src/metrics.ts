@@ -2,7 +2,6 @@ import dbg from "debug";
 import os from "os";
 import fetch from "node-fetch";
 import { TestMetadataV2 } from "@replayio/replay/metadata/test/v2";
-import { warn } from "./logging";
 
 const debug = dbg("replay:test-utils:metrics");
 
@@ -53,15 +52,11 @@ async function pingTestMetrics(
     headers.Authorization = `Bearer ${apiKey}`;
   }
 
-  try {
-    return await fetch(`${webhookUrl}/api/metrics`, {
-      method: "POST",
-      headers,
-      body,
-    });
-  } catch (e) {
-    warn("Failed to send test metrics", e);
-  }
+  fetch(`${webhookUrl}/api/metrics`, {
+    method: "POST",
+    headers,
+    body,
+  }).catch(e => debug("Failed to send test metrics", e));
 }
 
 export { pingTestMetrics };
