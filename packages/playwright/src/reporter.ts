@@ -289,23 +289,37 @@ class ReplayPlaywrightReporter implements Reporter {
       };
     }
 
+    const tests = [
+      {
+        ...testMetadata,
+        approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
+        result: status === "interrupted" ? ("unknown" as const) : status,
+        error: result.error
+          ? {
+              name: "Error",
+              message: extractErrorMessage(result.error),
+              line: result.error.location?.line ?? 0,
+              column: result.error.location?.column ?? 0,
+            }
+          : null,
+        events,
+      },
+    ];
+
+    const recordings = this.reporter.getRecordingsForTest(tests);
+
+    for (let i = 0; i < recordings.length; i++) {
+      const recording = recordings[i];
+
+      // our reporter has to come first in the list of configured reports for this to be useful to other reporters
+      test.annotations.push({
+        type: "Replay recording" + (i > 0 ? ` ${i + 1}` : ""),
+        description: `https://app.replay.io/recording/${recording.id}`,
+      });
+    }
+
     this.reporter.onTestEnd({
-      tests: [
-        {
-          ...testMetadata,
-          approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          result: status === "interrupted" ? "unknown" : status,
-          error: result.error
-            ? {
-                name: "Error",
-                message: extractErrorMessage(result.error),
-                line: result.error.location?.line ?? 0,
-                column: result.error.location?.column ?? 0,
-              }
-            : null,
-          events,
-        },
-      ],
+      tests,
       specFile: relativePath,
       replayTitle: test.title,
       extraMetadata: playwrightMetadata,
