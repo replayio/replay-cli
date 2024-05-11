@@ -17,7 +17,9 @@ export async function getLatestRelease() {
       release.platform === platform &&
       release.runtime === runtime &&
       // TODO(dmiller): remove this null check once we have done a release with the architecture field
-      (release.architecture === architecture || release.architecture === null)
+      (release.architecture === architecture ||
+        release.architecture === "unknown" ||
+        release.architecture === null)
   );
 
   debug("Latest release", latestRelease);

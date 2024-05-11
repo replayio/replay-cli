@@ -4,7 +4,7 @@ export type Platform = "macOS" | "linux" | "windows";
 // This CLI only supports Chromium for the time being
 export type Runtime = "chromium" | "node";
 
-export type Architecture = "arm" | "x86_64";
+export type Architecture = "arm" | "x86_64" | "unknown";
 
 export type Release = {
   architecture: Architecture | null;
