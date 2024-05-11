@@ -5,7 +5,7 @@ import { runtimeMetadata } from "./config";
 import { debug } from "./debug";
 import { Release } from "./types";
 
-const { platform, runtime, architecture } = runtimeMetadata;
+const { architecture, platform, runtime } = runtimeMetadata;
 
 export async function getLatestRelease() {
   debug("Fetching release metadata");

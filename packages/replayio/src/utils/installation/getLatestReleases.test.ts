@@ -9,9 +9,9 @@ const mockedFetch = mocked(fetch, true);
 
 jest.mock("./config", () => ({
   runtimeMetadata: {
+    architecture: "x86_64",
     platform: "linux",
     runtime: "chromium",
-    architecture: "x86_64",
   },
 }));
 
@@ -32,24 +32,24 @@ describe("getLatestRelease", () => {
   it("should return the latest release and handle null architectures", async () => {
     const expectedUrl = `${replayAppHost}/api/releases`;
     const release: Release = {
-      platform: "linux",
       architecture: null,
-      runtime: "chromium",
-      releaseFile: "mocked-release-file",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
-      version: "mocked-version",
+      platform: "linux",
+      releaseFile: "mocked-release-file",
+      runtime: "chromium",
       time: Date.now().toString(),
+      version: "mocked-version",
     };
     const oldRelease: Release = {
-      platform: "linux",
       architecture: null,
-      runtime: "chromium",
-      releaseFile: "mocked-release-file",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
-      version: "mocked-version",
+      platform: "linux",
+      releaseFile: "mocked-release-file",
+      runtime: "chromium",
       time: (Date.now() - 1000).toString(),
+      version: "mocked-version",
     };
     mockedFetch.mockResolvedValueOnce({ json: async () => [release, oldRelease] } as any);
 
@@ -62,34 +62,34 @@ describe("getLatestRelease", () => {
     const expectedUrl = `${replayAppHost}/api/releases`;
     const now = Date.now().toString();
     const x86Release: Release = {
-      platform: "linux",
       architecture: "x86_64",
-      runtime: "chromium",
-      releaseFile: "mocked-release-file",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
-      version: "mocked-version",
+      platform: "linux",
+      releaseFile: "mocked-release-file",
+      runtime: "chromium",
       time: now,
+      version: "mocked-version",
     };
     const armRelease: Release = {
-      platform: "linux",
       architecture: "arm",
-      runtime: "chromium",
-      releaseFile: "mocked-release-file",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
-      version: "mocked-version",
+      platform: "linux",
+      releaseFile: "mocked-release-file",
+      runtime: "chromium",
       time: now,
+      version: "mocked-version",
     };
     const oldRelease: Release = {
-      platform: "linux",
       architecture: "x86_64",
-      runtime: "chromium",
-      releaseFile: "mocked-release-file",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
-      version: "mocked-version",
+      platform: "linux",
+      releaseFile: "mocked-release-file",
+      runtime: "chromium",
       time: (Date.now() - 1000).toString(),
+      version: "mocked-version",
     };
     mockedFetch.mockResolvedValueOnce({
       json: async () => [armRelease, x86Release, oldRelease],
