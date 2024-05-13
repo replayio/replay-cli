@@ -22,7 +22,5 @@ export async function getLatestRelease() {
   debug("Latest release", latestRelease);
   assert(latestRelease, `No release found for ${platform}:${runtime}`);
 
-  debug("Latest release on", new Date(latestRelease.time).toLocaleDateString());
-
   return latestRelease;
 }
