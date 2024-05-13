@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Add unreleased changes here.
 
+## [1.0.8](#1.0.8) - 2024-05-13
+
 ### Added
 
 - Basic usage telemetry added using Mixpanel; note that no personal information is stored (#430)
