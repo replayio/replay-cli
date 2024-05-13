@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](#Unreleased)
-
-Add unreleased changes here.
+## [1.1.0](#1.1.0) - 2024-05-13
 
 ### Added
 
@@ -16,6 +14,7 @@ Add unreleased changes here.
 ### Changed
 
 - Don't try to group related recordings; just sort them reverse chronologically (#442)
+- More reliably select correct build to update to based on CPU architecture (#451)
 
 ## [1.0.7](#1.0.7) - 2024-05-05
 
