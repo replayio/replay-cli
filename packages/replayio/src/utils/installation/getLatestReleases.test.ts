@@ -29,10 +29,10 @@ describe("getLatestRelease", () => {
     expect(mockedFetch).toHaveBeenCalledWith(expectedUrl);
   });
 
-  it("should return the latest release and handle null architectures", async () => {
+  it("should return the latest release and handle unknown architectures", async () => {
     const expectedUrl = `${replayAppHost}/api/releases`;
     const release: Release = {
-      architecture: null,
+      architecture: "unknown",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
       platform: "linux",
@@ -42,7 +42,7 @@ describe("getLatestRelease", () => {
       version: "mocked-version",
     };
     const oldRelease: Release = {
-      architecture: null,
+      architecture: "unknown",
       buildFile: "mocked-build-file",
       buildId: "mocked-build-id",
       platform: "linux",
@@ -98,41 +98,5 @@ describe("getLatestRelease", () => {
     await expect(getLatestRelease()).resolves.toEqual(x86Release);
 
     expect(mockedFetch).toHaveBeenCalledWith(expectedUrl);
-  });
-
-  it("should handle a mix of null and unknown architectures", async () => {
-    const now = Date.now();
-    const nowString = now.toString();
-    const unknownRelease: Release = {
-      architecture: "unknown",
-      buildFile: "mocked-build-file",
-      buildId: "mocked-build-id",
-      platform: "linux",
-      releaseFile: "mocked-release-file",
-      runtime: "chromium",
-      time: (now - 500).toString(),
-      version: "mocked-version",
-    };
-    const oldRelease: Release = {
-      architecture: null,
-      buildFile: "mocked-build-file",
-      buildId: "mocked-build-id",
-      platform: "linux",
-      releaseFile: "mocked-release-file",
-      runtime: "chromium",
-      time: (now - 1000).toString(),
-      version: "mocked-version",
-    };
-    mockedFetch.mockResolvedValueOnce({
-      json: async () => [unknownRelease, oldRelease],
-    } as any);
-
-    await expect(getLatestRelease()).resolves.toEqual(unknownRelease);
-
-    mockedFetch.mockResolvedValueOnce({
-      json: async () => [oldRelease, unknownRelease],
-    } as any);
-
-    await expect(getLatestRelease()).resolves.toEqual(oldRelease);
   });
 });

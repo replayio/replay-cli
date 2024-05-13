@@ -7,7 +7,7 @@ export type Runtime = "chromium" | "node";
 export type Architecture = "arm" | "x86_64" | "unknown";
 
 export type Release = {
-  architecture: Architecture | null;
+  architecture: Architecture;
   buildFile: string;
   buildId: string;
   platform: Platform;
