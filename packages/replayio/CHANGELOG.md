@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Don't try to group related recordings; just sort them reverse chronologically (#442)
+- More reliably select correct build to update to based on CPU architecture (#451)
 
 ## [1.0.7](#1.0.7) - 2024-05-05
 
