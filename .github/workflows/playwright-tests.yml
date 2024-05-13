@@ -1,8 +1,6 @@
 name: Create React App Typescript Tests
 on:
   pull_request:
-    paths:
-      - "examples/create-react-app-typescript/**"
 
 jobs:
   playwright-tests:
@@ -10,6 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: yarn --immutable
+        shell: bash
+        working-directory: .
+      - run: yarn run bootstrap
+        shell: bash
+        working-directory: .
       - uses: ./.github/actions/playwright
         with:
           project: "replay-chromium"
