@@ -66,6 +66,10 @@ export interface UploadOptions extends Options {
    * Fail the recording upload if any part of the upload fails.
    */
   strict?: boolean;
+  /**
+   * Remove assets associated with the recording after successful upload
+   */
+  removeAssets?: boolean;
 }
 
 export interface UploadAllOptions extends FilterOptions, UploadOptions {

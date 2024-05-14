@@ -461,7 +461,7 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
     opts.verbose,
     opts.apiKey,
     opts.agentOptions,
-    true,
+    opts.removeAssets ?? true,
     opts.strict
   );
 }
