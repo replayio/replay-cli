@@ -211,7 +211,10 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
             const recording = idToRecording[id];
             assert(recording, `Recording with ID "${id}" not found`);
-            recording.uploadStatus = "uploading";
+            // if we can only find the "uploadStarted" log then we have to assume that this upload has failed or has been canceled
+            // we can't retry those as "Internal.beginRecordingUpload" has already been called before and it fails on the second attempt
+            // recordings line create a timeline so "uploadFinished" still has a chance to update this status to "uploaded"
+            recording.uploadStatus = "failed";
             break;
           }
           case RECORDING_LOG_KIND.writeFinished: {
