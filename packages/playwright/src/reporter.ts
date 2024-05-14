@@ -1,7 +1,3 @@
-import dbg from "debug";
-import { readFileSync } from "fs";
-import path from "path";
-import { WebSocketServer } from "ws";
 import type {
   FullConfig,
   Reporter,
@@ -11,20 +7,23 @@ import type {
   TestStep,
 } from "@playwright/test/reporter";
 import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  removeAnsiCodes,
   ReplayReporter,
   ReplayReporterConfig,
-  removeAnsiCodes,
-  TestMetadataV2,
-  getMetadataFilePath as getMetadataFilePathBase,
   TestIdContext,
-  warn,
+  TestMetadataV2,
 } from "@replayio/test-utils";
+import dbg from "debug";
+import { readFileSync } from "fs";
+import path from "path";
+import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
-import { getServerPort, startServer } from "./server";
 import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
+import { getServerPort, startServer } from "./server";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("@replayio/playwright/package.json").version;
@@ -279,7 +278,7 @@ class ReplayPlaywrightReporter implements Reporter {
               try {
                 return [filename, readFileSync(filename, "utf8")];
               } catch (e) {
-                warn(`Failed to read playwright test source for: ${filename}`, e);
+                debug(`Failed to read playwright test source for: ${filename}`, e);
                 return [filename, undefined];
               }
             })

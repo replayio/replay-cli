@@ -1,5 +1,5 @@
 import { Browser, TestInfo, TestInfoError, test } from "@playwright/test";
-import { ReporterError, warn } from "@replayio/test-utils";
+import { ReporterError } from "@replayio/test-utils";
 import assert from "assert";
 import dbg from "debug";
 import WebSocket from "ws";
@@ -187,7 +187,7 @@ export async function replayFixture(
     },
   };
 
-  function addAnnotation(event: string, id?: string, detail?: Record<string, any>) {
+  async function addAnnotation(event: string, id?: string, detail?: Record<string, any>) {
     if (id) {
       return Promise.allSettled(
         browser.contexts().flatMap(context => {
@@ -199,15 +199,21 @@ export async function replayFixture(
                 JSON.stringify({ ...detail, test: testIdData }),
               ]);
             } catch (e) {
-              warn("Failed to add annotation", e);
+              // `onApiCallBegin`/`onApiCallEnd` are not awaited, see: https://github.com/microsoft/playwright/pull/30795
+              // not much can be done about it, an *attempt* could be done to override builtin fixtures like `page` and `browser` to install our hooks there,
+              // it's not worth it when a convenient API is available though
+              // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
+              // they can't be *logged* here because that interferes with the active reporter output
+              debug("Failed to add annotation", e);
             }
           });
         })
       );
     }
+    return [];
   }
 
-  function handlePlaywrightEvent({
+  async function handlePlaywrightEvent({
     detail,
     ...data
   }:
@@ -249,7 +255,7 @@ export async function replayFixture(
         })
       );
 
-      addAnnotation(data.event, data.id, detail);
+      return addAnnotation(data.event, data.id, detail);
     } catch (e) {
       let reporterError: ReporterError;
 
@@ -270,7 +276,7 @@ export async function replayFixture(
           })
         );
       } catch (wsError) {
-        warn("Failed to send error to reporter", wsError);
+        debug("Failed to send error to reporter", wsError);
       }
     }
   }
@@ -282,7 +288,9 @@ export async function replayFixture(
         return;
       }
 
-      handlePlaywrightEvent({
+      expectSteps.add(step.stepId);
+
+      return handlePlaywrightEvent({
         event: "step:start",
         id: step.stepId,
         params: step.params,
@@ -294,12 +302,10 @@ export async function replayFixture(
           frames: step.location ? [step.location] : [],
         },
       });
-
-      expectSteps.add(step.stepId);
     },
     function handleStepEnd(step) {
       if (expectSteps.has(step.stepId)) {
-        handlePlaywrightEvent({
+        return handlePlaywrightEvent({
           event: "step:end",
           id: step.stepId,
           params: undefined,
@@ -314,7 +320,7 @@ export async function replayFixture(
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTraceOrFrames, _wallTime) => {
       currentStep = getCurrentStep(testInfo);
-      handlePlaywrightEvent({
+      return handlePlaywrightEvent({
         event: "step:start",
         id: currentStep.stepId,
         params,
@@ -333,7 +339,7 @@ export async function replayFixture(
     },
 
     onApiCallEnd: (userData, error) => {
-      handlePlaywrightEvent({
+      return handlePlaywrightEvent({
         event: "step:end",
         id: currentStep!.stepId,
         params: userData?.userObject?.params,
