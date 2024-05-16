@@ -12,7 +12,6 @@ import {
   ReplayReporterConfig,
   TestIdContext,
   TestMetadataV2,
-  warn,
 } from "@replayio/test-utils";
 import dbg from "debug";
 import { readFileSync } from "fs";
@@ -257,7 +256,7 @@ class ReplayPlaywrightReporter implements Reporter {
               try {
                 return [filename, readFileSync(filename, "utf8")];
               } catch (e) {
-                warn(`Failed to read playwright test source for: ${filename}`, e);
+                debug(`Failed to read playwright test source for: ${filename}`, e);
                 return [filename, undefined];
               }
             })
