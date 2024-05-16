@@ -294,11 +294,13 @@ export async function replayFixture(
     // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
     // so we need to handle them here
     if (data.category === "expect") {
-      if (!data.location) {
+      let frames = data.location ? [data.location] : undefined;
+      if (!frames) {
         // based on those lines we replicate how Playwright computes the location and precompute it here for it so it uses ours
         // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L266-L272
         const filteredStack = filteredStackTrace(captureRawStack());
         data.location = filteredStack[0];
+        frames = filteredStack;
       }
 
       const step = addStep.call(this, data, ...rest);
@@ -313,7 +315,7 @@ export async function replayFixture(
           category: step.category,
           title: step.title,
           params: step.params || {},
-          frames: step.location ? [step.location] : [],
+          frames,
           hook: getCurrentHookType(),
         },
       }).catch(err => {
