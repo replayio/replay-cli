@@ -168,6 +168,7 @@ export async function replayFixture(
   debug("Setting up replay fixture");
 
   const expectSteps = new Set<string>();
+  const ignoredSteps = new Set<string>();
 
   const port = getServerPort();
   const ws = new WebSocket(`ws://localhost:${port}`);
@@ -361,6 +362,19 @@ export async function replayFixture(
         return;
       }
 
+      const frames = stackTraceOrFrames
+        ? "frames" in stackTraceOrFrames
+          ? stackTraceOrFrames.frames
+          : stackTraceOrFrames
+        : [];
+
+      if (!frames.length) {
+        // if frames are empty it likely means that the api call has been made from Playwright internals
+        // this helps us to ignore steps created by builtin fixtures like `page` and `browser`
+        ignoredSteps.add(step.stepId);
+        return;
+      }
+
       return handlePlaywrightEvent({
         event: "step:start",
         id: step.stepId,
@@ -368,11 +382,7 @@ export async function replayFixture(
         detail: {
           apiName,
           category: step.category,
-          frames: stackTraceOrFrames
-            ? "frames" in stackTraceOrFrames
-              ? stackTraceOrFrames.frames
-              : stackTraceOrFrames
-            : [],
+          frames,
           params: params ?? {},
           title: step.title,
           hook: getCurrentHookType(),
@@ -382,6 +392,9 @@ export async function replayFixture(
 
     onApiCallEnd: (userData, error) => {
       const step: TestStepInternal = userData?.userObject;
+      if (ignoredSteps.has(step.stepId)) {
+        return;
+      }
       return handlePlaywrightEvent({
         event: "step:end",
         id: step.stepId,

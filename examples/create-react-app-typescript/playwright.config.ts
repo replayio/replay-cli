@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 import { devices as replayDevices } from "@replayio/playwright";
 
-const config = defineConfig({
+export default defineConfig({
   forbidOnly: !!process.env.CI,
   use: {
     trace: "on-first-retry",
@@ -33,5 +33,3 @@ const config = defineConfig({
     },
   ],
 });
-
-module.exports = config;
