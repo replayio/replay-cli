@@ -1,4 +1,4 @@
-import { Browser, TestInfo, TestInfoError, test } from "@playwright/test";
+import { Browser, TestInfoError, test } from "@playwright/test";
 import { ReporterError } from "@replayio/test-utils";
 import assert from "assert";
 import dbg from "debug";
@@ -12,6 +12,7 @@ import {
   TestStepInternal,
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
+import { captureRawStack, filteredStackTrace } from "./stackTrace";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
   return !!error && typeof error === "object" && "code" in error && error.code === code;
@@ -287,15 +288,23 @@ export async function replayFixture(
   }
 
   const addStep = testInfo._addStep;
-  testInfo._addStep = function (...args) {
-    const step = addStep.call(this, ...args);
+  testInfo._addStep = function (data, ...rest) {
+    // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
+    // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
+    // they call `_addStep` directly
+    // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
+    // so we need to handle them here
+    if (data.category === "expect") {
+      let frames = data.location ? [data.location] : undefined;
+      if (!frames) {
+        // based on those lines we replicate how Playwright computes the location and precompute it here for it so it uses ours
+        // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L266-L272
+        const filteredStack = filteredStackTrace(captureRawStack());
+        data.location = filteredStack[0];
+        frames = filteredStack;
+      }
 
-    if (step.category === "expect") {
-      // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
-      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
-      // they call `_addStep` directly
-      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
-      // so we need to handle them here
+      const step = addStep.call(this, data, ...rest);
       expectSteps.add(step.stepId);
 
       handlePlaywrightEvent({
@@ -307,16 +316,18 @@ export async function replayFixture(
           category: step.category,
           title: step.title,
           params: step.params || {},
-          // TODO: this is unhelpful as it points to the monkey-patched function itself
-          frames: step.location ? [step.location] : [],
+          frames,
           hook: getCurrentHookType(),
         },
       }).catch(err => {
         // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
         debug("Failed to add step:start for an expect: %o", err);
       });
+
+      return step;
     }
-    return step;
+
+    return addStep.call(this, data, ...rest);
   };
 
   const onStepEnd = testInfo._onStepEnd;

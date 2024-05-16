@@ -1,6 +1,6 @@
 // Types imported from playwright and used by our fixture
 
-import { APIRequestContext, BrowserContext, TestInfo, TestInfoError } from "@playwright/test";
+import type { APIRequestContext, BrowserContext, TestInfo, TestInfoError } from "@playwright/test";
 
 // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L57
 export interface TestInfoInternal extends TestInfo {
