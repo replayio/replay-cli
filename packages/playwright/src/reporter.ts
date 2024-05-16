@@ -4,7 +4,6 @@ import type {
   TestCase,
   TestError,
   TestResult,
-  TestStep,
 } from "@playwright/test/reporter";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
@@ -54,31 +53,6 @@ function mapFixtureStepCategory(step: FixtureStep): UserActionEvent["data"]["cat
   }
 
   return "command";
-}
-
-function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
-  switch (step.category) {
-    case "expect":
-      return "assertion";
-    case "step":
-    case "pw:api":
-      return "command";
-    default:
-      return "other";
-  }
-}
-
-function mapTestStepHook(
-  step: Pick<TestStep, "category" | "title">
-): "beforeEach" | "afterEach" | undefined {
-  if (step.category !== "hook") return;
-
-  switch (step.title) {
-    case "Before Hooks":
-      return "beforeEach";
-    case "After Hooks":
-      return "afterEach";
-  }
 }
 
 type ReplayPlaywrightRecordingMetadata = {
@@ -198,13 +172,19 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   getStepsFromFixture(test: TestIdData) {
-    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
+    const hookMap: Record<
+      "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
+      UserActionEvent[]
+    > = {
+      afterAll: [],
+      afterEach: [],
+      beforeAll: [],
+      beforeEach: [],
+    };
     const steps: UserActionEvent[] = [];
 
     const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
     fixtureSteps?.forEach(fixtureStep => {
-      const hook = mapTestStepHook(fixtureStep);
-
       const step: UserActionEvent = {
         data: {
           id: fixtureStep.id,
@@ -234,20 +214,18 @@ class ReplayPlaywrightReporter implements Reporter {
         }
       }
 
-      if (hook) {
-        const hookSteps = hookMap.get(hook) || [];
-        hookSteps.push(step);
-        hookMap.set(hook, hookSteps);
+      if (fixtureStep.hook) {
+        hookMap[fixtureStep.hook].push(step);
       } else {
         steps.push(step);
       }
     });
 
     return {
-      beforeAll: [],
-      afterAll: [],
-      beforeEach: hookMap.get("beforeEach") || [],
-      afterEach: hookMap.get("afterEach") || [],
+      beforeEach: hookMap.beforeEach,
+      beforeAll: hookMap.beforeAll,
+      afterAll: hookMap.afterAll,
+      afterEach: hookMap.afterEach,
       main: steps,
     };
   }
