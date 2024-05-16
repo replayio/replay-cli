@@ -4,6 +4,7 @@ import type {
   TestCase,
   TestError,
   TestResult,
+  TestStep,
 } from "@playwright/test/reporter";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
@@ -170,6 +171,11 @@ class ReplayPlaywrightReporter implements Reporter {
       this.getTestIdContext(test, testResult),
       getMetadataFilePath(testResult.workerIndex)
     );
+  }
+
+  onStepBegin(test: TestCase, result: TestResult, step: TestStep): void {
+    const { parent, ...rest } = step;
+    console.log(`##### ${JSON.stringify(rest)} ${new Error().stack}`);
   }
 
   getStepsFromFixture(test: TestIdData) {

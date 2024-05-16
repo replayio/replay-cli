@@ -291,6 +291,7 @@ export async function replayFixture(
       // so we need to handle them here
       expectSteps.add(step.stepId);
 
+      console.log(`***** ${JSON.stringify(step)} ${new Error().stack}`);
       handlePlaywrightEvent({
         event: "step:start",
         id: step.stepId,
