@@ -5,9 +5,34 @@ import { APIRequestContext, BrowserContext, TestInfo, TestInfoError } from "@pla
 // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L57
 export interface TestInfoInternal extends TestInfo {
   // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L247C18-L247C22
-  _addStep?: (data: Omit<TestStepInternal, "complete" | "stepId" | "steps">) => TestStepInternal;
-  _onStepEnd?: (step: StepEndPayload) => void;
+  _addStep: (data: Omit<TestStepInternal, "complete" | "stepId" | "steps">) => TestStepInternal;
+  // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L58
+  // introduced in Playwright 1.30.0
+  _onStepBegin: (step: StepBeginPayload) => void;
+  // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L59
+  // introduced in Playwright 1.30.0
+  _onStepEnd: (step: StepEndPayload) => void;
+  // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L404-L410
+  // introduced in Playwright 1.43.0
+  _currentHookType?: () => "beforeEach" | "afterEach" | "beforeAll" | "afterAll" | undefined;
+  _timeoutManager?: {
+    /* doesn't exist since Playwright 1.43.0 */
+    currentRunnableType?: () => RunnableType;
+  };
 }
+
+// https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/timeoutManager.ts#L26
+type RunnableType =
+  | "test"
+  | "beforeAll"
+  | "afterAll"
+  | "beforeEach"
+  | "afterEach"
+  | "slow"
+  | "skip"
+  | "fail"
+  | "fixme"
+  | "teardown";
 
 // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/worker/testInfo.ts#L32
 export interface TestStepInternal {
@@ -31,6 +56,17 @@ export type ParsedStackTrace = {
   frames: StackFrame[];
   frameTexts: string[];
   apiName: string | undefined;
+};
+
+// https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/common/ipc.ts#L86-L94
+export type StepBeginPayload = {
+  testId: string;
+  stepId: string;
+  parentStepId: string | undefined;
+  title: string;
+  category: string;
+  wallTime: number; // milliseconds since unix epoch
+  location?: { file: string; line: number; column: number };
 };
 
 // https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright/src/common/ipc.ts#L96-L101

@@ -1,6 +1,7 @@
+import { defineConfig } from "@playwright/test";
 import { devices as replayDevices } from "@replayio/playwright";
 
-const config = {
+const config = defineConfig({
   forbidOnly: !!process.env.CI,
   use: {
     trace: "on-first-retry",
@@ -12,20 +13,25 @@ const config = {
     timeout: 30 * 1000,
     reuseExistingServer: !process.env.CI,
   },
+  reporter: [
+    ["@replayio/playwright/reporter"],
+    // replicating Playwright's defaults
+    process.env.CI ? (["dot"] as const) : (["list"] as const),
+  ],
   projects: [
     {
       name: "replay-firefox",
       use: {
-        ...(replayDevices["Replay Firefox"] as any),
+        ...replayDevices["Replay Firefox"],
       },
     },
     {
       name: "replay-chromium",
       use: {
-        ...(replayDevices["Replay Chromium"] as any),
+        ...replayDevices["Replay Chromium"],
       },
     },
   ],
-};
+});
 
 module.exports = config;

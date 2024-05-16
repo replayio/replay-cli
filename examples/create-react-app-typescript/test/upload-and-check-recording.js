@@ -5,7 +5,7 @@ const replay = require("@replayio/replay");
 
 (async () => {
   try {
-    const apiKey = process.env.REPLAY_API_KEY;
+    const apiKey = process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
     assert(apiKey, "Expected REPLAY_API_KEY to be set");
     const recordings = replay.listAllRecordings();
     assert(recordings.length === 1, `Expected 1 recording but found ${recordings.length}`);
