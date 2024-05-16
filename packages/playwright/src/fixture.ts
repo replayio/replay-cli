@@ -23,6 +23,7 @@ interface StepStartDetail {
   frames: StackFrame[];
   params: Record<string, any>;
   title: TestStepInternal["title"];
+  hook: "afterAll" | "afterEach" | "beforeAll" | "beforeEach" | undefined;
 }
 
 export interface FixtureStepStart extends StepStartDetail {
@@ -65,18 +66,21 @@ export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent | Reporte
 
 const debug = dbg("replay:playwright:fixture");
 
-function ReplayAddAnnotation([event, id, data]: any) {
-  // @ts-ignore
+declare global {
+  interface Window {
+    __RECORD_REPLAY_ANNOTATION_HOOK__?: (
+      source: string,
+      data: { event: string; id: string; data: unknown }
+    ) => void;
+  }
+}
+
+function ReplayAddAnnotation([event, id, data]: readonly [string, string, string]) {
   window.__RECORD_REPLAY_ANNOTATION_HOOK__?.("replay-playwright", {
     event,
     id,
     data: data ? JSON.parse(data) : undefined,
   });
-}
-
-function getCurrentStep(testInfo: TestInfo): TestStepInternal {
-  const steps = (testInfo as any)._steps;
-  return steps[steps.length - 1];
 }
 
 function isReplayAnnotation(params?: any) {
@@ -119,43 +123,51 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
   };
 }
 
-function maybeMonkeyPatchTestInfo(
-  testInfo: TestInfoInternal,
-  addStepHandler: (step: TestStepInternal) => void,
-  stepEndHandler: NonNullable<TestInfoInternal["_onStepEnd"]>
-) {
-  if (testInfo._addStep) {
-    const original = testInfo._addStep;
-    testInfo._addStep = function (...args) {
-      const result = original.call(this, ...args);
-      addStepHandler(result);
-      return result;
-    };
-  }
-
-  if (testInfo._onStepEnd) {
-    const original = testInfo._onStepEnd;
-    testInfo._onStepEnd = function (step) {
-      const result = original.call(this, step);
-      stepEndHandler(step);
-      return result;
-    };
-  }
-}
-
 type Playwright = typeof import("playwright-core") & {
   _instrumentation: ClientInstrumentation;
 };
 
+const patchedTestInfos = new WeakSet<TestInfoInternal>();
+
 export async function replayFixture(
   { playwright, browser }: { playwright: Playwright; browser: Browser },
   use: () => Promise<void>,
-  testInfo: TestInfo
+  testInfo: TestInfoInternal
 ) {
+  // fixtures are created repeatedly for the same test
+  // since they are often created for hooks too
+  // it's important to avoid setting up the fixture multiple times
+  // otherwise the reporter would get notified multiple times about the same steps
+  if (patchedTestInfos.has(testInfo)) {
+    return use();
+  }
+  patchedTestInfos.add(testInfo);
+
+  // start of before hooks can't be intercepted by the fixture in `_addStep`
+  // `_addStep` gets monkey-patched in the this fixture but fixtures are registered in the `_runAsStage`'s callbacks like here:
+  // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/workerMain.ts#L557-L566
+  // while the hook steps are added as part of those main `_runAsStage` functions
+  function getCurrentHookType() {
+    if (testInfo._currentHookType) {
+      return testInfo._currentHookType();
+    }
+
+    // based on the removed `hookType` util from Playwright's code:
+    // https://github.com/microsoft/playwright/pull/29863/files#diff-e29aa8067f8fe0e63272392dfa682ea47cf92ec4257dffbd725f6c4992f48896L399-L403
+    const type = testInfo._timeoutManager?.currentRunnableType?.();
+    if (
+      type === "afterAll" ||
+      type === "afterEach" ||
+      type === "beforeAll" ||
+      type === "beforeEach"
+    ) {
+      return type;
+    }
+  }
+
   debug("Setting up replay fixture");
 
   const expectSteps = new Set<string>();
-  let currentStep: TestStepInternal | undefined;
 
   const port = getServerPort();
   const ws = new WebSocket(`ws://localhost:${port}`);
@@ -164,6 +176,8 @@ export async function replayFixture(
     await new Promise<void>((resolve, reject) => {
       ws.on("open", () => resolve());
       ws.on("error", error => reject(error));
+      // TODO: close WS connections on test end
+      // to avoid relying on TestInfo's internals for this the reporter could notify the connection when the test ends
     });
   } catch (error) {
     if (isErrorWithCode(error, "ECONNREFUSED")) {
@@ -193,11 +207,13 @@ export async function replayFixture(
         browser.contexts().flatMap(context => {
           return context.pages().flatMap(async page => {
             try {
+              // this leads to adding a regular step in the test
+              // it would be best if this could be avoided somehow
               await page.evaluate(ReplayAddAnnotation, [
                 event,
                 id,
                 JSON.stringify({ ...detail, test: testIdData }),
-              ]);
+              ] as const);
             } catch (e) {
               warn("Failed to add annotation", e);
             }
@@ -228,18 +244,6 @@ export async function replayFixture(
         data.id != null,
         new ReporterError(Errors.MissingCurrentStep, "No current step for API call end")
       );
-
-      if (
-        // Do not emit replay annotations so we don't enter an infinite loop
-        isReplayAnnotation(data.params) ||
-        // Some `expect` calls (e.g. `expect.toBeVisible`) are API calls and
-        // will be emitted by both the addStep "hook" and this method. addStep
-        // is called before this so since we've already dispatched a step:start,
-        // we'll skip emitting another here.
-        expectSteps.has(data.id)
-      ) {
-        return;
-      }
 
       ws.send(
         JSON.stringify({
@@ -275,12 +279,17 @@ export async function replayFixture(
     }
   }
 
-  maybeMonkeyPatchTestInfo(
-    testInfo,
-    function handleAddStep(step) {
-      if (step.category !== "expect") {
-        return;
-      }
+  const addStep = testInfo._addStep;
+  testInfo._addStep = function (...args) {
+    const step = addStep.call(this, ...args);
+
+    if (step.category === "expect") {
+      // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
+      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
+      // they call `_addStep` directly
+      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
+      // so we need to handle them here
+      expectSteps.add(step.stepId);
 
       handlePlaywrightEvent({
         event: "step:start",
@@ -291,51 +300,79 @@ export async function replayFixture(
           category: step.category,
           title: step.title,
           params: step.params || {},
+          // TODO: this is unhelpful as it points to the monkey-patched function itself
           frames: step.location ? [step.location] : [],
+          hook: getCurrentHookType(),
         },
       });
-
-      expectSteps.add(step.stepId);
-    },
-    function handleStepEnd(step) {
-      if (expectSteps.has(step.stepId)) {
-        handlePlaywrightEvent({
-          event: "step:end",
-          id: step.stepId,
-          params: undefined,
-          detail: {
-            error: step.error ? parseError(step.error) : null,
-          },
-        });
-      }
     }
-  );
+    return step;
+  };
+
+  const onStepEnd = testInfo._onStepEnd;
+  testInfo._onStepEnd = function (...args) {
+    onStepEnd.call(this, ...args);
+
+    const [payload] = args;
+    if (expectSteps.has(payload.stepId)) {
+      handlePlaywrightEvent({
+        event: "step:end",
+        id: payload.stepId,
+        params: undefined,
+        detail: {
+          error: payload.error ? parseError(payload.error) : null,
+        },
+      });
+    }
+  };
 
   const csiListener: ClientInstrumentationListener = {
-    onApiCallBegin: (apiName, params, stackTraceOrFrames, _wallTime) => {
-      currentStep = getCurrentStep(testInfo);
+    onApiCallBegin: (apiName, params, stackTraceOrFrames, wallTime, userData) => {
+      if (isReplayAnnotation(params)) {
+        // do not emit page.evaluate steps that add replay annotations
+        // this would create an infinite async loop
+        return;
+      }
+
+      // `.userObject` holds the step data
+      // https://github.com/microsoft/playwright/blob/8dec672121bb12dbc8371995c1cdba3ca0565ffb/packages/playwright/src/index.ts#L254-L261
+      // this has been introduced in Playwright 1.17.0
+      const step: TestStepInternal | undefined = userData?.userObject;
+
+      if (!step) {
+        return;
+      }
+
+      if (expectSteps.has(step.stepId)) {
+        // at least some `expect` calls were API calls at some point (https://github.com/microsoft/playwright/pull/9117)
+        // all of them are added through `_addStep` (it gets called first) and thus those are filtered out here
+        return;
+      }
+
       handlePlaywrightEvent({
         event: "step:start",
-        id: currentStep.stepId,
+        id: step.stepId,
         params,
         detail: {
           apiName,
-          category: currentStep.category,
+          category: step.category,
           frames: stackTraceOrFrames
             ? "frames" in stackTraceOrFrames
               ? stackTraceOrFrames.frames
               : stackTraceOrFrames
             : [],
           params: params ?? {},
-          title: currentStep.title,
+          title: step.title,
+          hook: getCurrentHookType(),
         },
       });
     },
 
     onApiCallEnd: (userData, error) => {
+      const step: TestStepInternal = userData?.userObject;
       handlePlaywrightEvent({
         event: "step:end",
-        id: currentStep!.stepId,
+        id: step.stepId,
         params: userData?.userObject?.params,
         detail: {
           error: error ? parseError(error) : null,
@@ -364,12 +401,15 @@ export function addReplayFixture() {
 
   fixtures.push({
     fixtures: {
-      _replay: [replayFixture, { auto: true, _title: "Replay.io fixture" }],
-    },
-    location: {
-      file: __filename,
-      line: 38,
-      column: 1,
+      _replay: [
+        replayFixture,
+        {
+          // "all-hooks-included" is supported since Playwright 1.23.0
+          // https://github.com/microsoft/playwright/pull/14104
+          auto: "all-hooks-included",
+          _title: "Replay.io fixture",
+        },
+      ],
     },
   });
 }

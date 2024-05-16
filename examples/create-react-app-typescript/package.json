@@ -22,7 +22,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "playwright test",
+    "test": "playwright test --project replay-chromium",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
