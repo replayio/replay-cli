@@ -15,8 +15,9 @@ jobs:
         with:
           node-version: "18"
           cache: "yarn"
-      - run: node ./scripts/set-playwright-version.js ${{ matrix.playwright-version }}
       - run: yarn --immutable
+      - run: node ./scripts/set-playwright-version.js ${{ matrix.playwright-version }}
+      - run: yarn
       - run: yarn run bootstrap
       - run: cd examples/create-react-app-typescript
       - run: yarn test
