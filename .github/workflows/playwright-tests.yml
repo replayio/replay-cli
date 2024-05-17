@@ -20,9 +20,8 @@ jobs:
           cache: "yarn"
       - run: yarn --immutable
       - run: node ./scripts/set-playwright-version.js ${{ matrix.playwright-version }}
+      - run: "echo 'enableHardenedMode: false' >> .yarnrc.yml"
       - run: yarn
-        env:
-          YARN_ENABLE_HARDENED_MODE: 0
       - run: yarn run bootstrap
       - run: cd examples/create-react-app-typescript
       - run: yarn test
