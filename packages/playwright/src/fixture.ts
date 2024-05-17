@@ -125,11 +125,8 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
 }
 
 type Playwright = typeof import("playwright-core") & {
-  // it became non-nullable in Playwright 1.34.0
-  _instrumentation?: ClientInstrumentation;
-  _connection: {
-    _instrumentation: ClientInstrumentation;
-  };
+  // it's available (as non-nullable) since 1.34.0
+  _instrumentation: ClientInstrumentation;
 };
 
 const patchedTestInfos = new WeakSet<TestInfoInternal>();
@@ -406,8 +403,9 @@ export async function replayFixture(
     },
 
     onApiCallEnd: (userData, error) => {
-      const step: TestStepInternal = userData?.userObject;
-      if (ignoredSteps.has(step.stepId)) {
+      const step: TestStepInternal | undefined = userData?.userObject;
+
+      if (!step || ignoredSteps.has(step.stepId)) {
         return;
       }
       return handlePlaywrightEvent({
@@ -421,8 +419,7 @@ export async function replayFixture(
     },
   };
 
-  const clientInstrumentation =
-    playwright._instrumentation ?? playwright._connection._instrumentation;
+  const clientInstrumentation = playwright._instrumentation;
   clientInstrumentation.addListener(csiListener);
 
   await use();

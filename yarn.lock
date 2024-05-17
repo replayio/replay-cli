@@ -2830,7 +2830,7 @@ __metadata:
     uuid: "npm:^8.3.2"
     ws: "npm:^8.13.0"
   peerDependencies:
-    "@playwright/test": ^1.30.0
+    "@playwright/test": ^1.34.0
   bin:
     replayio-playwright: ./bin.js
   languageName: unknown
