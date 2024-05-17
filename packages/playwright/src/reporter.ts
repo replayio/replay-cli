@@ -79,7 +79,8 @@ class ReplayPlaywrightReporter implements Reporter {
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
 
-  constructor(config: ReplayPlaywrightConfig) {
+  // Playwright started to normalize undefined configs to empty objects in some version after 1.30.x
+  constructor(config: ReplayPlaywrightConfig = {}) {
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
