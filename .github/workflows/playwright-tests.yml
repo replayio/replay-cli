@@ -1,5 +1,8 @@
 name: Create React App Typescript Tests
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches: main, playwright-next
 
 jobs:
   playwright-tests:
