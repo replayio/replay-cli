@@ -125,7 +125,11 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
 }
 
 type Playwright = typeof import("playwright-core") & {
-  _instrumentation: ClientInstrumentation;
+  // it became non-nullable in Playwright 1.34.0
+  _instrumentation?: ClientInstrumentation;
+  _connection: {
+    _instrumentation: ClientInstrumentation;
+  };
 };
 
 const patchedTestInfos = new WeakSet<TestInfoInternal>();
@@ -417,7 +421,8 @@ export async function replayFixture(
     },
   };
 
-  const clientInstrumentation = playwright._instrumentation;
+  const clientInstrumentation =
+    playwright._instrumentation ?? playwright._connection._instrumentation;
   clientInstrumentation.addListener(csiListener);
 
   await use();
