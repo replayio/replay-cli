@@ -79,8 +79,7 @@ class ReplayPlaywrightReporter implements Reporter {
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
 
-  // Playwright started to normalize undefined configs to empty objects in some version after 1.30.x
-  constructor(config: ReplayPlaywrightConfig = {}) {
+  constructor(config: ReplayPlaywrightConfig) {
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -235,6 +234,8 @@ class ReplayPlaywrightReporter implements Reporter {
     const status = result.status;
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
+
+    test;
 
     const testMetadata = {
       id: 0,
