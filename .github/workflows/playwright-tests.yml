@@ -1,21 +1,38 @@
-name: Create React App Typescript Tests
+name: Playwright tests
 on:
   pull_request:
+  push:
+    branches: main, playwright-next
 
 jobs:
   playwright-tests:
     name: Playwright tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        playwright-version: [1.34.x, 1.38.x, 1.44.x]
     steps:
       - uses: actions/checkout@v4
-      - run: yarn --immutable
-        shell: bash
-        working-directory: .
-      - run: yarn run bootstrap
-        shell: bash
-        working-directory: .
-      - uses: ./.github/actions/playwright
+      - uses: actions/setup-node@v4
         with:
-          project: "replay-chromium"
-          api-key: ${{ secrets.REPLAY_API_KEY || secrets.RECORD_REPLAY_API_KEY }}
-          working-directory: examples/create-react-app-typescript
+          node-version: "18"
+          cache: "yarn"
+      - run: yarn --immutable
+      - run: yarn run bootstrap
+      # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
+      # so it should be enough to only enforce the version of @playwright/test here
+      - run: yarn add @playwright/test@${{ matrix.playwright-version }}
+        working-directory: examples/create-react-app-typescript
+      # andarist: I had no luck with yarn resolutions on CI
+      # so I'm installing the same version in both places that use Playwright
+      # this way it should get deduplicated by the package manager based on regular rules
+      - run: yarn add -D @playwright/test@${{ matrix.playwright-version }}
+        working-directory: packages/playwright
+      - run: yarn test
+        working-directory: examples/create-react-app-typescript
+      - run: node test/upload-and-check-recording.js
+        working-directory: examples/create-react-app-typescript
+        env:
+          REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}

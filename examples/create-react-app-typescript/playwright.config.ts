@@ -20,12 +20,6 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: "replay-firefox",
-      use: {
-        ...replayDevices["Replay Firefox"],
-      },
-    },
-    {
       name: "replay-chromium",
       use: {
         ...replayDevices["Replay Chromium"],

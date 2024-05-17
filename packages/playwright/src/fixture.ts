@@ -125,6 +125,7 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
 }
 
 type Playwright = typeof import("playwright-core") & {
+  // it's available (as non-nullable) since 1.34.0
   _instrumentation: ClientInstrumentation;
 };
 
@@ -402,8 +403,9 @@ export async function replayFixture(
     },
 
     onApiCallEnd: (userData, error) => {
-      const step: TestStepInternal = userData?.userObject;
-      if (ignoredSteps.has(step.stepId)) {
+      const step: TestStepInternal | undefined = userData?.userObject;
+
+      if (!step || ignoredSteps.has(step.stepId)) {
         return;
       }
       return handlePlaywrightEvent({
