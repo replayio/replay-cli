@@ -20,11 +20,12 @@ jobs:
           cache: "yarn"
       - run: yarn --immutable
       - run: yarn run bootstrap
-      - run: cd examples/create-react-app-typescript
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
       - run: yarn add @playwright/test@${{ matrix.playwright-version }}
+        working-directory: examples/create-react-app-typescript
       - run: yarn test
+        working-directory: examples/create-react-app-typescript
       - run: node test/upload-and-check-recording.js
         working-directory: examples/create-react-app-typescript
         env:
