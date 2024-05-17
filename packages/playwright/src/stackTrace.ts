@@ -33,7 +33,7 @@ type RawStack = string[];
 const PLAYWRIGHT_TEST_PATH = path.dirname(require.resolve("@playwright/test/package.json"));
 let PLAYWRIGHT_PATH: string | undefined;
 try {
-  // playwright package isn't installed by @playwright/test@1.30.x
+  // @playwright/test started to depend on playwright package in 1.38.0
   PLAYWRIGHT_PATH = path.dirname(
     require.resolve("playwright/package.json", { paths: [PLAYWRIGHT_TEST_PATH] })
   );
