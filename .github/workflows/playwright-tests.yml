@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        playwright-version: [1.30.x, 1.44.x]
+        playwright-version: [1.30.x, 1.38.x, 1.44.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
