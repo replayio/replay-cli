@@ -1,21 +1,26 @@
 name: Create React App Typescript Tests
-on:
-  pull_request:
+on: [pull_request, push]
 
 jobs:
   playwright-tests:
     name: Playwright tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        playwright-version: [1.30.x, 1.44.x]
     steps:
       - uses: actions/checkout@v4
-      - run: yarn --immutable
-        shell: bash
-        working-directory: .
-      - run: yarn run bootstrap
-        shell: bash
-        working-directory: .
-      - uses: ./.github/actions/playwright
+      - uses: actions/setup-node@v4
         with:
-          project: "replay-chromium"
-          api-key: ${{ secrets.REPLAY_API_KEY || secrets.RECORD_REPLAY_API_KEY }}
-          working-directory: examples/create-react-app-typescript
+          node-version: "18"
+          cache: "yarn"
+      - run: node ./scripts/set-playwright-version.js ${{ matrix.playwright-version }}
+      - run: yarn --immutable
+      - run: yarn run bootstrap
+      - run: cd examples/create-react-app-typescript
+      - run: yarn test
+      - run: node test/upload-and-check-recording.js
+        working-directory: examples/create-react-app-typescript
+        env:
+          REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}
