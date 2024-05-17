@@ -1,4 +1,4 @@
-name: Create React App Typescript Tests
+name: Playwright tests
 on:
   pull_request:
   push:
