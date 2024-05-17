@@ -3,6 +3,7 @@ import {
   exponentialBackoffRetry,
   listAllRecordings,
   query,
+  removeRecording,
   uploadRecording,
 } from "@replayio/replay";
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
@@ -157,6 +158,10 @@ function throwGraphqlErrors(operation: string, errors: any) {
   throw new Error(
     `GraphQL request for ${operation} failed (${errors.map(getErrorMessage).join(", ")})`
   );
+}
+
+function isNonNullable<T>(arg: T): arg is NonNullable<T> {
+  return arg !== null && arg !== undefined;
 }
 
 export class ReporterError extends Error {
@@ -623,6 +628,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         // Per TT-941, we want to throw on any error so it can be caught below
         // and reported back to the user rather than just returning null
         strict: true,
+        // uploads are enqueued in this reporter asap
+        // but the extra assets should be removed after all of them are uploaded
+        removeAssets: false,
       });
 
       debug("Successfully uploaded %s", recording.id);
@@ -937,6 +945,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (uploads.length > 0) {
+      const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
+      for (const recordingId of recordingIds) {
+        removeRecording(recordingId);
+      }
+
       const uploaded = uploads.filter(u => u.status === "uploaded");
       const crashed = uploads.filter(u => u.status === "crashUploaded");
 

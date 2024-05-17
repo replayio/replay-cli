@@ -5,7 +5,13 @@ import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRun
 import { parseBuildId } from "../utils/installation/parseBuildId";
 import { highlight } from "../utils/theme";
 
-registerCommand("info").description("Display info for installed Replay dependencies").action(info);
+registerCommand("info", {
+  checkForNpmUpdate: false,
+  checkForRuntimeUpdate: false,
+  requireAuthentication: false,
+})
+  .description("Display info for installed Replay dependencies")
+  .action(info);
 
 async function info() {
   console.log(`Currently using ${highlight(`${packageName}@${packageVersion}`)}`);
@@ -21,6 +27,7 @@ async function info() {
     if (forkedVersion) {
       console.log(`• Forked version: ${highlight(forkedVersion)}`);
     }
+    console.log(`• Build id: ${highlight(buildId)}`);
   }
 
   await exitProcess(0);

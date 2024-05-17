@@ -1,7 +1,8 @@
 import { getReplayPath } from "../getReplayPath";
-import { Platform, Runtime } from "./types";
+import { Architecture, Platform, Runtime } from "./types";
 
 type Metadata = {
+  architecture: Architecture;
   destinationName: string;
   downloadFileName: string;
   path: string[];
@@ -12,9 +13,12 @@ type Metadata = {
 
 export let runtimeMetadata: Metadata;
 
+const architecture: Architecture = process.arch.startsWith("arm") ? "arm" : "x86_64";
+
 switch (process.platform) {
   case "darwin":
     runtimeMetadata = {
+      architecture,
       destinationName: "Replay-Chromium.app",
       downloadFileName:
         process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE ||
@@ -29,6 +33,7 @@ switch (process.platform) {
     break;
   case "linux":
     runtimeMetadata = {
+      architecture,
       destinationName: "chrome-linux",
       downloadFileName:
         process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz",
@@ -40,6 +45,7 @@ switch (process.platform) {
     break;
   case "win32":
     runtimeMetadata = {
+      architecture,
       destinationName: "replay-chromium",
       downloadFileName:
         process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip",

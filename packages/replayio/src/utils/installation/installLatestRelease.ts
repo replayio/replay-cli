@@ -80,6 +80,8 @@ export const installLatestRelease = withTrackAsyncEvent(
         forkedVersion: latestVersion,
       };
     } catch (error) {
+      debug("Browser installation failed: %o", error);
+
       progress.setFailed(
         "Something went wrong installing the Replay browser. Please try again later."
       );

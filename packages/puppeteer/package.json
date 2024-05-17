@@ -1,6 +1,6 @@
 {
   "name": "@replayio/puppeteer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "./dist/index.js",
   "bin": {
@@ -12,7 +12,7 @@
     "*.d.ts"
   ],
   "scripts": {
-    "postinstall": "\"$npm_node_execpath\" ./first-run.js",
+    "postinstall": "node ./first-run.js",
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "test": "echo \"Error: no test specified\"",
