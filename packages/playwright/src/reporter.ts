@@ -235,8 +235,6 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    test;
-
     const testMetadata = {
       id: 0,
       attempt: result.retry + 1,
