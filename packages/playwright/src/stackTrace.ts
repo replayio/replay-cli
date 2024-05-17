@@ -26,12 +26,22 @@ import { StackFrame } from "./playwrightTypes";
 
 type RawStack = string[];
 
+// this is slightly different from what can be found in Playwright:
+// https://github.com/microsoft/playwright/blob/c9df73bc59799794ab137591828ad1e1e249d0ca/packages/playwright/src/util.ts#L29-L30
+// 1. PLAYWRIGHT_TEST_PATH points to `playwright` package there
+// 2. Playwright doesn't filter out `@playwright/test` frames at all. Perhaps it's not needed but it seems like a good idea here
 const PLAYWRIGHT_TEST_PATH = path.dirname(require.resolve("@playwright/test/package.json"));
-const PLAYWRIGHT_PATH = path.dirname(
-  require.resolve("playwright/package.json", { paths: [PLAYWRIGHT_TEST_PATH] })
-);
+let PLAYWRIGHT_PATH: string | undefined;
+try {
+  // playwright package isn't installed by @playwright/test@1.30.x
+  PLAYWRIGHT_PATH = path.dirname(
+    require.resolve("playwright/package.json", { paths: [PLAYWRIGHT_TEST_PATH] })
+  );
+} catch (err) {}
 const PLAYWRIGHT_CORE_PATH = path.dirname(
-  require.resolve("playwright-core/package.json", { paths: [PLAYWRIGHT_PATH] })
+  require.resolve("playwright-core/package.json", {
+    paths: [PLAYWRIGHT_PATH || PLAYWRIGHT_TEST_PATH],
+  })
 );
 const REPLAYIO_PLAYWRIGHT_PATH = path.dirname(require.resolve("@replayio/playwright/package.json"));
 
@@ -77,7 +87,7 @@ function parseStackTraceLine(line: string): StackFrame | null {
 
 function filterStackFile(file: string) {
   if (!process.env.PWDEBUGIMPL && file.startsWith(PLAYWRIGHT_TEST_PATH)) return false;
-  if (!process.env.PWDEBUGIMPL && file.startsWith(PLAYWRIGHT_PATH)) return false;
+  if (!process.env.PWDEBUGIMPL && PLAYWRIGHT_PATH && file.startsWith(PLAYWRIGHT_PATH)) return false;
   if (!process.env.PWDEBUGIMPL && file.startsWith(PLAYWRIGHT_CORE_PATH)) return false;
   if (!process.env.PWDEBUGIMPL && file.startsWith(REPLAYIO_PLAYWRIGHT_PATH)) return false;
   return true;
