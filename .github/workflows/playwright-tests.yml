@@ -19,10 +19,9 @@ jobs:
           node-version: "18"
           cache: "yarn"
       - run: yarn --immutable
-      - run: node ./scripts/set-playwright-version.js ${{ matrix.playwright-version }}
-      - run: yarn
-        env:
-          YARN_ENABLE_HARDENED_MODE: 0
+      # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
+      # so it should be enough to only enforce the version of @playwright/test here
+      - run: yarn set resolution @playwright/test@${{ matrix.playwright-version }}
       - run: yarn run bootstrap
       - run: cd examples/create-react-app-typescript
       - run: yarn test
