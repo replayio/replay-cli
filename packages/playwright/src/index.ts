@@ -1,8 +1,8 @@
-import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
+import { BrowserName, getPlaywrightBrowserPath } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
-import { ReplayPlaywrightConfig, getMetadataFilePath } from "./reporter";
 import { addReplayFixture } from "./fixture";
+import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
 
 function getDeviceConfig(browserName: BrowserName) {
   const executablePath = getExecutablePath(browserName);
@@ -53,12 +53,15 @@ export const devices = {
   },
 };
 
-export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
+export function replayReporter(config: ReplayPlaywrightConfig) {
   // intentionally produce a mutable array here with the help of satisfies
   // this has to be kept for a foreseeable future to keep compat with older Playwright versions
   // even after the fix for this gets released: https://github.com/microsoft/playwright/pull/30387
   return ["@replayio/playwright/reporter", config] as const satisfies unknown[];
 }
+
+/** @deprecated use `replayReporter` instead */
+export const createReplayReporterConfig = replayReporter;
 
 export { getMetadataFilePath };
 export type { ReplayPlaywrightConfig };
