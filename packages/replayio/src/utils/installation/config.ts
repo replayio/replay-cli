@@ -61,7 +61,7 @@ switch (process.platform) {
       console.log("");
       console.log(emphasize("Replay does not support Windows at this time."));
       console.log("Please use the Windows Subsystem for Linux (WSL) instead.");
-      process.exit(0);
+      process.exit(1);
     }
     break;
   default: {
