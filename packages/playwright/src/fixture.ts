@@ -353,18 +353,19 @@ export async function replayFixture(
 
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTraceOrFrames, wallTime, userData) => {
-      if (isReplayAnnotation(params)) {
-        // do not emit page.evaluate steps that add replay annotations
-        // this would create an infinite async loop
-        return;
-      }
-
       // `.userObject` holds the step data
       // https://github.com/microsoft/playwright/blob/8dec672121bb12dbc8371995c1cdba3ca0565ffb/packages/playwright/src/index.ts#L254-L261
       // this has been introduced in Playwright 1.17.0
       const step: TestStepInternal | undefined = userData?.userObject;
 
       if (!step) {
+        return;
+      }
+
+      if (isReplayAnnotation(params)) {
+        // do not emit page.evaluate steps that add replay annotations
+        // this would create an infinite async loop
+        ignoredSteps.add(step.stepId);
         return;
       }
 
