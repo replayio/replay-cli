@@ -1,4 +1,5 @@
 import { getReplayPath } from "../getReplayPath";
+import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 
 type Metadata = {
@@ -44,16 +45,24 @@ switch (process.platform) {
     };
     break;
   case "win32":
-    runtimeMetadata = {
-      architecture,
-      destinationName: "replay-chromium",
-      downloadFileName:
-        process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip",
-      path: ["replay-chromium", "chrome.exe"],
-      platform: "windows",
-      runtime: "chromium",
-      sourceName: "replay-chromium",
-    };
+    if (process.env.REPLAY_WINDOWS_CHROMIUM_OVERRIDE) {
+      // Force override for Replay internal testing purposes
+      runtimeMetadata = {
+        architecture,
+        destinationName: "replay-chromium",
+        downloadFileName:
+          process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip",
+        path: ["replay-chromium", "chrome.exe"],
+        platform: "windows",
+        runtime: "chromium",
+        sourceName: "replay-chromium",
+      };
+    } else {
+      console.log("");
+      console.log(emphasize("Replay does not support Windows at this time."));
+      console.log("Please use the Windows Subsystem for Linux (WSL) instead.");
+      process.exit(1);
+    }
     break;
   default: {
     throw Error(`Unsupported platform "${process.platform}"`);

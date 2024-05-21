@@ -77,19 +77,37 @@ export type StepEndPayload = {
   error?: TestInfoError;
 };
 
-// https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright-core/src/client/clientInstrumentation.ts#L21-L32
+// https://github.com/microsoft/playwright/blob/a93ad3dadea86e3e1d555c5bb9c2a19458db656b/packages/playwright-core/src/client/clientInstrumentation.ts#L21-L32
 // we keep some of the methods optional here because this evolves over time
 export interface ClientInstrumentation {
   addListener(listener: ClientInstrumentationListener): void;
   removeListener(listener: ClientInstrumentationListener): void;
   removeAllListeners?(): void;
   onApiCallBegin(
-    apiCall: string,
-    params: Record<string, any>,
-    // this got changed in https://github.com/microsoft/playwright/pull/27496
-    stackTraceOrFrames: ParsedStackTrace | StackFrame[] | null,
-    wallTime: number,
-    userData: any
+    ...args:
+      | [
+          apiCall: string,
+          params: Record<string, any>,
+          stackTrace: ParsedStackTrace | null,
+          wallTime: number,
+          userData: any
+        ]
+      | [
+          apiCall: string,
+          params: Record<string, any>,
+          // https://github.com/microsoft/playwright/pull/27496 changed this position from `ParsedStackTrace | null` to `StackFrame[]`
+          frames: StackFrame[],
+          wallTime: number,
+          userData: any
+        ]
+      | [
+          apiCall: string,
+          params: Record<string, any>,
+          frames: StackFrame[],
+          // https://github.com/microsoft/playwright/pull/30641 removed `wallTime` at this position and added `out` at the end
+          userData: any,
+          out: { stepId?: string }
+        ]
   ): void;
   onApiCallEnd(userData: any, error?: Error): void;
   onDidCreateBrowserContext?(context: BrowserContext): Promise<void>;
@@ -99,15 +117,33 @@ export interface ClientInstrumentation {
   onWillCloseRequestContext?(context: APIRequestContext): Promise<void>;
 }
 
-// https://github.com/microsoft/playwright/blob/ebafb950542c334147c642cf10d5b6077b58f61e/packages/playwright-core/src/client/clientInstrumentation.ts#L34-L42
+// https://github.com/microsoft/playwright/blob/a93ad3dadea86e3e1d555c5bb9c2a19458db656b/packages/playwright-core/src/client/clientInstrumentation.ts#L34-L42
 export interface ClientInstrumentationListener {
   onApiCallBegin?(
-    apiName: string,
-    params: Record<string, any>,
-    // this got changed in https://github.com/microsoft/playwright/pull/27496
-    stackTraceOrFrames: ParsedStackTrace | StackFrame[] | null,
-    wallTime: number,
-    userData: any
+    ...args:
+      | [
+          apiName: string,
+          params: Record<string, any>,
+          stackTrace: ParsedStackTrace | null,
+          wallTime: number,
+          userData: any
+        ]
+      | [
+          apiName: string,
+          params: Record<string, any>,
+          // https://github.com/microsoft/playwright/pull/27496 changed this position from `ParsedStackTrace | null` to `StackFrame[]`
+          frames: StackFrame[],
+          wallTime: number,
+          userData: any
+        ]
+      | [
+          apiCall: string,
+          params: Record<string, any>,
+          frames: StackFrame[],
+          // https://github.com/microsoft/playwright/pull/30641 removed `wallTime` at this position and added `out` at the end
+          userData: any,
+          out: { stepId?: string }
+        ]
   ): void;
   onApiCallEnd?(userData: any, error?: Error): void;
   onDidCreateBrowserContext?(context: BrowserContext): Promise<void>;
