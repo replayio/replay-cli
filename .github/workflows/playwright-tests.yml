@@ -21,6 +21,7 @@ jobs:
           cache: "yarn"
       - run: yarn --immutable
       - run: yarn run bootstrap
+      - run: npx replayio install
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
       - run: yarn add @playwright/test@${{ matrix.playwright-version }}
