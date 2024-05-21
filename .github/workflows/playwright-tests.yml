@@ -23,13 +23,7 @@ jobs:
       - run: yarn run bootstrap
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
-      - run: yarn add @playwright/test@${{ matrix.playwright-version }}
-        working-directory: examples/create-react-app-typescript
-      # andarist: I had no luck with yarn resolutions on CI
-      # so I'm installing the same version in both places that use Playwright
-      # this way it should get deduplicated by the package manager based on regular rules
-      - run: yarn add -D @playwright/test@${{ matrix.playwright-version }}
-        working-directory: packages/playwright
+      - run: yarn set resolution "@playwright/test@*" ${{ matrix.playwright-version }}
       - run: yarn test
         working-directory: examples/create-react-app-typescript
       - run: node test/upload-and-check-recording.js
