@@ -11,6 +11,7 @@ registerCommand("update", {
   checkForNpmUpdate: false,
 })
   .description("Update Replay")
+  .alias("install")
   .action(update);
 
 async function update() {
