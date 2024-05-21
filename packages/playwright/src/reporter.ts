@@ -14,12 +14,13 @@ import {
   TestMetadataV2,
 } from "@replayio/test-utils";
 import dbg from "debug";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
+import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
@@ -80,11 +81,24 @@ class ReplayPlaywrightReporter implements Reporter {
   > = {};
 
   constructor(config: ReplayPlaywrightConfig) {
+    const browserPath = getPlaywrightBrowserPath("chromium");
+
+    if (!browserPath) {
+      throw new Error(`replay-chromium is not supported on this platform`);
+    }
+
+    if (!existsSync(browserPath)) {
+      throw new Error(
+        `replay-chromium is not available at ${browserPath}. Please run \`npx replayio install\`.`
+      );
+    }
+
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
       );
     }
+
     this.config = config;
     this.reporter = new ReplayReporter(
       {
