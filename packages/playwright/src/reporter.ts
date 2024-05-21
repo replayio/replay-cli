@@ -20,6 +20,7 @@ import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
+import { assertBrowserInstalled } from "./assertBrowserInstalled";
 import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
@@ -80,11 +81,14 @@ class ReplayPlaywrightReporter implements Reporter {
   > = {};
 
   constructor(config: ReplayPlaywrightConfig) {
+    assertBrowserInstalled();
+
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
       );
     }
+
     this.config = config;
     this.reporter = new ReplayReporter(
       {
