@@ -13993,18 +13993,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "replay-cli@workspace:."
   dependencies:
-    "@replayio/playwright": "workspace:^"
     "@replayio/protocol": "npm:^0.73.0"
     "@replayio/replay": "workspace:^"
     "@types/ws": "npm:^8"
     node-fetch: "npm:^3.3.1"
     prettier: "npm:^2.7.1"
+    replayio: "workspace:^"
     typescript: "npm:^5.4.5"
     ws: "npm:^8.17.0"
   languageName: unknown
   linkType: soft
 
-"replayio@workspace:packages/replayio":
+"replayio@workspace:^, replayio@workspace:packages/replayio":
   version: 0.0.0-use.local
   resolution: "replayio@workspace:packages/replayio"
   dependencies:
