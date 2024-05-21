@@ -89,7 +89,7 @@ class ReplayPlaywrightReporter implements Reporter {
 
     if (!existsSync(browserPath)) {
       throw new Error(
-        `replay-chromium is not available at ${browserPath}. Please run \`npx replay install\`.`
+        `replay-chromium is not available at ${browserPath}. Please run \`npx replayio install\`.`
       );
     }
 
