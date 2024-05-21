@@ -1,11 +1,11 @@
-import { BrowserName, getPlaywrightBrowserPath } from "@replayio/replay";
+import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { addReplayFixture } from "./fixture";
 import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
 
-function getDeviceConfig(browserName: BrowserName) {
-  const executablePath = getExecutablePath(browserName);
+function getDeviceConfig() {
+  const executablePath = getExecutablePath();
 
   const env: Record<string, any> = {
     ...process.env,
@@ -32,24 +32,24 @@ function getDeviceConfig(browserName: BrowserName) {
     launchOptions: {
       get executablePath() {
         if (!executablePath) {
-          throw new Error(`${browserName} is not supported on this platform`);
+          throw new Error(`replay-chromium is not supported on this platform`);
         }
 
         return executablePath;
       },
       env,
     },
-    defaultBrowserType: browserName,
+    defaultBrowserType: "chromium",
   };
 }
 
-export function getExecutablePath(browserName: BrowserName) {
-  return getPlaywrightBrowserPath(browserName);
+export function getExecutablePath() {
+  return getPlaywrightBrowserPath("chromium");
 }
 
 export const devices = {
   get "Replay Chromium"() {
-    return getDeviceConfig("chromium");
+    return getDeviceConfig();
   },
 };
 
