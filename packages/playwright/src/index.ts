@@ -53,7 +53,7 @@ export const devices = {
   },
 };
 
-export function replayReporter(config: ReplayPlaywrightConfig) {
+export function replayReporter(config: ReplayPlaywrightConfig = {}) {
   // intentionally produce a mutable array here with the help of satisfies
   // this has to be kept for a foreseeable future to keep compat with older Playwright versions
   // even after the fix for this gets released: https://github.com/microsoft/playwright/pull/30387
