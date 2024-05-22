@@ -651,7 +651,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  getRecordingsForTest(tests: Test[], includeUploaded: boolean) {
+  getRecordingsForTest(tests: Test[]) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
       ...tests.map(test =>
         this.getTestId({
@@ -663,7 +663,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     ])} and $not($exists($v.metadata.test)) }`;
 
     const recordings = listAllRecordings({
-      all: includeUploaded,
+      all: false,
       filter,
     });
 
@@ -753,13 +753,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   ): Promise<PendingWork> {
     try {
       const runnerGroupId = runnerGroupKey ? await generateOpaqueId(runnerGroupKey) : null;
-      const recordings = this.getRecordingsForTest(tests, false);
+      const recordings = this.getRecordingsForTest(tests);
 
       if (this.testRunShardId) {
         const recordingIds = recordings.map(r => r.id);
         const testInputs = await Promise.all(
           tests.map<Promise<TestRunTestInputModel>>(async t => {
-            const testId = await buildTestId(specFile, t);
+            const testId = buildTestId(specFile, t);
             if (!testId) {
               throw new Error("Failed to generate test id for test");
             }

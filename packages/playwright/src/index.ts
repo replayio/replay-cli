@@ -1,10 +1,11 @@
-import { getPlaywrightBrowserPath, BrowserName } from "@replayio/replay";
+import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { initMetadataFile } from "@replayio/test-utils";
 
-import { ReplayPlaywrightConfig, getMetadataFilePath } from "./reporter";
+import { addReplayFixture } from "./fixture";
+import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
 
-function getDeviceConfig(browserName: BrowserName) {
-  const executablePath = getExecutablePath(browserName);
+function getDeviceConfig() {
+  const executablePath = getExecutablePath();
 
   const env: Record<string, any> = {
     ...process.env,
@@ -13,10 +14,7 @@ function getDeviceConfig(browserName: BrowserName) {
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
     env.RECORD_ALL_CONTENT = "";
-    if (browserName === "chromium") {
-      // Setting an invalid path for chromium will disable recording
-      env.RECORD_REPLAY_DRIVER = __filename;
-    }
+    env.RECORD_REPLAY_DRIVER = __filename;
   }
 
   // When TEST_WORKER_INDEX is set, this is being run in the context of a
@@ -34,36 +32,50 @@ function getDeviceConfig(browserName: BrowserName) {
     launchOptions: {
       get executablePath() {
         if (!executablePath) {
-          throw new Error(`${browserName} is not supported on this platform`);
+          throw new Error(`replay-chromium is not supported on this platform`);
         }
 
         return executablePath;
       },
       env,
     },
-    defaultBrowserType: browserName,
+    defaultBrowserType: "chromium" as const,
   };
 }
 
-export function getExecutablePath(browserName: BrowserName) {
-  return getPlaywrightBrowserPath(browserName);
+export function getExecutablePath() {
+  return getPlaywrightBrowserPath("chromium");
 }
 
 export const devices = {
-  get "Replay Firefox"() {
-    return getDeviceConfig("firefox");
-  },
   get "Replay Chromium"() {
-    return getDeviceConfig("chromium");
+    return getDeviceConfig();
   },
 };
 
-export function createReplayReporterConfig(config: ReplayPlaywrightConfig) {
+export function replayReporter(config: ReplayPlaywrightConfig = {}) {
   // intentionally produce a mutable array here with the help of satisfies
   // this has to be kept for a foreseeable future to keep compat with older Playwright versions
   // even after the fix for this gets released: https://github.com/microsoft/playwright/pull/30387
   return ["@replayio/playwright/reporter", config] as const satisfies unknown[];
 }
 
+/** @deprecated use `replayReporter` instead */
+export const createReplayReporterConfig = replayReporter;
+
 export { getMetadataFilePath };
 export type { ReplayPlaywrightConfig };
+
+// ⚠️ this is an initialization-time side-effect
+// there is no other way to add this fixture reliably to make it available automatically
+//
+// `globalSetup` doesn't work because this has to be executed in a worker context
+// and `globalSetup` is executed in the worker's parent process
+//
+// project dependencies can't be used because they can't execute files from node_modules
+// but since setup/teardown is done using `test` when using this strategy
+// it would likely be too late for this to be added there anyway
+//
+// currently this works somewhat accidentally, it only works because Playwright workers load config files
+// if the config would be serialized and passed down to them from the parent it wouldn't work
+addReplayFixture();

@@ -4,23 +4,28 @@ import type {
   TestCase,
   TestError,
   TestResult,
-  TestStep,
 } from "@playwright/test/reporter";
-import path from "path";
-
 import {
+  getMetadataFilePath as getMetadataFilePathBase,
+  removeAnsiCodes,
   ReplayReporter,
   ReplayReporterConfig,
-  removeAnsiCodes,
-  TestMetadataV2,
-  getMetadataFilePath as getMetadataFilePathBase,
   TestIdContext,
+  TestMetadataV2,
 } from "@replayio/test-utils";
+import dbg from "debug";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
-import { readFileSync } from "fs";
+import { getPlaywrightBrowserPath } from "@replayio/replay";
+import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
+import { StackFrame } from "./playwrightTypes";
+import { getServerPort, startServer } from "./server";
 
+const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("@replayio/playwright/package.json").version;
 
 export function getMetadataFilePath(workerIndex = 0) {
@@ -43,27 +48,12 @@ function extractErrorMessage(error: TestError) {
   return "Unknown error";
 }
 
-function mapTestStepCategory(step: TestStep): UserActionEvent["data"]["category"] {
-  switch (step.category) {
-    case "expect":
-      return "assertion";
-    case "step":
-    case "pw:api":
-      return "command";
-    default:
-      return "other";
+function mapFixtureStepCategory(step: FixtureStep): UserActionEvent["data"]["category"] {
+  if (step.apiName.startsWith("expect")) {
+    return "assertion";
   }
-}
 
-function mapTestStepHook(step: TestStep): "beforeEach" | "afterEach" | undefined {
-  if (step.category !== "hook") return;
-
-  switch (step.title) {
-    case "Before Hooks":
-      return "beforeEach";
-    case "After Hooks":
-      return "afterEach";
-  }
+  return "command";
 }
 
 type ReplayPlaywrightRecordingMetadata = {
@@ -76,17 +66,39 @@ export interface ReplayPlaywrightConfig
   captureTestFile?: boolean;
 }
 
+interface FixtureStep extends FixtureStepStart {
+  error?: ParsedErrorFrame | undefined;
+}
+
 class ReplayPlaywrightReporter implements Reporter {
   reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile: boolean;
   config: ReplayPlaywrightConfig;
+  wss: WebSocketServer;
+  fixtureData: Record<
+    string,
+    { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
+  > = {};
 
   constructor(config: ReplayPlaywrightConfig) {
+    const browserPath = getPlaywrightBrowserPath("chromium");
+
+    if (!browserPath) {
+      throw new Error(`replay-chromium is not supported on this platform`);
+    }
+
+    if (!existsSync(browserPath)) {
+      throw new Error(
+        `replay-chromium is not available at ${browserPath}. Please run \`npx replayio install\`.`
+      );
+    }
+
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
       );
     }
+
     this.config = config;
     this.reporter = new ReplayReporter(
       {
@@ -97,13 +109,50 @@ class ReplayPlaywrightReporter implements Reporter {
       "2.1.0",
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
     );
-
     this.captureTestFile =
       "captureTestFile" in config
         ? !!config.captureTestFile
         : ["1", "true"].includes(
             process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
           );
+    const port = getServerPort();
+    debug(`Starting plugin WebSocket server on ${port}`);
+    this.wss = startServer({
+      port,
+      onStepStart: (test, step) => {
+        const { steps } = this.getFixtureData(test);
+        steps.push(step);
+      },
+      onStepEnd: (test, step) => {
+        if (!step.error) {
+          return;
+        }
+        const { steps } = this.getFixtureData(test);
+        const s = steps.find(f => f.id === step.id);
+
+        if (s) {
+          s.error = step.error;
+        }
+      },
+      onError: (_test, error) => {
+        this.reporter?.addError(error);
+      },
+    });
+  }
+
+  getFixtureData(test: TestIdData) {
+    const key = this.getTestKey(test);
+    this.fixtureData[key] ??= {
+      steps: [],
+      stacks: {},
+      filenames: new Set(),
+    };
+
+    return this.fixtureData[key];
+  }
+
+  getTestKey(test: TestIdData) {
+    return [test.id, test.attempt, ...test.source.scope, test.source.title].join("-");
   }
 
   getTestId(test: TestCase) {
@@ -136,89 +185,132 @@ class ReplayPlaywrightReporter implements Reporter {
     );
   }
 
+  getStepsFromFixture(test: TestIdData) {
+    const hookMap: Record<
+      "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
+      UserActionEvent[]
+    > = {
+      afterAll: [],
+      afterEach: [],
+      beforeAll: [],
+      beforeEach: [],
+    };
+    const steps: UserActionEvent[] = [];
+
+    const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
+    fixtureSteps?.forEach(fixtureStep => {
+      const step: UserActionEvent = {
+        data: {
+          id: fixtureStep.id,
+          parentId: null,
+          command: {
+            name: fixtureStep.apiName,
+            arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
+          },
+          scope: test.source.scope,
+          error: fixtureStep.error || null,
+          category: mapFixtureStepCategory(fixtureStep),
+        },
+      };
+
+      const stack = fixtureStep.frames.map(frame => ({
+        line: frame.line,
+        column: frame.column,
+        functionName: frame.function,
+        file: path.relative(process.cwd(), frame.file),
+      }));
+
+      if (stack) {
+        stacks[fixtureStep.id] = stack;
+
+        for (const frame of stack) {
+          filenames.add(frame.file);
+        }
+      }
+
+      if (fixtureStep.hook) {
+        hookMap[fixtureStep.hook].push(step);
+      } else {
+        steps.push(step);
+      }
+    });
+
+    return {
+      beforeEach: hookMap.beforeEach,
+      beforeAll: hookMap.beforeAll,
+      afterAll: hookMap.afterAll,
+      afterEach: hookMap.afterEach,
+      main: steps,
+    };
+  }
+
   onTestEnd(test: TestCase, result: TestResult) {
     const status = result.status;
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
+    const testMetadata = {
+      id: 0,
+      attempt: result.retry + 1,
+      source: this.getSource(test),
+    };
+
+    const events = this.getStepsFromFixture(testMetadata);
+
     const relativePath = test.titlePath()[2];
+    const { stacks, filenames } = this.getFixtureData(testMetadata);
+    filenames.add(test.location.file);
     let playwrightMetadata: Record<string, any> | undefined;
 
     if (this.captureTestFile) {
-      try {
-        playwrightMetadata = {
-          "x-replay-playwright": {
-            sources: {
-              [relativePath]: readFileSync(test.location.file, "utf8").toString(),
-            },
-          },
-        };
-      } catch (e) {
-        console.warn("Failed to read playwright test source from " + test.location.file);
-        console.warn(e);
-      }
-    }
-
-    const hookMap = new Map<"beforeEach" | "afterEach", UserActionEvent[]>();
-    const steps: UserActionEvent[] = [];
-    for (let [i, s] of result.steps.entries()) {
-      const hook = mapTestStepHook(s);
-      const stepErrorMessage = s.error ? extractErrorMessage(s.error) : null;
-      const step: UserActionEvent = {
-        data: {
-          id: String(i),
-          parentId: null,
-          command: {
-            name: s.title,
-            arguments: [],
-          },
-          scope: s.titlePath(),
-          error: stepErrorMessage
-            ? {
-                name: "AssertionError",
-                message: stepErrorMessage,
-                line: s.location?.line || 0,
-                column: s.location?.column || 0,
+      playwrightMetadata = {
+        "x-replay-playwright": {
+          sources: Object.fromEntries(
+            [...filenames].map(filename => {
+              try {
+                return [filename, readFileSync(filename, "utf8")];
+              } catch (e) {
+                debug(`Failed to read playwright test source for: ${filename}`, e);
+                return [filename, undefined];
               }
-            : null,
-          category: mapTestStepCategory(s),
+            })
+          ),
+          stacks,
         },
       };
+    }
 
-      if (hook) {
-        const hookSteps = hookMap.get(hook) || [];
-        hookSteps.push(step);
-        hookMap.set(hook, hookSteps);
-      } else {
-        steps.push(step);
-      }
+    const tests = [
+      {
+        ...testMetadata,
+        approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
+        result: status === "interrupted" ? ("unknown" as const) : status,
+        error: result.error
+          ? {
+              name: "Error",
+              message: extractErrorMessage(result.error),
+              line: result.error.location?.line ?? 0,
+              column: result.error.location?.column ?? 0,
+            }
+          : null,
+        events,
+      },
+    ];
+
+    const recordings = this.reporter.getRecordingsForTest(tests);
+
+    for (let i = 0; i < recordings.length; i++) {
+      const recording = recordings[i];
+
+      // our reporter has to come first in the list of configured reports for this to be useful to other reporters
+      test.annotations.push({
+        type: "Replay recording" + (i > 0 ? ` ${i + 1}` : ""),
+        description: `https://app.replay.io/recording/${recording.id}`,
+      });
     }
 
     this.reporter.onTestEnd({
-      tests: [
-        {
-          id: 0,
-          attempt: result.retry + 1,
-          approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-          source: this.getSource(test),
-          result: (status as any) === "interrupted" ? "unknown" : status,
-          error: result.error
-            ? {
-                name: "Error",
-                message: extractErrorMessage(result.error),
-                line: (result.error as any).location?.line || 0,
-                column: (result.error as any).location?.column || 0,
-              }
-            : null,
-          events: {
-            beforeAll: [],
-            afterAll: [],
-            beforeEach: hookMap.get("beforeEach") || [],
-            afterEach: hookMap.get("afterEach") || [],
-            main: steps,
-          },
-        },
-      ],
+      tests,
       specFile: relativePath,
       replayTitle: test.title,
       extraMetadata: playwrightMetadata,
@@ -227,6 +319,42 @@ class ReplayPlaywrightReporter implements Reporter {
 
   async onEnd() {
     await this.reporter.onEnd();
+  }
+
+  parseArguments(apiName: string, params: any) {
+    debug("Arguments: %s %o", apiName, params);
+    if (!params || typeof params !== "object") {
+      return [];
+    }
+
+    switch (apiName) {
+      case "page.goto":
+        return [params.url];
+      case "page.evaluate":
+        // TODO(ryanjduffy): This would be nice to improve but it can be nearly
+        // anything so it's not obvious how to simplify it well to an array of
+        // strings.
+        return [];
+      case "locator.getAttribute":
+        return [params.selector, params.name];
+      case "mouse.move":
+        // params = {x: 0, y: 0}
+        return [JSON.stringify(params)];
+      case "locator.hover":
+        return [params.selector, String(params.force)];
+      case "expect.toBeVisible":
+        return [params.selector, params.expression, String(params.isNot)];
+      case "keyboard.type":
+        return [params.text];
+      case "keyboard.down":
+      case "keyboard.up":
+        return [params.key];
+      case "locator.evaluate":
+      case "locator.scrollIntoViewIfNeeded":
+        return [params.selector, params.state];
+      default:
+        return params.selector ? [params.selector] : [];
+    }
   }
 }
 
