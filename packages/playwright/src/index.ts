@@ -39,7 +39,7 @@ function getDeviceConfig() {
       },
       env,
     },
-    defaultBrowserType: "chromium",
+    defaultBrowserType: "chromium" as const,
   };
 }
 
