@@ -1,11 +1,8 @@
 {
   "name": "@replayio/playwright",
-  "version": "3.0.0-alpha.12",
+  "version": "3.0.0-alpha.14",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "./dist/index.js",
-  "bin": {
-    "replayio-playwright": "./bin.js"
-  },
   "exports": {
     ".": "./dist/index.js",
     "./reporter": "./dist/reporter.js",
@@ -18,7 +15,6 @@
     "*.d.ts"
   ],
   "scripts": {
-    "postinstall": "node ./first-run.js",
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "test": "echo \"Error: no test specified\"",

@@ -23,11 +23,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@replayio/playwright": "workspace:^",
     "@replayio/protocol": "^0.73.0",
     "@replayio/replay": "workspace:^",
     "@types/ws": "^8",
     "prettier": "^2.7.1",
+    "replayio": "workspace:^",
     "typescript": "^5.4.5",
     "ws": "^8.17.0"
   },
