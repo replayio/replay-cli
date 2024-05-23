@@ -19,8 +19,7 @@
     "typecheck": "yarn workspaces foreach --all run typecheck",
     "lint": "prettier --check .",
     "changeset": "changeset",
-    "prerelease": "yarn run bootstrap",
-    "release": "yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish --access public"
+    "release": "yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish --access public && changeset tag"
   },
   "author": "",
   "license": "ISC",
