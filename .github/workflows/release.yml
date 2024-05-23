@@ -38,9 +38,7 @@ jobs:
 
       - name: Set up NPM token
         run: |
-          cat << EOF > .yarnrc.yml
-            npmAuthToken: $NPM_TOKEN
-          EOF
+          echo "npmAuthToken: $NPM_TOKEN" >> .yarnrc.yml
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
