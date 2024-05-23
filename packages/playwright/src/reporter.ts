@@ -87,7 +87,7 @@ class ReplayPlaywrightReporter implements Reporter {
       throw new Error(`replay-chromium is not supported on this platform`);
     }
 
-    if (!existsSync(browserPath)) {
+    if (process.platform !== "win32" && !existsSync(browserPath)) {
       throw new Error(
         `replay-chromium is not available at ${browserPath}. Please run \`npx replayio install\`.`
       );
