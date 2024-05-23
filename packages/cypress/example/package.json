@@ -1,6 +1,5 @@
 {
   "name": "@replayio-cli/cypress-example",
-  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "cra-template-typescript": "1.2.0",
