@@ -49,7 +49,7 @@ npx playwright test
 ### Exports
 
 - `devices` - Object of configurations suitable for using with `@playwright/test`. Currently only supports the `"Replay Chromium"` configuration. If the configuration isn't supported on the current platform, a warning is emitted and the `executablePath` will be undefined.
-- `getExecutablePath(browserName: string)` - Returns the path to the Replay Browser for the given `browserName`: either `"chromium"`. If `browserName` isn't supported on the current platform, `undefined` is returned.
+- `getExecutablePath()` - Returns the path to the Replay Browser. If the current platform isn't supported, `undefined` is returned.
 - `getMetadataFilePath(workerIndex: number = 0)` - Returns the path of a worker-specific metadata file keyed by the `workerIndex`. The file path will be within the `RECORD_REPLAY_DIRECTORY`.
 
 ## Parallel runs on CI
