@@ -2,4 +2,4 @@
 "@replayio/playwright": patch
 ---
 
-Skip Replay browser installation on Windows
+Skip Replay browser installation check on Windows
