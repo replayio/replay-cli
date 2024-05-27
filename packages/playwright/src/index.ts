@@ -10,6 +10,8 @@ function getDeviceConfig() {
   const env: Record<string, any> = {
     ...process.env,
     RECORD_ALL_CONTENT: 1,
+    // it doesn't log anything eagerly but it makes it possible to enable verbose logs with DEBUG=pw:browser
+    RECORD_REPLAY_VERBOSE: 1,
   };
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
