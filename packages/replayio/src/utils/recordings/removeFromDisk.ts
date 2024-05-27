@@ -4,7 +4,24 @@ import { recordingLogPath, recordingsPath } from "./config";
 import { debug } from "./debug";
 import { getRecordings } from "./getRecordings";
 import { readRecordingLogLines } from "./readRecordingLogLines";
-import { LogEntry, RECORDING_LOG_KIND } from "./types";
+import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
+
+function getAssetsUsageMap(recordings: LocalRecording[]) {
+  const usageMap: Record<string, number> = {};
+
+  for (const recording of recordings) {
+    for (const sourceMap of recording.metadata.sourceMaps) {
+      usageMap[sourceMap.path] ??= 0;
+      usageMap[sourceMap.path]++;
+
+      for (const originalSource of sourceMap.originalSources) {
+        usageMap[originalSource.path] ??= 0;
+        usageMap[originalSource.path]++;
+      }
+    }
+  }
+  return usageMap;
+}
 
 export function removeFromDisk(id?: string) {
   if (id) {
@@ -13,15 +30,22 @@ export function removeFromDisk(id?: string) {
     const recordings = getRecordings();
     const recording = recordings.find(recording => recording.id.startsWith(id));
     if (recording) {
+      const assetsUsageMap = getAssetsUsageMap(recordings);
+
       const { metadata, path } = recording;
 
       metadata.sourceMaps.forEach(sourceMap => {
-        debug("Removing recording source-map file %s", sourceMap.path);
-        removeSync(sourceMap.path);
+        if (assetsUsageMap[sourceMap.path] === 1) {
+          debug("Removing recording source-map file %s", sourceMap.path);
+          removeSync(sourceMap.path);
+          removeSync(sourceMap.path.replace(/\.map$/, ".lookup"));
+        }
 
         sourceMap.originalSources.forEach(source => {
-          debug("Removing recording original source file %s", source.path);
-          removeSync(source.path);
+          if (assetsUsageMap[source.path] === 1) {
+            debug("Removing recording original source file %s", source.path);
+            removeSync(source.path);
+          }
         });
       });
 

@@ -23,7 +23,7 @@ async function upload(
     all?: boolean;
   } = {}
 ) {
-  const recordings = await getRecordings();
+  const recordings = getRecordings();
 
   let selectedRecordings: LocalRecording[] = [];
   if (shortIds.length > 0) {
