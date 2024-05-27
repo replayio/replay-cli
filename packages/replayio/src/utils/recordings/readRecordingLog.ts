@@ -30,5 +30,5 @@ export function readRecordingLog() {
         });
       }
     })
-    .filter<LogEntry>(v => !!v);
+    .filter((v): v is LogEntry => !!v);
 }
