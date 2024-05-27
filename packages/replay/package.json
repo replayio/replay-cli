@@ -41,7 +41,7 @@
     "debug": "^4.3.4",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
-    "launchdarkly-node-client-sdk": "^3.1.0",
+    "launchdarkly-node-client-sdk": "^3.2.1",
     "node-fetch": "^2.6.8",
     "p-map": "^4.0.0",
     "query-registry": "^2.6.0",
