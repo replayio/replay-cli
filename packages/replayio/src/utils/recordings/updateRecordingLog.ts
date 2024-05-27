@@ -1,7 +1,6 @@
-import { writeFileSync } from "fs-extra";
+import { appendFileSync } from "fs-extra";
 import { recordingLogPath } from "./config";
 import { debug } from "./debug";
-import { readRecordingLogLines } from "./readRecordingLogLines";
 import { LocalRecording, LogEntry } from "./types";
 
 export function updateRecordingLog(
@@ -18,9 +17,7 @@ export function updateRecordingLog(
     timestamp: Date.now(),
   };
 
-  const rawTextLines = readRecordingLogLines();
-
-  writeFileSync(recordingLogPath, `${rawTextLines.join("\n")}\n${JSON.stringify(entry)}\n`, {
+  appendFileSync(recordingLogPath, `\n${JSON.stringify(entry)}\n`, {
     encoding: "utf8",
   });
 }
