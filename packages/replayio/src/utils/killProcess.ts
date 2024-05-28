@@ -1,7 +1,7 @@
 import findProcess from "find-process";
 import { kill } from "process";
 import { createDeferred } from "./async/createDeferred";
-import { isTimeoutResult, timeoutAfter } from "./async/timeoutAfter";
+import { timeoutAfter } from "./async/timeoutAfter";
 
 export async function killProcess(
   pid: number,
@@ -12,20 +12,29 @@ export async function killProcess(
 
   const deferred = createDeferred<boolean>();
 
+  let timeout: NodeJS.Timeout | undefined;
+
   const tryToKill = async () => {
+    timeout = undefined;
+
     const process = await findProcess("pid", pid);
     if (process.length === 0) {
       deferred.resolve(true);
     } else {
       kill(pid, signal);
 
-      setTimeout(tryToKill, retryIntervalMs);
+      timeout = setTimeout(tryToKill, retryIntervalMs);
     }
   };
 
   tryToKill();
 
-  const result = await Promise.race([deferred.promise, timeoutAfter(timeoutMs)]);
+  return Promise.race([
+    deferred.promise.then(() => {
+      clearTimeout(timeout);
 
-  return !isTimeoutResult(result);
+      return true;
+    }),
+    timeoutAfter(timeoutMs).then(() => false),
+  ]);
 }
