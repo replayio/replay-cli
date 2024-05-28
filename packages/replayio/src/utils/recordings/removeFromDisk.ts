@@ -3,8 +3,8 @@ import { join } from "path";
 import { recordingLogPath, recordingsPath } from "./config";
 import { debug } from "./debug";
 import { getRecordings } from "./getRecordings";
-import { readRecordingLogLines } from "./readRecordingLogLines";
-import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
+import { readRecordingLog } from "./readRecordingLog";
+import { LocalRecording, RECORDING_LOG_KIND } from "./types";
 
 function getAssetsUsageMap(recordings: LocalRecording[]) {
   const usageMap: Record<string, number> = {};
@@ -57,26 +57,23 @@ export function removeFromDisk(id?: string) {
       }
 
       // Remove entries from log
-      const filteredLines = readRecordingLogLines().filter(text => {
-        if (text) {
-          try {
-            const entry = JSON.parse(text) as LogEntry;
-            switch (entry.kind) {
-              case RECORDING_LOG_KIND.originalSourceAdded:
-              case RECORDING_LOG_KIND.sourcemapAdded: {
-                return entry.recordingId !== id;
-              }
-              default: {
-                return entry.id !== id;
-              }
-            }
-          } catch (error) {
-            console.error("Error parsing log text:\n%s\n%s", text, error);
+      const filteredLogs = readRecordingLog().filter(entry => {
+        switch (entry.kind) {
+          case RECORDING_LOG_KIND.originalSourceAdded:
+          case RECORDING_LOG_KIND.sourcemapAdded: {
+            return entry.recordingId !== id;
+          }
+          default: {
+            return entry.id !== id;
           }
         }
       });
 
-      writeFileSync(recordingLogPath, filteredLines.join("\n"), "utf8");
+      writeFileSync(
+        recordingLogPath,
+        filteredLogs.map(log => JSON.stringify(log)).join("\n"),
+        "utf8"
+      );
     } else {
       console.log("Recording not found");
     }
