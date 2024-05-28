@@ -54,7 +54,7 @@ async function record(url: string = "about:blank") {
     }
   }
 
-  const recordingsAfter = await getRecordings(processGroupId);
+  const recordingsAfter = getRecordings(processGroupId);
 
   const nextCrashedRecordings: LocalRecording[] = [];
   const nextRecordings: LocalRecording[] = [];
