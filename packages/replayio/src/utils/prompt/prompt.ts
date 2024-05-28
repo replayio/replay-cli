@@ -1,6 +1,8 @@
 export async function prompt({
+  onExit,
   signal,
 }: {
+  onExit?: () => void;
   signal?: AbortSignal;
 } = {}): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,6 +40,7 @@ export async function prompt({
         case "\x03":
           // \x03 is Ctrl+C (aka "End of text")
           // https://donsnotes.com/tech/charsets/ascii.html
+          onExit?.();
           process.exit(0);
         default:
           resolve(false);
