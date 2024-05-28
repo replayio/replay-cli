@@ -1789,14 +1789,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@changesets/apply-release-plan@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "@changesets/apply-release-plan@npm:7.0.1"
+"@changesets/apply-release-plan@npm:^7.0.2":
+  version: 7.0.2
+  resolution: "@changesets/apply-release-plan@npm:7.0.2"
   dependencies:
     "@babel/runtime": "npm:^7.20.1"
     "@changesets/config": "npm:^3.0.0"
     "@changesets/get-version-range-type": "npm:^0.4.0"
     "@changesets/git": "npm:^3.0.0"
+    "@changesets/should-skip-package": "npm:^0.1.0"
     "@changesets/types": "npm:^6.0.0"
     "@manypkg/get-packages": "npm:^1.1.3"
     detect-indent: "npm:^6.0.0"
@@ -1806,21 +1807,22 @@ __metadata:
     prettier: "npm:^2.7.1"
     resolve-from: "npm:^5.0.0"
     semver: "npm:^7.5.3"
-  checksum: 10c0/ca41f84a22a1fd25af4b195956afd393000139581a84528b6d21871e4ce417abf884ad2ef8a8ed7abb49031fed7cbb69226a158df36050aa70ed295636a42369
+  checksum: 10c0/bbe86bbec5d2e3e3ded1822463a5a872cbae9104794daf4d6e23eb358a8b58d77e5ebb5f3db579103e118bd1af86dc7139ebf29e19c1f0a8936de32547c38ee4
   languageName: node
   linkType: hard
 
-"@changesets/assemble-release-plan@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "@changesets/assemble-release-plan@npm:6.0.0"
+"@changesets/assemble-release-plan@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "@changesets/assemble-release-plan@npm:6.0.1"
   dependencies:
     "@babel/runtime": "npm:^7.20.1"
     "@changesets/errors": "npm:^0.2.0"
     "@changesets/get-dependents-graph": "npm:^2.0.0"
+    "@changesets/should-skip-package": "npm:^0.1.0"
     "@changesets/types": "npm:^6.0.0"
     "@manypkg/get-packages": "npm:^1.1.3"
     semver: "npm:^7.5.3"
-  checksum: 10c0/7ccff4dba07fd5c7d219b69d6f5e5ec4ea942b3f3482a76be6f9caa072ae5b2128b4d6c561030cb488ca1bc23416a2f8f638daa784f4ae9792c89c9b571231b3
+  checksum: 10c0/27a368b430d4de686651c56cf746dccbfc907e6639c55a4260809390fac5a04d2d1ec9aeb60608eafc8afef520a59315770ff1b2477c68f647e25725b39a0c14
   languageName: node
   linkType: hard
 
@@ -1844,22 +1846,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@changesets/cli@npm:^2.27.3":
-  version: 2.27.3
-  resolution: "@changesets/cli@npm:2.27.3"
+"@changesets/cli@npm:^2.27.4":
+  version: 2.27.4
+  resolution: "@changesets/cli@npm:2.27.4"
   dependencies:
     "@babel/runtime": "npm:^7.20.1"
-    "@changesets/apply-release-plan": "npm:^7.0.1"
-    "@changesets/assemble-release-plan": "npm:^6.0.0"
+    "@changesets/apply-release-plan": "npm:^7.0.2"
+    "@changesets/assemble-release-plan": "npm:^6.0.1"
     "@changesets/changelog-git": "npm:^0.2.0"
     "@changesets/config": "npm:^3.0.0"
     "@changesets/errors": "npm:^0.2.0"
     "@changesets/get-dependents-graph": "npm:^2.0.0"
-    "@changesets/get-release-plan": "npm:^4.0.0"
+    "@changesets/get-release-plan": "npm:^4.0.1"
     "@changesets/git": "npm:^3.0.0"
     "@changesets/logger": "npm:^0.1.0"
     "@changesets/pre": "npm:^2.0.0"
     "@changesets/read": "npm:^0.6.0"
+    "@changesets/should-skip-package": "npm:^0.1.0"
     "@changesets/types": "npm:^6.0.0"
     "@changesets/write": "npm:^0.3.1"
     "@manypkg/get-packages": "npm:^1.1.3"
@@ -1882,7 +1885,7 @@ __metadata:
     tty-table: "npm:^4.1.5"
   bin:
     changeset: bin.js
-  checksum: 10c0/fee10ae204926dbf4847111bf49ca93dc5b43a55b48635e2e08e71ab8442cf414c8165ae11174d6366ef12305274ea1b75beb14ca74b9a766d82b8c32148199b
+  checksum: 10c0/c5cbf7eed9cb809831088e7fb1b4b2b1d6cc64b011cc20028f5823c389d49beea8fa4de8749d570808af31ff71bba9a0eefdb558653dd94ed281d586cc977b56
   languageName: node
   linkType: hard
 
@@ -1933,18 +1936,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@changesets/get-release-plan@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@changesets/get-release-plan@npm:4.0.0"
+"@changesets/get-release-plan@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "@changesets/get-release-plan@npm:4.0.1"
   dependencies:
     "@babel/runtime": "npm:^7.20.1"
-    "@changesets/assemble-release-plan": "npm:^6.0.0"
+    "@changesets/assemble-release-plan": "npm:^6.0.1"
     "@changesets/config": "npm:^3.0.0"
     "@changesets/pre": "npm:^2.0.0"
     "@changesets/read": "npm:^0.6.0"
     "@changesets/types": "npm:^6.0.0"
     "@manypkg/get-packages": "npm:^1.1.3"
-  checksum: 10c0/d77140ca1d45a6e70c3ed8a3859986a7d1ae40c015a8ca85910acec6455e333311c78e3664d9cee02ed540020f7bacde1846d3cff58ec2ffd64edd55bf8a114b
+  checksum: 10c0/ba72bd086b779eee7e5972a0d5dbaf7f91446c069fca63b102e08973e07284d148d6e5b636e8e0030607e75546b24b3bb2ab1234dd55eff3ec1ea2c2f74a6260
   languageName: node
   linkType: hard
 
@@ -2015,6 +2018,17 @@ __metadata:
     fs-extra: "npm:^7.0.1"
     p-filter: "npm:^2.1.0"
   checksum: 10c0/ec2914fb89de923145a3482e00a2930b011c9c7a7c5690b053e344e8e8941ab06087bd3fe3b6cc01a651656c0438b5f9b96c616c7df1ad146f87b8751701bf5a
+  languageName: node
+  linkType: hard
+
+"@changesets/should-skip-package@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@changesets/should-skip-package@npm:0.1.0"
+  dependencies:
+    "@babel/runtime": "npm:^7.20.1"
+    "@changesets/types": "npm:^6.0.0"
+    "@manypkg/get-packages": "npm:^1.1.3"
+  checksum: 10c0/27a231e0df77b1b72d455b7051da8892cb80c1594dd20fee392d7e88f7f473b8ae9934cfcfa449b9666b22723be910742dc7fa673d550fc5fb371e4f28ee94fe
   languageName: node
   linkType: hard
 
@@ -3161,7 +3175,7 @@ __metadata:
     is-uuid: "npm:^1.0.2"
     jest: "npm:^28.1.3"
     jsonata: "npm:^1.8.6"
-    launchdarkly-node-client-sdk: "npm:^3.1.0"
+    launchdarkly-node-client-sdk: "npm:^3.2.1"
     node-fetch: "npm:^2.6.8"
     p-map: "npm:^4.0.0"
     query-registry: "npm:^2.6.0"
@@ -11524,34 +11538,32 @@ __metadata:
   languageName: node
   linkType: hard
 
-"launchdarkly-eventsource@npm:1.4.3":
-  version: 1.4.3
-  resolution: "launchdarkly-eventsource@npm:1.4.3"
-  dependencies:
-    original: "npm:^1.0.2"
-  checksum: 10c0/702a531d4057cf4e821e2e43cbcbb2438f001319936f7a9329befaecaa07ef4ae2bdca0df1625e7327974a329b9b6e9ffa50294599bef91c200ebe601848400c
+"launchdarkly-eventsource@npm:2.0.3":
+  version: 2.0.3
+  resolution: "launchdarkly-eventsource@npm:2.0.3"
+  checksum: 10c0/8a7274e26231e43970a4d8ed52d572d1278bb0f1e90ada0dc86117cf0925e5a579c6b7e8b958eb4bada2aa471c6880ac12ef1c5d00cb513de5852cb04b104794
   languageName: node
   linkType: hard
 
-"launchdarkly-js-sdk-common@npm:5.1.0":
-  version: 5.1.0
-  resolution: "launchdarkly-js-sdk-common@npm:5.1.0"
+"launchdarkly-js-sdk-common@npm:5.2.0":
+  version: 5.2.0
+  resolution: "launchdarkly-js-sdk-common@npm:5.2.0"
   dependencies:
     base64-js: "npm:^1.3.0"
     fast-deep-equal: "npm:^2.0.1"
     uuid: "npm:^8.0.0"
-  checksum: 10c0/0f9d07b2e04793170f4f7c4e92f960857bfc7c34f5027bbdb947aa4e1d3f6a041b34dfd2e14d0dd91c4be084d45046e8b523232e404169930f68256e1ddb7b44
+  checksum: 10c0/7006e69008ec6f31ee38c32f05f4d2ea65c11d01c911521c6aa7f90c0a54819e8a562d0aa78c4959eeb598e4a393677f08dcbe0262a9bbffb92c8b10c49ddacf
   languageName: node
   linkType: hard
 
-"launchdarkly-node-client-sdk@npm:^3.1.0":
-  version: 3.1.0
-  resolution: "launchdarkly-node-client-sdk@npm:3.1.0"
+"launchdarkly-node-client-sdk@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "launchdarkly-node-client-sdk@npm:3.2.1"
   dependencies:
-    launchdarkly-eventsource: "npm:1.4.3"
-    launchdarkly-js-sdk-common: "npm:5.1.0"
+    launchdarkly-eventsource: "npm:2.0.3"
+    launchdarkly-js-sdk-common: "npm:5.2.0"
     node-localstorage: "npm:^1.3.1"
-  checksum: 10c0/abb5063ef20af3e8ce1e761f756c78062a7fe4ce855a8d62ce11671e38331132a2b5ee39fa351319aaf0d100464ca585348f2a361de12a05ef030b02d9711380
+  checksum: 10c0/14c870c9e7f49b334b1775d1249cfb8fa983fca9e70a3a5cca98e1801fb6eda536b3b98a37a38faef1da4492a065f36d529189cf76ea3eb551921f60dbb2a1bc
   languageName: node
   linkType: hard
 
@@ -12710,15 +12722,6 @@ __metadata:
     strip-ansi: "npm:^6.0.0"
     wcwidth: "npm:^1.0.1"
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
-  languageName: node
-  linkType: hard
-
-"original@npm:^1.0.2":
-  version: 1.0.2
-  resolution: "original@npm:1.0.2"
-  dependencies:
-    url-parse: "npm:^1.4.3"
-  checksum: 10c0/af143d5be62b055ffb6fc2a0d08a650b822f48feca4ea21940c1f7a147727a317faedca254394ad0028ddaa4eecf7cf4376c370d746386cc35974e9122ebb14a
   languageName: node
   linkType: hard
 
@@ -14711,7 +14714,7 @@ __metadata:
   resolution: "replay-cli@workspace:."
   dependencies:
     "@changesets/changelog-github": "npm:^0.5.0"
-    "@changesets/cli": "npm:^2.27.3"
+    "@changesets/cli": "npm:^2.27.4"
     "@replayio/protocol": "npm:^0.73.0"
     "@replayio/replay": "workspace:^"
     "@types/ws": "npm:^8"
@@ -14750,7 +14753,7 @@ __metadata:
     is-uuid: "npm:^1.0.2"
     jest: "npm:^28.1.3"
     jsonata: "npm:^1.8.6"
-    launchdarkly-node-client-sdk: "npm:^3.1.0"
+    launchdarkly-node-client-sdk: "npm:^3.2.1"
     log-update: "npm:^4"
     mixpanel: "npm:^0.18.0"
     node-fetch: "npm:^2.6.8"
@@ -16947,7 +16950,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"url-parse@npm:^1.4.3, url-parse@npm:^1.5.3":
+"url-parse@npm:^1.5.3":
   version: 1.5.10
   resolution: "url-parse@npm:1.5.10"
   dependencies:

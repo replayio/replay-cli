@@ -15,7 +15,7 @@ registerCommand("remove")
   .action(remove);
 
 async function remove(shortIds: string[], { all = false }: { all?: boolean }) {
-  const allRecordings = await getRecordings();
+  const allRecordings = getRecordings();
 
   if (allRecordings.length === 0) {
     console.log("No recordings found");
@@ -47,10 +47,10 @@ async function remove(shortIds: string[], { all = false }: { all?: boolean }) {
       console.log(printRecordings(selectedRecordings, { showHeaderRow: false }));
 
       for (const recording of selectedRecordings) {
-        await removeFromDisk(recording.id);
+        removeFromDisk(recording.id);
       }
 
-      const countAfter = (await getRecordings()).length;
+      const countAfter = getRecordings().length;
 
       if (countAfter < countBefore) {
         console.log("%s recording(s) deleted", countBefore - countAfter);
