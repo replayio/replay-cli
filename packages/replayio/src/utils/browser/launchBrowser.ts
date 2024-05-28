@@ -60,6 +60,9 @@ export async function launchBrowser(
 
         prompt({
           signal: abortControllerForPrompt.signal,
+          onExit: () => {
+            spawnDeferred.data.kill();
+          },
         }).then(() => {
           spawnDeferred.data.kill();
         });
