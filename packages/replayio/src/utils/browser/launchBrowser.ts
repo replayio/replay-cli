@@ -1,12 +1,10 @@
-import findProcess from "find-process";
 import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
-import { timeoutAfter } from "../async/timeoutAfter";
 import { getReplayPath } from "../getReplayPath";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";
-import { dim, highlight, stderrPrefix, stdoutPrefix } from "../theme";
+import { dim, stderrPrefix, stdoutPrefix } from "../theme";
 import { debug } from "./debug";
 import { getBrowserPath } from "./getBrowserPath";
 
@@ -43,63 +41,45 @@ export async function launchBrowser(
     throw new Error(`Replay browser not found at: ${browserExecutablePath}`);
   }
 
-  const processes = await findProcess("name", browserExecutablePath);
-  if (processes.length > 0) {
-    const match = processes[0];
+  debug(
+    `Launching browser: ${browserExecutablePath} with args:\n`,
+    args.join("\n"),
+    "\n",
+    processOptions
+  );
 
-    debug(`Browser process already running at ${highlight(match.pid)}`);
+  // Wait until the user quits the browser process OR
+  // until the user presses a key to continue (in which case, we will kill the process)
+  const abortControllerForPrompt = new AbortController();
 
-    console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+  const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
+    onSpawn: () => {
+      if (process.stdin.isTTY) {
+        console.log(`Recording... ${dim("(press any key to stop recording)")}`);
 
-    // Ask the browser to open a new tab
-    spawnProcess(browserExecutablePath, args, processOptions);
-
-    // The best we can do in this case is to regularly poll to see when the process exits
-    while (true) {
-      await timeoutAfter(1_000);
-      const processes = await findProcess("name", browserExecutablePath);
-      if (processes.length === 0) {
-        break;
-      }
-    }
-  } else {
-    debug(
-      `Launching browser: ${browserExecutablePath} with args:\n`,
-      args.join("\n"),
-      "\n",
-      processOptions
-    );
-
-    // Wait until the user quits the browser process OR
-    // until the user presses a key to continue (in which case, we will kill the process)
-    const abortControllerForPrompt = new AbortController();
-
-    const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
-      onSpawn: () => {
-        if (process.stdin.isTTY) {
-          console.log(`Recording... ${dim("(press any key to stop recording)")}`);
-
-          prompt({
-            signal: abortControllerForPrompt.signal,
-          }).then(() => {
+        prompt({
+          signal: abortControllerForPrompt.signal,
+          onExit: () => {
             spawnDeferred.data.kill();
-          });
-        } else {
-          console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
-        }
-      },
-      printStderr: (text: string) => {
-        debug(stderrPrefix("stderr"), text);
-      },
-      printStdout: (text: string) => {
-        debug(stdoutPrefix("stdout"), text);
-      },
-    });
+          },
+        }).then(() => {
+          spawnDeferred.data.kill();
+        });
+      } else {
+        console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+      }
+    },
+    printStderr: (text: string) => {
+      debug(stderrPrefix("stderr"), text);
+    },
+    printStdout: (text: string) => {
+      debug(stdoutPrefix("stdout"), text);
+    },
+  });
 
-    try {
-      await spawnDeferred.promise;
-    } finally {
-      abortControllerForPrompt.abort();
-    }
+  try {
+    await spawnDeferred.promise;
+  } finally {
+    abortControllerForPrompt.abort();
   }
 }

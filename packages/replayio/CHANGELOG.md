@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- [#496](https://github.com/replayio/replay-cli/pull/496) [`52646e3`](https://github.com/replayio/replay-cli/commit/52646e3c30784707b1d18540293eb35c32fa30b0) Thanks [@bvaughn](https://github.com/bvaughn)! - Require Replay browser to exit before creating a new recording.
+
+### Patch Changes
+
+- [#492](https://github.com/replayio/replay-cli/pull/492) [`b3c797a`](https://github.com/replayio/replay-cli/commit/b3c797aad1c82a919552ae8f1dc83bb1a7714f18) Thanks [@Andarist](https://github.com/Andarist)! - Assets (like source maps) still referenced by other recordings won't be removed prematurely when removing a recording
+
 ## [1.1.0](#1.1.0) - 2024-05-22
 
 ### Added
