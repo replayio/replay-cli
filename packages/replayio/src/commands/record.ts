@@ -26,11 +26,10 @@ registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: 
   .allowUnknownOption();
 
 async function record(url: string = "about:blank") {
-  // This flag is intentionally not listed in the command options
-  // but if specified, it will both enable "debug" logging and Replay Browser's "verbose" mode
+  // this flag is intentionally not listed in the command options
   const verbose = process.argv.includes("--verbose");
   if (verbose) {
-    debug.enable("replayio:browser");
+    debug.enable("replayio:*");
   }
 
   const processGroupId = uuid();
@@ -53,7 +52,7 @@ async function record(url: string = "about:blank") {
       }
     }
 
-    await launchBrowser(url, { processGroupId, verbose });
+    await launchBrowser(url, { processGroupId });
   } catch (error) {
     if (error instanceof ProcessError) {
       console.log("\nSomething went wrong while recording. Try again.");
