@@ -79,20 +79,9 @@ class ReplayPlaywrightReporter implements Reporter {
     string,
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
+  private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
-    const browserPath = getPlaywrightBrowserPath("chromium");
-
-    if (!browserPath) {
-      throw new Error(`replay-chromium is not supported on this platform`);
-    }
-
-    if (process.platform !== "win32" && !existsSync(browserPath)) {
-      throw new Error(
-        `replay-chromium is not available at ${browserPath}. Please run \`npx replayio install\`.`
-      );
-    }
-
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -173,7 +162,11 @@ class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  onBegin({ version }: FullConfig) {
+  onBegin({ version, projects }: FullConfig) {
+    const replayBrowserPath = getPlaywrightBrowserPath("chromium");
+    this._foundReplayBrowser = !!projects.find(
+      p => p.use.launchOptions?.executablePath === replayBrowserPath
+    );
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }
@@ -319,6 +312,11 @@ class ReplayPlaywrightReporter implements Reporter {
 
   async onEnd() {
     await this.reporter.onEnd();
+    if (!this._foundReplayBrowser) {
+      console.warn(
+        "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
+      );
+    }
   }
 
   parseArguments(apiName: string, params: any) {
