@@ -1,6 +1,5 @@
 import { existsSync } from "fs-extra";
-import { join } from "path";
-import { runtimeMetadata, runtimePath } from "../installation/config";
+import { getBrowserPath } from "../browser/getBrowserPath";
 import { getLatestRelease } from "../installation/getLatestReleases";
 import { Release } from "../installation/types";
 import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
@@ -38,9 +37,7 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
       };
     }
 
-    const { path: executablePath } = runtimeMetadata;
-    const runtimeExecutablePath = join(runtimePath, ...executablePath);
-    if (!existsSync(runtimeExecutablePath)) {
+    if (!existsSync(getBrowserPath())) {
       return {
         hasUpdate: true,
         fromVersion: undefined,

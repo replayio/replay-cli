@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import { fetch } from "undici";
 import { AuthenticationError } from "./AuthenticationError";
 import { authClientId, authHost } from "./config";
 import { debug } from "./debug";

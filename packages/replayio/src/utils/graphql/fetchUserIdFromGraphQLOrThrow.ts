@@ -25,9 +25,7 @@ export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
           }
         }
           `,
-    {
-      key: accessToken,
-    },
+    {},
     accessToken
   );
 

@@ -1,6 +1,6 @@
 import assert from "assert";
 import { ReadStream, createReadStream, stat } from "fs-extra";
-import fetch from "node-fetch";
+import { fetch } from "undici";
 import { replayWsServer } from "../../../config";
 import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
@@ -13,7 +13,6 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { getKeepAliveAgent } from "../../protocol/getKeepAliveAgent";
 import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { debug } from "../debug";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
@@ -292,7 +291,6 @@ async function uploadRecordingReadStream(
   try {
     const response = await Promise.race([
       fetch(url, {
-        agent: getKeepAliveAgent,
         headers: {
           "Content-Length": size.toString(),
           "User-Agent": getUserAgent(),
@@ -300,6 +298,7 @@ async function uploadRecordingReadStream(
         },
         method: "PUT",
         body: stream,
+        duplex: "half",
         signal: abortSignal,
       }),
       streamError.promise,
