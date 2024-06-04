@@ -29,7 +29,9 @@ export function formatRecording(recording: LocalRecording) {
       break;
     }
     default: {
-      if (metadata.host) {
+      if (metadata.title) {
+        title = truncateRecordingTitle(metadata.title);
+      } else if (metadata.host) {
         title = link(truncateRecordingTitle(metadata.host));
       } else {
         title = "(untitled)";

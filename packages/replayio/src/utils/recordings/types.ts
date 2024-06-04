@@ -34,6 +34,7 @@ export type LogEntry = {
     argv?: string[];
     process?: ProcessType;
     processGroupId?: string;
+    title?: string;
     uri?: string;
     [key: string]: unknown;
   };
@@ -76,6 +77,7 @@ export type LocalRecording = {
     processGroupId: string | undefined;
     processType: ProcessType | undefined;
     sourceMaps: SourceMap[];
+    title: string | undefined;
     uri: string | undefined;
     [key: string]: unknown;
   };
