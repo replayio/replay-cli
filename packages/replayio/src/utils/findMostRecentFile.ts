@@ -5,29 +5,34 @@ export async function findMostRecentFile(
   directory: string,
   predicate: (fileName: string) => boolean = () => true
 ) {
-  const fileNames = await readdir(directory);
-  const candidates = await Promise.all(
-    fileNames.map(async fileName => {
+  let mostRecent = undefined as string | undefined;
+  let mostRecentMtimeMs = 0;
+
+  await Promise.all(
+    (
+      await readdir(directory)
+    ).map(async fileName => {
       const filePath = join(directory, fileName);
-      const stats = await stat(filePath);
-      if (!stats.isFile() || !predicate(fileName)) {
+      let stats;
+
+      try {
+        stats = await stat(filePath);
+      } catch {
         return;
       }
-      return {
-        filePath,
-        mtimeMs: stats.mtimeMs,
-      };
+
+      if (
+        !stats.isFile() ||
+        !predicate(fileName) ||
+        (mostRecent && stats.mtimeMs < mostRecentMtimeMs)
+      ) {
+        return;
+      }
+
+      mostRecent = filePath;
+      mostRecentMtimeMs = stats.mtimeMs;
     })
   );
 
-  let mostRecent: (typeof candidates)[number] | undefined = undefined;
-
-  for (const candidate of candidates) {
-    if (!candidate || (mostRecent && candidate.mtimeMs < mostRecent.mtimeMs)) {
-      continue;
-    }
-    mostRecent = candidate;
-  }
-
-  return mostRecent?.filePath;
+  return mostRecent;
 }
