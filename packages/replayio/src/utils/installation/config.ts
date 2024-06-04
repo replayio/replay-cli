@@ -1,4 +1,4 @@
-import assert from "assert";
+import { homedir } from "os";
 import { join } from "path";
 import { getReplayPath } from "../getReplayPath";
 import { emphasize } from "../theme";
@@ -21,12 +21,10 @@ const architecture: Architecture = process.arch.startsWith("arm") ? "arm" : "x86
 
 switch (process.platform) {
   case "darwin":
-    const homeDirectory = process.env.HOME || process.env.USERPROFILE;
-    assert(homeDirectory, "HOME or USERPROFILE environment variable must be set");
     runtimeMetadata = {
       architecture,
       crashpadDirectory: join(
-        homeDirectory,
+        homedir(),
         "Library",
         "Application Support",
         "Chromium",
