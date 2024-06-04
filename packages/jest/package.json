@@ -43,7 +43,7 @@
   "dependencies": {
     "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
-    "jest-circus": "^27.5.1",
+    "jest-circus": "^29.0.0",
     "jest-environment-node": "^27.5.1",
     "uuid": "^8.3.2"
   }
