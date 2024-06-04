@@ -1,11 +1,9 @@
 import open from "open";
 import { replayAppHost } from "../../config";
-import { raceWithTimeout } from "../async/raceWithTimeout";
 import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
-import { AuthenticationError } from "./AuthenticationError";
 import { cachedAuthPath } from "./config";
 import { debug } from "./debug";
 import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
@@ -15,17 +13,12 @@ import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 export async function authenticateByBrowser() {
   const key = hashValue(String(globalThis.performance.now()));
 
-  console.log("Please log in or register to continue.");
+  console.log("\nPlease log in or register in the browser to continue.");
 
   debug(`Launching browser to sign into Replay: ${replayAppHost}`);
   await open(`${replayAppHost}/api/browser/auth?key=${key}&source=cli`);
 
-  const result = await raceWithTimeout(pollForAuthentication(key), 60_000);
-  if (result == null) {
-    throw new AuthenticationError("time-out", "Timed out waiting for authentication");
-  }
-
-  const { accessToken, refreshToken } = result;
+  const { accessToken, refreshToken } = await pollForAuthentication(key);
 
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
