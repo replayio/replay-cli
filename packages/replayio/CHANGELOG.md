@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- [#505](https://github.com/replayio/replay-cli/pull/505) [`631352b`](https://github.com/replayio/replay-cli/commit/631352b3eca27a2b330972fec9f4d5b859b2fac3) Thanks [@bvaughn](https://github.com/bvaughn)! - For recordings of e2e tests, the test name will be shown as the recording title
+
+### Patch Changes
+
+- [#491](https://github.com/replayio/replay-cli/pull/491) [`a243633`](https://github.com/replayio/replay-cli/commit/a243633a99c32ad3d68055d8a3b8e33c1e9ab05f) Thanks [@Andarist](https://github.com/Andarist)! - Improved the way `recordings.log` gets processed. It should fix parsing issues when the log contains strings with `}{` inside them.
+
+- [#500](https://github.com/replayio/replay-cli/pull/500) [`1740c99`](https://github.com/replayio/replay-cli/commit/1740c99639c2ad0e941fa4d9bff8830ba9e16ae1) Thanks [@Andarist](https://github.com/Andarist)! - The launched browser will now get correctly closed on Ctrl+C when recording
+
 ## 1.2.0
 
 ### Minor Changes
