@@ -1,21 +1,13 @@
 import debug from "debug";
-import { readFile, writeFileSync } from "fs-extra";
-import { fetch, File, FormData } from "undici";
 import { v4 as uuid } from "uuid";
-import { replayApiServer } from "../config";
 import { ProcessError } from "../utils/ProcessError";
 import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { getRunningProcess } from "../utils/browser/getRunningProcess";
 import { launchBrowser } from "../utils/browser/launchBrowser";
+import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
-import { findMostRecentFile } from "../utils/findMostRecentFile";
-import { getReplayPath } from "../utils/getReplayPath";
-import { getUserAgent } from "../utils/getUserAgent";
-import { checkAuthentication } from "../utils/initialization/checkAuthentication";
-import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRuntimeMetadata";
-import { runtimeMetadata } from "../utils/installation/config";
 import { killProcess } from "../utils/killProcess";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
@@ -62,7 +54,12 @@ async function record(url: string = "about:blank") {
     await launchBrowser(url, { processGroupId });
   } catch (error) {
     if (error instanceof ProcessError) {
-      await reportRecorderCrash(error.stderr);
+      const { errorLogPath, uploaded } = await reportBrowserCrash(error.stderr);
+      console.log("\nSomething went wrong while recording. Try again.");
+      console.log(dim(`More information can be found in ${errorLogPath}`));
+      if (uploaded) {
+        console.log(dim(`The crash was reported to the Replay team`));
+      }
       await exitProcess(1);
     }
   }
@@ -170,58 +167,4 @@ async function record(url: string = "about:blank") {
   }
 
   await exitProcess(0);
-}
-
-async function reportRecorderCrash(stderr: string) {
-  console.log("\nSomething went wrong while recording. Try again.");
-
-  const errorLogPath = getReplayPath("recorder-crash.log");
-  writeFileSync(errorLogPath, stderr, "utf8");
-  console.log(dim(`More information can be found in ${errorLogPath}`));
-
-  const accessToken = await checkAuthentication();
-
-  if (!accessToken) {
-    return;
-  }
-
-  const userAgent = getUserAgent();
-
-  const formData = new FormData();
-
-  formData.set("buildId", getCurrentRuntimeMetadata("chromium")?.buildId ?? "unknown");
-  formData.set("createdAt", new Date().toISOString());
-  formData.set("userAgent", userAgent);
-
-  formData.append(
-    "log",
-    new File([await readFile(errorLogPath)], "log.txt", { type: "text/plain" })
-  );
-
-  const latestCrashpad =
-    runtimeMetadata.crashpadDirectory &&
-    (await findMostRecentFile(runtimeMetadata.crashpadDirectory, fileName =>
-      fileName.endsWith(".dmp")
-    ));
-  if (latestCrashpad) {
-    formData.append(
-      "crashpad",
-      new File([await readFile(latestCrashpad)], "crash.dmp", { type: "application/octet-stream" })
-    );
-  }
-
-  try {
-    const response = await fetch(`${replayApiServer}/v1/browser-crash`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": userAgent,
-      },
-      body: formData,
-    });
-    if (response.status >= 200 && response.status < 300) {
-      console.log(dim(`The crash was reported to the Replay team`));
-      return;
-    }
-  } catch (err) {}
 }
