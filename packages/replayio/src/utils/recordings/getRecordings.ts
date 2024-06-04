@@ -26,7 +26,9 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           Object.assign(recording.metadata, metadata);
 
-          const { argv, process, processGroupId, uri } = metadata;
+          const { argv, process, processGroupId, title, uri } = metadata;
+
+          recording.metadata.title = title;
 
           if (uri) {
             let host = uri;
@@ -87,6 +89,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
               processGroupId: undefined,
               processType: undefined,
               sourceMaps: [],
+              title: undefined,
               uri: undefined,
             },
             path: undefined,
