@@ -11,7 +11,7 @@ export function printRecordings(
   const { showHeaderRow = true } = formattingOptions;
 
   let text = printTable({
-    headers: showHeaderRow ? ["ID", "Host", "Process", "Date", "Duration", "Status"] : undefined,
+    headers: showHeaderRow ? ["ID", "Title", "Process", "Date", "Duration", "Status"] : undefined,
     rows: recordings.map(recording => {
       const { date, duration, id, processType, status, title } = formatRecording(recording);
 
