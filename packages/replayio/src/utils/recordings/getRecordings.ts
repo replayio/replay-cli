@@ -28,7 +28,9 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const { argv, process, processGroupId, title, uri } = metadata;
 
-          recording.metadata.title = title;
+          if (title) {
+            recording.metadata.title = title;
+          }
 
           if (uri) {
             let host = uri;
