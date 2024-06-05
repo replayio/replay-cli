@@ -9,6 +9,7 @@
     { "path": "./packages/replayio" },
     { "path": "./packages/sourcemap-upload" },
     { "path": "./packages/sourcemap-upload-webpack-plugin" },
-    { "path": "./packages/test-utils" }
+    { "path": "./packages/test-utils" },
+    { "path": "./packages/observability-node" }
   ]
 }
