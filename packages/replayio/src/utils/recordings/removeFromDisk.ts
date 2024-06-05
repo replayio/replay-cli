@@ -23,69 +23,69 @@ function getAssetsUsageMap(recordings: LocalRecording[]) {
   return usageMap;
 }
 
-export function removeFromDisk(id?: string) {
-  if (id) {
-    debug("Removing recording %s", id);
+export function removeFromDisk(id: string) {
+  debug("Removing recording %s", id);
 
-    const recordings = getRecordings();
-    const recording = recordings.find(recording => recording.id.startsWith(id));
-    if (recording) {
-      const assetsUsageMap = getAssetsUsageMap(recordings);
+  const recordings = getRecordings();
+  const recording = recordings.find(recording => recording.id.startsWith(id));
+  if (recording) {
+    const assetsUsageMap = getAssetsUsageMap(recordings);
 
-      const { metadata, path } = recording;
+    const { metadata, path } = recording;
 
-      metadata.sourceMaps.forEach(sourceMap => {
-        if (assetsUsageMap[sourceMap.path] === 1) {
-          debug("Removing recording source-map file %s", sourceMap.path);
-          removeSync(sourceMap.path);
-          removeSync(sourceMap.path.replace(/\.map$/, ".lookup"));
-        }
-
-        sourceMap.originalSources.forEach(source => {
-          if (assetsUsageMap[source.path] === 1) {
-            debug("Removing recording original source file %s", source.path);
-            removeSync(source.path);
-          }
-        });
-      });
-
-      // Delete recording data file
-      if (path) {
-        debug("Removing recording data file %s", path);
-
-        removeSync(path);
+    metadata.sourceMaps.forEach(sourceMap => {
+      if (assetsUsageMap[sourceMap.path] === 1) {
+        debug("Removing recording source-map file %s", sourceMap.path);
+        removeSync(sourceMap.path);
+        removeSync(sourceMap.path.replace(/\.map$/, ".lookup"));
       }
 
-      // Remove entries from log
-      const filteredLogs = readRecordingLog().filter(entry => {
-        switch (entry.kind) {
-          case RECORDING_LOG_KIND.originalSourceAdded:
-          case RECORDING_LOG_KIND.sourcemapAdded: {
-            return entry.recordingId !== id;
-          }
-          default: {
-            return entry.id !== id;
-          }
+      sourceMap.originalSources.forEach(source => {
+        if (assetsUsageMap[source.path] === 1) {
+          debug("Removing recording original source file %s", source.path);
+          removeSync(source.path);
         }
       });
+    });
 
-      writeFileSync(
-        recordingLogPath,
-        filteredLogs.map(log => JSON.stringify(log)).join("\n") + "\n",
-        "utf8"
-      );
-    } else {
-      console.log("Recording not found");
+    // Delete recording data file
+    if (path) {
+      debug("Removing recording data file %s", path);
+
+      removeSync(path);
     }
-  } else {
-    debug("Removing all recordings");
 
-    const files = readdirSync(recordingsPath);
-    files.forEach(fileName => {
-      if (/(recording|sourcemap|original)-/.test(fileName)) {
-        removeSync(join(recordingsPath, fileName));
+    // Remove entries from log
+    const filteredLogs = readRecordingLog().filter(entry => {
+      switch (entry.kind) {
+        case RECORDING_LOG_KIND.originalSourceAdded:
+        case RECORDING_LOG_KIND.sourcemapAdded: {
+          return entry.recordingId !== id;
+        }
+        default: {
+          return entry.id !== id;
+        }
       }
     });
-    removeSync(recordingLogPath);
+
+    writeFileSync(
+      recordingLogPath,
+      filteredLogs.map(log => JSON.stringify(log)).join("\n") + "\n",
+      "utf8"
+    );
+  } else {
+    console.log("Recording not found");
   }
+}
+
+export function removeAllFromDisk() {
+  debug("Removing all recordings");
+
+  const files = readdirSync(recordingsPath);
+  files.forEach(fileName => {
+    if (/(recording|sourcemap|original)-/.test(fileName)) {
+      removeSync(join(recordingsPath, fileName));
+    }
+  });
+  removeSync(recordingLogPath);
 }

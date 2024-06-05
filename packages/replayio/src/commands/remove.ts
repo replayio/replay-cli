@@ -3,7 +3,7 @@ import { exitProcess } from "../utils/exitProcess";
 import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
-import { removeFromDisk } from "../utils/recordings/removeFromDisk";
+import { removeAllFromDisk, removeFromDisk } from "../utils/recordings/removeFromDisk";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { dim } from "../utils/theme";
@@ -15,6 +15,12 @@ registerCommand("remove")
   .action(remove);
 
 async function remove(shortIds: string[], { all = false }: { all?: boolean }) {
+  if (all) {
+    removeAllFromDisk();
+    console.log("All recordings deleted");
+    await exitProcess(0);
+  }
+
   const allRecordings = getRecordings();
 
   if (allRecordings.length === 0) {
@@ -25,8 +31,6 @@ async function remove(shortIds: string[], { all = false }: { all?: boolean }) {
     let selectedRecordings: LocalRecording[] = [];
     if (shortIds.length > 0) {
       selectedRecordings = findRecordingsWithShortIds(allRecordings, shortIds);
-    } else if (all) {
-      selectedRecordings = allRecordings;
     } else {
       if (!process.stdin.isTTY) {
         console.log("Recording ids argument required for non-TTY environments.");
