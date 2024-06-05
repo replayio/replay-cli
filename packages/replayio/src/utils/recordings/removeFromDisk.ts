@@ -71,7 +71,7 @@ export function removeFromDisk(id?: string) {
 
       writeFileSync(
         recordingLogPath,
-        filteredLogs.map(log => JSON.stringify(log)).join("\n"),
+        filteredLogs.map(log => JSON.stringify(log)).join("\n") + "\n",
         "utf8"
       );
     } else {
