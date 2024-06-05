@@ -10,6 +10,7 @@ import dbg, { logPath } from "./debug";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, getUserAgent, isValidUUID, linearBackoffRetry, maybeLog } from "./utils";
+import { grafanaDebug } from "@replayio/observability-node";
 
 const debug = dbg("replay:cli:upload");
 
@@ -165,6 +166,7 @@ class ReplayClient {
   }
 
   async uploadRecording(path: string, uploadLink: string, size: number) {
+    grafanaDebug("S3UploadStart");
     const file = fs.createReadStream(path);
     const resp = await fetch(uploadLink, {
       method: "PUT",
@@ -173,7 +175,14 @@ class ReplayClient {
     });
 
     if (resp.status !== 200) {
-      debug(await resp.text());
+      const responseText = await resp.text();
+      grafanaDebug("S3UploadFailed", {
+        responseText: responseText,
+        status: resp.status,
+        statusText: resp.statusText,
+        contentLength: size.toString(),
+      });
+      debug(responseText);
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }
   }

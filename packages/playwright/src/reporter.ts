@@ -14,7 +14,7 @@ import {
   TestMetadataV2,
 } from "@replayio/test-utils";
 import dbg from "debug";
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
 
@@ -24,6 +24,7 @@ import { getPlaywrightBrowserPath } from "@replayio/replay";
 import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
+import { closeGrafanaLogger } from "@replayio/observability-node";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("@replayio/playwright/package.json").version;
@@ -80,6 +81,8 @@ class ReplayPlaywrightReporter implements Reporter {
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
   private _foundReplayBrowser = false;
+
+  // MBUDAYR - which function passes this config in? What is the relationship between this config and config passed to `parseConfig` in `test-utils`?
 
   constructor(config: ReplayPlaywrightConfig) {
     if (!config || typeof config !== "object") {
@@ -164,9 +167,11 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin({ version, projects }: FullConfig) {
     const replayBrowserPath = getPlaywrightBrowserPath("chromium");
+
     this._foundReplayBrowser = !!projects.find(
       p => p.use.launchOptions?.executablePath === replayBrowserPath
     );
+
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }
@@ -317,6 +322,8 @@ class ReplayPlaywrightReporter implements Reporter {
         "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
       );
     }
+
+    closeGrafanaLogger();
   }
 
   parseArguments(apiName: string, params: any) {

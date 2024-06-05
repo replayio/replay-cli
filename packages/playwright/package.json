@@ -41,6 +41,10 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
+    "@replayio/observability-node": "workspace:^",
+    "@honeycombio/opentelemetry-node": "^0.7.2",
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.46.1",
     "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
     "debug": "^4.3.4",
