@@ -1,6 +1,6 @@
 import fs from "fs";
-import fetch, { RequestInit } from "node-fetch";
 import { create, defaulted, number, object, optional, Struct } from "superstruct";
+import { fetch, RequestInit } from "undici";
 import { createLog } from "../../../createLog";
 import { UnstructuredMetadata } from "../../types";
 import { envString } from "./env";

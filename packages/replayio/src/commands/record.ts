@@ -1,14 +1,13 @@
 import debug from "debug";
-import { writeFileSync } from "fs-extra";
 import { v4 as uuid } from "uuid";
 import { ProcessError } from "../utils/ProcessError";
 import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { getRunningProcess } from "../utils/browser/getRunningProcess";
 import { launchBrowser } from "../utils/browser/launchBrowser";
+import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
-import { getReplayPath } from "../utils/getReplayPath";
 import { killProcess } from "../utils/killProcess";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
@@ -55,19 +54,12 @@ async function record(url: string = "about:blank") {
     await launchBrowser(url, { processGroupId });
   } catch (error) {
     if (error instanceof ProcessError) {
+      const { errorLogPath, uploaded } = await reportBrowserCrash(error.stderr);
       console.log("\nSomething went wrong while recording. Try again.");
-
-      // TODO [PRO-235] Upload recorder crash data somewhere
-
-      const { stderr } = error;
-      if (stderr.length > 0) {
-        const errorLogPath = getReplayPath("recorder-crash.log");
-
-        writeFileSync(errorLogPath, stderr, "utf8");
-
-        console.log(dim(`More information can be found in ${errorLogPath}`));
+      console.log(dim(`More information can be found in ${errorLogPath}`));
+      if (uploaded) {
+        console.log(dim(`The crash was reported to the Replay team`));
       }
-
       await exitProcess(1);
     }
   }

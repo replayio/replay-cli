@@ -1,5 +1,5 @@
 import assert from "assert";
-import fetch from "node-fetch";
+import { fetch } from "undici";
 import { replayAppHost } from "../../config";
 import { runtimeMetadata } from "./config";
 import { debug } from "./debug";

@@ -2334,6 +2334,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/busboy@npm:^2.0.0":
+  version: 2.1.1
+  resolution: "@fastify/busboy@npm:2.1.1"
+  checksum: 10c0/6f8027a8cba7f8f7b736718b013f5a38c0476eea67034c94a0d3c375e2b114366ad4419e6a6fa7ffc2ef9c6d3e0435d76dd584a7a1cbac23962fda7650b579e3
+  languageName: node
+  linkType: hard
+
 "@humanwhocodes/config-array@npm:^0.11.14":
   version: 0.11.14
   resolution: "@humanwhocodes/config-array@npm:0.11.14"
@@ -14737,7 +14744,6 @@ __metadata:
     "@types/fs-extra": "npm:latest"
     "@types/inquirer": "npm:^9"
     "@types/jest": "npm:^28.1.5"
-    "@types/node-fetch": "npm:^2.6.3"
     "@types/semver": "npm:^7.5.6"
     "@types/table": "npm:^6.3.2"
     "@types/ws": "npm:^8.5.10"
@@ -14756,7 +14762,6 @@ __metadata:
     launchdarkly-node-client-sdk: "npm:^3.2.1"
     log-update: "npm:^4"
     mixpanel: "npm:^0.18.0"
-    node-fetch: "npm:^2.6.8"
     open: "npm:^8.4.2"
     prettier: "npm:^2.7.1"
     pretty-ms: "npm:^7.0.1"
@@ -14766,6 +14771,7 @@ __metadata:
     table: "npm:^6.8.2"
     ts-jest: "npm:^28.0.6"
     typescript: "npm:^5.4.5"
+    undici: "npm:^5.28.4"
     ws: "npm:^7.5.0"
   bin:
     replayio: ./replayio.js
@@ -16803,6 +16809,15 @@ __metadata:
   version: 5.26.5
   resolution: "undici-types@npm:5.26.5"
   checksum: 10c0/bb673d7876c2d411b6eb6c560e0c571eef4a01c1c19925175d16e3a30c4c428181fb8d7ae802a261f283e4166a0ac435e2f505743aa9e45d893f9a3df017b501
+  languageName: node
+  linkType: hard
+
+"undici@npm:^5.28.4":
+  version: 5.28.4
+  resolution: "undici@npm:5.28.4"
+  dependencies:
+    "@fastify/busboy": "npm:^2.0.0"
+  checksum: 10c0/08d0f2596553aa0a54ca6e8e9c7f45aef7d042c60918564e3a142d449eda165a80196f6ef19ea2ef2e6446959e293095d8e40af1236f0d67223b06afac5ecad7
   languageName: node
   linkType: hard
 

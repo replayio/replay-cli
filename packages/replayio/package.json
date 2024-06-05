@@ -48,13 +48,13 @@
     "launchdarkly-node-client-sdk": "^3.2.1",
     "log-update": "^4",
     "mixpanel": "^0.18.0",
-    "node-fetch": "^2.6.8",
     "open": "^8.4.2",
     "pretty-ms": "^7.0.1",
     "query-registry": "^2.6.0",
     "semver": "^7.5.4",
     "superstruct": "^0.15.4",
     "table": "^6.8.2",
+    "undici": "^5.28.4",
     "ws": "^7.5.0"
   },
   "devDependencies": {
@@ -63,7 +63,6 @@
     "@types/fs-extra": "latest",
     "@types/inquirer": "^9",
     "@types/jest": "^28.1.5",
-    "@types/node-fetch": "^2.6.3",
     "@types/table": "^6.3.2",
     "@types/ws": "^8.5.10",
     "jest": "^28.1.3",

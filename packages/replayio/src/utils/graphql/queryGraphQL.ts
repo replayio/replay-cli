@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import { fetch } from "undici";
 import { replayApiServer } from "../../config";
 import { getUserAgent } from "../getUserAgent";
 import { debug } from "./debug";

@@ -1,10 +1,10 @@
-import fetch from "node-fetch";
 import { mocked } from "jest-mock";
-import { getLatestRelease } from "./getLatestReleases";
+import { fetch } from "undici";
 import { replayAppHost } from "../../config";
+import { getLatestRelease } from "./getLatestReleases";
 import { Release } from "./types";
 
-jest.mock("node-fetch");
+jest.mock("undici");
 const mockedFetch = mocked(fetch, true);
 
 jest.mock("./config", () => ({

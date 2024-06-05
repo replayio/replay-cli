@@ -1,9 +1,12 @@
+import { homedir } from "os";
+import { join } from "path";
 import { getReplayPath } from "../getReplayPath";
 import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 
 type Metadata = {
   architecture: Architecture;
+  crashpadDirectory: string | undefined;
   destinationName: string;
   downloadFileName: string;
   path: string[];
@@ -20,6 +23,14 @@ switch (process.platform) {
   case "darwin":
     runtimeMetadata = {
       architecture,
+      crashpadDirectory: join(
+        homedir(),
+        "Library",
+        "Application Support",
+        "Chromium",
+        "Crashpad",
+        "pending"
+      ),
       destinationName: "Replay-Chromium.app",
       downloadFileName:
         process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE ||
@@ -35,6 +46,7 @@ switch (process.platform) {
   case "linux":
     runtimeMetadata = {
       architecture,
+      crashpadDirectory: undefined,
       destinationName: "chrome-linux",
       downloadFileName:
         process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "linux-replay-chromium.tar.xz",
@@ -49,6 +61,7 @@ switch (process.platform) {
       // Force override for Replay internal testing purposes
       runtimeMetadata = {
         architecture,
+        crashpadDirectory: undefined,
         destinationName: "replay-chromium",
         downloadFileName:
           process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE || "windows-replay-chromium.zip",

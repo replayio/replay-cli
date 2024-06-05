@@ -1,3 +1,4 @@
+import { fetch } from "undici";
 import { version as currentVersion, name as packageName } from "../../../package.json";
 import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 import { shouldPrompt } from "../prompt/shouldPrompt";
