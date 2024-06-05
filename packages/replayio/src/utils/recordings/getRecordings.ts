@@ -119,6 +119,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
             path: undefined,
             processingStatus: undefined,
             recordingStatus: "recording",
+            unusableReason: undefined,
             uploadStatus: undefined,
           };
 
@@ -176,14 +177,12 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           break;
         }
         case RECORDING_LOG_KIND.recordingUnusable: {
-          const { id } = entry;
+          const { id, reason } = entry;
           const recording = idToRecording[id];
 
           assert(recording, `Recording with ID "${id}" not found`);
           recording.recordingStatus = "unusable";
-
-          const index = recordings.indexOf(recording);
-          recordings.splice(index, 1);
+          recording.unusableReason = reason;
           break;
         }
         case RECORDING_LOG_KIND.sourcemapAdded: {
@@ -265,7 +264,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
     }
   }
 
-  debug("Found %s recordings:\n%o", recordings.length, recordings);
+  debug("Found %s recordings:\n%o\n%o", recordings.length, JSON.stringify(recordings, null, 2));
 
   return (
     recordings
@@ -274,11 +273,20 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           return false;
         }
 
-        if (!recording.metadata.host) {
-          // Ignore new/empty tab recordings (see TT-1036)
-          // Note that we filter all "empty" recordings, not just root recordings,
-          // because Chrome loads its default new tab content via an <iframe>
-          return false;
+        switch (recording.recordingStatus) {
+          case "finished":
+            if (!recording.metadata.host) {
+              // Ignore new/empty tab recordings (see TT-1036)
+              //
+              // Note that we filter all "empty" recordings, not just root recordings,
+              // because Chrome loads its default new tab content via an <iframe>
+              //
+              // Also note that we only remove finished recordings in this way,
+              // because it's important to report unusable or crashed recordings to the user
+              // Those may have crashed before host metadata was added
+              return false;
+            }
+            break;
         }
 
         return true;

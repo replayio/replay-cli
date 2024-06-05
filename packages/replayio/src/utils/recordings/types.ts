@@ -41,6 +41,7 @@ export type LogEntry = {
   parentId?: string;
   parentOffset?: number;
   path?: string;
+  reason?: string;
   recordingId?: string;
   server?: string;
   targetContentHash?: string;
@@ -84,5 +85,6 @@ export type LocalRecording = {
   path: string | undefined;
   processingStatus: "failed" | "processed" | "processing" | undefined;
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
+  unusableReason: string | undefined;
   uploadStatus: "failed" | "uploading" | "uploaded" | undefined;
 };

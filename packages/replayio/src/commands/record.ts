@@ -11,12 +11,13 @@ import { exitProcess } from "../utils/exitProcess";
 import { killProcess } from "../utils/killProcess";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
+import { getRecordingUnusableReason } from "../utils/recordings/getRecordingUnusableReason";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
 import { LocalRecording } from "../utils/recordings/types";
 import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { dim } from "../utils/theme";
+import { dim, statusFailed } from "../utils/theme";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -55,39 +56,45 @@ async function record(url: string = "about:blank") {
   } catch (error) {
     if (error instanceof ProcessError) {
       const { errorLogPath, uploaded } = await reportBrowserCrash(error.stderr);
+
       console.log("\nSomething went wrong while recording. Try again.");
-      console.log(dim(`More information can be found in ${errorLogPath}`));
+      console.log(dim(`\nMore information can be found in ${errorLogPath}`));
       if (uploaded) {
         console.log(dim(`The crash was reported to the Replay team`));
       }
+
       await exitProcess(1);
     }
   }
 
-  const recordingsAfter = getRecordings(processGroupId);
+  const crashedRecordings: LocalRecording[] = [];
+  const finishedRecordings: LocalRecording[] = [];
+  const unusableRecordings: LocalRecording[] = [];
 
-  const nextCrashedRecordings: LocalRecording[] = [];
-  const nextRecordings: LocalRecording[] = [];
-
-  recordingsAfter.filter(recording => {
-    if (recording.recordingStatus === "crashed") {
-      if (canUpload(recording)) {
-        nextCrashedRecordings.push(recording);
-      }
-    } else {
-      nextRecordings.push(recording);
+  getRecordings(processGroupId).forEach(recording => {
+    switch (recording.recordingStatus) {
+      case "crashed":
+        if (canUpload(recording)) {
+          crashedRecordings.push(recording);
+        }
+        break;
+      case "unusable":
+        unusableRecordings.push(recording);
+        break;
+      default:
+        finishedRecordings.push(recording);
     }
   });
 
   console.log(""); // Spacing for readability
 
   // First check for any new crashes; these we should upload automatically
-  if (nextCrashedRecordings.length > 0) {
+  if (crashedRecordings.length > 0) {
     console.log(
-      "It looks like something went wrong with this recording. Please hold while we upload crash data."
+      "It looks like something went wrong while recording. Please hold while we upload crash data."
     );
 
-    const promise = uploadRecordings(nextCrashedRecordings, {
+    const promise = uploadRecordings(crashedRecordings, {
       processingBehavior: "do-not-process",
       silent: true,
     });
@@ -102,11 +109,18 @@ async function record(url: string = "about:blank") {
     }
 
     console.log(""); // Spacing for readability
+  } else if (unusableRecordings.length > 0) {
+    // If there were unusable recordings we should provide explicit messaging about them
+    const reason = getRecordingUnusableReason(processGroupId);
+    if (reason) {
+      console.log("An error occurred while recording:\n" + statusFailed(reason));
+      console.log(""); // Spacing for readability
+    }
   }
 
   trackEvent("record.results", {
-    crashedCount: nextCrashedRecordings.length,
-    successCountsByType: nextRecordings.reduce(
+    crashedCount: crashedRecordings.length,
+    successCountsByType: finishedRecordings.reduce(
       (map, recording) => {
         const processType = recording.metadata.processType ?? "unknown";
         map[processType] ??= 0;
@@ -125,32 +139,32 @@ async function record(url: string = "about:blank") {
   });
 
   // Then let the user decide what to do with the other new recordings
-  if (nextRecordings.length > 0) {
+  if (finishedRecordings.length > 0) {
     if (!process.stdin.isTTY) {
       console.log(
         "New recording(s) found:\n" +
-          printRecordings(nextRecordings, {
+          printRecordings(finishedRecordings, {
             showHeaderRow: false,
           })
       );
     } else {
       let selectedRecordings: LocalRecording[] = [];
-      if (nextRecordings.length === 1) {
+      if (finishedRecordings.length === 1) {
         const confirmed = await confirm(
           "New recording found. Would you like to upload it?",
           true,
           "\n" +
-            printRecordings(nextRecordings, {
+            printRecordings(finishedRecordings, {
               showHeaderRow: false,
             })
         );
         if (confirmed) {
-          selectedRecordings = nextRecordings;
+          selectedRecordings = finishedRecordings;
         }
 
         console.log(""); // Spacing for readability
       } else {
-        selectedRecordings = await selectRecordings(nextRecordings, {
+        selectedRecordings = await selectRecordings(finishedRecordings, {
           defaultSelected: recording => recording.metadata.processType === "root",
           prompt: "New recordings found. Which would you like to upload?",
           selectionMessage: "The following recording(s) will be uploaded:",
@@ -161,7 +175,7 @@ async function record(url: string = "about:blank") {
         await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
       }
     }
-  } else if (nextCrashedRecordings.length === 0) {
+  } else if (crashedRecordings.length === 0) {
     // It doesn't make sense to print this message if there were crashes
     console.log("No new recordings were created");
   }
