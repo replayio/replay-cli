@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.1
+
+### Patch Changes
+
+- [#503](https://github.com/replayio/replay-cli/pull/503) [`4954cd1`](https://github.com/replayio/replay-cli/commit/4954cd14547359936842b2d3c59d6f138eab21ba) Thanks [@Andarist](https://github.com/Andarist)! - Added automatic browser crash reporting to the Replay team
+
+- [#511](https://github.com/replayio/replay-cli/pull/511) [`bf2c72d`](https://github.com/replayio/replay-cli/commit/bf2c72df7c076fd824f03511b707cb109e325c12) Thanks [@hbenl](https://github.com/hbenl)! - Handle unexpected ordering of recording log entries
+
+- [#508](https://github.com/replayio/replay-cli/pull/508) [`e0ce74f`](https://github.com/replayio/replay-cli/commit/e0ce74f) Thanks [@hbenl](https://github.com/hbenl)! - Fixed a potential data corruption issue related to the `recordings.log` updates
+
+- [#509](https://github.com/replayio/replay-cli/pull/509) [`45d5067`](https://github.com/replayio/replay-cli/commit/45d5067bbf570628a53d45e6e5eb4c98cebd66e1) Thanks [@hbenl](https://github.com/hbenl)! - Change `replayio remove --all` to also remove empty recordings
+
 ## 1.3.0
 
 ### Minor Changes
