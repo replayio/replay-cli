@@ -111,12 +111,10 @@ async function record(url: string = "about:blank") {
   } else if (unusableRecordings.length > 0) {
     // If there were unusable recordings we should provide explicit messaging about them
     const reason = unusableRecordings.findLast(
-      recording => recording.recordingStatus === "unusable" && recording.unusableReason
+      recording => recording.unusableReason
     )?.unusableReason;
-    if (reason) {
-      console.log("An error occurred while recording:\n" + statusFailed(reason));
-      console.log(""); // Spacing for readability
-    }
+    console.log("An error occurred while recording:\n" + statusFailed(reason ?? "Internal"));
+    console.log(""); // Spacing for readability
   }
 
   trackEvent("record.results", {
