@@ -6,34 +6,12 @@ import { debug } from "./debug";
 import { readRecordingLog } from "./readRecordingLog";
 import { LocalRecording, RECORDING_LOG_KIND } from "./types";
 
-const RECORDING_LOG_KINDS = [
-  RECORDING_LOG_KIND.createRecording,
-  RECORDING_LOG_KIND.addMetadata,
-  RECORDING_LOG_KIND.writeStarted,
-  RECORDING_LOG_KIND.sourcemapAdded,
-  RECORDING_LOG_KIND.originalSourceAdded,
-  RECORDING_LOG_KIND.writeFinished,
-  RECORDING_LOG_KIND.uploadStarted,
-  RECORDING_LOG_KIND.uploadFinished,
-  RECORDING_LOG_KIND.uploadFailed,
-  RECORDING_LOG_KIND.recordingUnusable,
-  RECORDING_LOG_KIND.crashed,
-  RECORDING_LOG_KIND.crashData,
-  RECORDING_LOG_KIND.crashUploaded,
-  RECORDING_LOG_KIND.processingStarted,
-  RECORDING_LOG_KIND.processingFinished,
-  RECORDING_LOG_KIND.processingFailed,
-];
-
 export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
   if (existsSync(recordingLogPath)) {
     const entries = readRecordingLog();
-    entries.sort(
-      (a, b) => RECORDING_LOG_KINDS.indexOf(a.kind) - RECORDING_LOG_KINDS.indexOf(b.kind)
-    );
 
     debug("Reading recording log %s\n%s", recordingLogPath, JSON.stringify(entries));
 
