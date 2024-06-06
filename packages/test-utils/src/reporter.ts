@@ -8,6 +8,7 @@ import {
 } from "@replayio/replay";
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
+import { spawnSync } from "child_process";
 import dbg from "debug";
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
@@ -187,6 +188,28 @@ export class ReporterError extends Error {
   }
 }
 
+function getFallbackRunTitle() {
+  // for CI runs we don't want to set an explicit title
+  // dashboard is meant to use the commit/PR information retrieved on CI
+  if (process.env.CI) {
+    return;
+  }
+
+  let gitChild;
+
+  try {
+    gitChild = spawnSync("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+  } catch {
+    return;
+  }
+
+  if (gitChild.status !== 0) {
+    return;
+  }
+
+  return `(local) ${gitChild.stdout.toString().trim()}`;
+}
+
 class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
   baseId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid.v4();
   testRunShardId: string | null = null;
@@ -303,7 +326,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       process.env.REPLAY_METADATA_TEST_RUN_TITLE ||
       process.env.RECORD_REPLAY_TEST_RUN_TITLE ||
       process.env.RECORD_REPLAY_METADATA_TEST_RUN_TITLE ||
-      config.runTitle;
+      config.runTitle ||
+      getFallbackRunTitle();
 
     this.filter = config.filter;
 
