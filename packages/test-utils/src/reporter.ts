@@ -207,7 +207,7 @@ function getFallbackRunTitle() {
     return;
   }
 
-  return `(local) ${gitChild.stdout.toString().trim()}`;
+  return `(local) ${gitChild.stdout.toString().trim()} branch`;
 }
 
 class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
