@@ -75,7 +75,6 @@ export interface ReplayReporterConfig<
   upload?: boolean;
   apiKey?: string;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
-  disableTelemetry?: boolean;
 }
 
 export interface TestRunner {
@@ -222,7 +221,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   runner: TestRunner;
   errors: ReporterError[] = [];
   apiKey?: string;
-  telemetryEnabled: boolean = true;
   pendingWork: Promise<PendingWork>[] = [];
   upload = false;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
@@ -269,18 +267,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   summarizeResults(tests: Test[]) {
-    // console.log("SENTINEL: summarizeResults ran");
-    // withNamedSpan(
-    //   async cx => {
-    //     await withNamedSpan(async _cx => {}, cx, { name: "TestUtilsChild10" });
-    //   },
-    //   emptyContext(),
-    //   {
-    //     name: "TestUtilsParent10",
-    //     attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
-    //   }
-    // );
-
     let approximateDuration = 0;
     let resultCounts: TestRun["resultCounts"] = {
       failed: 0,
@@ -331,7 +317,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   parseConfig(config: ReplayReporterConfig<TRecordingMetadata> = {}, metadataKey?: string) {
     this.apiKey = config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
     this.upload = "upload" in config ? !!config.upload : !!process.env.REPLAY_UPLOAD;
-    this.telemetryEnabled = !(process.env.REPLAY_DISABLE_TELEMETRY || config.disableTelemetry);
 
     if (this.upload && !this.apiKey) {
       throw new Error(
@@ -776,7 +761,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       };
     } catch (e) {
       debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
-      throw e;
     }
 
     recordings.forEach(rec => add(rec.id, mergedMetadata));
