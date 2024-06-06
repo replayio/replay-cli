@@ -264,7 +264,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
     }
   }
 
-  debug("Found %s recordings:\n%o\n%o", recordings.length, JSON.stringify(recordings, null, 2));
+  debug("Found %s recordings:\n%O", recordings.length, recordings);
 
   return (
     recordings
