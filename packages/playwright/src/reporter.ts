@@ -82,8 +82,6 @@ class ReplayPlaywrightReporter implements Reporter {
   > = {};
   private _foundReplayBrowser = false;
 
-  // MBUDAYR - which function passes this config in? What is the relationship between this config and config passed to `parseConfig` in `test-utils`?
-
   constructor(config: ReplayPlaywrightConfig) {
     if (!config || typeof config !== "object") {
       throw new Error(
@@ -167,11 +165,9 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin({ version, projects }: FullConfig) {
     const replayBrowserPath = getPlaywrightBrowserPath("chromium");
-
     this._foundReplayBrowser = !!projects.find(
       p => p.use.launchOptions?.executablePath === replayBrowserPath
     );
-
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }

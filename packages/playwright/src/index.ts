@@ -1,11 +1,8 @@
 import { getPlaywrightBrowserPath } from "@replayio/replay";
-import { getTelemetrySettingsFilePath, initMetadataFile } from "@replayio/test-utils";
+import { initMetadataFile } from "@replayio/test-utils";
+
 import { addReplayFixture } from "./fixture";
 import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
-
-// MBUDAYR - wip idea.
-// import { writeToCache } from "./cache";
-// writeToCache(getTelemetrySettingsFilePath(), { enabled: true });
 
 function getDeviceConfig() {
   const executablePath = getExecutablePath();
