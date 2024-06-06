@@ -6,7 +6,6 @@ import {
   removeRecording,
   uploadRecording,
 } from "@replayio/replay";
-import { ROOT_CONTEXT } from "@opentelemetry/api";
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import dbg from "debug";
@@ -19,42 +18,32 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { SemanticAttributes, emptyContext, withNamedSpan } from "./manual-span";
-
-import { HoneycombSDK } from "@honeycombio/opentelemetry-node";
-import opentelemetry from "@opentelemetry/api";
-
-const sdk = new HoneycombSDK({
-  apiKey: "7cbfc8bb584c46a5aa5a1588ab7b7052", // MUDAYR - replay-playwright-plugin
-  serviceName: "mbudayr",
-  // instrumentations: [getNodeAutoInstrumentations()],
-  endpoint: "https://api.honeycomb.io/",
-  dataset: "miriam-test",
-});
-
-sdk.start();
-
-export const tracer = opentelemetry.trace.getTracer("replay-playwright");
-
-// sends full trace to honeycomb once `end` is run.
-// function withNamedSpan() {
-//   const span = tracer.startSpan();
-//   span.end();
-// }
+import {
+  SemanticAttributes,
+  emptyContext,
+  initHoneycomb,
+  getTracer,
+  withNamedSpan,
+} from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
+const sdk = initHoneycomb();
 
+const tracer = getTracer("test-utils-reporter");
+
+// MBUDAYR - this is just a test.
 (async () => {
   await withNamedSpan(
-    async cx => {
-      await withNamedSpan(async _cx => {}, cx, { name: "TestUtilsChild11" });
-    },
+    async cx => withNamedSpan(async _cx => {}, cx, tracer, { name: "TestParent1" }),
     emptyContext(),
+    tracer,
     {
-      name: "TestUtilsParent11",
+      name: "TestChild1",
       attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
     }
   );
+
+  await sdk.shutdown();
 })();
 
 interface TestRunTestInputModel {
@@ -242,13 +231,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   constructor(
     runner: TestRunner,
     schemaVersion: string,
-    // MBUDAYR - what passes in this config onbject?
     config?: ReplayReporterConfig<TRecordingMetadata>
-    // tracer?:
   ) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
-    // MBUDAYR - why is `parseConfig` only run if a config object is passed in?
     if (config) {
       const { metadataKey, ...rest } = config;
       this.parseConfig(rest, metadataKey);
@@ -283,17 +269,17 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   summarizeResults(tests: Test[]) {
-    console.log("SENTINEL: summarizeResults ran");
-    withNamedSpan(
-      async cx => {
-        await withNamedSpan(async _cx => {}, cx, { name: "TestUtilsChild10" });
-      },
-      emptyContext(),
-      {
-        name: "TestUtilsParent10",
-        attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
-      }
-    );
+    // console.log("SENTINEL: summarizeResults ran");
+    // withNamedSpan(
+    //   async cx => {
+    //     await withNamedSpan(async _cx => {}, cx, { name: "TestUtilsChild10" });
+    //   },
+    //   emptyContext(),
+    //   {
+    //     name: "TestUtilsParent10",
+    //     attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
+    //   }
+    // );
 
     let approximateDuration = 0;
     let resultCounts: TestRun["resultCounts"] = {
@@ -766,50 +752,41 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ) {
-    return withNamedSpan(
-      async cx => {
-        debug(
-          "setRecordingMetadata: Adding test metadata to %o",
-          recordings.map(r => r.id)
-        );
-        debug("setRecordingMetadata: Includes %s errors", this.errors.length);
+    debug(
+      "setRecordingMetadata: Adding test metadata to %o",
+      recordings.map(r => r.id)
+    );
+    debug("setRecordingMetadata: Includes %s errors", this.errors.length);
 
-        const validatedTestMetadata = testMetadata.init(testRun) as {
-          test: TestMetadataV2.TestRun;
-        };
+    const validatedTestMetadata = testMetadata.init(testRun) as {
+      test: TestMetadataV2.TestRun;
+    };
 
-        let mergedMetadata = {
-          title: replayTitle || testRun.source.title,
-          ...extraMetadata,
-          ...validatedTestMetadata,
-        };
+    let mergedMetadata = {
+      title: replayTitle || testRun.source.title,
+      ...extraMetadata,
+      ...validatedTestMetadata,
+    };
 
-        try {
-          const validatedSourceMetadata = await sourceMetadata.init();
-          mergedMetadata = {
-            ...mergedMetadata,
-            ...validatedSourceMetadata,
-          };
-        } catch (e) {
-          debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
-          throw e;
-        }
+    try {
+      const validatedSourceMetadata = await sourceMetadata.init();
+      mergedMetadata = {
+        ...mergedMetadata,
+        ...validatedSourceMetadata,
+      };
+    } catch (e) {
+      debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
+      throw e;
+    }
 
-        recordings.forEach(rec => add(rec.id, mergedMetadata));
+    recordings.forEach(rec => add(rec.id, mergedMetadata));
 
-        // Re-fetch recordings so we have the most recent metadata
-        const allRecordings = listAllRecordings({
-          all: true,
-        }) as RecordingEntry<TRecordingMetadata>[];
-        return allRecordings.filter(recordingWithMetadata =>
-          recordings.some(r => r.id === recordingWithMetadata.id)
-        );
-      },
-      ROOT_CONTEXT,
-      {
-        name: "setRecordingMetadata",
-        attributes: { [SemanticAttributes.RPC_SYSTEM]: "playwright-plugin" },
-      }
+    // Re-fetch recordings so we have the most recent metadata
+    const allRecordings = listAllRecordings({
+      all: true,
+    }) as RecordingEntry<TRecordingMetadata>[];
+    return allRecordings.filter(recordingWithMetadata =>
+      recordings.some(r => r.id === recordingWithMetadata.id)
     );
   }
 

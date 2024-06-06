@@ -8,9 +8,29 @@ import {
   trace as traceApi,
   Tracer,
 } from "@opentelemetry/api";
-import { tracer } from "./reporter";
+import { HoneycombSDK } from "@honeycombio/opentelemetry-node";
+import opentelemetry from "@opentelemetry/api";
+import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 
-export enum SemanticAttributes {
+// Returns the sdk so it can be shut down before the process exits.
+function initHoneycomb() {
+  const sdk = new HoneycombSDK({
+    apiKey: "7cbfc8bb584c46a5aa5a1588ab7b7052", // MUDAYR - replay-playwright-plugin
+    serviceName: "mbudayr",
+    instrumentations: [getNodeAutoInstrumentations()],
+    endpoint: "https://api.honeycomb.io/",
+    dataset: "miriam-test",
+  });
+
+  sdk.start();
+  return sdk;
+}
+
+function getTracer(name: string) {
+  return opentelemetry.trace.getTracer(name);
+}
+
+enum SemanticAttributes {
   RPC_SYSTEM = "rpc.system",
   EXCEPTION_TYPE = "exception.type",
   EXCEPTION_MESSAGE = "exception.message",
@@ -18,7 +38,7 @@ export enum SemanticAttributes {
 
 type SemanticAttributeObject = Partial<Record<SemanticAttributes, AttributeValue>>;
 
-export enum OtelEventTypes {
+enum OtelEventTypes {
   // An exception thrown in the span.
   EXCEPTION = "exception",
 
@@ -43,13 +63,14 @@ type WithNamedSpanOptions = {
   attributes?: SemanticAttributeObject;
 };
 
-export function emptyContext() {
+function emptyContext() {
   return ROOT_CONTEXT;
 }
 
-export async function withNamedSpan<C extends OtelContext, T>(
+async function withNamedSpan<C extends OtelContext, T>(
   handler: (childContext: OtelContext) => Promise<T>,
   parentContext: C,
+  tracer: Tracer,
   options: WithNamedSpanOptions
 ) {
   const span = new ManualSpan(options, tracer);
@@ -70,7 +91,7 @@ export async function withNamedSpan<C extends OtelContext, T>(
  * dealing directly with the OTEL API. Also has the ability to annotate spans with SIGTERM events,
  * and make sure that in the case of a SIGTERM we will finish this span.
  * */
-export class ManualSpan {
+class ManualSpan {
   protected span: Span;
 
   private endTime: number | undefined;
@@ -169,3 +190,5 @@ export class ManualSpan {
     return typeof this.endTime === "number";
   }
 }
+
+export { ManualSpan, SemanticAttributes, emptyContext, getTracer, initHoneycomb, withNamedSpan };

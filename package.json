@@ -35,6 +35,8 @@
     "ws": "^8.17.0"
   },
   "dependencies": {
+    "@honeycombio/opentelemetry-node": "^0.7.2",
+    "@opentelemetry/auto-instrumentations-node": "^0.47.0",
     "node-fetch": "^3.3.1"
   },
   "resolutions": {

@@ -8,6 +8,7 @@
   "references": [
     {
       "path": "../replay"
-    }
+    },
+    { "path": "../observability-node" }
   ]
 }

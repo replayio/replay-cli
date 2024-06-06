@@ -1,4 +1,3 @@
-import { emptyContext, withNamedSpan } from "./manual-span";
 import ReplayReporter from "./reporter";
 
 export type {
@@ -15,4 +14,3 @@ export { fetchWorkspaceConfig } from "./config";
 export * from "./logging";
 export { ReplayReporter };
 export { getMetadataFilePath, initMetadataFile } from "./metadata";
-export { getTelemetrySettingsFilePath, initTelemetrySettingsFile } from "./telemetry-settings";

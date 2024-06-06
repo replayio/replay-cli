@@ -11,7 +11,6 @@ import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, getUserAgent, isValidUUID, linearBackoffRetry, maybeLog } from "./utils";
 import { grafanaDebug } from "@replayio/observability-node";
-
 const debug = dbg("replay:cli:upload");
 
 function sha256(text: string) {
