@@ -11,7 +11,6 @@ import { exitProcess } from "../utils/exitProcess";
 import { killProcess } from "../utils/killProcess";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
-import { getRecordingUnusableReason } from "../utils/recordings/getRecordingUnusableReason";
 import { getRecordings } from "../utils/recordings/getRecordings";
 import { printRecordings } from "../utils/recordings/printRecordings";
 import { selectRecordings } from "../utils/recordings/selectRecordings";
@@ -111,7 +110,9 @@ async function record(url: string = "about:blank") {
     console.log(""); // Spacing for readability
   } else if (unusableRecordings.length > 0) {
     // If there were unusable recordings we should provide explicit messaging about them
-    const reason = getRecordingUnusableReason(processGroupId);
+    const reason = unusableRecordings.findLast(
+      recording => recording.recordingStatus === "unusable" && recording.unusableReason
+    )?.unusableReason;
     if (reason) {
       console.log("An error occurred while recording:\n" + statusFailed(reason));
       console.log(""); // Spacing for readability
