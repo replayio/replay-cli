@@ -75,14 +75,15 @@ type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
   : TestMetadataV2.TestRun;
 
 type PendingWorkType = "test-run" | "test-run-tests" | "post-test" | "upload";
-export interface PendingWorkError<K extends PendingWorkType> {
+export type PendingWorkError<K extends PendingWorkType, TErrorData = {}> = TErrorData & {
   type: K;
   error: Error;
-}
-export interface PendingUploadError extends PendingWorkError<"upload"> {
-  recording: RecordingEntry;
-}
-type PendingWorkEntry<K extends PendingWorkType, T = {}> = PendingWorkError<K> | (T & { type: K });
+};
+export type PendingUploadError = Extract<UploadPendingWork, { error: {} }>;
+
+type PendingWorkEntry<TType extends PendingWorkType, TSuccessData = {}, TErrorData = {}> =
+  | PendingWorkError<TType, TErrorData>
+  | (TSuccessData & { type: TType; error?: never });
 type TestRunPendingWork = PendingWorkEntry<
   "test-run",
   {
@@ -93,6 +94,9 @@ type TestRunPendingWork = PendingWorkEntry<
 type TestRunTestsPendingWork = PendingWorkEntry<"test-run-tests">;
 type UploadPendingWork = PendingWorkEntry<
   "upload",
+  {
+    recording: RecordingEntry;
+  },
   {
     recording: RecordingEntry;
   }
@@ -200,6 +204,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   upload = false;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
+  private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
 
   constructor(
     runner: TestRunner,
@@ -372,13 +377,17 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       hasFilter: !!this.filter,
     });
 
-    if (!this.testRunShardId) {
-      if (this.apiKey) {
-        this.pendingWork.push(this.startTestRunShard());
-      } else {
-        debug("Skipping starting test run: API Key not set");
-      }
+    if (!this.apiKey) {
+      debug("Skipping starting test run: API key not set");
+      return;
     }
+
+    if (this._testRunShardIdPromise) {
+      return;
+    }
+
+    this._testRunShardIdPromise = this.startTestRunShard();
+    this.pendingWork.push(this._testRunShardIdPromise);
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
@@ -414,7 +423,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     debug("Creating test run shard for user-key %s", this.baseId);
 
     try {
-      await exponentialBackoffRetry(async () => {
+      return exponentialBackoffRetry(async () => {
         const resp = await query(
           "CreateTestRunShard",
           `
@@ -439,23 +448,24 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           throwGraphqlErrors("CreateTestRunShard", resp.errors);
         }
 
-        this.testRunShardId = resp.data.startTestRunShard.testRunShardId;
+        const testRunShardId = resp.data.startTestRunShard.testRunShardId;
 
-        if (!this.testRunShardId) {
+        if (!testRunShardId) {
           return {
             type: "test-run",
             error: new Error("Unexpected error retrieving test run shard id"),
           };
         }
+
+        debug("Created test run shard %s for user key %s", testRunShardId, this.baseId);
+        this.testRunShardId = testRunShardId;
+
+        return {
+          type: "test-run",
+          id: testRunShardId,
+          phase: "start",
+        };
       });
-
-      debug("Created test run shard %s for user key %s", this.testRunShardId, this.baseId);
-
-      return {
-        type: "test-run",
-        id: this.testRunShardId!,
-        phase: "start",
-      };
     } catch (e) {
       debug("start test run error: %s", e);
       return {
@@ -466,14 +476,18 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async addTestsToShard(tests: TestRunTestInputModel[]): Promise<TestRunTestsPendingWork> {
-    if (!this.testRunShardId) {
-      return {
-        type: "test-run-tests",
-        error: new Error("Unable to add tests to test run: ID not set"),
-      };
+    let testRunShardId = this.testRunShardId;
+    if (!testRunShardId) {
+      await this._testRunShardIdPromise;
+      testRunShardId = this.testRunShardId;
+      if (!testRunShardId) {
+        return {
+          type: "test-run-tests",
+          error: new Error("Unable to add tests to test run: ID not set"),
+        };
+      }
     }
-
-    debug("Adding %d tests to shard %s", tests.length, this.testRunShardId);
+    debug("Adding %d tests to shard %s", tests.length, testRunShardId);
 
     try {
       await exponentialBackoffRetry(async () => {
@@ -490,7 +504,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           }
         `,
           {
-            testRunShardId: this.testRunShardId,
+            testRunShardId,
             tests,
           },
           this.apiKey
@@ -501,7 +515,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         }
       });
 
-      debug("Successfully added tests to shard %s", this.testRunShardId);
+      debug("Successfully added tests to shard %s", testRunShardId);
 
       return {
         type: "test-run-tests",
@@ -516,14 +530,19 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async completeTestRunShard(): Promise<TestRunPendingWork> {
-    if (!this.testRunShardId) {
-      return {
-        type: "test-run",
-        error: new Error("Unable to complete test run: ID not set"),
-      };
+    let testRunShardId = this.testRunShardId;
+    if (!testRunShardId) {
+      await this._testRunShardIdPromise;
+      testRunShardId = this.testRunShardId;
+      if (!testRunShardId) {
+        return {
+          type: "test-run",
+          error: new Error("Unable to complete test run: ID not set"),
+        };
+      }
     }
 
-    debug("Marking test run shard %s complete", this.testRunShardId);
+    debug("Marking test run shard %s complete", testRunShardId);
 
     try {
       await exponentialBackoffRetry(async () => {
@@ -539,7 +558,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         }
       `,
           {
-            testRunShardId: this.testRunShardId,
+            testRunShardId,
           },
           this.apiKey
         );
@@ -549,11 +568,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         }
       });
 
-      debug("Successfully marked test run shard %s complete", this.testRunShardId);
+      debug("Successfully marked test run shard %s complete", testRunShardId);
 
       return {
         type: "test-run",
-        id: this.testRunShardId,
+        id: testRunShardId,
         phase: "complete",
       };
     } catch (e) {
@@ -752,10 +771,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     extraMetadata?: Record<string, unknown>
   ): Promise<PendingWork> {
     try {
-      const runnerGroupId = runnerGroupKey ? await generateOpaqueId(runnerGroupKey) : null;
+      const runnerGroupId = runnerGroupKey ? generateOpaqueId(runnerGroupKey) : null;
       const recordings = this.getRecordingsForTest(tests);
 
-      if (this.testRunShardId) {
+      if (this.apiKey) {
         const recordingIds = recordings.map(r => r.id);
         const testInputs = await Promise.all(
           tests.map<Promise<TestRunTestInputModel>>(async t => {
@@ -782,7 +801,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
         this.pendingWork.push(this.addTestsToShard(testInputs));
       } else {
-        debug("Skipping adding tests to test run: test run shard ID not found");
+        debug("Skipping adding tests to test run: API key not set");
       }
 
       const testRun = this.buildTestMetadata(tests, specFile);
@@ -871,21 +890,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     const completedWork = await Promise.allSettled(this.pendingWork);
 
     if (this.apiKey) {
-      if (this.testRunShardId) {
-        // In the rare case that a test suite has no tests (or very brief
-        // tests?), onEnd will likely be called before the request to create the
-        // shard completes so we have to wait on all the pending work before we
-        // can complete the shard. This is also probably better from a UX
-        // standpoint because the shard won't be completed until uploading
-        // completes so we will report a more accurate status to the user. In
-        // order to handle the result of this command like the rest, we use
-        // `allSettled` and push the results onto the completedWork array so all
-        // responses are handled together.
-        const postSettledWork = await Promise.allSettled([this.completeTestRunShard()]);
-        completedWork.push(...postSettledWork);
-      } else {
-        debug("Skipping completing test run: test run shard ID not found");
-      }
+      const postSettledWork = await Promise.allSettled([this.completeTestRunShard()]);
+      completedWork.push(...postSettledWork);
     } else {
       debug("Skipping completing test run: API Key not set");
     }
@@ -904,10 +910,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       .map(r => r.value);
 
     const errors = {
-      "post-test": [] as PendingWorkError<"post-test">[],
-      "test-run": [] as PendingWorkError<"test-run">[],
-      "test-run-tests": [] as PendingWorkError<"test-run-tests">[],
-      upload: [] as PendingWorkError<"upload">[],
+      "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
+      "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
+      "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
+      upload: [] as Extract<UploadPendingWork, { error: {} }>[],
     };
     let uploads: RecordingEntry[] = [];
     for (const r of results) {
@@ -936,8 +942,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       errors["upload"].forEach(err => {
         if ("recording" in err) {
-          const r = (err as PendingUploadError).recording;
-
+          const r = err.recording;
           output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
           output.push(`      ${getErrorMessage(err.error)}\n`);
         }
