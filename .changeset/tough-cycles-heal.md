@@ -1,5 +1,4 @@
 ---
-"@replayio/replay": patch
 "replayio": patch
 ---
 
