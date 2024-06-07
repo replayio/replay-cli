@@ -12,7 +12,6 @@
     "*.d.ts"
   ],
   "scripts": {
-    "postinstall": "node ./first-run.js",
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
     "test": "echo \"Error: no test specified\"",
