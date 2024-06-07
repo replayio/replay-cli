@@ -26,6 +26,7 @@ export interface UploadOptions {
   group: string;
   key?: string;
   dryRun?: boolean;
+  matchSourcemapsByFilename?: boolean;
   extensions?: Array<string>;
   ignore?: Array<string>;
   root?: string;
@@ -49,7 +50,10 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   );
   assert(
     typeof opts.dryRun === "boolean" || opts.dryRun === undefined,
-    "'dryRun' must be a string or undefined"
+  assert(
+    typeof opts.matchSourcemapsByFilename === "boolean" ||
+      opts.matchSourcemapsByFilename === undefined,
+    "'matchSourcemapsByFilename' must be a boolean or undefined"
   );
   assert(
     (Array.isArray(opts.extensions) &&
@@ -110,6 +114,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     groupName: opts.group,
     apiKey,
     dryRun: !!opts.dryRun,
+    matchSourcemapsByFilename: !!opts.matchSourcemapsByFilename,
     extensions: opts.extensions || [".js", ".map"],
     ignorePatterns: opts.ignore || [],
     rootPath: path.resolve(cwd, opts.root || ""),
@@ -126,6 +131,7 @@ interface NormalizedOptions {
   groupName: string;
   apiKey: string;
   dryRun: boolean;
+  matchSourcemapsByFilename: boolean;
   extensions: Array<string>;
   ignorePatterns: Array<string>;
   rootPath: string;
@@ -420,9 +426,24 @@ async function findAndResolveMaps(
 
         debug("hashed filepath: %s", absPath);
 
-        const url = Array.from(matches, (match) =>
+        const possibleMatches = Array.from(matches, (match) =>
           (match[1] || match[2])?.trim()
-        )
+        );
+
+        // If the Webpack `devtool` option is set to `"hidden-source-map"`,
+        // Webpack will not output any sourceMappingURL comments in the generated sources.
+        // That means our parsing logic won't be able to match up sourcemaps and generated files.
+        // If this option is provided, assume that the sourcemap is the same filename + a `".map"` extension,
+        // and add that to the list of possible matches.
+        if (opts.matchSourcemapsByFilename) {
+          const mapAbsolutePath = absPath + ".map";
+          if (fs.existsSync(mapAbsolutePath)) {
+            const mapURL = pathToFileURL(mapAbsolutePath).toString();
+            possibleMatches.push(mapURL);
+          }
+        }
+
+        const url = possibleMatches
           .filter((url) => typeof url === "string")
           .pop();
 
