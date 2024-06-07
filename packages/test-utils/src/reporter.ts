@@ -75,16 +75,15 @@ type TestRun = ReplayReporter["schemaVersion"] extends "1.0.0"
   : TestMetadataV2.TestRun;
 
 type PendingWorkType = "test-run" | "test-run-tests" | "post-test" | "upload";
-export interface PendingWorkError<K extends PendingWorkType> {
+export type PendingWorkError<K extends PendingWorkType, TErrorData = {}> = TErrorData & {
   type: K;
   error: Error;
-}
-export interface PendingUploadError extends PendingWorkError<"upload"> {
-  recording: RecordingEntry;
-}
-type PendingWorkEntry<K extends PendingWorkType, T = {}> =
-  | PendingWorkError<K>
-  | (T & { type: K; error?: never });
+};
+export type PendingUploadError = Extract<UploadPendingWork, { error: {} }>;
+
+type PendingWorkEntry<TType extends PendingWorkType, TSuccessData = {}, TErrorData = {}> =
+  | PendingWorkError<TType, TErrorData>
+  | (TSuccessData & { type: TType; error?: never });
 type TestRunPendingWork = PendingWorkEntry<
   "test-run",
   {
@@ -95,6 +94,9 @@ type TestRunPendingWork = PendingWorkEntry<
 type TestRunTestsPendingWork = PendingWorkEntry<"test-run-tests">;
 type UploadPendingWork = PendingWorkEntry<
   "upload",
+  {
+    recording: RecordingEntry;
+  },
   {
     recording: RecordingEntry;
   }
@@ -662,6 +664,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       debug("upload error: %s", e);
       return {
         type: "upload",
+        recording,
         error: new Error(getErrorMessage(e)),
       };
     }
@@ -907,10 +910,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       .map(r => r.value);
 
     const errors = {
-      "post-test": [] as PendingWorkError<"post-test">[],
-      "test-run": [] as PendingWorkError<"test-run">[],
-      "test-run-tests": [] as PendingWorkError<"test-run-tests">[],
-      upload: [] as PendingWorkError<"upload">[],
+      "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
+      "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
+      "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
+      upload: [] as Extract<UploadPendingWork, { error: {} }>[],
     };
     let uploads: RecordingEntry[] = [];
     for (const r of results) {
@@ -939,8 +942,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       errors["upload"].forEach(err => {
         if ("recording" in err) {
-          const r = (err as PendingUploadError).recording;
-
+          const r = err.recording;
           output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
           output.push(`      ${getErrorMessage(err.error)}\n`);
         }
