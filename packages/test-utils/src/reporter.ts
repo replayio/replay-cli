@@ -204,7 +204,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   upload = false;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
-  _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
+  private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
 
   constructor(
     runner: TestRunner,
