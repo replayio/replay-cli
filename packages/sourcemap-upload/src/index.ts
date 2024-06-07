@@ -26,6 +26,7 @@ export interface UploadOptions {
   group: string;
   key?: string;
   dryRun?: boolean;
+  deleteAfterUpload?: boolean;
   matchSourcemapsByFilename?: boolean;
   extensions?: Array<string>;
   ignore?: Array<string>;
@@ -50,6 +51,13 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   );
   assert(
     typeof opts.dryRun === "boolean" || opts.dryRun === undefined,
+    "'dryRun' must be a boolean or undefined"
+  );
+  assert(
+    typeof opts.deleteAfterUpload === "boolean" ||
+      opts.deleteAfterUpload === undefined,
+    "'deleteAfterUpload' must be a boolean or undefined"
+  );
   assert(
     typeof opts.matchSourcemapsByFilename === "boolean" ||
       opts.matchSourcemapsByFilename === undefined,
@@ -114,6 +122,7 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     groupName: opts.group,
     apiKey,
     dryRun: !!opts.dryRun,
+    deleteAfterUpload: !!opts.deleteAfterUpload,
     matchSourcemapsByFilename: !!opts.matchSourcemapsByFilename,
     extensions: opts.extensions || [".js", ".map"],
     ignorePatterns: opts.ignore || [],
@@ -131,6 +140,7 @@ interface NormalizedOptions {
   groupName: string;
   apiKey: string;
   dryRun: boolean;
+  deleteAfterUpload: boolean;
   matchSourcemapsByFilename: boolean;
   extensions: Array<string>;
   ignorePatterns: Array<string>;
@@ -170,7 +180,7 @@ async function processSourceMaps(opts: NormalizedOptions) {
 
   const sourceMaps = await findAndResolveMaps(opts);
 
-  const { groupName, apiKey, dryRun, rootPath, log } = opts;
+  const { groupName, apiKey, dryRun, rootPath, log, deleteAfterUpload } = opts;
 
   const mapsToUpload = [];
   for (const map of sourceMaps) {
@@ -225,6 +235,14 @@ async function processSourceMaps(opts: NormalizedOptions) {
           opts.apiServer,
           opts.userAgentAddition
         );
+      }
+
+      if (deleteAfterUpload) {
+        log("normal", `Deleting ${relativePath}`);
+
+        if (!dryRun) {
+          await fs.promises.unlink(absPath);
+        }
       }
     },
     { concurrency: Math.min(opts.concurrency, 25) }
