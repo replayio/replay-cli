@@ -1,6 +1,11 @@
 import LokiTransport from "winston-loki";
 import winston from "winston";
 
+import debug from "debug";
+import { fetchUserIdFromGraphQLOrThrow } from "@replayio/test-utils";
+
+const dbg = debug("replayio:grafana");
+
 const USER_NAME = "909360";
 // Token has write-only permissions.
 const GRAFANA_PUBLIC_TOKEN =
@@ -8,21 +13,34 @@ const GRAFANA_PUBLIC_TOKEN =
 const GRAFANA_BASIC_AUTH = `${USER_NAME}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
-const grafanaLogger = winston.createLogger({
-  level: "debug",
-  transports: [
-    new LokiTransport({
-      host: HOST,
-      labels: { app: "replayio" },
-      json: true,
-      basicAuth: GRAFANA_BASIC_AUTH,
-      format: winston.format.json(),
-      replaceTimestamp: true,
-      onConnectionError: err => console.error(err),
-      gracefulShutdown: true,
-    }),
-  ],
-});
+let grafanaLogger: winston.Logger | undefined;
+let userId: string | undefined;
+
+async function initGrafana(accessToken?: string, packageName?: string) {
+  console.log("SENTINEL: initGrafana accessToken", accessToken);
+  dbg("Initializing grafana logger");
+
+  if (accessToken) {
+    userId = Buffer.from(await fetchUserIdFromGraphQLOrThrow(accessToken), "base64").toString();
+  }
+  console.log("SENTINEL: userId", userId);
+
+  grafanaLogger = winston.createLogger({
+    level: "debug",
+    transports: [
+      new LokiTransport({
+        host: HOST,
+        labels: { app: packageName ? `replayio/${packageName}` : "replayio" },
+        json: true,
+        basicAuth: GRAFANA_BASIC_AUTH,
+        format: winston.format.json(),
+        replaceTimestamp: true,
+        onConnectionError: err => console.error(err),
+        gracefulShutdown: true,
+      }),
+    ],
+  });
+}
 
 type Tags = {
   [key: string]: any;
@@ -33,11 +51,11 @@ function grafanaDebug(message: string, tags?: Tags) {
     return;
   }
 
-  grafanaLogger.debug(message, tags);
+  grafanaLogger?.debug(message, { ...tags, userId });
 }
 
 function closeGrafanaLogger() {
-  grafanaLogger.close();
+  grafanaLogger?.close();
 }
 
-export { grafanaDebug, closeGrafanaLogger };
+export { grafanaDebug, closeGrafanaLogger, initGrafana };

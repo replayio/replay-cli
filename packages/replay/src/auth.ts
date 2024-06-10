@@ -8,6 +8,7 @@ import { query } from "./graphql";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
 import { getLaunchDarkly } from "./launchdarkly";
+import { initGrafana } from "@replayio/observability-node";
 
 const debug = dbg("replay:cli:auth");
 
@@ -175,7 +176,7 @@ async function fetchToken(key: string) {
   return refreshToken;
 }
 
-export async function pollForToken(key: string, options: Options = {}) {
+async function pollForToken(key: string, options: Options = {}) {
   let timedOut = false;
   setTimeout(() => {
     timedOut = true;
@@ -208,7 +209,7 @@ function getTokenPath(options: Options = {}) {
   return path.resolve(path.join(directory, "profile", "auth.json"));
 }
 
-export async function readToken(options: Options = {}) {
+async function readToken(options: Options = {}) {
   try {
     const tokenPath = getTokenPath(options);
     const tokenJson = await readFile(tokenPath, { encoding: "utf-8" });
@@ -381,7 +382,7 @@ async function readAuthInfoCache(key: string, options: Options = {}): Promise<st
   }
 }
 
-export async function initLDContextFromApiKey(options: Options = {}) {
+async function initLaunchDarklyContextFromApiKey(options: Options = {}) {
   const apiKey = await getApiKey(options);
   if (!apiKey) {
     return;
@@ -396,3 +397,27 @@ export async function initLDContextFromApiKey(options: Options = {}) {
 
   await getLaunchDarkly().initialize().identify({ type: "user", id: targetId });
 }
+
+async function initGrafanaLoggerFromApiKey(options: Options = {}, packageName?: string) {
+  const apiKey = await getApiKey(options);
+
+  if (!apiKey) {
+    console.log("SENTINEL: no api key");
+    return;
+  }
+
+  let targetId: string | undefined = await readAuthInfoCache(apiKey, options);
+
+  if (!targetId) {
+    debug("Fetching auth info from server");
+    targetId = await getAuthInfo(apiKey);
+    await writeAuthInfoCache(apiKey, targetId, options);
+  }
+
+  console.log("SENTINEL: initGrafanaLoggerFromApiKey:: apiKey", apiKey);
+  console.log("SENTINEL: initGrafanaLoggerFromApiKey:: targetId", targetId);
+
+  await initGrafana(apiKey, packageName);
+}
+
+export { initGrafanaLoggerFromApiKey, initLaunchDarklyContextFromApiKey, pollForToken, readToken };

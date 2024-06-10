@@ -2,7 +2,7 @@ import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 
-export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
+async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
   console.log("SENTINEL: accessToken", accessToken);
   debug("Fetching auth info from GraphQL");
 
@@ -29,6 +29,8 @@ export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
     {},
     accessToken
   );
+
+  console.log("SENTINEL: data", JSON.stringify(data));
 
   if (errors) {
     throw new GraphQLError("Failed to fetch auth info", errors);
@@ -61,3 +63,5 @@ export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
 
   throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
 }
+
+export { fetchUserIdFromGraphQLOrThrow };

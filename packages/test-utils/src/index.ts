@@ -14,3 +14,4 @@ export { fetchWorkspaceConfig } from "./config";
 export * from "./logging";
 export { ReplayReporter };
 export { getMetadataFilePath, initMetadataFile } from "./metadata";
+export { fetchUserIdFromGraphQLOrThrow } from "./graphql/fetchUserIdFromGraphQLOrThrow";

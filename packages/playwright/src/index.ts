@@ -3,6 +3,14 @@ import { initMetadataFile } from "@replayio/test-utils";
 
 import { addReplayFixture } from "./fixture";
 import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
+import { initGrafanaLoggerFromApiKey } from "@replayio/replay/auth";
+import { grafanaDebug } from "@replayio/observability-node";
+
+(async () => {
+  await initGrafanaLoggerFromApiKey(undefined, "playwright");
+  console.log("SENTINEL: >>>>> DONE");
+  grafanaDebug("TestDebugLine");
+})();
 
 function getDeviceConfig() {
   const executablePath = getExecutablePath();

@@ -18,6 +18,7 @@ export async function initialize({
   checkForRuntimeUpdate: boolean;
   requireAuthentication: boolean;
 }) {
+  console.log("SENTINEL: initialize ran");
   // These initialization steps can run in parallel to improve startup time
   // None of them should log anything though; that would interfere with the initialization-in-progress message
   const promises = Promise.all([

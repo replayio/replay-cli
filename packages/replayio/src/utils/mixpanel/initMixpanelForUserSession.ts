@@ -5,6 +5,7 @@ import { getMixpanelAPI } from "./getMixpanelAPI";
 
 export async function initMixpanelForUserSession(accessToken: string | undefined) {
   let id: string | undefined = undefined;
+  console.log("SENTINEL: initMixpanelForUserSession", accessToken);
 
   const mixpanelAPI = getMixpanelAPI();
   if (mixpanelAPI) {

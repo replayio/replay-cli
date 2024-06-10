@@ -3296,11 +3296,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@replayio/observability-node@workspace:packages/observability-node":
+"@replayio/observability-node@workspace:^, @replayio/observability-node@workspace:packages/observability-node":
   version: 0.0.0-use.local
   resolution: "@replayio/observability-node@workspace:packages/observability-node"
   dependencies:
     "@replay-cli/tsconfig": "workspace:^"
+    "@replayio/test-utils": "workspace:^"
     typescript: "npm:^5.4.5"
     winston: "npm:^3.13.0"
     winston-loki: "npm:^6.1.2"
@@ -3363,6 +3364,7 @@ __metadata:
   resolution: "@replayio/replay@workspace:packages/replay"
   dependencies:
     "@replay-cli/tsconfig": "workspace:^"
+    "@replayio/observability-node": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.7"
     "@types/jest": "npm:^28.1.5"
