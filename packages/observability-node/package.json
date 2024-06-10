@@ -1,0 +1,34 @@
+{
+  "name": "@replayio/observability-node",
+  "version": "0.0.1",
+  "description": "Node utilities for Replay.io's own observability",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "prepare": "yarn run build",
+    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "test": "echo \"Error: no test specified\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/replayio/replay-cli.git"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/replayio/replay-cli/issues"
+  },
+  "homepage": "https://github.com/replayio/replay-cli#readme",
+  "dependencies": {
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2"
+  },
+  "devDependencies": {
+    "@replay-cli/tsconfig": "workspace:^",
+    "typescript": "^5.4.5"
+  }
+}
