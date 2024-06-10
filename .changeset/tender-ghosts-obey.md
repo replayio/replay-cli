@@ -2,4 +2,4 @@
 "@replayio/sourcemap-upload": patch
 ---
 
-Update `sourcemap-upload `package to support deletion and correlating sourcemaps by filename
+Add support for deleting sourcemaps after they are uploaded, and correlating sourcemaps by filename + `.map` extension if no `sourceMappingURL` exists in the generated file.
