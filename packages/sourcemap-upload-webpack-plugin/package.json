@@ -1,6 +1,6 @@
 {
   "name": "@replayio/sourcemap-upload-webpack-plugin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A webpack plugin to run Replay's sourcemap-upload logic when Webpack compilation finishes.",
   "main": "./index.js",
   "exports": {
