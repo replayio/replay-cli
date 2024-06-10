@@ -2,7 +2,7 @@
 
 import semver from "semver";
 import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
-import { TestMetadataV2, initMetadataFile, warn } from "@replayio/test-utils";
+import { initMetadataFile, warn } from "@replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";

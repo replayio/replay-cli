@@ -53,6 +53,8 @@ class CypressReporter {
   featureOptions: string | undefined;
   diagnosticConfig: ReturnType<typeof getDiagnosticConfig> = { noRecord: false, env: {} };
 
+  private _maxAttempts: number;
+
   constructor(config: Cypress.PluginConfigOptions, options: PluginOptions) {
     initFixtureFile();
 
@@ -73,6 +75,8 @@ class CypressReporter {
 
     this.featureOptions = process.env.CYPRESS_REPLAY_PLUGIN_FEATURES;
     debug("Features: %o", getFeatures(this.featureOptions));
+
+    this._maxAttempts = (Cypress.getTestRetries() ?? 0) + 1;
   }
 
   isFeatureEnabled(feature: PluginFeature) {
@@ -181,6 +185,7 @@ class CypressReporter {
       },
       result: "unknown",
       attempt: 1,
+      maxAttempts: this._maxAttempts,
       events: {
         afterAll: [],
         afterEach: [],
@@ -211,7 +216,8 @@ class CypressReporter {
 
     let testsWithoutSteps = getTestsFromResults(
       result.tests,
-      this.steps.filter(s => s.event === "test:start")
+      this.steps.filter(s => s.event === "test:start"),
+      this._maxAttempts
     );
     let testsWithSteps: Test[] = [];
 

@@ -59,7 +59,8 @@ function simplifyArgs(args?: any[]) {
 
 function getTestsFromResults(
   resultTests: CypressCommandLine.TestResult[],
-  testStartSteps: StepEvent[]
+  testStartSteps: StepEvent[],
+  maxAttempts = 1
 ) {
   const startEvents = sortSteps(testStartSteps);
 
@@ -84,6 +85,7 @@ function getTestsFromResults(
       // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
       approximateDuration: a.duration || (a as any).wallClockDuration || 0,
       attempt: attemptIndex + 1,
+      maxAttempts,
       source: {
         title,
         scope,
