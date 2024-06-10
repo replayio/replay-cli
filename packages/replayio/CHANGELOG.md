@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.2
+
+### Patch Changes
+
+- [#439](https://github.com/replayio/replay-cli/pull/439) [`75ee1cb`](https://github.com/replayio/replay-cli/commit/75ee1cb037de7e86f047ffe79dc84b1423c28aaa) Thanks [@bvaughn](https://github.com/bvaughn)! - Show the reason for recordings failures if it is known (e.g. a stack overflow)
+
+- Updated dependencies [[`75d475a`](https://github.com/replayio/replay-cli/commit/75d475ad5aed0c331cfc3b36bdcd8e7822b58c39)]:
+  - @replayio/sourcemap-upload@2.0.4
+
 ## 1.3.1
 
 ### Patch Changes
