@@ -411,7 +411,13 @@ async function uploadSourcemapToAPI(
 async function findAndResolveMaps(
   opts: NormalizedOptions
 ): Promise<Array<SourceMapEntry>> {
-  const { cwd, filepaths, extensions, ignorePatterns } = opts;
+  const {
+    cwd,
+    filepaths,
+    extensions,
+    ignorePatterns,
+    matchSourcemapsByFilename = true,
+  } = opts;
 
   const seenFiles = new Set();
   const generatedFiles = new Map<string, GeneratedFileEntry>();
@@ -503,7 +509,7 @@ async function findAndResolveMaps(
         // That means our parsing logic won't be able to match up sourcemaps and generated files.
         // If this option is provided, assume that the sourcemap is the same filename + a `".map"` extension,
         // and add that to the list of possible matches.
-        if (opts.matchSourcemapsByFilename) {
+        if (matchSourcemapsByFilename) {
           const mapAbsolutePath = absPath + ".map";
           if (fs.existsSync(mapAbsolutePath)) {
             const mapURL = pathToFileURL(mapAbsolutePath).toString();
