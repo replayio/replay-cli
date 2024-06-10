@@ -3,8 +3,8 @@
 import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
 import Debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
-import type { StepEvent } from "./support";
 import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
+import type { StepEvent } from "./support";
 
 type Test = TestMetadataV2.Test;
 type UserActionEvent = TestMetadataV2.UserActionEvent;
@@ -259,20 +259,20 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     });
   });
 
-  tests.forEach(t => {
+  tests.forEach(test => {
     // If a test fails in the beforeAll hook phase, Cypress will mark the first
     // test as failed and the rest as unknown. For consistency, try to detect this
     // first case and set it to unknown as well.
-    if (t.result === "failed" && t.events.main.length === 0) {
-      if (!steps.some(s => s.event === "test:start" && isTestForStep(t, s))) {
-        t.result = "unknown";
+    if (test.result === "failed" && test.events.main.length === 0) {
+      if (!steps.some(s => s.event === "test:start" && isTestForStep(test, s))) {
+        test.result = "unknown";
       }
     }
 
     // Cypress doesn't always bubble up step errors to the test so if a test
     // failed and it is missing an error, we find the last error and set that on
     // the test
-    if (t.result === "failed" && t.error == null) {
+    if (test.result === "failed" && test.error == null) {
       const phases: (keyof Test["events"])[] = [
         "afterAll",
         "afterEach",
@@ -281,10 +281,13 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
         "beforeAll",
       ];
       for (const phase of phases) {
-        const stepWithError = t.events[phase].reverse().find(t => t.data.error);
-        if (stepWithError) {
-          t.error = stepWithError.data.error;
-          break;
+        const events = test.events[phase];
+        for (let index = events.length - 1; index >= 0; index--) {
+          const event = events[index];
+          if (event.data.error) {
+            test.error = event.data.error;
+            break;
+          }
         }
       }
     }
@@ -293,4 +296,4 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
   return tests;
 }
 
-export { groupStepsByTest, getTestsFromResults, sortSteps };
+export { getTestsFromResults, groupStepsByTest, sortSteps };
