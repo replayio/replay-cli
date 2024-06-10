@@ -17,6 +17,10 @@ let grafanaLogger: winston.Logger | undefined;
 let userId: string | undefined;
 
 async function initGrafana(accessToken?: string, packageName?: string) {
+  if (grafanaLogger) {
+    return;
+  }
+
   console.log("SENTINEL: initGrafana accessToken", accessToken);
   dbg("Initializing grafana logger");
 

@@ -18,6 +18,8 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { initGrafanaLoggerFromApiKey } from "@replayio/replay/auth";
+import { grafanaDebug } from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -204,6 +206,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   upload = false;
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
+  // MBUDAYR - hard-coding playwright for now, but this can be run for playwright, jest, or cypress.
+  grafanaLoggerInitialized = initGrafanaLoggerFromApiKey(undefined, "playwright");
+
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
 
   constructor(
@@ -391,6 +396,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
+    console.log("SENTINEL: startTestRunShard");
+    await this.grafanaLoggerInitialized;
+    grafanaDebug("grafana logger initialized");
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
