@@ -17,13 +17,14 @@ The Replay adapter for cypress requires two updates: one to your `cypress.config
 ```js
 // cypress.config.js
 import { defineConfig } from "cypress";
-import cypressReplay from "@replayio/cypress";
+import cypressReplay, { wrapOn } from "@replayio/cypress";
 
 module.exports = defineConfig({
   e2e: {
-    setupNodeEvents(on, config) {
-      // Adds replay-firefox (macOS, linux) and replay-chromium (linux)
-      // browsers and hooks into Cypress lifecycle methods to capture test
+    setupNodeEvents(cyOn, config) {
+      const on = wrapOn(cyOn);
+      // Adds replay-chromium browsers
+      // and hooks into Cypress lifecycle methods to capture test
       // metadata and results
       cypressReplay(on, config);
       return config;
@@ -40,13 +41,11 @@ import "@replayio/cypress/support";
 
 ## Runtime Configuration
 
-- Use the `--browser` flag to select a Replay Browser to record
-- If using the Firefox version of Replay, you must set the `RECORD_ALL_CONTENT` environment variable to enable recording.
+- Use the `--browser` flag to select the Replay Chromium to record
 - To enable capturing metadata for the tests, you must set `RECORD_REPLAY_METADATA_FILE` to an accessible file path.
 - To hide the Cypress sidebar and only show your application, set `CYPRESS_NO_COMMAND_LOG`.
 
 ```bash
-RECORD_ALL_CONTENT=1 \
 RECORD_REPLAY_METADATA_FILE=$(mktemp) \
 npx cypress run --browser replay-chromium
 ```
