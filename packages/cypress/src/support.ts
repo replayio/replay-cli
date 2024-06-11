@@ -22,6 +22,7 @@ export interface StepEvent {
   timestamp: string;
   testId: number | null;
   attempt: number;
+  maxAttempts?: number | undefined;
   category?: UserActionEvent["data"]["category"];
   hook?: HookKind;
   command?: CommandLike;
@@ -47,6 +48,7 @@ interface CypressMainTestScope {
   scope: string[];
   title: string;
   attempt: number;
+  maxAttempts: number;
   index: number;
   testId: string;
 }
@@ -247,6 +249,7 @@ function getCurrentTestScope(): CypressTestScope {
       title: partialTest.source.title,
       scope: partialTest.source.scope,
       attempt,
+      maxAttempts: (Cypress.getTestRetries() ?? 0) + 1,
       testId: buildTestId(Cypress.spec.relative, partialTest),
       index: order,
     },
@@ -275,6 +278,7 @@ const makeEvent = (
         error,
       }
     : null),
+  ...("maxAttempts" in testScope.v2 ? { maxAttempts: testScope.v2.maxAttempts } : null),
 });
 
 function sendStepToPlugin(event: StepEvent) {

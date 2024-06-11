@@ -59,20 +59,17 @@ function simplifyArgs(args?: any[]) {
 
 function getTestsFromResults(
   resultTests: CypressCommandLine.TestResult[],
-  testStartSteps: StepEvent[],
-  maxAttempts = 1
+  testStartSteps: StepEvent[]
 ) {
   const startEvents = sortSteps(testStartSteps);
 
-  function getIdForTest(result: CypressCommandLine.TestResult) {
+  function getStartTestStep(result: CypressCommandLine.TestResult) {
     const startEventIndex = startEvents.findIndex(
       e => e.test.every((t, i) => t === result.title[i]) && e.test.length === result.title.length
     );
     if (startEventIndex !== -1) {
       const startEvent = startEvents.splice(startEventIndex, 1)[0];
-      if (startEvent.testId != null) {
-        return startEvent.testId;
-      }
+      return startEvent;
     }
   }
 
@@ -80,31 +77,34 @@ function getTestsFromResults(
     const scope = [...result.title];
     const title = scope.pop()!;
 
-    return result.attempts.map<Test>((a, attemptIndex) => ({
-      id: getIdForTest(result) ?? attemptIndex,
-      // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
-      approximateDuration: a.duration || (a as any).wallClockDuration || 0,
-      attempt: attemptIndex + 1,
-      maxAttempts,
-      source: {
-        title,
-        scope,
-      },
-      result: mapStateToResult(a.state),
-      events: {
-        beforeAll: [],
-        afterAll: [],
-        beforeEach: [],
-        afterEach: [],
-        main: [],
-      },
-      error: result.displayError
-        ? {
-            name: "DisplayError",
-            message: result.displayError,
-          }
-        : null,
-    }));
+    return result.attempts.map<Test>((a, attemptIndex) => {
+      const startTestStep = getStartTestStep(result);
+      return {
+        id: startTestStep?.testId ?? attemptIndex,
+        // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
+        approximateDuration: a.duration || (a as any).wallClockDuration || 0,
+        attempt: attemptIndex + 1,
+        maxAttempts: startTestStep?.maxAttempts ?? 1,
+        source: {
+          title,
+          scope,
+        },
+        result: mapStateToResult(a.state),
+        events: {
+          beforeAll: [],
+          afterAll: [],
+          beforeEach: [],
+          afterEach: [],
+          main: [],
+        },
+        error: result.displayError
+          ? {
+              name: "DisplayError",
+              message: result.displayError,
+            }
+          : null,
+      };
+    });
   });
 
   debug("Found %d tests", tests.length);
