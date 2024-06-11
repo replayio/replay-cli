@@ -281,13 +281,10 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
         "beforeAll",
       ];
       for (const phase of phases) {
-        const events = test.events[phase];
-        for (let index = events.length - 1; index >= 0; index--) {
-          const event = events[index];
-          if (event.data.error) {
-            test.error = event.data.error;
-            break;
-          }
+        const stepWithError = test.events[phase].findLast(step => !!step.data.error);
+        if (stepWithError) {
+          test.error = stepWithError.data.error;
+          break;
         }
       }
     }
