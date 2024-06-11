@@ -1,8 +1,7 @@
-import { number, Struct } from "superstruct";
-import fs from "fs";
-import fetch, { RequestInit, Response } from "node-fetch";
 import dbg from "debug";
-const { create, object, optional, defaulted } = require("superstruct");
+import fs from "fs";
+import fetch, { RequestInit } from "node-fetch";
+import { create, defaulted, number, object, optional, Struct } from "superstruct";
 
 import { UnstructuredMetadata } from "../types";
 import { envString } from "./env";
@@ -231,8 +230,8 @@ function getTestRunIdFromEnvironment(env: NodeJS.ProcessEnv) {
   return userTestRunId || ciTestRunId;
 }
 
-const versions: () => Record<number, Struct> = () => ({
-  1: object({
+const versions = () => ({
+  [1 as number]: object({
     branch: optional(
       envString(
         "RECORD_REPLAY_METADATA_SOURCE_BRANCH",
@@ -392,4 +391,4 @@ async function init(data: UnstructuredMetadata = {}) {
   }
 }
 
-export { validate, init, getTestRunIdFromEnvironment };
+export { getTestRunIdFromEnvironment, init, validate };

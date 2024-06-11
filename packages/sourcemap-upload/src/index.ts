@@ -21,17 +21,69 @@ const debug = makeDebug("replay:sourcemap-upload");
 
 export type MessageLevel = "normal" | "verbose";
 export type LogCallback = (level: MessageLevel, message: string) => void;
+
 export interface UploadOptions {
+  /**
+   * The files/directories to search for sourcemaps. All files that match the
+   * 'extensions' list and fail to match 'ignore' will be searched for
+   * sourcemap JSON or `//#sourceMappingURL=` coments in order to find pairs
+   * of generated-file + sourcemap, and the sourcemap will be uploaded.
+   */
   filepaths: Array<string> | string;
+  /**
+   * To allow for tracking and browsing of maps that have been uploaded, we
+   * require uploaded sourcemaps to have an overall group name associated with
+   * them. This could for instance be a version number, or commit hash.
+   */
   group: string;
+  /**
+   * The API key to use when connecting to Replay's servers.
+   * Defaults to `process.env.REPLAY_API_KEY`.
+   */
   key?: string;
+  /**
+   * Run all of the local processing and searching for maps, but skip uploading them.
+   */
   dryRun?: boolean;
+  /**
+   * Delete all found sourcemap files after they have been uploaded.
+   */
+  deleteAfterUpload?: boolean;
+  /**
+   * If sourcemaps can't be matched to generated files by their sourceMappingURL, try matching by filenames on disk
+   */
+  matchSourcemapsByFilename?: boolean;
+  /**
+   * The set of file extensions to search for sourcemap-related data.
+   * Defaults to [".js", ".map"].
+   */
   extensions?: Array<string>;
+  /**
+   * The set of pattern for files to ignore when searching for sourcemap-related data.
+   */
   ignore?: Array<string>;
+  /**
+   * Set the directory that relative paths should be computed with respect to.
+   * The relative path of sourcemaps is included in the uploaded entry, and will be
+   * visible in the UI, so this can be used to strip off unimportant directories in
+   * the build path. Defaults to `process.cwd()`.
+   */
   root?: string;
+  /**
+   * A callback function that will be called with log messages.
+   */
   log?: LogCallback;
+  /**
+   * URL of the Replay server to upload to. Defaults to `https://api.replay.io`.
+   */
   server?: string;
+  /**
+   * The number of concurrent uploads to perform. Defaults to 25.
+   */
   concurrency?: number;
+  /**
+   * A string to append to the User-Agent header when making requests to the Replay API.
+   */
   userAgentAddition?: string;
 }
 
@@ -49,7 +101,17 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
   );
   assert(
     typeof opts.dryRun === "boolean" || opts.dryRun === undefined,
-    "'dryRun' must be a string or undefined"
+    "'dryRun' must be a boolean or undefined"
+  );
+  assert(
+    typeof opts.deleteAfterUpload === "boolean" ||
+      opts.deleteAfterUpload === undefined,
+    "'deleteAfterUpload' must be a boolean or undefined"
+  );
+  assert(
+    typeof opts.matchSourcemapsByFilename === "boolean" ||
+      opts.matchSourcemapsByFilename === undefined,
+    "'matchSourcemapsByFilename' must be a boolean or undefined"
   );
   assert(
     (Array.isArray(opts.extensions) &&
@@ -110,6 +172,8 @@ export async function uploadSourceMaps(opts: UploadOptions): Promise<void> {
     groupName: opts.group,
     apiKey,
     dryRun: !!opts.dryRun,
+    deleteAfterUpload: !!opts.deleteAfterUpload,
+    matchSourcemapsByFilename: !!opts.matchSourcemapsByFilename,
     extensions: opts.extensions || [".js", ".map"],
     ignorePatterns: opts.ignore || [],
     rootPath: path.resolve(cwd, opts.root || ""),
@@ -126,6 +190,8 @@ interface NormalizedOptions {
   groupName: string;
   apiKey: string;
   dryRun: boolean;
+  deleteAfterUpload: boolean;
+  matchSourcemapsByFilename: boolean;
   extensions: Array<string>;
   ignorePatterns: Array<string>;
   rootPath: string;
@@ -164,7 +230,7 @@ async function processSourceMaps(opts: NormalizedOptions) {
 
   const sourceMaps = await findAndResolveMaps(opts);
 
-  const { groupName, apiKey, dryRun, rootPath, log } = opts;
+  const { groupName, apiKey, dryRun, rootPath, log, deleteAfterUpload } = opts;
 
   const mapsToUpload = [];
   for (const map of sourceMaps) {
@@ -219,6 +285,14 @@ async function processSourceMaps(opts: NormalizedOptions) {
           opts.apiServer,
           opts.userAgentAddition
         );
+      }
+
+      if (deleteAfterUpload) {
+        log("normal", `Deleting ${relativePath}`);
+
+        if (!dryRun) {
+          await fs.promises.unlink(absPath);
+        }
       }
     },
     { concurrency: Math.min(opts.concurrency, 25) }
@@ -337,7 +411,13 @@ async function uploadSourcemapToAPI(
 async function findAndResolveMaps(
   opts: NormalizedOptions
 ): Promise<Array<SourceMapEntry>> {
-  const { cwd, filepaths, extensions, ignorePatterns } = opts;
+  const {
+    cwd,
+    filepaths,
+    extensions,
+    ignorePatterns,
+    matchSourcemapsByFilename = true,
+  } = opts;
 
   const seenFiles = new Set();
   const generatedFiles = new Map<string, GeneratedFileEntry>();
@@ -420,9 +500,24 @@ async function findAndResolveMaps(
 
         debug("hashed filepath: %s", absPath);
 
-        const url = Array.from(matches, (match) =>
+        const possibleMatches = Array.from(matches, (match) =>
           (match[1] || match[2])?.trim()
-        )
+        );
+
+        // If the Webpack `devtool` option is set to `"hidden-source-map"`,
+        // Webpack will not output any sourceMappingURL comments in the generated sources.
+        // That means our parsing logic won't be able to match up sourcemaps and generated files.
+        // If this option is provided, assume that the sourcemap is the same filename + a `".map"` extension,
+        // and add that to the list of possible matches.
+        if (matchSourcemapsByFilename) {
+          const mapAbsolutePath = absPath + ".map";
+          if (fs.existsSync(mapAbsolutePath)) {
+            const mapURL = pathToFileURL(mapAbsolutePath).toString();
+            possibleMatches.push(mapURL);
+          }
+        }
+
+        const url = possibleMatches
           .filter((url) => typeof url === "string")
           .pop();
 
