@@ -58,8 +58,16 @@ function grafanaDebug(message: string, tags?: Tags) {
   grafanaLogger?.debug(message, { ...tags, userId });
 }
 
+function grafanaError(message: string, tags?: Tags) {
+  if (process.env.REPLAY_TELEMETRY_DISABLED) {
+    return;
+  }
+
+  grafanaLogger?.error(message, { ...tags, userId });
+}
+
 function closeGrafanaLogger() {
   grafanaLogger?.close();
 }
 
-export { grafanaDebug, closeGrafanaLogger, initGrafana };
+export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana };

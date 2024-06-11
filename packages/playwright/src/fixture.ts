@@ -13,6 +13,7 @@ import {
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
+import { grafanaError } from "@replayio/observability-node";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
   return !!error && typeof error === "object" && "code" in error && error.code === code;
@@ -184,6 +185,8 @@ export async function replayFixture(
     });
   } catch (error) {
     if (isErrorWithCode(error, "ECONNREFUSED")) {
+      grafanaError("ReplayFixtureFailed", { errorCode: "ECONNREFUSED" });
+
       // the reporter didn't end up being used and thus the server is not running
       await use();
       return;
@@ -218,6 +221,8 @@ export async function replayFixture(
                 JSON.stringify({ ...detail, test: testIdData }),
               ] as const);
             } catch (e) {
+              grafanaError("AddAnnotationFailed");
+
               // `onApiCallBegin`/`onApiCallEnd` are not awaited, see: https://github.com/microsoft/playwright/pull/30795
               // not much can be done about it, an *attempt* could be done to override builtin fixtures like `page` and `browser` to install our hooks there,
               // it's not worth it when a convenient API is available though
