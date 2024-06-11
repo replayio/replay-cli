@@ -1,6 +1,7 @@
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
 import { MultiSelect } from "bvaughn-enquirer";
 import { dim, select, transparent } from "../theme";
+import { canUpload } from "./canUpload";
 import { printRecordings } from "./printRecordings";
 import { LocalRecording } from "./types";
 
@@ -8,7 +9,6 @@ export async function selectRecordings(
   recordings: LocalRecording[],
   options: {
     defaultSelected?: (recording: LocalRecording) => boolean;
-    disabledSelector?: (recording: LocalRecording) => boolean;
     maxRecordingsToDisplay?: number;
     noSelectableRecordingsMessage?: string;
     prompt: string;
@@ -16,13 +16,24 @@ export async function selectRecordings(
   }
 ): Promise<LocalRecording[]> {
   const {
-    defaultSelected = () => true,
-    disabledSelector = () => false,
+    defaultSelected: defaultSelectedProp,
     maxRecordingsToDisplay = 25,
     noSelectableRecordingsMessage,
     prompt,
     selectionMessage,
   } = options;
+
+  const defaultSelected = (recording: LocalRecording) => {
+    if (!canUpload(recording)) {
+      return false;
+    } else if (defaultSelectedProp) {
+      return defaultSelectedProp(recording);
+    } else {
+      return true;
+    }
+  };
+
+  const disabledSelector = (recording: LocalRecording) => !canUpload(recording);
 
   let isShowingAllRecordings = true;
   if (maxRecordingsToDisplay != null && recordings.length > maxRecordingsToDisplay) {

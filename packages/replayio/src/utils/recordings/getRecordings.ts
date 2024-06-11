@@ -6,34 +6,12 @@ import { debug } from "./debug";
 import { readRecordingLog } from "./readRecordingLog";
 import { LocalRecording, RECORDING_LOG_KIND } from "./types";
 
-const RECORDING_LOG_KINDS = [
-  RECORDING_LOG_KIND.createRecording,
-  RECORDING_LOG_KIND.addMetadata,
-  RECORDING_LOG_KIND.writeStarted,
-  RECORDING_LOG_KIND.sourcemapAdded,
-  RECORDING_LOG_KIND.originalSourceAdded,
-  RECORDING_LOG_KIND.writeFinished,
-  RECORDING_LOG_KIND.uploadStarted,
-  RECORDING_LOG_KIND.uploadFinished,
-  RECORDING_LOG_KIND.uploadFailed,
-  RECORDING_LOG_KIND.recordingUnusable,
-  RECORDING_LOG_KIND.crashed,
-  RECORDING_LOG_KIND.crashData,
-  RECORDING_LOG_KIND.crashUploaded,
-  RECORDING_LOG_KIND.processingStarted,
-  RECORDING_LOG_KIND.processingFinished,
-  RECORDING_LOG_KIND.processingFailed,
-];
-
 export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
   if (existsSync(recordingLogPath)) {
     const entries = readRecordingLog();
-    entries.sort(
-      (a, b) => RECORDING_LOG_KINDS.indexOf(a.kind) - RECORDING_LOG_KINDS.indexOf(b.kind)
-    );
 
     debug("Reading recording log %s\n%s", recordingLogPath, JSON.stringify(entries));
 
@@ -119,6 +97,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
             path: undefined,
             processingStatus: undefined,
             recordingStatus: "recording",
+            unusableReason: undefined,
             uploadStatus: undefined,
           };
 
@@ -176,14 +155,12 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           break;
         }
         case RECORDING_LOG_KIND.recordingUnusable: {
-          const { id } = entry;
+          const { id, reason } = entry;
           const recording = idToRecording[id];
 
           assert(recording, `Recording with ID "${id}" not found`);
           recording.recordingStatus = "unusable";
-
-          const index = recordings.indexOf(recording);
-          recordings.splice(index, 1);
+          recording.unusableReason = reason;
           break;
         }
         case RECORDING_LOG_KIND.sourcemapAdded: {
@@ -265,7 +242,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
     }
   }
 
-  debug("Found %s recordings:\n%o", recordings.length, recordings);
+  debug("Found %s recordings:\n%O", recordings.length, recordings);
 
   return (
     recordings
@@ -274,11 +251,20 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           return false;
         }
 
-        if (!recording.metadata.host) {
-          // Ignore new/empty tab recordings (see TT-1036)
-          // Note that we filter all "empty" recordings, not just root recordings,
-          // because Chrome loads its default new tab content via an <iframe>
-          return false;
+        switch (recording.recordingStatus) {
+          case "finished":
+            if (!recording.metadata.host) {
+              // Ignore new/empty tab recordings (see TT-1036)
+              //
+              // Note that we filter all "empty" recordings, not just root recordings,
+              // because Chrome loads its default new tab content via an <iframe>
+              //
+              // Also note that we only remove finished recordings in this way,
+              // because it's important to report unusable or crashed recordings to the user
+              // Those may have crashed before host metadata was added
+              return false;
+            }
+            break;
         }
 
         return true;

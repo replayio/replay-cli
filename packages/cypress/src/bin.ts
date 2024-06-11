@@ -1,19 +1,9 @@
 import cypress from "cypress";
 
-import install from "./install";
 import { toDiagnosticLevel, toReplayMode } from "./mode";
 import run from "./run";
 
 let [, , cmd, ...args] = process.argv;
-
-function commandInstall() {
-  console.log("Installing Replay browsers for cypress");
-
-  let browser = args[0] || "all";
-  install(browser).then(() => {
-    console.log("Done");
-  });
-}
 
 function parseNumberArg(arg: string | undefined) {
   const num = arg ? Number.parseInt(arg) : NaN;
@@ -84,9 +74,6 @@ Provides utilities to support using Replay (https://replay.io) with Cypress
 
 Available commands:
 
-  - install [all | firefox | chromium]
-    Installs all or the specified Replay browser
-
   - run
     Runs your cypress tests with additional repeat modes
   `);
@@ -94,9 +81,6 @@ Available commands:
 
 (async () => {
   switch (cmd) {
-    case "install":
-      commandInstall();
-      break;
     case "run":
       await commandRun();
       break;
