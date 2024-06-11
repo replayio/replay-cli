@@ -1,5 +1,5 @@
 import dbg from "./debug";
-import WebSocket from "ws";
+import { WebSocket } from "ws";
 import { defer } from "./utils";
 import { Agent } from "http";
 
@@ -47,15 +47,21 @@ class ProtocolClient {
 
   constructor(address: string, callbacks: Callbacks, agent?: Agent) {
     debug("Creating WebSocket for %s with %o", address, { agent });
-    this.socket = new WebSocket(address, {
+    const WS = (globalThis as any).WebSocket;
+    this.socket = new WS(address, {
       agent: agent,
     });
     this.callbacks = callbacks;
 
-    this.socket.on("open", callbacks.onOpen);
-    this.socket.on("close", callbacks.onClose);
-    this.socket.on("error", callbacks.onError);
-    this.socket.on("message", message => this.onMessage(message));
+    // this.socket.on("open", callbacks.onOpen);
+    // this.socket.on("close", callbacks.onClose);
+    // this.socket.on("error", callbacks.onError);
+    // this.socket.on("message", message => this.onMessage(message));
+
+    this.socket.addEventListener("open", () => callbacks.onOpen(this.socket));
+    this.socket.addEventListener("close", () => callbacks.onClose(this.socket));
+    this.socket.addEventListener("error", () => callbacks.onError(this.socket));
+    this.socket.addEventListener("message", message => this.onMessage(message.data));
   }
 
   close() {
@@ -113,7 +119,7 @@ class ProtocolClient {
     this.eventListeners.set(method, callback);
   }
 
-  onMessage(contents: WebSocket.RawData) {
+  onMessage(contents: any) {
     const msg = JSON.parse(String(contents));
     debug("Received message %o", msg);
     if (msg.id) {

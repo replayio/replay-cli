@@ -3,6 +3,7 @@ import { devices as replayDevices } from "@replayio/playwright";
 
 export default defineConfig({
   forbidOnly: !!process.env.CI,
+  globalSetup: require.resolve("./global.setup.js"),
   use: {
     trace: "on-first-retry",
     defaultBrowserType: "chromium",
@@ -14,7 +15,13 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
   reporter: [
-    ["@replayio/playwright/reporter"],
+    [
+      "@replayio/playwright/reporter",
+      {
+        apiKey: process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY,
+        upload: true,
+      },
+    ],
     // replicating Playwright's defaults
     process.env.CI ? (["dot"] as const) : (["list"] as const),
   ],
