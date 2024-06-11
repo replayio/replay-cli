@@ -2,7 +2,7 @@
 
 import semver from "semver";
 import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
-import { TestMetadataV2, initMetadataFile, warn } from "@replayio/test-utils";
+import { initMetadataFile, warn } from "@replayio/test-utils";
 import path from "path";
 import dbg from "debug";
 import chalk from "chalk";
@@ -331,25 +331,7 @@ const plugin = (
         isHeadless: false,
       });
     } else {
-      debug("Chromium not supported on this platform", chromiumPath);
-    }
-
-    const firefoxPath = getPlaywrightBrowserPath("firefox");
-    if (firefoxPath) {
-      debug("Adding firefox to cypress at %s", firefoxPath);
-      config.browsers = config.browsers.concat({
-        name: "replay-firefox",
-        channel: "stable",
-        family: "firefox",
-        displayName: "Replay",
-        version: "91.0",
-        path: firefoxPath,
-        majorVersion: 91,
-        isHeaded: true,
-        isHeadless: false,
-      });
-    } else {
-      debug("Firefox not supported on this platform", firefoxPath);
+      debug("Replay Chromium not supported on this platform", chromiumPath);
     }
   }
 
