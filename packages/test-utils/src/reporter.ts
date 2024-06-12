@@ -19,6 +19,7 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { closeGrafanaLogger, grafanaDebug, initGrafana } from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -236,6 +237,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   ) {
     this.runner = runner;
     this.schemaVersion = schemaVersion;
+
     if (config) {
       const { metadataKey, ...rest } = config;
       this.parseConfig(rest, metadataKey);
@@ -402,11 +404,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     if (!this.apiKey) {
+      console.log("SENTINEL: Skipping starting test run: API key not set");
       debug("Skipping starting test run: API key not set");
       return;
     }
 
     if (this._testRunShardIdPromise) {
+      console.log("SENTINEL: early return::412");
       return;
     }
 
@@ -415,6 +419,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
+    console.log("SENTINEL: startTestRunShard ran");
+
+    initGrafana();
+    grafanaDebug("Test4");
+    closeGrafanaLogger();
+
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
@@ -887,125 +897,129 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async onEnd(): Promise<PendingWork[]> {
-    debug("onEnd");
+    try {
+      debug("onEnd");
 
-    if (this.upload) {
-      let timeout = 2000;
-      if (process.env.REPLAY_UPLOAD_DELAY) {
-        const userTimeout = Number.parseInt(process.env.REPLAY_UPLOAD_DELAY);
-        if (!isNaN(userTimeout)) {
-          timeout = userTimeout;
+      if (this.upload) {
+        let timeout = 2000;
+        if (process.env.REPLAY_UPLOAD_DELAY) {
+          const userTimeout = Number.parseInt(process.env.REPLAY_UPLOAD_DELAY);
+          if (!isNaN(userTimeout)) {
+            timeout = userTimeout;
+          }
+          debug("REPLAY_UPLOAD_DELAY value %d using %d", userTimeout, timeout);
         }
-        debug("REPLAY_UPLOAD_DELAY value %d using %d", userTimeout, timeout);
+
+        await new Promise(resolve => setTimeout(resolve, timeout));
+        this.enqueueUpload();
       }
 
-      await new Promise(resolve => setTimeout(resolve, timeout));
-      this.enqueueUpload();
-    }
+      if (this.pendingWork.length === 0) {
+        return [];
+      }
 
-    if (this.pendingWork.length === 0) {
-      return [];
-    }
+      log("🕑 Completing some outstanding work ...");
+      debug("Outstanding tasks: %d", this.pendingWork.length);
 
-    log("🕑 Completing some outstanding work ...");
-    debug("Outstanding tasks: %d", this.pendingWork.length);
+      const output: string[] = [];
+      const completedWork = await Promise.allSettled(this.pendingWork);
 
-    const output: string[] = [];
-    const completedWork = await Promise.allSettled(this.pendingWork);
-
-    if (this.apiKey) {
-      const postSettledWork = await Promise.allSettled([this.completeTestRunShard()]);
-      completedWork.push(...postSettledWork);
-    } else {
-      debug("Skipping completing test run: API Key not set");
-    }
-
-    const failures = completedWork.filter(
-      (r): r is PromiseRejectedResult => r.status === "rejected"
-    );
-
-    if (failures.length > 0) {
-      output.push("Encountered unexpected errors while processing replays");
-      failures.forEach(f => output.push(`  ${f.reason}`));
-    }
-
-    const results = completedWork
-      .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
-      .map(r => r.value);
-
-    const errors = {
-      "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
-      "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
-      "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
-      upload: [] as Extract<UploadPendingWork, { error: {} }>[],
-    };
-    let uploads: RecordingEntry[] = [];
-    for (const r of results) {
-      if ("error" in r) {
-        errors[r.type].push(r as any);
+      if (this.apiKey) {
+        const postSettledWork = await Promise.allSettled([this.completeTestRunShard()]);
+        completedWork.push(...postSettledWork);
       } else {
-        if (r.type === "upload") {
-          uploads.push(r.recording);
-        }
-      }
-    }
-
-    if (errors["post-test"].length > 0) {
-      output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
-      output.push(...logPendingWorkErrors(errors["post-test"]));
-    }
-
-    if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
-      output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
-      output.push(...logPendingWorkErrors(errors["test-run-tests"]));
-      output.push(...logPendingWorkErrors(errors["test-run"]));
-    }
-
-    if (errors["upload"].length > 0) {
-      output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
-
-      errors["upload"].forEach(err => {
-        if ("recording" in err) {
-          const r = err.recording;
-          output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
-          output.push(`      ${getErrorMessage(err.error)}\n`);
-        }
-      });
-    }
-
-    if (uploads.length > 0) {
-      const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
-      for (const recordingId of recordingIds) {
-        removeRecording(recordingId);
+        debug("Skipping completing test run: API Key not set");
       }
 
-      const uploaded = uploads.filter(u => u.status === "uploaded");
-      const crashed = uploads.filter(u => u.status === "crashUploaded");
+      const failures = completedWork.filter(
+        (r): r is PromiseRejectedResult => r.status === "rejected"
+      );
 
-      if (uploaded.length > 0) {
-        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-        const sortedUploads = sortRecordingsByResult(uploads);
-        sortedUploads.forEach(r => {
-          output.push(
-            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
-          );
-          output.push(
-            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-          );
+      if (failures.length > 0) {
+        output.push("Encountered unexpected errors while processing replays");
+        failures.forEach(f => output.push(`  ${f.reason}`));
+      }
+
+      const results = completedWork
+        .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
+        .map(r => r.value);
+
+      const errors = {
+        "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
+        "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
+        "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
+        upload: [] as Extract<UploadPendingWork, { error: {} }>[],
+      };
+      let uploads: RecordingEntry[] = [];
+      for (const r of results) {
+        if ("error" in r) {
+          errors[r.type].push(r as any);
+        } else {
+          if (r.type === "upload") {
+            uploads.push(r.recording);
+          }
+        }
+      }
+
+      if (errors["post-test"].length > 0) {
+        output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
+        output.push(...logPendingWorkErrors(errors["post-test"]));
+      }
+
+      if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
+        output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
+        output.push(...logPendingWorkErrors(errors["test-run-tests"]));
+        output.push(...logPendingWorkErrors(errors["test-run"]));
+      }
+
+      if (errors["upload"].length > 0) {
+        output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
+
+        errors["upload"].forEach(err => {
+          if ("recording" in err) {
+            const r = err.recording;
+            output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
+            output.push(`      ${getErrorMessage(err.error)}\n`);
+          }
         });
       }
 
-      if (crashed.length > 0) {
-        output.push(
-          `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
-        );
-        output.push(`  The Replay team has been notified.`);
+      if (uploads.length > 0) {
+        const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
+        for (const recordingId of recordingIds) {
+          removeRecording(recordingId);
+        }
+
+        const uploaded = uploads.filter(u => u.status === "uploaded");
+        const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+        if (uploaded.length > 0) {
+          output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+          const sortedUploads = sortRecordingsByResult(uploads);
+          sortedUploads.forEach(r => {
+            output.push(
+              `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+            );
+            output.push(
+              `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+            );
+          });
+        }
+
+        if (crashed.length > 0) {
+          output.push(
+            `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
+          );
+          output.push(`  The Replay team has been notified.`);
+        }
       }
+
+      log(output.join("\n"));
+
+      return results;
+    } finally {
+      closeGrafanaLogger();
     }
-
-    log(output.join("\n"));
-
-    return results;
   }
 }
 
