@@ -6,6 +6,7 @@ import "./commands/info";
 import "./commands/list";
 import "./commands/login";
 import "./commands/logout";
+import "./commands/open";
 import "./commands/record";
 import "./commands/remove";
 import "./commands/update";

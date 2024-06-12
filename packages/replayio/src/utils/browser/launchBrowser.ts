@@ -11,10 +11,11 @@ import { getBrowserPath } from "./getBrowserPath";
 export async function launchBrowser(
   url: string,
   options: {
-    processGroupId: string;
+    processGroupId?: string;
+    record?: boolean;
   }
 ) {
-  const { processGroupId } = options;
+  const { processGroupId, record = true } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -28,9 +29,10 @@ export async function launchBrowser(
   ];
   const processOptions = {
     env: {
-      RECORD_ALL_CONTENT: "1",
+      RECORD_ALL_CONTENT: record ? "1" : undefined,
+      RECORD_REPLAY_DONT_RECORD: record ? undefined : "1",
       RECORD_REPLAY_DIRECTORY: getReplayPath(),
-      RECORD_REPLAY_METADATA: JSON.stringify({ processGroupId }),
+      RECORD_REPLAY_METADATA: processGroupId ? JSON.stringify({ processGroupId }) : undefined,
       RECORD_REPLAY_VERBOSE: "1",
     },
     stdio: undefined,
@@ -55,7 +57,11 @@ export async function launchBrowser(
   const spawnDeferred = spawnProcess(browserExecutablePath, args, processOptions, {
     onSpawn: () => {
       if (process.stdin.isTTY) {
-        console.log(`Recording... ${dim("(press any key to stop recording)")}`);
+        if (record) {
+          console.log(`Recording... ${dim("(press any key to stop recording)")}`);
+        } else {
+          console.log("Press any key to close the browser");
+        }
 
         prompt({
           signal: abortControllerForPrompt.signal,
@@ -66,7 +72,11 @@ export async function launchBrowser(
           spawnDeferred.data.kill();
         });
       } else {
-        console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+        if (record) {
+          console.log(`Recording... ${dim("(quit the Replay Browser to stop recording)")}`);
+        } else {
+          console.log("Quit the Replay browser when you're finished");
+        }
       }
     },
     printStderr: (text: string) => {
