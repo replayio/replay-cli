@@ -100,7 +100,6 @@ const ReplayRunner = async (
       tests: [
         {
           id: 0,
-          // TODO: those 2 are not accurate right now
           attempt: 1,
           maxAttempts: 1,
           approximateDuration: test.duration || 0,
