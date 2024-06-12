@@ -1,0 +1,19 @@
+name: Jest tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "yarn"
+      - run: yarn --immutable
+      - run: yarn run bootstrap
+      - name: Run tests
+        run: yarn test
