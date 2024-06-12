@@ -15,6 +15,7 @@ const HOST = "https://logs-prod-006.grafana.net";
 
 let grafanaLogger: winston.Logger | undefined;
 let userId: string | undefined;
+let transport: LokiTransport | undefined;
 
 function initGrafana(accessToken?: string, packageName?: string) {
   console.log("SENTINEL: initGrafana");
@@ -29,21 +30,20 @@ function initGrafana(accessToken?: string, packageName?: string) {
   //   userId = Buffer.from(await fetchUserIdFromGraphQLOrThrow(accessToken), "base64").toString();
   // }
   // console.log("SENTINEL: userId", userId);
+  transport = new LokiTransport({
+    host: HOST,
+    labels: { app: "replayio" },
+    json: true,
+    basicAuth: GRAFANA_BASIC_AUTH,
+    format: winston.format.json(),
+    replaceTimestamp: true,
+    onConnectionError: err => console.error(err),
+    gracefulShutdown: true,
+  });
 
   grafanaLogger = winston.createLogger({
     level: "debug",
-    transports: [
-      new LokiTransport({
-        host: HOST,
-        labels: { app: "replayio" },
-        json: true,
-        basicAuth: GRAFANA_BASIC_AUTH,
-        format: winston.format.json(),
-        replaceTimestamp: true,
-        onConnectionError: err => console.error(err),
-        gracefulShutdown: true,
-      }),
-    ],
+    transports: [transport],
   });
 }
 
@@ -76,19 +76,9 @@ function grafanaError(message: string, tags?: Tags) {
   grafanaLogger?.error(message, { ...tags, userId });
 }
 
-async function closeGrafanaLogger() {
-  let resolve: any;
-  const promise = new Promise(res => {
-    resolve = res;
-  });
-
-  grafanaLogger?.on("finish", () => {
-    console.log("SENTINEL: got finish event");
-    resolve();
-  });
-
-  grafanaLogger?.end();
-  await promise;
+// https://github.com/winstonjs/winston/issues/1504
+async function closeGrafanaLogger(): Promise<void> {
+  await transport?.flush();
 }
 
 export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana };

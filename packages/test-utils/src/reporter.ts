@@ -422,7 +422,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     console.log("SENTINEL: startTestRunShard ran");
 
     initGrafana();
-    grafanaDebug("Test6");
+    grafanaDebug("Test11");
 
     let metadata: any = {};
     try {
