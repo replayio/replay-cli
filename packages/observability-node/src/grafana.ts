@@ -14,11 +14,10 @@ const GRAFANA_BASIC_AUTH = `${USER_NAME}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
 let grafanaLogger: winston.Logger | undefined;
-let userId: string | undefined;
+let userOrWorkspaceId: string | undefined;
 let transport: LokiTransport | undefined;
 
-function initGrafana(accessToken?: string, packageName?: string) {
-  console.log("SENTINEL: initGrafana");
+async function initGrafana(accessToken?: string, packageName?: string) {
   if (grafanaLogger) {
     return;
   }
@@ -26,10 +25,14 @@ function initGrafana(accessToken?: string, packageName?: string) {
   console.log("SENTINEL: initGrafana accessToken", accessToken);
   dbg("Initializing grafana logger");
 
-  // if (accessToken) {
-  //   userId = Buffer.from(await fetchUserIdFromGraphQLOrThrow(accessToken), "base64").toString();
-  // }
-  // console.log("SENTINEL: userId", userId);
+  if (accessToken) {
+    userOrWorkspaceId = Buffer.from(
+      await fetchUserIdFromGraphQLOrThrow(accessToken),
+      "base64"
+    ).toString();
+  }
+
+  console.log("SENTINEL: userId", userOrWorkspaceId);
   transport = new LokiTransport({
     host: HOST,
     labels: { app: "replayio" },
@@ -52,20 +55,11 @@ type Tags = {
 };
 
 function grafanaDebug(message: string, tags?: Tags) {
-  console.log(
-    "SENTINEL: grafanaDebug::55",
-    JSON.stringify({
-      telemetryDisabled: !!process.env.REPLAY_TELEMETRY_DISABLED,
-      grafanaLogger: !!grafanaLogger,
-    })
-  );
-
   if (process.env.REPLAY_TELEMETRY_DISABLED) {
     return;
   }
 
-  console.log("SENTINEL: grafanaDebug::61");
-  grafanaLogger?.debug(message, { ...tags, userId });
+  grafanaLogger?.debug(message, { ...tags, userOrWorkspaceId });
 }
 
 function grafanaError(message: string, tags?: Tags) {
@@ -73,7 +67,7 @@ function grafanaError(message: string, tags?: Tags) {
     return;
   }
 
-  grafanaLogger?.error(message, { ...tags, userId });
+  grafanaLogger?.error(message, { ...tags, userOrWorkspaceId });
 }
 
 // https://github.com/winstonjs/winston/issues/1504

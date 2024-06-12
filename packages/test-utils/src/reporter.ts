@@ -421,8 +421,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   async startTestRunShard(): Promise<TestRunPendingWork> {
     console.log("SENTINEL: startTestRunShard ran");
 
-    initGrafana();
-    grafanaDebug("Test11");
+    await initGrafana(this.apiKey);
+    grafanaDebug("Test13");
 
     let metadata: any = {};
     try {
