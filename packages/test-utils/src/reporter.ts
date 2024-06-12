@@ -404,13 +404,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     if (!this.apiKey) {
-      console.log("SENTINEL: Skipping starting test run: API key not set");
       debug("Skipping starting test run: API key not set");
       return;
     }
 
     if (this._testRunShardIdPromise) {
-      console.log("SENTINEL: early return::412");
       return;
     }
 
@@ -419,8 +417,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
-    console.log("SENTINEL: startTestRunShard ran");
-
     await initGrafana(this.apiKey);
     grafanaDebug("Test13");
 
@@ -1017,7 +1013,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       return results;
     } finally {
-      console.log("SENTINEL - onEnd::1021");
       await closeGrafanaLogger();
     }
   }

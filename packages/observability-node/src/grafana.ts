@@ -22,7 +22,6 @@ async function initGrafana(accessToken?: string, packageName?: string) {
     return;
   }
 
-  console.log("SENTINEL: initGrafana accessToken", accessToken);
   dbg("Initializing grafana logger");
 
   if (accessToken) {
@@ -32,7 +31,6 @@ async function initGrafana(accessToken?: string, packageName?: string) {
     ).toString();
   }
 
-  console.log("SENTINEL: userId", userOrWorkspaceId);
   transport = new LokiTransport({
     host: HOST,
     labels: { app: "replayio" },
