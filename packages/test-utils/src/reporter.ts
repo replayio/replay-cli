@@ -422,8 +422,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     console.log("SENTINEL: startTestRunShard ran");
 
     initGrafana();
-    grafanaDebug("Test4");
-    closeGrafanaLogger();
+    grafanaDebug("Test6");
 
     let metadata: any = {};
     try {
@@ -1018,7 +1017,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       return results;
     } finally {
-      closeGrafanaLogger();
+      console.log("SENTINEL - onEnd::1021");
+      await closeGrafanaLogger();
     }
   }
 }

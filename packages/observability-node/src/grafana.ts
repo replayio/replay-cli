@@ -76,8 +76,19 @@ function grafanaError(message: string, tags?: Tags) {
   grafanaLogger?.error(message, { ...tags, userId });
 }
 
-function closeGrafanaLogger() {
-  grafanaLogger?.close();
+async function closeGrafanaLogger() {
+  let resolve: any;
+  const promise = new Promise(res => {
+    resolve = res;
+  });
+
+  grafanaLogger?.on("finish", () => {
+    console.log("SENTINEL: got finish event");
+    resolve();
+  });
+
+  grafanaLogger?.end();
+  await promise;
 }
 
 export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana };
