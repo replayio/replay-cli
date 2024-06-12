@@ -3263,8 +3263,6 @@ __metadata:
     ws: "npm:^8.14.2"
   peerDependencies:
     cypress: ">=5.3.0"
-  bin:
-    replayio-cypress: ./bin.js
   languageName: unknown
   linkType: soft
 
