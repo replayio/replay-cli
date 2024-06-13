@@ -1052,7 +1052,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       return results;
     } finally {
-      await this.logger.close();
+      await this.logger.flush();
     }
   }
 }

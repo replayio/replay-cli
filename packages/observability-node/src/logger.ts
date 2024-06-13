@@ -2,16 +2,15 @@ import winston from "winston";
 import LokiTransport from "winston-loki";
 import dbg from "debug";
 
-const USER_NAME = "909360";
+const GRAFANA_USER = "909360";
 // Token has write-only permissions.
 const GRAFANA_PUBLIC_TOKEN =
   "glc_eyJvIjoiOTEyOTQzIiwibiI6IndyaXRlLW90ZWwtcmVwbGF5LWNsaSIsImsiOiJ0UnFsOXV1a2QyQUI2NzIybDEzSkRuNDkiLCJtIjp7InIiOiJwcm9kLXVzLWVhc3QtMCJ9fQ==";
-const GRAFANA_BASIC_AUTH = `${USER_NAME}:${GRAFANA_PUBLIC_TOKEN}`;
+const GRAFANA_BASIC_AUTH = `${GRAFANA_USER}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
 type LogLevel = "error" | "warn" | "info" | "debug";
-
-const sendToGrafana: LogLevel[] = ["error", "warn", "info"];
+const grafanaAllowLevels: LogLevel[] = ["error", "warn", "info"];
 
 type Tags = {
   [key: string]: any;
@@ -26,10 +25,10 @@ class Logger {
   private authInfo?: Auth;
   private grafana: {
     logger: winston.Logger;
-    close: () => Promise<null>;
+    flush: () => Promise<null>;
   };
 
-  name: string;
+  private name: string;
   private debugger: debug.Debugger;
 
   constructor(name: string, authInfo?: Auth) {
@@ -56,7 +55,7 @@ class Logger {
         level: "debug",
         transports: [lokiTransport],
       }),
-      close: async () => lokiTransport?.flush(),
+      flush: async () => lokiTransport?.flush(),
     };
   }
 
@@ -67,7 +66,7 @@ class Logger {
   private log(message: string, level: LogLevel, tags?: Tags) {
     this.debugger(message, JSON.stringify(tags));
 
-    if (process.env.REPLAY_TELEMETRY_DISABLED || !sendToGrafana.includes(level)) {
+    if (process.env.REPLAY_TELEMETRY_DISABLED || !grafanaAllowLevels.includes(level)) {
       return;
     }
 
@@ -75,8 +74,8 @@ class Logger {
     logger.log({ level, message, ...tags, ...this.authInfo });
   }
 
-  async close() {
-    return this.grafana.logger.close();
+  async flush() {
+    return this.grafana.flush();
   }
 
   debug(message: string, tags?: Tags) {
