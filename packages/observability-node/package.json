@@ -1,5 +1,6 @@
 {
   "name": "@replayio/observability-node",
+  "private": true,
   "version": "0.0.1",
   "description": "Node utilities for Replay.io's own observability",
   "main": "./dist/index.js",
