@@ -341,14 +341,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         `\`@replayio/${this._runner.name}/reporter\` requires an API key to upload recordings. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable`
       );
     }
-    this._minimizeUploads = config.upload
-      ? typeof config.upload === "object" && typeof config.upload.minimizeUploads === "boolean"
-        ? config.upload.minimizeUploads
-        : false
-      : false;
-    this._uploadStatusThreshold = config.upload
-      ? (typeof config.upload === "object" && config.upload.statusThreshold) || "all"
-      : "none";
+    if (this._upload) {
+      if (typeof config.upload === "object") {
+        this._minimizeUploads = !!config.upload.minimizeUploads;
+        this._uploadStatusThreshold = config.upload.statusThreshold ?? "all";
+      } else {
+        this._uploadStatusThreshold = "all";
+      }
+    }
 
     // always favor environment variables over config so the config can be
     // overwritten at runtime
