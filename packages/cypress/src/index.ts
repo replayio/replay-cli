@@ -87,7 +87,7 @@ async function onBeforeRun(details: Cypress.BeforeRunDetails) {
 
 function onBeforeBrowserLaunch(
   browser: Cypress.Browser,
-  launchOptions: Cypress.BrowserLaunchOptions
+  launchOptions: Cypress.BeforeBrowserLaunchOptions
 ) {
   debugEvents("Handling before:browser:launch");
   assertReporter(cypressReporter);

@@ -78,11 +78,13 @@ function getTestsFromResults(
   const tests = resultTests.flatMap<Test>((result, id) => {
     const scope = [...result.title];
     const title = scope.pop()!;
+    const lastAttemptIndex = result.attempts.length - 1;
 
     return result.attempts.map<Test>((a, attemptIndex) => ({
       id: getIdForTest(result) ?? attemptIndex,
-      // Cypress 10.9 types are wrong here ... duration doesn't exist but wallClockDuration does
-      approximateDuration: a.duration || (a as any).wallClockDuration || 0,
+      // those properties don't exist since Cypress 13: https://github.com/cypress-io/cypress/pull/27230
+      // TODO: remove it in PRO-640
+      approximateDuration: (a as any).duration || (a as any).wallClockDuration || 0,
       attempt: attemptIndex + 1,
       source: {
         title,
@@ -96,12 +98,20 @@ function getTestsFromResults(
         afterEach: [],
         main: [],
       },
-      error: result.displayError
-        ? {
-            name: "DisplayError",
-            message: result.displayError,
-          }
-        : null,
+      // attempt.error is available here:
+      // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L20
+      // but it's lost when creating a public test result:
+      // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L111
+      // `.displayError` represents the error reported by the last attempt
+      // for all of the previous attempts we rely on the search for the last errored step in `groupStepsByTest`
+      // if an error is found there, it will be set on the test, the information set here is not overriden though
+      error:
+        attemptIndex === lastAttemptIndex && result.displayError
+          ? {
+              name: "DisplayError",
+              message: result.displayError,
+            }
+          : null,
     }));
   });
 
