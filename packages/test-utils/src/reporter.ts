@@ -396,7 +396,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       this.parseConfig(config, metadataKey);
     }
 
-    this.logger.debug("onTestSuiteBegin: Reporter Configuration: %o", {
+    this.logger.debug("onTestSuiteBegin: Reporter Configuration", {
       baseId: this.baseId,
       runTitle: this.runTitle,
       runner: this.runner,
@@ -462,7 +462,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       triggerReason: metadata.source?.trigger?.workflow ?? null,
     };
 
-    this.logger.debug("Creating test run shard for user-key %s", this.baseId);
+    this.logger.debug("Creating test run shard for user-key", this.baseId);
 
     try {
       return exponentialBackoffRetry(async () => {
@@ -499,7 +499,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           };
         }
 
-        this.logger.debug("Created test run shard %s for user key", {
+        this.logger.debug("Created test run shard for user key", {
           testRunShardId,
           userKey: this.baseId,
         });
@@ -791,10 +791,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ) {
-    this.logger.debug(
-      "setRecordingMetadata: Adding test metadata to %o",
-      recordings.map(r => r.id)
-    );
+    this.logger.debug("setRecordingMetadata: Adding test metadata to", {
+      recordings: JSON.stringify(recordings.map(r => r.id)),
+    });
     this.logger.debug("setRecordingMetadata includes errors", { errorsLength: this.errors.length });
 
     const validatedTestMetadata = testMetadata.init(testRun) as { test: TestMetadataV2.TestRun };

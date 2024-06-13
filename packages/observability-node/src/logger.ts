@@ -12,9 +12,7 @@ const HOST = "https://logs-prod-006.grafana.net";
 type LogLevel = "error" | "warn" | "info" | "debug";
 const grafanaAllowLevels: LogLevel[] = ["error", "warn", "info"];
 
-type Tags = {
-  [key: string]: any;
-};
+type Tags = Record<string, any>;
 
 type Auth = {
   userId: string | null;
@@ -78,7 +76,7 @@ class Logger {
     return this.grafana.flush();
   }
 
-  debug(message: string, tags?: Tags) {
+  debug(message: string, tags?: Record<string, any>) {
     this.log(message, "debug", tags);
   }
 
