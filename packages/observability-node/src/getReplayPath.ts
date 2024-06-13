@@ -1,3 +1,5 @@
+// TODO [PRO-629] Move this into the "shared" package.
+
 import { homedir } from "os";
 import { join, resolve } from "path";
 

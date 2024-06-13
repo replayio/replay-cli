@@ -1,5 +1,5 @@
-// TODO [PRO-629] Move this into the "shared" package
-// Duplicates https://github.com/replayio/replay-cli/blob/main/packages/replayio/src/utils/graphql/fetchUserIdFromGraphQLOrThrow.ts#L3
+// TODO [PRO-629] Move this into the "shared" package.
+
 import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
