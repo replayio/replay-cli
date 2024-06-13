@@ -83,6 +83,7 @@ function getTestsFromResults(
     return result.attempts.map<Test>((a, attemptIndex) => ({
       id: getIdForTest(result) ?? attemptIndex,
       // those properties don't exist since Cypress 13: https://github.com/cypress-io/cypress/pull/27230
+      // TODO: remove it in PRO-640
       approximateDuration: (a as any).duration || (a as any).wallClockDuration || 0,
       attempt: attemptIndex + 1,
       source: {
