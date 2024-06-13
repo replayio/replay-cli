@@ -1,5 +1,5 @@
 import { defineConfig } from "@playwright/test";
-import { devices as replayDevices } from "@replayio/playwright";
+import { devices as replayDevices, replayReporter } from "@replayio/playwright";
 
 export default defineConfig({
   forbidOnly: !!process.env.CI,
@@ -14,9 +14,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
   reporter: [
-    ["@replayio/playwright/reporter"],
     // replicating Playwright's defaults
     process.env.CI ? (["dot"] as const) : (["list"] as const),
+    replayReporter({}),
   ],
   projects: [
     {

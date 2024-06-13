@@ -63,15 +63,13 @@ function getTestsFromResults(
 ) {
   const startEvents = sortSteps(testStartSteps);
 
-  function getIdForTest(result: CypressCommandLine.TestResult) {
+  function getStartTestStep(result: CypressCommandLine.TestResult) {
     const startEventIndex = startEvents.findIndex(
       e => e.test.every((t, i) => t === result.title[i]) && e.test.length === result.title.length
     );
     if (startEventIndex !== -1) {
       const startEvent = startEvents.splice(startEventIndex, 1)[0];
-      if (startEvent.testId != null) {
-        return startEvent.testId;
-      }
+      return startEvent;
     }
   }
 
@@ -80,39 +78,43 @@ function getTestsFromResults(
     const title = scope.pop()!;
     const lastAttemptIndex = result.attempts.length - 1;
 
-    return result.attempts.map<Test>((a, attemptIndex) => ({
-      id: getIdForTest(result) ?? attemptIndex,
-      // those properties don't exist since Cypress 13: https://github.com/cypress-io/cypress/pull/27230
-      // TODO: remove it in PRO-640
-      approximateDuration: (a as any).duration || (a as any).wallClockDuration || 0,
-      attempt: attemptIndex + 1,
-      source: {
-        title,
-        scope,
-      },
-      result: mapStateToResult(a.state),
-      events: {
-        beforeAll: [],
-        afterAll: [],
-        beforeEach: [],
-        afterEach: [],
-        main: [],
-      },
-      // attempt.error is available here:
-      // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L20
-      // but it's lost when creating a public test result:
-      // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L111
-      // `.displayError` represents the error reported by the last attempt
-      // for all of the previous attempts we rely on the search for the last errored step in `groupStepsByTest`
-      // if an error is found there, it will be set on the test, the information set here is not overriden though
-      error:
-        attemptIndex === lastAttemptIndex && result.displayError
-          ? {
-              name: "DisplayError",
-              message: result.displayError,
-            }
-          : null,
-    }));
+    return result.attempts.map<Test>((a, attemptIndex) => {
+      const startTestStep = getStartTestStep(result);
+      return {
+        id: startTestStep?.testId ?? attemptIndex,
+        // those properties don't exist since Cypress 13: https://github.com/cypress-io/cypress/pull/27230
+        // TODO: remove it in PRO-640
+        approximateDuration: (a as any).duration || (a as any).wallClockDuration || 0,
+        attempt: attemptIndex + 1,
+        maxAttempts: startTestStep?.maxAttempts ?? 1,
+        source: {
+          title,
+          scope,
+        },
+        result: mapStateToResult(a.state),
+        events: {
+          beforeAll: [],
+          afterAll: [],
+          beforeEach: [],
+          afterEach: [],
+          main: [],
+        },
+        // attempt.error is available here:
+        // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L20
+        // but it's lost when creating a public test result:
+        // https://github.com/cypress-io/cypress/blob/61156808413be8b99264026323ce3abfb22c4c26/packages/server/lib/modes/results.ts#L111
+        // `.displayError` represents the error reported by the last attempt
+        // for all of the previous attempts we rely on the search for the last errored step in `groupStepsByTest`
+        // if an error is found there, it will be set on the test, the information set here is not overriden though
+        error:
+          attemptIndex === lastAttemptIndex && result.displayError
+            ? {
+                name: "DisplayError",
+                message: result.displayError,
+              }
+            : null,
+      };
+    });
   });
 
   debug("Found %d tests", tests.length);

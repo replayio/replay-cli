@@ -22,7 +22,13 @@ type ReplayCypressRecordingMetadata = {
   test: TestMetadataV2.TestRun;
 };
 
-export interface PluginOptions extends ReplayReporterConfig<ReplayCypressRecordingMetadata> {}
+// `filter` is re-applied here so its deprecated comment gets lost here
+// `upload` gets simplified to a boolean (until the advanced options are tested with Cypress)
+export interface PluginOptions
+  extends Omit<ReplayReporterConfig<ReplayCypressRecordingMetadata>, "filter" | "upload"> {
+  filter?: ReplayReporterConfig<ReplayCypressRecordingMetadata>["filter"];
+  upload?: boolean;
+}
 
 const debug = dbg("replay:cypress:reporter");
 const MAX_WAIT = 20_000;
@@ -168,6 +174,7 @@ class CypressReporter {
       },
       result: "unknown",
       attempt: 1,
+      maxAttempts: 1,
       events: {
         afterAll: [],
         afterEach: [],

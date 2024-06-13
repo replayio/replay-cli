@@ -95,7 +95,7 @@ class ReplayPlaywrightReporter implements Reporter {
         version: undefined,
         plugin: pluginVersion,
       },
-      "2.1.0",
+      "2.2.0",
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
     );
     this.captureTestFile =
@@ -242,16 +242,16 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const testMetadata = {
+    const testIdData = {
       id: 0,
       attempt: result.retry + 1,
       source: this.getSource(test),
     };
 
-    const events = this.getStepsFromFixture(testMetadata);
+    const events = this.getStepsFromFixture(testIdData);
 
     const relativePath = test.titlePath()[2];
-    const { stacks, filenames } = this.getFixtureData(testMetadata);
+    const { stacks, filenames } = this.getFixtureData(testIdData);
     filenames.add(test.location.file);
     let playwrightMetadata: Record<string, any> | undefined;
 
@@ -275,7 +275,8 @@ class ReplayPlaywrightReporter implements Reporter {
 
     const tests = [
       {
-        ...testMetadata,
+        ...testIdData,
+        maxAttempts: test.retries + 1,
         approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
         result: status === "interrupted" ? ("unknown" as const) : status,
         error: result.error
