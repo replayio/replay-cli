@@ -11,6 +11,7 @@ import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/t
 import { spawnSync } from "child_process";
 import dbg from "debug";
 import { mkdirSync, writeFileSync } from "fs";
+import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 
@@ -932,6 +933,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   private _enqueueUploads(results: UploadableTestRunResult<TRecordingMetadata>[]) {
     const latestResult = results[results.length - 1];
+    assert(!!latestResult, "Expected at least one result in the list");
 
     let toUpload: typeof results | undefined;
 
