@@ -942,6 +942,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         toUpload = this._minimizeUploads ? [latestResult] : results;
         break;
       case "failed-and-flaky":
+        // retries can be disables so we need to always check if the latest result is not passed
+        // with retries enabled we know that we only have to upload when there was more than one attempt at the test
+        // a single passed attempt can be safely ignored, multiple attempts mean that the test is flaky or failing
         if (latestResult.result !== "passed" || results.length > 1) {
           if (!this._minimizeUploads) {
             toUpload = results;
