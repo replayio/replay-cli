@@ -1,3 +1,3 @@
-import { createLog } from "../createLog";
+import { Logger } from "../logger";
 
-export const debug = createLog("graphql");
+export const logger = new Logger("graphql");

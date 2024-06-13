@@ -4,7 +4,7 @@ import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 
-export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
+async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
   debug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
@@ -62,3 +62,5 @@ export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
 
   throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
 }
+
+export { fetchUserIdFromGraphQLOrThrow };
