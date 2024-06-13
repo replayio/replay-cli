@@ -21,7 +21,6 @@ import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import {
   closeGrafanaLogger,
-  grafanaDebug,
   grafanaError,
   grafanaWarn,
   initGrafana,

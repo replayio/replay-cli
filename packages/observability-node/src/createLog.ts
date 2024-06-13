@@ -3,6 +3,7 @@ import { appendFileSync, ensureFileSync } from "fs-extra";
 import util from "util";
 import { getReplayPath } from "./getReplayPath";
 
+// MBUDAYR - the existence of this file in this package is confusing.
 export function createLog(name: string, logFilePath?: string) {
   const logger = debug(`replayio:${name}`);
 
@@ -19,6 +20,7 @@ export function createLog(name: string, logFilePath?: string) {
     }
   }
 
+  // MBUDAYR - I do not want to be tied down to this logger formatter.
   return function log(formatter: string, ...args: any[]) {
     logger(formatter, ...args);
 

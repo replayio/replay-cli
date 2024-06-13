@@ -22,6 +22,7 @@ async function initGrafana(accessToken?: string, appLabel?: string) {
     return;
   }
 
+  // MBUDAYR - there are two parallel logging systems now - grafana and `dbg` - that I know of, and I'm not sure how to consolidate them (or if I should even attempt to).
   dbg("Initializing grafana logger");
 
   if (accessToken) {
@@ -47,53 +48,42 @@ async function initGrafana(accessToken?: string, appLabel?: string) {
     transports: [lokiTransport],
   });
 
-  grafanaDebug("GrafanaLoggerInitiated");
+  log("GrafanaLoggerInitialized", "debug");
 }
 
 type Tags = {
   [key: string]: any;
 };
 
-// MBUDAYR - DRY this.
+type LogLevel = "error" | "warn" | "info" | "debug";
 
-function grafanaDebug(message: string, tags?: Tags) {
+function log(message: string, level: LogLevel, tags?: Tags) {
   if (process.env.REPLAY_TELEMETRY_DISABLED) {
     return;
   }
 
   if (!grafanaLogger) {
-    throw new Error("Grafana logger not instantiated");
+    // MBUDAYR - this seems aggressive, but without this, the logger could be broken and devs wouldn't notice.
+    throw new Error("Grafana logger not initialized");
   }
 
-  grafanaLogger.debug(message, { ...tags, userOrWorkspaceId });
+  grafanaLogger.log({ level, message, ...tags, userOrWorkspaceId });
 }
 
-function grafanaError(message: string, tags?: Tags) {
-  if (process.env.REPLAY_TELEMETRY_DISABLED) {
-    return;
-  }
-
-  if (!grafanaLogger) {
-    throw new Error("Grafana logger not instantiated");
-  }
-
-  grafanaLogger.error(message, { ...tags, userOrWorkspaceId });
+async function grafanaWarn(message: string, tags?: Tags) {
+  log(message, "warn", tags);
 }
 
-function grafanaWarn(message: string, tags?: Tags) {
-  if (process.env.REPLAY_TELEMETRY_DISABLED) {
-    return;
-  }
+async function grafanaDebug(message: string, tags?: Tags) {
+  log(message, "debug", tags);
+}
 
-  if (!grafanaLogger) {
-    throw new Error("Grafana logger not instantiated");
-  }
-
-  grafanaLogger.warn(message, { ...tags, userOrWorkspaceId });
+async function grafanaError(message: string, tags?: Tags) {
+  log(message, "error", tags);
 }
 
 async function closeGrafanaLogger() {
   return lokiTransport?.flush();
 }
 
-export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana, grafanaWarn };
+export { closeGrafanaLogger, grafanaDebug, grafanaError, grafanaWarn, initGrafana };
