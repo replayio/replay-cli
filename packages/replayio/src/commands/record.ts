@@ -2,13 +2,12 @@ import debug from "debug";
 import { v4 as uuid } from "uuid";
 import { ProcessError } from "../utils/ProcessError";
 import { logAsyncOperation } from "../utils/async/logAsyncOperation";
-import { getRunningProcess } from "../utils/browser/getRunningProcess";
+import { killBrowserIfRunning } from "../utils/browser/killBrowserIfRunning";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
 import { exitProcess } from "../utils/exitProcess";
-import { killProcess } from "../utils/killProcess";
 import { trackEvent } from "../utils/mixpanel/trackEvent";
 import { canUpload } from "../utils/recordings/canUpload";
 import { getRecordings } from "../utils/recordings/getRecordings";
@@ -34,22 +33,7 @@ async function record(url: string = "about:blank") {
   const processGroupId = uuid();
 
   try {
-    const process = await getRunningProcess();
-    if (process) {
-      const confirmed = await confirm(
-        "The replay browser is already running. You'll need to close it before starting a new recording.\n\nWould you like to close it now?",
-        true
-      );
-      if (confirmed) {
-        const killResult = await killProcess(process.pid);
-        if (!killResult) {
-          console.log("Something went wrong trying to close the replay browser. Please try again.");
-          await exitProcess(1);
-        }
-      } else {
-        await exitProcess(0);
-      }
-    }
+    await killBrowserIfRunning();
 
     await launchBrowser(url, { processGroupId });
   } catch (error) {

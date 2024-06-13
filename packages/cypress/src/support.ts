@@ -84,15 +84,15 @@ function handleReplayConnectResponse(v: unknown) {
   }
 }
 
-function isReplayConnectCallbackCommand(cmd: Cypress.EnqueuedCommand) {
+function isReplayConnectCallbackCommand(cmd: Cypress.EnqueuedCommandAttributes) {
   return (
     cmd.name === "then" && Array.isArray(cmd.args) && cmd.args[0] === handleReplayConnectResponse
   );
 }
 
-function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommand | Cypress.CommandQueue) {
+function shouldIgnoreCommand(cmd: Cypress.EnqueuedCommandAttributes | Cypress.CommandQueue) {
   if (isCommandQueue(cmd)) {
-    cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+    cmd = cmd.toJSON() as any as Cypress.EnqueuedCommandAttributes;
   }
 
   if (isReplayConnectCallbackCommand(cmd)) {
@@ -448,7 +448,7 @@ function register() {
       // covert it using its toJSON method (which is typed wrong so we have to
       // cast it to any first)
       if (isCommandQueue(cmd)) {
-        cmd = cmd.toJSON() as any as Cypress.EnqueuedCommand;
+        cmd = cmd.toJSON() as any as Cypress.EnqueuedCommandAttributes;
       }
 
       const id = getReplayId(
@@ -583,7 +583,7 @@ function register() {
           logs: () => [],
           add: () => {},
           get: (key?: any) => (!key ? log : log[key]),
-          toJSON: () => log,
+          toJSON: () => [],
           create: () => ({} as any),
         };
       } else if (maybeCurrentAssertion?.get("type") !== "assertion") {
@@ -595,7 +595,7 @@ function register() {
         return;
       }
 
-      if (shouldIgnoreCommand(maybeCurrentAssertion)) {
+      if (!maybeCurrentAssertion || shouldIgnoreCommand(maybeCurrentAssertion)) {
         return;
       }
 

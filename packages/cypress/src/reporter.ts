@@ -11,7 +11,6 @@ import dbg from "debug";
 
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
-import { getDiagnosticConfig } from "./mode";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
@@ -57,7 +56,7 @@ class CypressReporter {
   selectedBrowser: string | undefined;
   errors: string[] = [];
   featureOptions: string | undefined;
-  diagnosticConfig: ReturnType<typeof getDiagnosticConfig> = { noRecord: false, env: {} };
+  private _extraEnv: NodeJS.ProcessEnv = {};
 
   constructor(config: Cypress.PluginConfigOptions, options: PluginOptions) {
     initFixtureFile();
@@ -75,8 +74,6 @@ class CypressReporter {
       { ...this.options, metadataKey: "CYPRESS_REPLAY_METADATA" }
     );
 
-    this.configureDiagnostics();
-
     this.featureOptions = process.env.CYPRESS_REPLAY_PLUGIN_FEATURES;
     debug("Features: %o", getFeatures(this.featureOptions));
   }
@@ -88,19 +85,9 @@ class CypressReporter {
   async authenticate(apiKey: string) {
     this.reporter.setApiKey(apiKey);
     const { env } = await fetchWorkspaceConfig(apiKey);
-    this.configureDiagnostics(env);
-  }
-
-  configureDiagnostics(extraEnv?: NodeJS.ProcessEnv) {
-    this.diagnosticConfig = getDiagnosticConfig(this.config, extraEnv);
-
-    // Mix diagnostic env into process env so it can be picked up by test
-    // metrics and reported to telemetry
-    Object.keys(this.diagnosticConfig.env).forEach(k => {
-      process.env[k] = this.diagnosticConfig.env[k];
-    });
-
-    this.reporter.setDiagnosticMetadata(this.diagnosticConfig.env);
+    debug("Set extra env: %o", env);
+    this._extraEnv = env;
+    this.reporter.setDiagnosticMetadata(env);
   }
 
   onLaunchBrowser(browser: string) {
@@ -156,8 +143,8 @@ class CypressReporter {
     return this.reporter.onEnd();
   }
 
-  getDiagnosticConfig() {
-    return this.diagnosticConfig;
+  getExtraEnv() {
+    return this._extraEnv;
   }
 
   private setSelectedBrowser(browser: string) {

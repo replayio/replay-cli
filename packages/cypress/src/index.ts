@@ -9,7 +9,6 @@ import chalk from "chalk";
 
 import { CONNECT_TASK_NAME } from "./constants";
 import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
-import run from "./run";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
 import type { StepEvent } from "./support";
@@ -88,7 +87,7 @@ async function onBeforeRun(details: Cypress.BeforeRunDetails) {
 
 function onBeforeBrowserLaunch(
   browser: Cypress.Browser,
-  launchOptions: Cypress.BrowserLaunchOptions
+  launchOptions: Cypress.BeforeBrowserLaunchOptions
 ) {
   debugEvents("Handling before:browser:launch");
   assertReporter(cypressReporter);
@@ -98,8 +97,7 @@ function onBeforeBrowserLaunch(
 
   const config = cypressReporter.config;
   if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
-    const diagnosticConfig = cypressReporter.getDiagnosticConfig();
-    const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD || diagnosticConfig.noRecord;
+    const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD;
 
     const env: NodeJS.ProcessEnv = {
       ...launchOptions.env,
@@ -107,7 +105,7 @@ function onBeforeBrowserLaunch(
       RECORD_ALL_CONTENT: noRecord ? undefined : "1",
       RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
       RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS,
-      ...diagnosticConfig.env,
+      ...cypressReporter.getExtraEnv(),
     };
 
     debugEvents("Adding environment variables to browser: %o", env);
@@ -345,7 +343,6 @@ export function getCypressReporter() {
 export default plugin;
 export {
   plugin,
-  run,
   cypressOnWrapper as wrapOn,
   onBeforeRun,
   onBeforeBrowserLaunch,
