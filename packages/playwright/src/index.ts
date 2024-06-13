@@ -3,7 +3,6 @@ import { initMetadataFile } from "@replayio/test-utils";
 
 import { addReplayFixture } from "./fixture";
 import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
-// import { grafanaDebug, initGrafana } from "@replayio/observability-node";
 
 function getDeviceConfig() {
   const executablePath = getExecutablePath();
@@ -46,9 +45,6 @@ function getDeviceConfig() {
     defaultBrowserType: "chromium" as const,
   };
 }
-
-// initGrafana();
-// grafanaDebug("Test");
 
 export function getExecutablePath() {
   return getPlaywrightBrowserPath("chromium");
