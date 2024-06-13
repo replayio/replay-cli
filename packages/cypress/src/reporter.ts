@@ -70,7 +70,7 @@ class CypressReporter {
         version: config.version,
         plugin: require("@replayio/cypress/package.json").version,
       },
-      "2.1.0",
+      "2.2.0",
       { ...this.options, metadataKey: "CYPRESS_REPLAY_METADATA" }
     );
 
