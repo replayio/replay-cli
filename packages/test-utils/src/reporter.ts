@@ -19,7 +19,13 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { closeGrafanaLogger, grafanaDebug, initGrafana } from "@replayio/observability-node";
+import {
+  closeGrafanaLogger,
+  grafanaDebug,
+  grafanaError,
+  grafanaWarn,
+  initGrafana,
+} from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -366,6 +372,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           this.baseMetadata = JSON.parse(baseMetadata);
         } catch {
           console.warn("Failed to parse Replay metadata");
+          grafanaWarn("Failed to parse Replay metadata");
         }
       } else {
         this.baseMetadata = baseMetadata;
@@ -417,8 +424,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
-    await initGrafana(this.apiKey);
-    grafanaDebug("Test13");
+    await initGrafana(this.apiKey, this.runner.name);
 
     let metadata: any = {};
     try {
@@ -428,6 +434,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         "Failed to initialize source metadata to create test run shard: %s",
         e instanceof Error ? e.message : e
       );
+      grafanaError("Failed to initialize source metadata to create test run shard", {
+        errorMessage: getErrorMessage(e),
+      });
     }
 
     const { REPLAY_METADATA_TEST_RUN_MODE, RECORD_REPLAY_METADATA_TEST_RUN_MODE } = process.env;
@@ -497,6 +506,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       });
     } catch (e) {
       debug("start test run error: %s", e);
+      grafanaError("Unexpected error starting test run shard", {
+        errorMessage: getErrorMessage(e),
+      });
       return {
         type: "test-run",
         error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(e)}`),
@@ -551,6 +563,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       };
     } catch (e) {
       debug("Add tests to run error: %s", e);
+      grafanaError("Unexpected error adding tests to run", {
+        errorMessage: getErrorMessage(e),
+      });
       return {
         type: "test-run-tests",
         error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
@@ -606,6 +621,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       };
     } catch (e) {
       debug("complete test run shard error: %s", e);
+      grafanaError("Unexpected error completing test run shard", {
+        errorMessage: getErrorMessage(e),
+      });
       return {
         type: "test-run",
         error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
@@ -634,6 +652,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
     } catch (e) {
+      grafanaError("Failed to initialize Replay metadata", {
+        errorMessage: getErrorMessage(e),
+      });
       warn("Failed to initialize Replay metadata", e);
     }
 
@@ -691,6 +712,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       };
     } catch (e) {
       debug("upload error: %s", e);
+      grafanaError("Upload error", {
+        errorMessage: getErrorMessage(e),
+      });
       return {
         type: "upload",
         recording,
@@ -780,6 +804,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         ...validatedSourceMetadata,
       };
     } catch (e) {
+      grafanaError("Failed to generate source metadata", {
+        errorMessage: getErrorMessage(e),
+      });
       debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
     }
 
@@ -871,6 +898,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       };
     } catch (e) {
       debug("post-test error: %s", e);
+      grafanaError("Error setting metadata and uploading replays", {
+        errorMessage: getErrorMessage(e),
+      });
+
       return {
         type: "post-test",
         error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),

@@ -15,9 +15,9 @@ const HOST = "https://logs-prod-006.grafana.net";
 
 let grafanaLogger: winston.Logger | undefined;
 let userOrWorkspaceId: string | undefined;
-let transport: LokiTransport | undefined;
+let lokiTransport: LokiTransport | undefined;
 
-async function initGrafana(accessToken?: string, packageName?: string) {
+async function initGrafana(accessToken?: string, appLabel?: string) {
   if (grafanaLogger) {
     return;
   }
@@ -31,9 +31,9 @@ async function initGrafana(accessToken?: string, packageName?: string) {
     ).toString();
   }
 
-  transport = new LokiTransport({
+  lokiTransport = new LokiTransport({
     host: HOST,
-    labels: { app: "replayio" },
+    labels: { app: !!appLabel ? `${appLabel}` : "replayio" },
     json: true,
     basicAuth: GRAFANA_BASIC_AUTH,
     format: winston.format.json(),
@@ -44,20 +44,28 @@ async function initGrafana(accessToken?: string, packageName?: string) {
 
   grafanaLogger = winston.createLogger({
     level: "debug",
-    transports: [transport],
+    transports: [lokiTransport],
   });
+
+  grafanaDebug("GrafanaLoggerInitiated");
 }
 
 type Tags = {
   [key: string]: any;
 };
 
+// MBUDAYR - DRY this.
+
 function grafanaDebug(message: string, tags?: Tags) {
   if (process.env.REPLAY_TELEMETRY_DISABLED) {
     return;
   }
 
-  grafanaLogger?.debug(message, { ...tags, userOrWorkspaceId });
+  if (!grafanaLogger) {
+    throw new Error("Grafana logger not instantiated");
+  }
+
+  grafanaLogger.debug(message, { ...tags, userOrWorkspaceId });
 }
 
 function grafanaError(message: string, tags?: Tags) {
@@ -65,12 +73,27 @@ function grafanaError(message: string, tags?: Tags) {
     return;
   }
 
-  grafanaLogger?.error(message, { ...tags, userOrWorkspaceId });
+  if (!grafanaLogger) {
+    throw new Error("Grafana logger not instantiated");
+  }
+
+  grafanaLogger.error(message, { ...tags, userOrWorkspaceId });
 }
 
-// https://github.com/winstonjs/winston/issues/1504
-async function closeGrafanaLogger(): Promise<void> {
-  await transport?.flush();
+function grafanaWarn(message: string, tags?: Tags) {
+  if (process.env.REPLAY_TELEMETRY_DISABLED) {
+    return;
+  }
+
+  if (!grafanaLogger) {
+    throw new Error("Grafana logger not instantiated");
+  }
+
+  grafanaLogger.warn(message, { ...tags, userOrWorkspaceId });
 }
 
-export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana };
+async function closeGrafanaLogger() {
+  return lokiTransport?.flush();
+}
+
+export { grafanaDebug, grafanaError, closeGrafanaLogger, initGrafana, grafanaWarn };
