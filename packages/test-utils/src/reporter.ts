@@ -19,7 +19,11 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { Logger, fetchUserIdFromGraphQLOrThrow } from "@replayio/observability-node";
+import {
+  Logger,
+  fetchUserIdFromGraphQLOrThrow,
+  getUserIdOrThrow,
+} from "@replayio/observability-node";
 import { decodeBase64 } from "./string-util";
 
 interface TestRunTestInputModel {
@@ -230,7 +234,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
-  private _loggerIdentificationPromise: Promise<void> | null = null;
+  private _cacheUserIdPromise: Promise<void> | null = null;
   logger: Logger;
 
   constructor(
@@ -241,8 +245,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this.runner = runner;
     this.logger = new Logger(this.runner.name);
 
-    // const cached = readFromCache<Cached>(cachePath) ?? {};
-
     this.schemaVersion = schemaVersion;
     if (config) {
       const { metadataKey, ...rest } = config;
@@ -250,10 +252,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (this.apiKey) {
-      fetchUserIdFromGraphQLOrThrow(this.apiKey).then(id => {
-        this.logger.identify(id);
-      });
+      this._cacheUserIdPromise = getUserIdOrThrow(this.apiKey).then(id => this.logger.identify(id));
     }
+
+    this.logger.error("TestError");
   }
 
   setTestRunnerVersion(version: TestRunner["version"]) {
@@ -926,6 +928,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async onEnd(): Promise<PendingWork[]> {
     try {
+      // await this._cacheUserIdPromise;
       this.logger.debug("onEnd");
 
       if (this.upload) {

@@ -6,7 +6,7 @@ import { Cached } from "../types";
 
 export const cachePath = getReplayPath("profile", "graphql.json");
 
-export async function getUserIdOrThrow(accessToken: string) {
+async function getUserIdOrThrow(accessToken: string) {
   const cached = readFromCache<Cached>(cachePath) ?? {};
   let id = cached[accessToken];
   if (!id) {
@@ -17,3 +17,5 @@ export async function getUserIdOrThrow(accessToken: string) {
 
   return id;
 }
+
+export { getUserIdOrThrow };

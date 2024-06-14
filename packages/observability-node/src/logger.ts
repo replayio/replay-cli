@@ -10,7 +10,6 @@ const GRAFANA_BASIC_AUTH = `${GRAFANA_USER}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
 type LogLevel = "error" | "warn" | "info" | "debug";
-const grafanaAllowLevels: LogLevel[] = ["error", "warn", "info"];
 
 type Tags = Record<string, any>;
 
@@ -24,14 +23,13 @@ class Logger {
   private grafana: {
     logger: winston.Logger;
     flush: () => Promise<null>;
-  };
+  } = this.initGrafana();
 
   private name: string;
   private debugger: debug.Debugger;
 
   constructor(name: string) {
     this.name = `replayio:${name}`;
-    this.grafana = this.initGrafana();
     this.debugger = dbg(name);
   }
 
@@ -43,7 +41,7 @@ class Logger {
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
       replaceTimestamp: true,
-      onConnectionError: err => console.error(err),
+      onConnectionError: err => this.debugger("Grafana connection error"),
       gracefulShutdown: true,
     });
 
@@ -63,7 +61,7 @@ class Logger {
   private log(message: string, level: LogLevel, tags?: Tags) {
     this.debugger(message, JSON.stringify(tags));
 
-    if (process.env.REPLAY_TELEMETRY_DISABLED || !grafanaAllowLevels.includes(level)) {
+    if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
     }
 
