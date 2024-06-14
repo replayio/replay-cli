@@ -1,10 +1,8 @@
-// TODO [PRO-629] Move this into the "shared" package.
-
 import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 
-async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
+export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
   debug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
@@ -54,14 +52,11 @@ async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
 
   const { viewer, auth } = response;
 
-  const userId = viewer?.user?.id;
-  const workspaceId = auth?.workspaces?.edges?.[0]?.node?.id;
-
-  if (!userId && !workspaceId) {
-    throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
+  if (viewer?.user?.id) {
+    return viewer.user.id;
+  } else if (auth?.workspaces?.edges?.[0]?.node?.id) {
+    return auth.workspaces.edges[0].node.id;
   }
 
-  return { userId, workspaceId };
+  throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
 }
-
-export { fetchUserIdFromGraphQLOrThrow };

@@ -230,6 +230,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   recordingsToUpload: ExternalRecordingEntry<TRecordingMetadata>[] = [];
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
+  private _loggerIdentificationPromise: Promise<void> | null = null;
   logger: Logger;
 
   constructor(
@@ -240,10 +241,18 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this.runner = runner;
     this.logger = new Logger(this.runner.name);
 
+    // const cached = readFromCache<Cached>(cachePath) ?? {};
+
     this.schemaVersion = schemaVersion;
     if (config) {
       const { metadataKey, ...rest } = config;
       this.parseConfig(rest, metadataKey);
+    }
+
+    if (this.apiKey) {
+      fetchUserIdFromGraphQLOrThrow(this.apiKey).then(id => {
+        this.logger.identify(id);
+      });
     }
   }
 
@@ -421,15 +430,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
-    if (this.apiKey) {
-      const { userId, workspaceId } = await fetchUserIdFromGraphQLOrThrow(this.apiKey);
-
-      this.logger.identify({
-        userId: decodeBase64(userId),
-        workspaceId: decodeBase64(workspaceId),
-      });
-    }
-
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();

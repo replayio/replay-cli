@@ -20,7 +20,7 @@ type Auth = {
 };
 
 class Logger {
-  private authInfo?: Auth;
+  private userOrWorkspaceId?: string;
   private grafana: {
     logger: winston.Logger;
     flush: () => Promise<null>;
@@ -29,11 +29,10 @@ class Logger {
   private name: string;
   private debugger: debug.Debugger;
 
-  constructor(name: string, authInfo?: Auth) {
+  constructor(name: string) {
     this.name = `replayio:${name}`;
     this.grafana = this.initGrafana();
     this.debugger = dbg(name);
-    this.authInfo = authInfo;
   }
 
   private initGrafana() {
@@ -57,8 +56,8 @@ class Logger {
     };
   }
 
-  identify(authInfo: Auth) {
-    this.authInfo = authInfo;
+  identify(userOrWorkspaceId: string) {
+    this.userOrWorkspaceId = userOrWorkspaceId;
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
@@ -69,7 +68,7 @@ class Logger {
     }
 
     const { logger } = this.grafana;
-    logger.log({ level, message, ...tags, ...this.authInfo });
+    logger.log({ level, message, ...tags, userId: this.userOrWorkspaceId });
   }
 
   async flush() {
