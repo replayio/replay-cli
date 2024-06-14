@@ -23,7 +23,7 @@ class Logger {
   private grafana: {
     logger: winston.Logger;
     flush: () => Promise<null>;
-  } = this.initGrafana();
+  };
 
   private name: string;
   private debugger: debug.Debugger;
@@ -31,6 +31,7 @@ class Logger {
   constructor(name: string) {
     this.name = `replayio:${name}`;
     this.debugger = dbg(name);
+    this.grafana = this.initGrafana();
   }
 
   private initGrafana() {
@@ -47,7 +48,7 @@ class Logger {
 
     return {
       logger: winston.createLogger({
-        level: "debug",
+        level: "info",
         transports: [lokiTransport],
       }),
       flush: async () => lokiTransport?.flush(),

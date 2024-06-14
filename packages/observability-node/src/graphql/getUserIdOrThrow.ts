@@ -15,7 +15,7 @@ async function getUserIdOrThrow(accessToken: string) {
     updateCachedUserId(accessToken, id);
   }
 
-  return id;
+  return Buffer.from(id, "base64").toString();
 }
 
 export { getUserIdOrThrow };

@@ -254,8 +254,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     if (this.apiKey) {
       this._cacheUserIdPromise = getUserIdOrThrow(this.apiKey).then(id => this.logger.identify(id));
     }
-
-    this.logger.error("TestError");
   }
 
   setTestRunnerVersion(version: TestRunner["version"]) {
@@ -928,7 +926,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async onEnd(): Promise<PendingWork[]> {
     try {
-      // await this._cacheUserIdPromise;
+      await this._cacheUserIdPromise;
       this.logger.debug("onEnd");
 
       if (this.upload) {
