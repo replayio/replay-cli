@@ -54,13 +54,14 @@ async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
 
   const { viewer, auth } = response;
 
-  if (viewer?.user?.id) {
-    return viewer.user.id;
-  } else if (auth?.workspaces?.edges?.[0]?.node?.id) {
-    return auth.workspaces.edges[0].node.id;
+  const userId = viewer?.user?.id;
+  const workspaceId = auth?.workspaces?.edges?.[0]?.node?.id;
+
+  if (!userId && !workspaceId) {
+    throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
   }
 
-  throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
+  return { userId, workspaceId };
 }
 
 export { fetchUserIdFromGraphQLOrThrow };

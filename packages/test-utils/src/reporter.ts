@@ -20,6 +20,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import { Logger, fetchUserIdFromGraphQLOrThrow } from "@replayio/observability-node";
+import { decodeBase64 } from "./string-util";
 
 interface TestRunTestInputModel {
   testId: string;
@@ -421,17 +422,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async startTestRunShard(): Promise<TestRunPendingWork> {
     if (this.apiKey) {
-      const userOrWorkspaceId = Buffer.from(
-        await fetchUserIdFromGraphQLOrThrow(this.apiKey),
-        "base64"
-      ).toString();
+      const { userId, workspaceId } = await fetchUserIdFromGraphQLOrThrow(this.apiKey);
 
-      // MBUDAYR - better way to do this.
-      if (userOrWorkspaceId.startsWith("w")) {
-        this.logger.identify({ workspaceId: userOrWorkspaceId, userId: null });
-      } else {
-        this.logger.identify({ userId: userOrWorkspaceId, workspaceId: null });
-      }
+      this.logger.identify({
+        userId: decodeBase64(userId),
+        workspaceId: decodeBase64(workspaceId),
+      });
     }
 
     let metadata: any = {};
