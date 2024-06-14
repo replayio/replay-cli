@@ -15110,6 +15110,7 @@ __metadata:
     pretty-ms: "npm:^7.0.1"
     query-registry: "npm:^2.6.0"
     semver: "npm:^7.5.4"
+    strip-ansi: "npm:^6.0.1"
     superstruct: "npm:^0.15.4"
     table: "npm:^6.8.2"
     ts-jest: "npm:^28.0.6"
