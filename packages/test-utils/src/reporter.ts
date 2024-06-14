@@ -991,6 +991,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     try {
       debug("onEnd");
       await this._cacheUserIdPromise;
+
       const output: string[] = [];
       let completedWork: PromiseSettledResult<PendingWork>[] = [];
 

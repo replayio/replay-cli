@@ -3,20 +3,14 @@ import LokiTransport from "winston-loki";
 import dbg from "debug";
 
 const GRAFANA_USER = "909360";
-// Token has write-only permissions.
 const GRAFANA_PUBLIC_TOKEN =
-  "glc_eyJvIjoiOTEyOTQzIiwibiI6IndyaXRlLW90ZWwtcmVwbGF5LWNsaSIsImsiOiJ0UnFsOXV1a2QyQUI2NzIybDEzSkRuNDkiLCJtIjp7InIiOiJwcm9kLXVzLWVhc3QtMCJ9fQ==";
+  "glc_eyJvIjoiOTEyOTQzIiwibiI6IndyaXRlLW90ZWwtcmVwbGF5LWNsaSIsImsiOiJ0UnFsOXV1a2QyQUI2NzIybDEzSkRuNDkiLCJtIjp7InIiOiJwcm9kLXVzLWVhc3QtMCJ9fQ=="; // write-only permissions.
 const GRAFANA_BASIC_AUTH = `${GRAFANA_USER}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
 type LogLevel = "error" | "warn" | "info" | "debug";
 
-type Tags = Record<string, any>;
-
-type Auth = {
-  userId: string | null;
-  workspaceId: string | null;
-};
+type Tags = Record<string, unknown>;
 
 class Logger {
   private userOrWorkspaceId?: string;
@@ -26,11 +20,11 @@ class Logger {
   };
 
   private name: string;
-  private debugger: debug.Debugger;
+  private localDebugger: debug.Debugger;
 
   constructor(name: string) {
     this.name = `replayio:${name}`;
-    this.debugger = dbg(name);
+    this.localDebugger = dbg(name);
     this.grafana = this.initGrafana();
   }
 
@@ -42,12 +36,14 @@ class Logger {
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
       replaceTimestamp: true,
-      onConnectionError: err => this.debugger("Grafana connection error"),
+      onConnectionError: err => this.localDebugger("Grafana connection error %s", err),
       gracefulShutdown: true,
     });
 
     return {
       logger: winston.createLogger({
+        // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
+        // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
         level: "info",
         transports: [lokiTransport],
       }),
@@ -60,14 +56,13 @@ class Logger {
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
-    this.debugger(message, JSON.stringify(tags));
+    this.localDebugger(message, JSON.stringify(tags));
 
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
     }
 
-    const { logger } = this.grafana;
-    logger.log({ level, message, ...tags, userId: this.userOrWorkspaceId });
+    this.grafana.logger.log({ level, message, ...tags, userId: this.userOrWorkspaceId });
   }
 
   async close() {
