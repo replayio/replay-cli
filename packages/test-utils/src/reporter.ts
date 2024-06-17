@@ -20,9 +20,35 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { Logger, getAuthIds } from "@replayio/observability-node";
+import {
+  Logger,
+  SemanticAttributes,
+  emptyContext,
+  getAuthIds,
+  getTracer,
+  initHoneycomb,
+  withNamedSpan,
+} from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
+
+const sdk = initHoneycomb();
+
+const tracer = getTracer("test-utils-reporter");
+
+// MBUDAYR - this is just a test.
+(async () => {
+  await withNamedSpan(
+    async cx => withNamedSpan(async _cx => {}, tracer, { name: "TestChild1", parentContext: cx }),
+    tracer,
+    {
+      name: "TestParent1",
+      attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
+    }
+  );
+
+  await sdk.shutdown();
+})();
 
 interface TestRunTestInputModel {
   testId: string;
