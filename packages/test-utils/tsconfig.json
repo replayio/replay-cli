@@ -2,7 +2,9 @@
   "extends": "@replay-cli/tsconfig/base.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "target": "es2022",
+    "lib": ["es2023"]
   },
   "include": ["src/**/*.ts"],
   "references": [

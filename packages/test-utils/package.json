@@ -8,6 +8,9 @@
     "./testId": "./dist/testId.js",
     "./package.json": "./package.json"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
