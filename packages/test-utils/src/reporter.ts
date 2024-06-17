@@ -20,7 +20,7 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { Logger, getUserIdOrThrow } from "@replayio/observability-node";
+import { Logger, getAuthIds } from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
 
@@ -243,7 +243,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
-  private _cacheUserIdPromise: Promise<void> | null = null;
+  private _cachAuthIdsPromise: Promise<void> | null = null;
   private _logger: Logger;
 
   constructor(
@@ -261,9 +261,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (this._apiKey) {
-      this._cacheUserIdPromise = getUserIdOrThrow(this._apiKey).then(id =>
-        this._logger.identify(id)
-      );
+      this._cachAuthIdsPromise = getAuthIds(this._apiKey).then(id => this._logger.identify(id));
     }
   }
 
@@ -990,7 +988,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   async onEnd(): Promise<PendingWork[]> {
     try {
       debug("onEnd");
-      await this._cacheUserIdPromise;
+      await this._cachAuthIdsPromise;
 
       const output: string[] = [];
       let completedWork: PromiseSettledResult<PendingWork>[] = [];

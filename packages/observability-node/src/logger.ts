@@ -1,6 +1,7 @@
 import winston from "winston";
 import LokiTransport from "winston-loki";
 import dbg from "debug";
+import { AuthIds } from "./graphql/fetchAuthIdsFromGraphQL";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -13,7 +14,7 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 type Tags = Record<string, unknown>;
 
 class Logger {
-  private userOrWorkspaceId?: string;
+  private authIds?: AuthIds;
   private grafana: {
     logger: winston.Logger;
     flush: () => Promise<null>;
@@ -51,8 +52,8 @@ class Logger {
     };
   }
 
-  identify(userOrWorkspaceId: string) {
-    this.userOrWorkspaceId = userOrWorkspaceId;
+  identify(authIds: AuthIds) {
+    this.authIds = authIds;
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
@@ -62,7 +63,7 @@ class Logger {
       return;
     }
 
-    this.grafana.logger.log({ level, message, ...tags, userId: this.userOrWorkspaceId });
+    this.grafana.logger.log({ level, message, ...tags, ...this.authIds });
   }
 
   async close() {

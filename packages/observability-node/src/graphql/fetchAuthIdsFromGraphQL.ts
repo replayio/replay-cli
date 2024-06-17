@@ -3,8 +3,11 @@
 import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
+import { base64Decode } from "../strings/decode";
 
-export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
+export type AuthIds = { userId: string | null; workspaceId: string | null };
+
+export async function fetchAuthIdsFromGraphQL(accessToken: string): Promise<AuthIds> {
   debug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
@@ -54,11 +57,15 @@ export async function fetchUserIdFromGraphQLOrThrow(accessToken: string) {
 
   const { viewer, auth } = response;
 
-  if (viewer?.user?.id) {
-    return viewer.user.id;
-  } else if (auth?.workspaces?.edges?.[0]?.node?.id) {
-    return auth.workspaces.edges[0].node.id;
+  const userId = viewer?.user?.id ?? null;
+  const workspaceId = auth.workspaces.edges[0].node.id ?? null;
+
+  if (!userId && !workspaceId) {
+    throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
   }
 
-  throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
+  return {
+    userId: userId ? base64Decode(userId) : null,
+    workspaceId: workspaceId ? base64Decode(workspaceId) : null,
+  };
 }
