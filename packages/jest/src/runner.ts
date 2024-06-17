@@ -6,7 +6,6 @@ import {
   removeAnsiCodes,
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
-  TestIdContext,
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
@@ -47,7 +46,7 @@ const ReplayRunner = async (
   }
 
   const relativePath = path.relative(config.cwd, testPath);
-  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion }, "2.2.0");
+  const reporter = new ReplayReporter({ name: "jest", version, plugin: pluginVersion }, "3.0.0");
   reporter.onTestSuiteBegin(undefined, "JEST_REPLAY_METADATA");
 
   function getSource(test: Circus.TestEntry) {
@@ -63,14 +62,6 @@ const ReplayRunner = async (
     };
   }
 
-  function getTestIdContext(test: Circus.TestEntry): TestIdContext {
-    const source = getSource(test);
-    return {
-      ...source,
-      attempt: test.invocations,
-    };
-  }
-
   function getWorkerIndex() {
     return +(process.env.JEST_WORKER_ID || 0);
   }
@@ -82,7 +73,11 @@ const ReplayRunner = async (
   }
 
   function handleTestStart(test: Circus.TestEntry) {
-    reporter.onTestBegin(getTestIdContext(test), getMetadataFilePath(getWorkerIndex()));
+    const source = getSource(test);
+    reporter.onTestBegin(
+      [test.invocations, ...source.scope, source.title].join("-"),
+      getMetadataFilePath(getWorkerIndex())
+    );
   }
 
   function getErrorMessage(errors: any[]) {
@@ -95,11 +90,13 @@ const ReplayRunner = async (
 
   function handleResult(test: Circus.TestEntry, passed: boolean) {
     const errorMessage = getErrorMessage(test.errors);
+    const source = getSource(test);
 
     reporter.onTestEnd({
       tests: [
         {
           id: 0,
+          executionId: [1, ...source.scope, source.title].join("-"),
           attempt: 1,
           maxAttempts: 1,
           approximateDuration: test.duration || 0,

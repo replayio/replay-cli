@@ -37,12 +37,6 @@ interface TestRunTestInputModel {
   recordingIds: string[];
 }
 
-export interface TestIdContext {
-  title: string;
-  scope: string[];
-  attempt: number;
-}
-
 export type UploadStatusThreshold = "all" | "failed-and-flaky" | "failed";
 
 type UploadStatusThresholdInternal = UploadStatusThreshold | "none";
@@ -50,6 +44,9 @@ type UploadStatusThresholdInternal = UploadStatusThreshold | "none";
 export type UploadOption =
   | boolean
   | {
+      /**
+       * It minimizes uploads related to a single test within a shard
+       */
       minimizeUploads?: boolean;
       statusThreshold?: UploadStatusThreshold;
     };
@@ -321,14 +318,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     return { approximateDuration, resultCounts };
-  }
-
-  private _getTestId(source?: TestIdContext) {
-    if (!source) {
-      return this._baseId;
-    }
-
-    return `${this._baseId}-${[...source.scope, source.title].join("-")}-${source.attempt}`;
   }
 
   private _parseConfig(
@@ -634,18 +623,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  onTestBegin(
-    testIdContext?: TestIdContext,
-    metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)
-  ) {
-    debug("onTestBegin: %o", testIdContext);
+  onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+    debug("onTestBegin: %o", testExecutionId);
 
-    const id = this._getTestId(testIdContext);
     this._errors = [];
     const metadata = {
       ...(this._baseMetadata || {}),
       "x-replay-test": {
-        id,
+        id: testExecutionId ? `${this._baseId}-${testExecutionId}` : this._baseId,
       },
     };
 
@@ -718,15 +703,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  getRecordingsForTest(tests: Test[]) {
+  getRecordingsForTest(tests: { executionId: string }[]) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
-      ...tests.map(test =>
-        this._getTestId({
-          ...test.source,
-          attempt: test.attempt,
-        })
-      ),
-      this._getTestId(),
+      ...tests.map(test => `${this._baseId}-${test.executionId}`),
+      this._baseId,
     ])} and $not($exists($v.metadata.test)) }`;
 
     const recordings = listAllRecordings({

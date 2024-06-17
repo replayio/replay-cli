@@ -1,15 +1,16 @@
 import {
+  Infer,
   array,
+  assign,
   defaulted,
   enums,
+  nullable,
   number,
   object,
+  omit,
   optional,
-  string,
-  nullable,
-  Infer,
-  assign,
   record,
+  string,
 } from "superstruct";
 
 import { firstEnvValueOf } from "../env";
@@ -117,9 +118,10 @@ const test_v2_1_0 = assign(
   })
 );
 
-const test_v2_2_0 = assign(
+const test_v3_0_0 = assign(
   test_v2_1_0,
   object({
+    executionId: string(),
     maxAttempts: number(),
   })
 );
@@ -131,23 +133,23 @@ const v2_1_0 = assign(
   })
 );
 
-const v2_2_0 = assign(
+const v3_0_0 = assign(
   v2_1_0,
   object({
-    tests: array(test_v2_2_0),
+    tests: array(test_v3_0_0),
   })
 );
 
 export namespace TestMetadataV2 {
   export type UserActionEvent = Infer<typeof userActionEvent>;
-  export type Test = Infer<typeof test_v2_2_0>;
+  export type Test = Infer<typeof test_v3_0_0>;
   export type TestResult = Infer<typeof testResult>;
-  export type TestRun = Infer<typeof v2_2_0>;
+  export type TestRun = Infer<typeof v3_0_0>;
   export type TestError = Infer<typeof testError>;
 }
 
 export default {
-  "2.2.0": v2_2_0,
+  "3.0.0": v3_0_0,
   "2.1.0": v2_1_0,
   "2.0.0": v2_0_0,
 };

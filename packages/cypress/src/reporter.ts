@@ -70,7 +70,7 @@ class CypressReporter {
         version: config.version,
         plugin: require("@replayio/cypress/package.json").version,
       },
-      "2.2.0",
+      "3.0.0",
       { ...this.options, metadataKey: "CYPRESS_REPLAY_METADATA" }
     );
 
@@ -167,6 +167,7 @@ class CypressReporter {
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     const placeholderTest: Test = {
       id: 0,
+      executionId: [1, spec.relative].join("-"),
       approximateDuration: 0,
       source: {
         title: spec.relative,
