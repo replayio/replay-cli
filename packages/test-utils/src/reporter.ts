@@ -988,7 +988,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   async onEnd(): Promise<PendingWork[]> {
     try {
       debug("onEnd");
-      await this._cachAuthIdsPromise;
+      await this._cachAuthIdsPromise?.catch(e =>
+        this._logger.debug("failed to add auth ids to the logger", {
+          errorMessage: getErrorMessage(e),
+        })
+      );
 
       const output: string[] = [];
       let completedWork: PromiseSettledResult<PendingWork>[] = [];
