@@ -1,14 +1,14 @@
 // TODO [PRO-629] Move this into the "shared" package.
 
-import debug from "debug";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 import { base64Decode } from "../strings/decode";
+import { logger } from "./debug";
 
 export type AuthIds = { userId: string | null; workspaceId: string | null };
 
 export async function fetchAuthIdsFromGraphQL(accessToken: string): Promise<AuthIds> {
-  debug("Fetching auth info from GraphQL");
+  logger.debug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
     "AuthInfo",
@@ -58,14 +58,25 @@ export async function fetchAuthIdsFromGraphQL(accessToken: string): Promise<Auth
   const { viewer, auth } = response;
 
   const userId = viewer?.user?.id ?? null;
-  const workspaceId = auth.workspaces.edges[0].node.id ?? null;
+  const workspaceId = auth?.workspaces?.edges?.[0]?.node?.id ?? null;
 
   if (!userId && !workspaceId) {
     throw new Error("Unrecognized type of an API key: Missing both user ID and workspace ID.");
   }
 
   return {
-    userId: userId ? base64Decode(userId) : null,
-    workspaceId: workspaceId ? base64Decode(workspaceId) : null,
+    userId: userId ? formatId(userId) : null,
+    workspaceId: workspaceId ? formatId(workspaceId) : null,
   };
+}
+
+function formatId(base64EncodedId: string) {
+  const decoded = base64Decode(base64EncodedId); // The expected format is "w:0000-0000-0000" or "u:0000-0000-0000"
+  const [_, id] = decoded.split(":");
+
+  if (typeof id !== "string") {
+    throw new Error(`Unrecognized ID format: ${decoded}`);
+  }
+
+  return id;
 }
