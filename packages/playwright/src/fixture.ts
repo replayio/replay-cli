@@ -32,7 +32,7 @@ export interface FixtureStepStart extends StepStartDetail {
 }
 
 export interface TestExecutionIdData {
-  projectName: string;
+  projectName: string | undefined;
   repeatEachIndex: number;
   attempt: number;
   source: {

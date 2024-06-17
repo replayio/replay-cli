@@ -149,7 +149,7 @@ class ReplayPlaywrightReporter implements Reporter {
   // this is different because it includes `repeatEachIndex` and `attempt`
   private _getTestExecutionId(test: TestExecutionIdData) {
     return [
-      test.projectName,
+      test.projectName ?? "",
       test.repeatEachIndex,
       test.attempt,
       ...test.source.scope,
@@ -184,7 +184,7 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onTestBegin(test: TestCase, testResult: TestResult) {
     const testExecutionId = this._getTestExecutionId({
-      projectName: test.parent.project.name,
+      projectName: test.parent.project()?.name,
       repeatEachIndex: test.repeatEachIndex,
       attempt: testResult.retry + 1,
       source: this.getSource(test),
@@ -257,7 +257,7 @@ class ReplayPlaywrightReporter implements Reporter {
     if (status === "skipped") return;
 
     const testExecutionIdData = {
-      projectName: test.parent.project.name,
+      projectName: test.parent.project()?.name,
       repeatEachIndex: test.repeatEachIndex,
       attempt: result.retry + 1,
       source: this.getSource(test),
