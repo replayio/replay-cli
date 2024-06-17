@@ -246,6 +246,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
+  private _uploadedRecordings: WeakSet<RecordingEntry<TRecordingMetadata>> = new WeakSet();
 
   constructor(
     runner: TestRunner,
@@ -678,7 +679,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     );
   }
 
-  private async _uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
+  private async _uploadRecording(
+    recording: RecordingEntry<TRecordingMetadata>
+  ): Promise<UploadPendingWork> {
+    this._uploadedRecordings.add(recording);
+
     debug("Starting upload of %s", recording.id);
 
     try {
@@ -931,7 +936,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     assert(!!latestExecution, "Expected at least one execution in the list");
 
     let toUpload: typeof result.executions | undefined;
-
     switch (this._uploadStatusThreshold) {
       case "all":
         // even when `minimizeUploads` is combined with `repeatEach` it always makes sense to upload the latest result
@@ -991,7 +995,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._pendingWork.push(
       ...toUpload
         .flatMap(result => result.recordings)
-        .filter(r => (this._filter ? this._filter(r) : true))
+        .filter(r => {
+          if (this._filter && this._filter(r)) {
+            return !this._uploadedRecordings.has(r);
+          }
+          return false;
+        })
         .map(r => this._uploadRecording(r))
     );
   }
