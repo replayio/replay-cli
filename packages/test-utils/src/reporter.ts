@@ -36,20 +36,6 @@ const sdk = initHoneycomb();
 
 const tracer = getTracer("test-utils-reporter");
 
-// MBUDAYR - this is just a test.
-(async () => {
-  await withNamedSpan(
-    async cx => withNamedSpan(async _cx => {}, tracer, { name: "TestChild1", parentContext: cx }),
-    tracer,
-    {
-      name: "TestParent1",
-      attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
-    }
-  );
-
-  await sdk.shutdown();
-})();
-
 interface TestRunTestInputModel {
   testId: string;
   runnerGroupId: string | null;
@@ -1132,6 +1118,19 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       return results;
     } finally {
+      // MBUDAYR - this is just a test.
+      await withNamedSpan(
+        async cx =>
+          withNamedSpan(async _cx => {}, tracer, { name: "TestChild2", parentContext: cx }),
+        tracer,
+        {
+          name: "TestParent2",
+          attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
+        }
+      );
+
+      await sdk.shutdown();
+
       await this._logger.close();
     }
   }
