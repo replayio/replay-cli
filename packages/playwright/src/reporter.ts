@@ -298,6 +298,7 @@ class ReplayPlaywrightReporter implements Reporter {
         id: 0,
         attempt: testExecutionIdData.attempt,
         source: testExecutionIdData.source,
+        executionGroupId: String(testExecutionIdData.repeatEachIndex),
         executionId: this._getTestExecutionId(testExecutionIdData),
         maxAttempts: test.retries + 1,
         approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),

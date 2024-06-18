@@ -84,6 +84,7 @@ function getTestsFromResults(
       const attempt = attemptIndex + 1;
       return {
         id: startTestStep?.testId ?? attemptIndex,
+        executionGroupId: "single",
         executionId: [spec.relative, attempt, ...scope, title].join("-"),
         // those properties don't exist since Cypress 13: https://github.com/cypress-io/cypress/pull/27230
         // TODO: remove it in PRO-640

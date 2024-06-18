@@ -21,6 +21,10 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 
+function last<T>(arr: T[]): T | undefined {
+  return arr[arr.length - 1];
+}
+
 const debug = dbg("replay:test-utils:reporter");
 
 interface TestRunTestInputModel {
@@ -52,6 +56,7 @@ export type UploadOption =
     };
 
 interface UploadableTestExecutionResult<TRecordingMetadata extends UnstructuredMetadata> {
+  executionGroupId: string;
   attempt: number;
   maxAttempts: number;
   recordings: RecordingEntry<TRecordingMetadata>[];
@@ -60,7 +65,7 @@ interface UploadableTestExecutionResult<TRecordingMetadata extends UnstructuredM
 }
 
 interface UploadableTestResult<TRecordingMetadata extends UnstructuredMetadata> {
-  executions: UploadableTestExecutionResult<TRecordingMetadata>[];
+  executions: Record<string, UploadableTestExecutionResult<TRecordingMetadata>[]>;
   uploadedStatuses: {
     passed: boolean;
     failed: boolean;
@@ -246,7 +251,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
-  private _uploadedRecordings: WeakSet<RecordingEntry<TRecordingMetadata>> = new WeakSet();
 
   constructor(
     runner: TestRunner,
@@ -682,8 +686,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private async _uploadRecording(
     recording: RecordingEntry<TRecordingMetadata>
   ): Promise<UploadPendingWork> {
-    this._uploadedRecordings.add(recording);
-
     debug("Starting upload of %s", recording.id);
 
     try {
@@ -860,6 +862,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         this._storeUploadableTestResults(
           tests.map(test => {
             return {
+              executionGroupId: test.executionGroupId,
               attempt: test.attempt,
               maxAttempts: test.maxAttempts,
               recordings: recordingsWithMetadata,
@@ -915,7 +918,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       let uploadableResults = this._uploadableResults.get(result.testId);
       if (!uploadableResults) {
         uploadableResults = {
-          executions: [],
+          executions: {},
           uploadedStatuses: {
             passed: false,
             failed: false,
@@ -923,50 +926,59 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         };
         this._uploadableResults.set(result.testId, uploadableResults);
       }
-      uploadableResults.executions.push(result);
+      let executions = uploadableResults.executions[result.executionGroupId];
+      if (!executions) {
+        executions = [];
+        uploadableResults.executions[result.executionGroupId] = executions;
+      }
+      executions.push(result);
 
       if (result.result === "passed" || result.attempt >= result.maxAttempts) {
-        this._enqueueUploads(uploadableResults);
+        this._enqueueUploads(uploadableResults, result.executionGroupId);
       }
     }
   }
 
-  private _enqueueUploads(result: UploadableTestResult<TRecordingMetadata>) {
-    const latestExecution = result.executions[result.executions.length - 1];
+  private _enqueueUploads(
+    result: UploadableTestResult<TRecordingMetadata>,
+    executionGroupId: string
+  ) {
+    const executions = result.executions[executionGroupId];
+    const latestExecution = last(executions);
     assert(!!latestExecution, "Expected at least one execution in the list");
 
-    let toUpload: typeof result.executions | undefined;
+    let toUpload: typeof executions | undefined;
     switch (this._uploadStatusThreshold) {
       case "all":
         // even when `minimizeUploads` is combined with `repeatEach` it always makes sense to upload the latest result
         // otherwise, we could upload a single successful attempt without uploading a potential failure of the same test
         // coming from a different `repeatEachIndex`
-        toUpload = this._minimizeUploads ? [latestExecution] : result.executions;
+        toUpload = this._minimizeUploads ? [latestExecution] : executions;
         break;
       case "failed-and-flaky":
-        // retries can be disabled so we need to always check if the latest result is not passed
+        // retries can be disabled so we need to always check if the latest execution is not passed
         // with retries enabled we know that we only have to upload when there was more than one attempt at the test
         // a single passed attempt can be safely ignored, multiple attempts mean that the test is flaky or failing
-        const failedExecution = result.executions.find(r => r.result !== "passed");
-
         // if there is no failed execution then this test is not flaky or failing
-        if (!failedExecution) {
-          return;
-        }
-
-        if (!this._minimizeUploads) {
-          toUpload = result.executions;
-        } else {
-          toUpload = [];
-          if (!result.uploadedStatuses.failed) {
-            result.uploadedStatuses.failed = true;
-            toUpload.push(failedExecution);
-          }
-          if (!result.uploadedStatuses.passed) {
-            const passedExecution = result.executions.findLast(r => r.result === "passed");
-            if (passedExecution) {
-              result.uploadedStatuses.passed = true;
-              toUpload.push(passedExecution);
+        if (latestExecution.result !== "passed" || executions.length > 1) {
+          if (!this._minimizeUploads) {
+            toUpload = executions;
+          } else {
+            // we have to make sure to upload flakes spanning runs with different `repeatEachIndex`
+            // it's possible with no retries to get have a failed execution group that is separate from a passed one
+            if (!result.uploadedStatuses.failed) {
+              const failedExecution = executions.findLast(r => r.result !== "passed");
+              if (failedExecution) {
+                result.uploadedStatuses.failed = true;
+                (toUpload ??= []).push(failedExecution);
+              }
+            }
+            if (!result.uploadedStatuses.passed) {
+              const passedExecution = executions.findLast(r => r.result === "passed");
+              if (passedExecution) {
+                result.uploadedStatuses.passed = true;
+                (toUpload ??= []).push(passedExecution);
+              }
             }
           }
         }
@@ -980,7 +992,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
             result.uploadedStatuses.failed = true;
             toUpload = [latestExecution];
           } else {
-            toUpload = result.executions;
+            toUpload = executions;
           }
         }
         break;
@@ -995,12 +1007,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._pendingWork.push(
       ...toUpload
         .flatMap(result => result.recordings)
-        .filter(r => {
-          if (this._filter && this._filter(r)) {
-            return !this._uploadedRecordings.has(r);
-          }
-          return false;
-        })
+        .filter(r => (this._filter ? this._filter(r) : true))
         .map(r => this._uploadRecording(r))
     );
   }

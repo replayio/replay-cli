@@ -121,6 +121,7 @@ const test_v2_2_0 = assign(
   test_v2_1_0,
   object({
     executionId: string(),
+    executionGroupId: string(),
     maxAttempts: number(),
   })
 );

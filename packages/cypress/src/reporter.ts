@@ -167,6 +167,7 @@ class CypressReporter {
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     const placeholderTest: Test = {
       id: 0,
+      executionGroupId: "single",
       executionId: [spec.relative, 1].join("-"),
       approximateDuration: 0,
       source: {
