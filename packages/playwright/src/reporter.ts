@@ -147,8 +147,11 @@ class ReplayPlaywrightReporter implements Reporter {
   // Playwright alrady provides a unique test id:
   // https://github.com/microsoft/playwright/blob/6fb214de2378a9d874b46df6ea99d04da5765cba/packages/playwright/src/common/suiteUtils.ts#L56-L57
   // this is different because it includes `repeatEachIndex` and `attempt`
+  // TODO: this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
+  // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
   private _getTestExecutionId(test: TestExecutionIdData) {
     return [
+      test.filePath,
       test.projectName ?? "",
       test.repeatEachIndex,
       test.attempt,
@@ -184,6 +187,7 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onTestBegin(test: TestCase, testResult: TestResult) {
     const testExecutionId = this._getTestExecutionId({
+      filePath: test.location.file,
       projectName: test.parent.project()?.name,
       repeatEachIndex: test.repeatEachIndex,
       attempt: testResult.retry + 1,
@@ -257,6 +261,7 @@ class ReplayPlaywrightReporter implements Reporter {
     if (status === "skipped") return;
 
     const testExecutionIdData = {
+      filePath: test.location.file,
       projectName: test.parent.project()?.name,
       repeatEachIndex: test.repeatEachIndex,
       attempt: result.retry + 1,

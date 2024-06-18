@@ -32,6 +32,7 @@ export interface FixtureStepStart extends StepStartDetail {
 }
 
 export interface TestExecutionIdData {
+  filePath: string;
   projectName: string | undefined;
   repeatEachIndex: number;
   attempt: number;
@@ -193,6 +194,7 @@ export async function replayFixture(
   }
 
   const testIdData: TestExecutionIdData = {
+    filePath: testInfo.file,
     projectName: testInfo.project.name,
     repeatEachIndex: testInfo.repeatEachIndex,
     attempt: testInfo.retry + 1,

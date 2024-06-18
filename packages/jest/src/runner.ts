@@ -96,7 +96,7 @@ const ReplayRunner = async (
       tests: [
         {
           id: 0,
-          executionId: [1, ...source.scope, source.title].join("-"),
+          executionId: [relativePath, 1, ...source.scope, source.title].join("-"),
           attempt: 1,
           maxAttempts: 1,
           approximateDuration: test.duration || 0,
