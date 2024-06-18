@@ -72,26 +72,26 @@ function emptyOtelContext() {
   return ROOT_CONTEXT;
 }
 
-async function withNamedSpan<C extends Context, T>(
-  opts: string | WithNamedSpanOptions,
-  cx: C,
-  handler: (cx: C) => Promise<T>
-) {
-  if (!tracer) {
-    // Create a new context with the same logger.
-    return handler(cx.withLogger(cx.logger));
-  }
-  if (typeof opts === "string") {
-    opts = { name: opts };
-  }
+// async function withNamedSpan<C extends Context, T>(
+//   opts: string | WithNamedSpanOptions,
+//   cx: C,
+//   handler: (cx: C) => Promise<T>
+// ) {
+//   if (!tracer) {
+//     // Create a new context with the same logger.
+//     return handler(cx.withLogger(cx.logger));
+//   }
+//   if (typeof opts === "string") {
+//     opts = { name: opts };
+//   }
 
-  assert(
-    !opts.parentContext || !cx.otelState,
-    "cannot overwrite otel state on existing otel context"
-  );
+//   assert(
+//     !opts.parentContext || !cx.otelState,
+//     "cannot overwrite otel state on existing otel context"
+//   );
 
-  const span = new ManualSpan({ ...opts }, tracer);
-}
+//   const span = new ManualSpan({ ...opts }, tracer);
+// }
 
 // async function withNamedSpan<C extends Context, T>(
 //   handler: (childContext: Context) => Promise<T>,
@@ -221,8 +221,8 @@ export {
   ManualSpan,
   SemanticAttributes,
   emptyOtelContext as emptyContext,
-  getTracer,
+  // getTracer,
   setupOpenTelemetryTracing as initHoneycomb,
-  withNamedSpan,
+  // withNamedSpan,
   HoneycombSDK,
 };

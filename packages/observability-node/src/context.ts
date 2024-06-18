@@ -11,16 +11,13 @@ export type OtelContextState = {
 };
 
 type ContextOptions = {
-  logger: Logger;
   otelState?: OtelContextState;
 };
 
 export class Context {
-  readonly logger: Logger;
   readonly otelState?: OtelContextState;
 
-  constructor({ logger, otelState }: ContextOptions) {
-    this.logger = logger;
+  constructor({ otelState }: ContextOptions) {
     this.otelState = otelState;
   }
 

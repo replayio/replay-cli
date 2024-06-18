@@ -1,11 +1,10 @@
 import { Context, OtelContextState } from "./context";
-import { Logger } from "./logger";
 import { SemanticAttributes, emptyContext } from "./otel";
 
 describe("Context", () => {
   describe("addOtelAttributes", () => {
     it("does nothing if the context object lacks otel state", () => {
-      const cx = new Context({ logger: new Logger("test-logger") });
+      const cx = new Context({});
       expect(cx.otelState).toBe(undefined);
       cx.addOtelAttributes({ [SemanticAttributes.EXCEPTION_MESSAGE]: "test exception message" });
       expect(cx.otelState).toBe(undefined);
@@ -20,7 +19,6 @@ describe("Context", () => {
       };
 
       const cx = new Context({
-        logger: new Logger("test-logger"),
         otelState,
       });
 
@@ -32,7 +30,7 @@ describe("Context", () => {
 
   describe("addInheritedOtelBaggage", () => {
     it("does nothing if the context object lacks otel state", () => {
-      const cx = new Context({ logger: new Logger("test-logger") });
+      const cx = new Context({});
       expect(cx.otelState).toBe(undefined);
 
       cx.addInheritedOtelBaggage({
@@ -51,7 +49,6 @@ describe("Context", () => {
       };
 
       const cx = new Context({
-        logger: new Logger("test-logger"),
         otelState,
       });
 
