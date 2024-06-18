@@ -1,0 +1,73 @@
+name: release-pr
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  release-check:
+    if: github.repository == 'replayio/replay-cli' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/release-pr')
+    runs-on: ubuntu-latest
+    steps:
+      - id: check_authorization
+        run: |
+          if [[ $AUTHOR_ASSOCIATION == 'MEMBER' || $AUTHOR_ASSOCIATION == 'OWNER' ]]
+          then
+            echo "User is authorized to release"
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "User is not authorized to release"
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+    outputs:
+      authorized: ${{ steps.check_authorization.outputs.authorized }}
+
+  release:
+    if: github.repository == 'replayio/replay-cli' && needs.release-check.outputs.authorized == 'true'
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    needs: release-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout pull request
+        run: gh pr checkout ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if Version Packages PR
+        id: check_version_packages
+        run: |
+          echo "version_packages=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName|startswith("changeset-release/")')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reset Version Packages PR
+        if: steps.check_version_packages.outputs.version_packages == 'true'
+        run: git reset --hard HEAD~1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "yarn"
+
+      - run: yarn --immutable
+
+      - run: yarn run bootstrap
+
+      - name: Set up NPM token
+        run: |
+          echo "npmAuthToken: $NPM_TOKEN" >> .yarnrc.yml
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - run: yarn changeset version --snapshot pr${{ github.event.issue.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: yarn build
+
+      - name: Release snapshot versions
+        run: yarn run release:pr --tag pr${{ github.event.issue.number }}
