@@ -49,7 +49,9 @@ export type UploadOption =
   | boolean
   | {
       /**
-       * It minimizes uploads related to a single test within a shard
+       * Minimize the number of recordings uploaded for a test attempt (within a shard).
+       * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
+       * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
        */
       minimizeUploads?: boolean;
       statusThreshold?: UploadStatusThreshold;
