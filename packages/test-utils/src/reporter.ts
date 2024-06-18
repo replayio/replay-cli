@@ -952,37 +952,23 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     let toUpload: typeof executions | undefined;
     switch (this._uploadStatusThreshold) {
       case "all":
-        // even when `minimizeUploads` is combined with `repeatEach` it always makes sense to upload the latest result
-        // otherwise, we could upload a single successful attempt without uploading a potential failure of the same test
-        // coming from a different `repeatEachIndex`
-        toUpload = this._minimizeUploads ? [latestExecution] : executions;
+        toUpload = this._minimizeUploads
+          ? this._getPotentiallyFlakyUploads(result, executions)
+          : executions;
         break;
       case "failed-and-flaky":
         // retries can be disabled so we need to always check if the latest execution is not passed
         // with retries enabled we know that we only have to upload when there was more than one attempt at the test
         // a single passed attempt can be safely ignored, multiple attempts mean that the test is flaky or failing
         // if there is no failed execution then this test is not flaky or failing
-        if (latestExecution.result !== "passed" || executions.length > 1) {
-          if (!this._minimizeUploads) {
-            toUpload = executions;
-          } else {
-            // we have to make sure to upload flakes spanning runs with different `repeatEachIndex`
-            // it's possible with no retries to get have a failed execution group that is separate from a passed one
-            if (!result.uploadedStatuses.failed) {
-              const failedExecution = executions.findLast(r => r.result !== "passed");
-              if (failedExecution) {
-                result.uploadedStatuses.failed = true;
-                (toUpload ??= []).push(failedExecution);
-              }
-            }
-            if (!result.uploadedStatuses.passed) {
-              const passedExecution = executions.findLast(r => r.result === "passed");
-              if (passedExecution) {
-                result.uploadedStatuses.passed = true;
-                (toUpload ??= []).push(passedExecution);
-              }
-            }
-          }
+        if (
+          latestExecution.result !== "passed" ||
+          executions.length > 1 ||
+          (result.uploadedStatuses.failed && !result.uploadedStatuses.passed)
+        ) {
+          toUpload = this._minimizeUploads
+            ? this._getPotentiallyFlakyUploads(result, executions)
+            : executions;
         }
         break;
       case "failed":
@@ -1012,6 +998,30 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         .filter(r => (this._filter ? this._filter(r) : true))
         .map(r => this._uploadRecording(r))
     );
+  }
+
+  private _getPotentiallyFlakyUploads(
+    result: UploadableTestResult<TRecordingMetadata>,
+    executions: UploadableTestExecutionResult<TRecordingMetadata>[]
+  ) {
+    let toUpload: typeof executions | undefined;
+    // we have to make sure to upload flakes spanning runs with different `repeatEachIndex`
+    // it's possible with no retries to get have a failed execution group that is separate from a passed one
+    if (!result.uploadedStatuses.failed) {
+      const failedExecution = executions.findLast(r => r.result !== "passed");
+      if (failedExecution) {
+        result.uploadedStatuses.failed = true;
+        (toUpload ??= []).push(failedExecution);
+      }
+    }
+    if (!result.uploadedStatuses.passed) {
+      const passedExecution = executions.findLast(r => r.result === "passed");
+      if (passedExecution) {
+        result.uploadedStatuses.passed = true;
+        (toUpload ??= []).push(passedExecution);
+      }
+    }
+    return toUpload;
   }
 
   async onEnd(): Promise<PendingWork[]> {
