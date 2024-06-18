@@ -67,11 +67,12 @@ interface UploadableTestExecutionResult<TRecordingMetadata extends UnstructuredM
 }
 
 interface UploadableTestResult<TRecordingMetadata extends UnstructuredMetadata> {
-  executions: Record<string, UploadableTestExecutionResult<TRecordingMetadata>[]>;
-  uploadedStatuses: {
+  aggregateStatus: "passed" | "failed" | "flaky" | undefined;
+  didUploadStatuses: {
     passed: boolean;
     failed: boolean;
   };
+  executions: Record<string, UploadableTestExecutionResult<TRecordingMetadata>[]>;
 }
 
 export interface ReplayReporterConfig<
@@ -921,7 +922,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       if (!uploadableResults) {
         uploadableResults = {
           executions: {},
-          uploadedStatuses: {
+          aggregateStatus: undefined,
+          didUploadStatuses: {
             passed: false,
             failed: false,
           },
@@ -949,47 +951,75 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     const latestExecution = last(executions);
     assert(!!latestExecution, "Expected at least one execution in the list");
 
-    let toUpload: typeof executions | undefined;
-    switch (this._uploadStatusThreshold) {
-      case "all":
-        toUpload = this._minimizeUploads
-          ? this._getPotentiallyFlakyUploads(result, executions)
-          : executions;
-        break;
-      case "failed-and-flaky":
-        // retries can be disabled so we need to always check if the latest execution is not passed
-        // with retries enabled we know that we only have to upload when there was more than one attempt at the test
-        // a single passed attempt can be safely ignored, multiple attempts mean that the test is flaky or failing
-        // if there is no failed execution then this test is not flaky or failing
-        if (
-          latestExecution.result !== "passed" ||
-          executions.length > 1 ||
-          (result.uploadedStatuses.failed && !result.uploadedStatuses.passed)
-        ) {
-          toUpload = this._minimizeUploads
-            ? this._getPotentiallyFlakyUploads(result, executions)
-            : executions;
+    let toUpload: typeof executions = [];
+
+    const aggregateStatus = this._assignAggregateStatus(result, executions);
+
+    switch (aggregateStatus) {
+      case "failed": {
+        if (!this._minimizeUploads) {
+          toUpload.push(...executions);
+          break;
         }
+        if (result.didUploadStatuses.failed) {
+          break;
+        }
+        result.didUploadStatuses.failed = true;
+        toUpload.push(latestExecution);
         break;
-      case "failed":
-        if (latestExecution.result !== "passed") {
-          if (this._minimizeUploads) {
-            if (result.uploadedStatuses.failed) {
-              return;
-            }
-            result.uploadedStatuses.failed = true;
-            toUpload = [latestExecution];
-          } else {
-            toUpload = executions;
+      }
+      case "flaky": {
+        if (this._uploadStatusThreshold === "failed") {
+          break;
+        }
+        if (!this._minimizeUploads) {
+          result.didUploadStatuses.failed ||= executions.some(r => r.result !== "passed");
+          result.didUploadStatuses.passed ||= executions.some(r => r.result === "passed");
+
+          // currently previously completed execution groups that could be entirely passed or failed are not retroactively uploaded here
+          toUpload.push(...executions);
+
+          // fallthrough so we don't miss the other status when the flake was detected across different execution groups
+        }
+
+        if (!result.didUploadStatuses.failed) {
+          const failedExecution = Object.values(result.executions)
+            .flatMap(e => e)
+            .find(r => r.result !== "passed");
+
+          if (failedExecution) {
+            result.didUploadStatuses.failed = true;
+            toUpload.push(failedExecution);
+          }
+        }
+
+        if (!result.didUploadStatuses.passed) {
+          const passedExecution = Object.values(result.executions)
+            .flatMap(e => e)
+            .find(r => r.result === "passed");
+
+          if (passedExecution) {
+            result.didUploadStatuses.failed = true;
+            toUpload.push(passedExecution);
           }
         }
         break;
-      case "none":
-        return;
-    }
-
-    if (!toUpload) {
-      return;
+      }
+      case "passed": {
+        if (this._uploadStatusThreshold !== "all") {
+          break;
+        }
+        if (!this._minimizeUploads) {
+          toUpload.push(...executions);
+          break;
+        }
+        if (result.didUploadStatuses.passed) {
+          break;
+        }
+        result.didUploadStatuses.passed = true;
+        toUpload.push(latestExecution);
+        break;
+      }
     }
 
     this._pendingWork.push(
@@ -1000,28 +1030,36 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     );
   }
 
-  private _getPotentiallyFlakyUploads(
+  private _assignAggregateStatus(
     result: UploadableTestResult<TRecordingMetadata>,
-    executions: UploadableTestExecutionResult<TRecordingMetadata>[]
+    newExecutions: UploadableTestExecutionResult<TRecordingMetadata>[]
   ) {
-    let toUpload: typeof executions | undefined;
-    // we have to make sure to upload flakes spanning runs with different `repeatEachIndex`
-    // it's possible with no retries to get have a failed execution group that is separate from a passed one
-    if (!result.uploadedStatuses.failed) {
-      const failedExecution = executions.findLast(r => r.result !== "passed");
-      if (failedExecution) {
-        result.uploadedStatuses.failed = true;
-        (toUpload ??= []).push(failedExecution);
-      }
+    if (!result.aggregateStatus) {
+      const latestExecution = last(newExecutions);
+      assert(latestExecution, "Expected at least one execution in the list");
+      result.aggregateStatus =
+        latestExecution.result !== "passed"
+          ? "failed"
+          : newExecutions.length > 1
+          ? "flaky"
+          : "passed";
+      return result.aggregateStatus;
     }
-    if (!result.uploadedStatuses.passed) {
-      const passedExecution = executions.findLast(r => r.result === "passed");
-      if (passedExecution) {
-        result.uploadedStatuses.passed = true;
-        (toUpload ??= []).push(passedExecution);
-      }
+
+    switch (result.aggregateStatus) {
+      case "passed":
+        if (newExecutions.some(r => r.result !== "passed")) {
+          result.aggregateStatus = "flaky";
+        }
+        return result.aggregateStatus;
+      case "failed":
+        if (newExecutions.some(r => r.result === "passed")) {
+          result.aggregateStatus = "flaky";
+        }
+        return result.aggregateStatus;
+      case "flaky":
+        return result.aggregateStatus;
     }
-    return toUpload;
   }
 
   async onEnd(): Promise<PendingWork[]> {
