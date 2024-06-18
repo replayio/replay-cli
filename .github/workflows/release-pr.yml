@@ -64,6 +64,6 @@ jobs:
       - name: Release snapshot versions
         run: |
           yarn changeset version --snapshot pr${{ github.event.issue.number }}
-          yarn build && yarn changeset publish --tag pr${{ github.event.issue.number }} --no-git-tag
+          yarn build && yarn run release --tag pr${{ github.event.issue.number }} --no-git-tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
