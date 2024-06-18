@@ -243,7 +243,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
-  private _cachAuthIdsPromise: Promise<void> | null = null;
+  private _cacheAuthIdsPromise: Promise<void> | null = null;
   private _logger: Logger;
 
   constructor(
@@ -261,7 +261,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (this._apiKey) {
-      this._cachAuthIdsPromise = getAuthIds(this._apiKey).then(ids => this._logger.identify(ids));
+      this._cacheAuthIdsPromise = getAuthIds(this._apiKey).then(ids => this._logger.identify(ids));
     }
   }
 
@@ -989,7 +989,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     try {
       debug("onEnd");
 
-      await this._cachAuthIdsPromise?.catch(e =>
+      await this._cacheAuthIdsPromise?.catch(e =>
         this._logger.debug("failed to add auth ids to the logger", {
           errorMessage: getErrorMessage(e),
         })
