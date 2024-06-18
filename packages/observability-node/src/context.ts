@@ -1,3 +1,4 @@
+import { assert } from "./assert";
 import { Logger } from "./logger";
 import { SemanticAttributeObject, SemanticBaggageObject } from "./otel";
 import { context, Context as OtelContext } from "@opentelemetry/api";
@@ -21,6 +22,26 @@ export class Context {
   constructor({ logger, otelState }: ContextOptions) {
     this.logger = logger;
     this.otelState = otelState;
+  }
+
+  withLogger(logger: Logger): this {
+    const cx = this.clone();
+    (cx as any).logger = logger;
+    return cx;
+  }
+
+  private clone(): this {
+    const cx = this.doClone();
+    assert(
+      this.constructor === cx.constructor,
+      this.constructor.name + " did not override doClone"
+    );
+    return cx;
+  }
+
+  protected doClone(): this {
+    const cx = new Context(this);
+    return cx as any;
   }
 
   addOtelAttributes(attributes: SemanticAttributeObject) {

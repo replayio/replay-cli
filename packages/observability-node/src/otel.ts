@@ -9,10 +9,14 @@ import {
   Tracer,
 } from "@opentelemetry/api";
 import { HoneycombSDK } from "@honeycombio/opentelemetry-node";
-import opentelemetry from "@opentelemetry/api";
+import { SpanContext } from "@opentelemetry/api";
+import { Context } from "./context";
+import { assert } from "./assert";
+
+export let tracer: Tracer | null = null;
 
 // Returns the sdk so it can be shut down before the process exits.
-function initHoneycomb() {
+function setupOpenTelemetryTracing(serviceName: string) {
   const sdk = new HoneycombSDK({
     apiKey: "7cbfc8bb584c46a5aa5a1588ab7b7052", // MUDAYR - replay-playwright-plugin
     serviceName: "mbudayr",
@@ -23,11 +27,8 @@ function initHoneycomb() {
 
   sdk.start();
 
+  tracer = traceApi.getTracer(serviceName);
   return sdk;
-}
-
-function getTracer(name: string) {
-  return opentelemetry.trace.getTracer(name);
 }
 
 enum SemanticAttributes {
@@ -71,22 +72,45 @@ function emptyOtelContext() {
   return ROOT_CONTEXT;
 }
 
-async function withNamedSpan<C extends OtelContext, T>(
-  handler: (childContext: OtelContext) => Promise<T>,
-  tracer: Tracer,
-  options: WithNamedSpanOptions
+async function withNamedSpan<C extends Context, T>(
+  opts: string | WithNamedSpanOptions,
+  cx: C,
+  handler: (cx: C) => Promise<T>
 ) {
-  const span = new ManualSpan({ ...options }, tracer);
-
-  try {
-    const result = await handler(span.childContext());
-    span.end();
-    return result;
-  } catch (e) {
-    span.end();
-    throw e;
+  if (!tracer) {
+    // Create a new context with the same logger.
+    return handler(cx.withLogger(cx.logger));
   }
+  if (typeof opts === "string") {
+    opts = { name: opts };
+  }
+
+  assert(
+    !opts.parentContext || !cx.otelState,
+    "cannot overwrite otel state on existing otel context"
+  );
+
+  const span = new ManualSpan({ ...opts }, tracer);
 }
+
+// async function withNamedSpan<C extends Context, T>(
+//   handler: (childContext: Context) => Promise<T>,
+//   tracer: Tracer,
+//   options: WithNamedSpanOptions
+// ) {
+//   const span = new ManualSpan({ ...options }, tracer);
+
+//   assert();
+
+//   try {
+//     const result = await handler(span.childContext());
+//     span.end();
+//     return result;
+//   } catch (e) {
+//     span.end();
+//     throw e;
+//   }
+// }
 
 /*
  * Wrapper around an OTEL span, with a limited API to conceal some of the grossness of things like
@@ -198,7 +222,7 @@ export {
   SemanticAttributes,
   emptyOtelContext as emptyContext,
   getTracer,
-  initHoneycomb,
+  setupOpenTelemetryTracing as initHoneycomb,
   withNamedSpan,
   HoneycombSDK,
 };
