@@ -36,7 +36,10 @@ enum SemanticAttributes {
   EXCEPTION_MESSAGE = "exception.message",
 }
 
-type SemanticAttributeObject = Partial<Record<SemanticAttributes, AttributeValue>>;
+export type SemanticAttributeObject = Partial<Record<SemanticAttributes, AttributeValue>>;
+
+// Because baggage can be sent over a network boundary, its types are more limited than regular semantic attributes.
+export type SemanticBaggageObject = Partial<Record<SemanticAttributes, string | number>>;
 
 enum OtelEventTypes {
   // An exception thrown in the span.
@@ -64,7 +67,7 @@ type WithNamedSpanOptions = {
   parentContext?: OtelContext;
 };
 
-function emptyContext() {
+function emptyOtelContext() {
   return ROOT_CONTEXT;
 }
 
@@ -193,7 +196,7 @@ class ManualSpan {
 export {
   ManualSpan,
   SemanticAttributes,
-  emptyContext,
+  emptyOtelContext as emptyContext,
   getTracer,
   initHoneycomb,
   withNamedSpan,
