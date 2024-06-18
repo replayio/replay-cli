@@ -37,7 +37,7 @@ class Logger {
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
       replaceTimestamp: true,
-      onConnectionError: err => this.localDebugger("Grafana connection error %s", err),
+      onConnectionError: err => this.localDebugger("Grafana connection error", err),
       gracefulShutdown: true,
     });
 
