@@ -63,9 +63,11 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Release snapshot versions
-        run: |
-          yarn changeset version --snapshot pr${{ github.event.issue.number }}
-          yarn build && yarn run release:pr --tag pr${{ github.event.issue.number }}
+      - run: yarn changeset version --snapshot pr${{ github.event.issue.number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: yarn build
+
+      - name: Release snapshot versions
+        run: yarn run release:pr --tag pr${{ github.event.issue.number }}
