@@ -99,7 +99,7 @@ class ReplayPlaywrightReporter implements Reporter {
         version: undefined,
         plugin: pluginVersion,
       },
-      "3.0.0",
+      "2.2.0",
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
     );
     this.captureTestFile =
