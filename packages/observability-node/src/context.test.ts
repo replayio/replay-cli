@@ -29,4 +29,40 @@ describe("Context", () => {
       expect(cx.otelState?.attributes).toEqual({ "exception.message": "test exception message" });
     });
   });
+
+  describe("addInheritedOtelBaggage", () => {
+    it("does nothing if the context object lacks otel state", () => {
+      const cx = new Context({ logger: new Logger("test-logger") });
+      expect(cx.otelState).toBe(undefined);
+
+      cx.addInheritedOtelBaggage({
+        [SemanticAttributes.EXCEPTION_MESSAGE]: "test exception message",
+      });
+
+      expect(cx.otelState).toBe(undefined);
+    });
+
+    it("adds baggage to the otel state", () => {
+      const otelState: OtelContextState = {
+        context: emptyContext(),
+        name: "test otel context",
+        attributes: {},
+        baggage: {},
+      };
+
+      const cx = new Context({
+        logger: new Logger("test-logger"),
+        otelState,
+      });
+
+      expect(cx.otelState?.baggage).toEqual({});
+      expect(cx.otelState?.attributes).toEqual({});
+
+      cx.addInheritedOtelBaggage({
+        [SemanticAttributes.EXCEPTION_MESSAGE]: "test exception message",
+      });
+      expect(cx.otelState?.baggage).toEqual({ "exception.message": "test exception message" });
+      expect(cx.otelState?.attributes).toEqual({ "exception.message": "test exception message" });
+    });
+  });
 });

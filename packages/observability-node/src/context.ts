@@ -32,4 +32,19 @@ export class Context {
       this.otelState.attributes[key as keyof SemanticAttributeObject] = value; // MBUDAYR - note the required type coercion.
     }
   }
+
+  addInheritedOtelBaggage(baggage: SemanticBaggageObject) {
+    if (!this.otelState) {
+      return;
+    }
+
+    this.addOtelAttributes(baggage);
+
+    const newOtelState: OtelContextState = {
+      ...this.otelState,
+      baggage: { ...this.otelState.baggage, ...baggage },
+    };
+
+    (this.otelState as OtelContextState) = newOtelState;
+  }
 }
