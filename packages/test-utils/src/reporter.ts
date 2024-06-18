@@ -958,6 +958,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     switch (aggregateStatus) {
       case "failed": {
         if (!this._minimizeUploads) {
+          result.didUploadStatuses.failed = true;
           toUpload.push(...executions);
           break;
         }
@@ -1010,6 +1011,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           break;
         }
         if (!this._minimizeUploads) {
+          result.didUploadStatuses.passed = true;
           toUpload.push(...executions);
           break;
         }
