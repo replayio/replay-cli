@@ -69,10 +69,6 @@ interface FixtureStep extends FixtureStepStart {
   error?: ParsedErrorFrame | undefined;
 }
 
-interface ProjectInfo {
-  repeatEach: number;
-}
-
 class ReplayPlaywrightReporter implements Reporter {
   reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile: boolean;
@@ -82,7 +78,6 @@ class ReplayPlaywrightReporter implements Reporter {
     string,
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
-  private _projectsInfo: Record<string, ProjectInfo> = {};
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
@@ -147,7 +142,7 @@ class ReplayPlaywrightReporter implements Reporter {
   // Playwright alrady provides a unique test id:
   // https://github.com/microsoft/playwright/blob/6fb214de2378a9d874b46df6ea99d04da5765cba/packages/playwright/src/common/suiteUtils.ts#L56-L57
   // this is different because it includes `repeatEachIndex` and `attempt`
-  // TODO: this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
+  // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
   // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
   private _getTestExecutionId(test: TestExecutionIdData) {
     return [
@@ -168,15 +163,6 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin({ version, projects }: FullConfig) {
-    this._projectsInfo = projects.reduce<Record<string, { repeatEach: number }>>(
-      (info, project) => {
-        info[project.name] = {
-          repeatEach: project.repeatEach,
-        };
-        return info;
-      },
-      {}
-    );
     const replayBrowserPath = getPlaywrightBrowserPath("chromium");
     this._foundReplayBrowser = !!projects.find(
       p => p.use.launchOptions?.executablePath === replayBrowserPath
