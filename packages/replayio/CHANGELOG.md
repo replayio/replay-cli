@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+### Minor Changes
+
+- [#536](https://github.com/replayio/replay-cli/pull/536) [`8343abe`](https://github.com/replayio/replay-cli/commit/8343abe8f74fc67ef4fd374d943b73fdcead5a5c) Thanks [@Andarist](https://github.com/Andarist)! - Export a new version of the new test run metadata validator
+
+### Patch Changes
+
+- [#526](https://github.com/replayio/replay-cli/pull/526) [`b7113e9`](https://github.com/replayio/replay-cli/commit/b7113e9d17e14620184ca6a3a6836ae1b50751b1) Thanks [@bvaughn](https://github.com/bvaughn)! - Add "open" command to open Replay browser in non-recording mode
+
+- [#535](https://github.com/replayio/replay-cli/pull/535) [`6ed4119`](https://github.com/replayio/replay-cli/commit/6ed4119c36998fc14a8cbd6458fe07f251ce19dd) Thanks [@Andarist](https://github.com/Andarist)! - Add an explicit dependency on `strip-ansi` module
+
 ## 1.3.2
 
 ### Patch Changes
