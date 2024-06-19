@@ -10,18 +10,17 @@ import {
   removeAnsiCodes,
   ReplayReporter,
   ReplayReporterConfig,
-  TestIdContext,
   TestMetadataV2,
 } from "@replayio/test-utils";
 import dbg from "debug";
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 import { getPlaywrightBrowserPath } from "@replayio/replay";
-import { FixtureStepStart, ParsedErrorFrame, TestIdData } from "./fixture";
+import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
 
@@ -129,36 +128,37 @@ class ReplayPlaywrightReporter implements Reporter {
     });
   }
 
-  getFixtureData(test: TestIdData) {
-    const key = this.getTestKey(test);
-    this.fixtureData[key] ??= {
+  getFixtureData(test: TestExecutionIdData) {
+    const id = this._getTestExecutionId(test);
+    this.fixtureData[id] ??= {
       steps: [],
       stacks: {},
       filenames: new Set(),
     };
 
-    return this.fixtureData[key];
+    return this.fixtureData[id];
   }
 
-  getTestKey(test: TestIdData) {
-    return [test.id, test.attempt, ...test.source.scope, test.source.title].join("-");
-  }
-
-  getTestId(test: TestCase) {
-    return test.titlePath().join("-");
+  // Playwright alrady provides a unique test id:
+  // https://github.com/microsoft/playwright/blob/6fb214de2378a9d874b46df6ea99d04da5765cba/packages/playwright/src/common/suiteUtils.ts#L56-L57
+  // this is different because it includes `repeatEachIndex` and `attempt`
+  // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
+  // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
+  private _getTestExecutionId(test: TestExecutionIdData) {
+    return [
+      test.filePath,
+      test.projectName ?? "",
+      test.repeatEachIndex,
+      test.attempt,
+      ...test.source.scope,
+      test.source.title,
+    ].join("-");
   }
 
   getSource(test: TestCase) {
     return {
       title: test.title,
       scope: test.titlePath().slice(3, -1),
-    };
-  }
-
-  getTestIdContext(test: TestCase, testResult: TestResult): TestIdContext {
-    return {
-      ...this.getSource(test),
-      attempt: testResult.retry + 1,
     };
   }
 
@@ -172,13 +172,17 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    this.reporter.onTestBegin(
-      this.getTestIdContext(test, testResult),
-      getMetadataFilePath(testResult.workerIndex)
-    );
+    const testExecutionId = this._getTestExecutionId({
+      filePath: test.location.file,
+      projectName: test.parent.project()?.name,
+      repeatEachIndex: test.repeatEachIndex,
+      attempt: testResult.retry + 1,
+      source: this.getSource(test),
+    });
+    this.reporter.onTestBegin(testExecutionId, getMetadataFilePath(testResult.workerIndex));
   }
 
-  getStepsFromFixture(test: TestIdData) {
+  getStepsFromFixture(test: TestExecutionIdData) {
     const hookMap: Record<
       "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
       UserActionEvent[]
@@ -242,16 +246,18 @@ class ReplayPlaywrightReporter implements Reporter {
     // skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
 
-    const testIdData = {
-      id: 0,
+    const testExecutionIdData = {
+      filePath: test.location.file,
+      projectName: test.parent.project()?.name,
+      repeatEachIndex: test.repeatEachIndex,
       attempt: result.retry + 1,
       source: this.getSource(test),
     };
 
-    const events = this.getStepsFromFixture(testIdData);
+    const events = this.getStepsFromFixture(testExecutionIdData);
 
     const relativePath = test.titlePath()[2];
-    const { stacks, filenames } = this.getFixtureData(testIdData);
+    const { stacks, filenames } = this.getFixtureData(testExecutionIdData);
     filenames.add(test.location.file);
     let playwrightMetadata: Record<string, any> | undefined;
 
@@ -275,7 +281,11 @@ class ReplayPlaywrightReporter implements Reporter {
 
     const tests = [
       {
-        ...testIdData,
+        id: 0,
+        attempt: testExecutionIdData.attempt,
+        source: testExecutionIdData.source,
+        executionGroupId: String(testExecutionIdData.repeatEachIndex),
+        executionId: this._getTestExecutionId(testExecutionIdData),
         maxAttempts: test.retries + 1,
         approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
         result: status === "interrupted" ? ("unknown" as const) : status,

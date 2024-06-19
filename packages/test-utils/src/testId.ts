@@ -17,7 +17,7 @@ export function generateOpaqueId(contents: string): string {
   }
 
   let id: string;
-  if (globalThis.window) {
+  if ("window" in globalThis) {
     // in the browser, we're using this sync sha-1 lib because the built-in
     // crypto is async which causes problems with Cypress
     id = sha1(contents);
