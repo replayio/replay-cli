@@ -1,5 +1,12 @@
 # @replayio/jest
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [[`a6f8f10`](https://github.com/replayio/replay-cli/commit/a6f8f105654b39c5c457dfac91c5169f0ba6cc04)]:
+  - @replayio/test-utils@3.0.1
+
 ## 0.3.2
 
 ### Patch Changes
