@@ -21,20 +21,15 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import {
+  Context,
   Logger,
-  SemanticAttributes,
-  emptyContext,
   getAuthIds,
-  getTracer,
-  initHoneycomb,
+  setupOpenTelemetryTracing,
+  tracingManager,
   withNamedSpan,
 } from "@replayio/observability-node";
 
 const debug = dbg("replay:test-utils:reporter");
-
-const sdk = initHoneycomb();
-
-const tracer = getTracer("test-utils-reporter");
 
 interface TestRunTestInputModel {
   testId: string;
@@ -266,6 +261,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._runner = runner;
     this._schemaVersion = schemaVersion;
     this._logger = new Logger(this._runner.name);
+    setupOpenTelemetryTracing(this._runner.name);
 
     if (config) {
       const { metadataKey, ...rest } = config;
@@ -600,60 +596,119 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private async _completeTestRunShard(): Promise<TestRunPendingWork> {
-    let testRunShardId = this._testRunShardId;
-    if (!testRunShardId) {
-      await this._testRunShardIdPromise;
-      testRunShardId = this._testRunShardId;
-      if (!testRunShardId) {
-        return {
-          type: "test-run",
-          error: new Error("Unable to complete test run: ID not set"),
-        };
-      }
-    }
-
-    debug("Marking test run shard %s complete", testRunShardId);
-
+  private async _completeTestRunShard(cx: Context): Promise<TestRunPendingWork> {
     try {
-      await exponentialBackoffRetry(async () => {
-        const resp = await query(
-          "CompleteTestRunShard",
-          `
-        mutation CompleteTestRunShard($testRunShardId: String!) {
-          completeTestRunShard(input: {
-            testRunShardId: $testRunShardId
-          }) {
-            success
+      return withNamedSpan("CompleteTestRunShard", cx, async () => {
+        let testRunShardId = this._testRunShardId;
+        if (!testRunShardId) {
+          await this._testRunShardIdPromise;
+          testRunShardId = this._testRunShardId;
+          if (!testRunShardId) {
+            return {
+              type: "test-run",
+              error: new Error("Unable to complete test run: ID not set"),
+            };
           }
         }
-      `,
-          {
-            testRunShardId,
-          },
-          this._apiKey
-        );
 
-        if (resp.errors) {
-          throwGraphqlErrors("CompleteTestRunShard", resp.errors);
-        }
+        debug("Marking test run shard %s complete", testRunShardId);
+
+        await exponentialBackoffRetry(async () => {
+          const resp = await query(
+            "CompleteTestRunShard",
+            `
+          mutation CompleteTestRunShard($testRunShardId: String!) {
+            completeTestRunShard(input: {
+              testRunShardId: $testRunShardId
+            }) {
+              success
+            }
+          }
+        `,
+            {
+              testRunShardId,
+            },
+            this._apiKey
+          );
+
+          if (resp.errors) {
+            throwGraphqlErrors("CompleteTestRunShard", resp.errors);
+          }
+        });
+
+        debug("Successfully marked test run shard %s complete", testRunShardId);
+
+        return {
+          type: "test-run",
+          id: testRunShardId,
+          phase: "complete",
+        };
       });
-
-      debug("Successfully marked test run shard %s complete", testRunShardId);
-
-      return {
-        type: "test-run",
-        id: testRunShardId,
-        phase: "complete",
-      };
     } catch (e) {
       debug("complete test run shard error: %s", e);
       return {
-        type: "test-run",
+        type: "test-run" as PendingWorkType,
         error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
-      };
+      } as TestRunPendingWork;
     }
   }
+
+  // private async _completeTestRunShard(cx: Context): Promise<TestRunPendingWork> {
+  //   return withNamedSpan("CompleteTestRunShard", cx, async () => {
+  //     let testRunShardId = this._testRunShardId;
+  //     if (!testRunShardId) {
+  //       await this._testRunShardIdPromise;
+  //       testRunShardId = this._testRunShardId;
+  //       if (!testRunShardId) {
+  //         return {
+  //           type: "test-run",
+  //           error: new Error("Unable to complete test run: ID not set"),
+  //         };
+  //       }
+  //     }
+
+  //     debug("Marking test run shard %s complete", testRunShardId);
+
+  //     try {
+  //       await exponentialBackoffRetry(async () => {
+  //         const resp = await query(
+  //           "CompleteTestRunShard",
+  //           `
+  //       mutation CompleteTestRunShard($testRunShardId: String!) {
+  //         completeTestRunShard(input: {
+  //           testRunShardId: $testRunShardId
+  //         }) {
+  //           success
+  //         }
+  //       }
+  //     `,
+  //           {
+  //             testRunShardId,
+  //           },
+  //           this._apiKey
+  //         );
+
+  //         if (resp.errors) {
+  //           throwGraphqlErrors("CompleteTestRunShard", resp.errors);
+  //         }
+  //       });
+
+  //       debug("Successfully marked test run shard %s complete", testRunShardId);
+
+  //       return {
+  //         type: "test-run",
+  //         id: testRunShardId,
+  //         phase: "complete",
+  //       };
+  //     } catch (e) {
+  //       debug("complete test run shard error: %s", e);
+  //       return {
+  //         type: "test-run",
+  //         error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
+  //       };
+  //     }
+  //   });
+  // }
 
   onTestBegin(
     testIdContext?: TestIdContext,
@@ -999,141 +1054,151 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async onEnd(): Promise<PendingWork[]> {
     try {
-      debug("onEnd");
+      return await withNamedSpan("OnEnd", new Context({}), async cx => {
+        debug("onEnd");
 
-      await this._cachAuthIdsPromise?.catch(e =>
-        this._logger.debug("failed to add auth ids to the logger", {
-          errorMessage: getErrorMessage(e),
-        })
-      );
+        await withNamedSpan("KonstTest2", cx, async () => {});
 
-      this._logger.info("Identification added to logger instance");
+        console.log("SENTINEL: !!tracingManager", !!tracingManager);
 
-      const output: string[] = [];
-      let completedWork: PromiseSettledResult<PendingWork>[] = [];
+        await this._cachAuthIdsPromise?.catch(e =>
+          this._logger.debug("failed to add auth ids to the logger", {
+            errorMessage: getErrorMessage(e),
+          })
+        );
 
-      if (this._pendingWork.length) {
-        log("🕑 Completing some outstanding work ...");
-      }
+        this._logger.info("Identification added to logger instance");
 
-      while (this._pendingWork.length) {
-        const pendingWork = this._pendingWork;
-        debug("Outstanding tasks: %d", pendingWork.length);
+        const output: string[] = [];
+        let completedWork: PromiseSettledResult<PendingWork>[] = [];
 
-        this._pendingWork = [];
-        completedWork.push(...(await Promise.allSettled(pendingWork)));
-      }
+        if (this._pendingWork.length) {
+          log("🕑 Completing some outstanding work ...");
+        }
 
-      if (this._apiKey) {
-        const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
-        completedWork.push(...postSettledWork);
-      } else {
-        debug("Skipping completing test run: API Key not set");
-      }
+        while (this._pendingWork.length) {
+          const pendingWork = this._pendingWork;
+          debug("Outstanding tasks: %d", pendingWork.length);
 
-      const failures = completedWork.filter(
-        (r): r is PromiseRejectedResult => r.status === "rejected"
-      );
+          this._pendingWork = [];
+          completedWork.push(...(await Promise.allSettled(pendingWork)));
+        }
 
-      if (failures.length > 0) {
-        output.push("Encountered unexpected errors while processing replays");
-        failures.forEach(f => output.push(`  ${f.reason}`));
-      }
-
-      const results = completedWork
-        .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
-        .map(r => r.value);
-
-      const errors = {
-        "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
-        "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
-        "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
-        upload: [] as Extract<UploadPendingWork, { error: {} }>[],
-      };
-      let uploads: RecordingEntry[] = [];
-      for (const r of results) {
-        if ("error" in r) {
-          errors[r.type].push(r as any);
+        if (this._apiKey) {
+          const postSettledWork = await Promise.allSettled([this._completeTestRunShard(cx)]);
+          completedWork.push(...postSettledWork);
         } else {
-          if (r.type === "upload") {
-            uploads.push(r.recording);
-          }
-        }
-      }
-
-      if (errors["post-test"].length > 0) {
-        output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
-        output.push(...logPendingWorkErrors(errors["post-test"]));
-      }
-
-      if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
-        output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
-        output.push(...logPendingWorkErrors(errors["test-run-tests"]));
-        output.push(...logPendingWorkErrors(errors["test-run"]));
-      }
-
-      if (errors["upload"].length > 0) {
-        output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
-
-        errors["upload"].forEach(err => {
-          if ("recording" in err) {
-            const r = err.recording;
-            output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
-            output.push(`      ${getErrorMessage(err.error)}\n`);
-          }
-        });
-      }
-
-      if (uploads.length > 0) {
-        const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
-        for (const recordingId of recordingIds) {
-          removeRecording(recordingId);
+          debug("Skipping completing test run: API Key not set");
         }
 
-        const uploaded = uploads.filter(u => u.status === "uploaded");
-        const crashed = uploads.filter(u => u.status === "crashUploaded");
+        const failures = completedWork.filter(
+          (r): r is PromiseRejectedResult => r.status === "rejected"
+        );
 
-        if (uploaded.length > 0) {
-          output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-          const sortedUploads = sortRecordingsByResult(uploads);
-          sortedUploads.forEach(r => {
-            output.push(
-              `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
-            );
-            output.push(
-              `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-            );
+        if (failures.length > 0) {
+          output.push("Encountered unexpected errors while processing replays");
+          failures.forEach(f => output.push(`  ${f.reason}`));
+        }
+
+        const results = completedWork
+          .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
+          .map(r => r.value);
+
+        const errors = {
+          "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
+          "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
+          "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
+          upload: [] as Extract<UploadPendingWork, { error: {} }>[],
+        };
+        let uploads: RecordingEntry[] = [];
+        for (const r of results) {
+          if ("error" in r) {
+            errors[r.type].push(r as any);
+          } else {
+            if (r.type === "upload") {
+              uploads.push(r.recording);
+            }
+          }
+        }
+
+        if (errors["post-test"].length > 0) {
+          output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
+          output.push(...logPendingWorkErrors(errors["post-test"]));
+        }
+
+        if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
+          output.push(
+            "\n❌ We encountered some unexpected errors creating your tests on replay.io"
+          );
+          output.push(...logPendingWorkErrors(errors["test-run-tests"]));
+          output.push(...logPendingWorkErrors(errors["test-run"]));
+        }
+
+        if (errors["upload"].length > 0) {
+          output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
+
+          errors["upload"].forEach(err => {
+            if ("recording" in err) {
+              const r = err.recording;
+              output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
+              output.push(`      ${getErrorMessage(err.error)}\n`);
+            }
           });
         }
 
-        if (crashed.length > 0) {
-          output.push(
-            `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
-          );
-          output.push(`  The Replay team has been notified.`);
+        if (uploads.length > 0) {
+          const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
+          for (const recordingId of recordingIds) {
+            removeRecording(recordingId);
+          }
+
+          const uploaded = uploads.filter(u => u.status === "uploaded");
+          const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+          if (uploaded.length > 0) {
+            output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+            const sortedUploads = sortRecordingsByResult(uploads);
+            sortedUploads.forEach(r => {
+              output.push(
+                `   ${getTestResultEmoji(r)} ${
+                  (r.metadata.title as string | undefined) || "Unknown"
+                }`
+              );
+              output.push(
+                `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${
+                  r.id
+                }\n`
+              );
+            });
+          }
+
+          if (crashed.length > 0) {
+            output.push(
+              `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
+            );
+            output.push(`  The Replay team has been notified.`);
+          }
         }
-      }
 
-      log(output.join("\n"));
+        log(output.join("\n"));
 
-      return results;
+        console.log("SENTINEL: 1185");
+
+        return results;
+      });
     } finally {
-      // MBUDAYR - this is just a test.
-      await withNamedSpan(
-        async cx =>
-          withNamedSpan(async _cx => {}, tracer, { name: "TestChild2", parentContext: cx }),
-        tracer,
-        {
-          name: "TestParent2",
-          attributes: { [SemanticAttributes.RPC_SYSTEM]: "bar" },
-        }
-      );
-
-      await sdk.shutdown();
-
+      console.log("SENTINEL: 1188");
       await this._logger.close();
+      await tracingManager?.close().then(() => console.log("SENTINEL: tracing manager closed"));
+      await waitForTime(10000);
     }
   }
+}
+
+function waitForTime(ms: number): Promise<undefined> {
+  return new Promise(res => {
+    setTimeout(res, ms);
+  });
 }
 
 export default ReplayReporter;
