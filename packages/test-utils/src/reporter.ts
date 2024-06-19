@@ -954,6 +954,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     result: UploadableTestResult<TRecordingMetadata>,
     executionGroupId: string
   ) {
+    if (this._uploadStatusThreshold === "none") {
+      return;
+    }
     const executions = result.executions[executionGroupId];
     const latestExecution = last(executions);
     assert(!!latestExecution, "Expected at least one execution in the list");
