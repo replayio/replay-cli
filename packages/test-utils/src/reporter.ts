@@ -247,13 +247,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _runner: TestRunner;
   private _errors: ReporterError[] = [];
   private _apiKey?: string;
-  private _pendingWork: Promise<PendingWork>[] = [];
+  private _pendingWork: Promise<PendingWork | undefined>[] = [];
   private _upload = false;
   private _filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   private _minimizeUploads = false;
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
+  private _uploadedRecordings = new Set<string>();
 
   constructor(
     runner: TestRunner,
@@ -688,7 +689,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   private async _uploadRecording(
     recording: RecordingEntry<TRecordingMetadata>
-  ): Promise<UploadPendingWork> {
+  ): Promise<UploadPendingWork | undefined> {
+    // Cypress retries are on the same recordings, we only want to upload a single recording once
+    if (this._uploadedRecordings.has(recording.id)) {
+      debug("Recording %s was already scheduled to be uploaded", recording.id);
+      return;
+    }
+    this._uploadedRecordings.add(recording.id);
     debug("Starting upload of %s", recording.id);
 
     try {
@@ -1068,7 +1075,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     debug("onEnd");
 
     const output: string[] = [];
-    let completedWork: PromiseSettledResult<PendingWork>[] = [];
+    let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
 
     if (this._pendingWork.length) {
       log("🕑 Completing some outstanding work ...");
@@ -1099,7 +1106,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     const results = completedWork
-      .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
+      .filter(
+        (r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled" && !!r.value
+      )
       .map(r => r.value);
 
     const errors = {
