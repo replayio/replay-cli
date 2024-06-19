@@ -182,9 +182,15 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function throwGraphqlErrors(operation: string, errors: any) {
+function createGraphqlError(operation: string, errors: any) {
   errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
-  throw new Error(
+  for (const error of errors) {
+    switch (error.extensions?.code) {
+      case "UNAUTHENTICATED":
+        return new Error(error.message);
+    }
+  }
+  return new Error(
     `GraphQL request for ${operation} failed (${errors.map(getErrorMessage).join(", ")})`
   );
 }
@@ -500,7 +506,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("CreateTestRunShard", resp.errors);
+          return {
+            type: "test-run",
+            error: createGraphqlError("CreateTestRunShard", resp.errors),
+          };
         }
 
         const testRunShardId = resp.data.startTestRunShard.testRunShardId;
@@ -530,16 +539,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private async _addTestsToShard(tests: TestRunTestInputModel[]): Promise<TestRunTestsPendingWork> {
+  private async _addTestsToShard(
+    tests: TestRunTestInputModel[]
+  ): Promise<TestRunTestsPendingWork | undefined> {
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
       testRunShardId = this._testRunShardId;
       if (!testRunShardId) {
-        return {
-          type: "test-run-tests",
-          error: new Error("Unable to add tests to test run: ID not set"),
-        };
+        return;
       }
     }
     debug("Adding %d tests to shard %s", tests.length, testRunShardId);
@@ -566,7 +574,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("AddTestsToShard", resp.errors);
+          return {
+            type: "test-run-tests",
+            error: createGraphqlError("AddTestsToShard", resp.errors),
+          };
         }
       });
 
@@ -584,16 +595,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private async _completeTestRunShard(): Promise<TestRunPendingWork> {
+  private async _completeTestRunShard(): Promise<TestRunPendingWork | undefined> {
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
       testRunShardId = this._testRunShardId;
       if (!testRunShardId) {
-        return {
-          type: "test-run",
-          error: new Error("Unable to complete test run: ID not set"),
-        };
+        return;
       }
     }
 
@@ -619,7 +627,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("CompleteTestRunShard", resp.errors);
+          return {
+            type: "test-run",
+            error: createGraphqlError("CompleteTestRunShard", resp.errors),
+          };
         }
       });
 
