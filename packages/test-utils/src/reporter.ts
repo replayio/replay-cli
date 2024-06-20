@@ -20,7 +20,7 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { Logger, getAuthIds } from "@replayio/observability-node";
+import { Logger, getAuthIds } from "./logger";
 
 const debug = dbg("replay:test-utils:reporter");
 

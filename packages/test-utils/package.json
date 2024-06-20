@@ -25,12 +25,12 @@
   },
   "homepage": "https://github.com/replayio/replay-cli#readme",
   "dependencies": {
-    "@replayio/observability-node": "workspace:^",
     "@replayio/replay": "workspace:^",
     "debug": "^4.3.4",
     "node-fetch": "^2.6.7",
     "sha-1": "^1.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "winston-loki": "^6.1.2"
   },
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",
