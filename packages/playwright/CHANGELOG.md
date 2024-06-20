@@ -1,5 +1,14 @@
 # @replayio/playwright
 
+## 3.1.1
+
+### Patch Changes
+
+- [#540](https://github.com/replayio/replay-cli/pull/540) [`a6f8f10`](https://github.com/replayio/replay-cli/commit/a6f8f105654b39c5c457dfac91c5169f0ba6cc04) Thanks [@Andarist](https://github.com/Andarist)! - Avoid reporting duplicated API errors
+
+- Updated dependencies [[`a6f8f10`](https://github.com/replayio/replay-cli/commit/a6f8f105654b39c5c457dfac91c5169f0ba6cc04)]:
+  - @replayio/test-utils@3.0.1
+
 ## 3.1.0
 
 ### Minor Changes
