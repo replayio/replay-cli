@@ -75,7 +75,7 @@ function formatId(base64EncodedId: string) {
   const [_, id] = decoded.split(":");
 
   if (typeof id !== "string") {
-    throw new Error(`Unrecognized ID format: ${decoded}`);
+    throw new Error(`Unrecognized ID format: ${base64EncodedId}`);
   }
 
   return id;
