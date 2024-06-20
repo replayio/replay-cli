@@ -998,7 +998,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     try {
       debug("onEnd");
 
-      await this._cacheAuthIdsPromise;
+      await this._cacheAuthIdsPromise?.catch(e => {
+        this._logger.debug("failed to add auth ids to the logger", {
+          errorMessage: getErrorMessage(e),
+        });
+      });
 
       const output: string[] = [];
       let completedWork: PromiseSettledResult<PendingWork>[] = [];
