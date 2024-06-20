@@ -1059,8 +1059,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
         await withNamedSpan("KonstTest2", cx, async () => {});
 
-        console.log("SENTINEL: !!tracingManager", !!tracingManager);
-
         await this._cachAuthIdsPromise?.catch(e =>
           this._logger.debug("failed to add auth ids to the logger", {
             errorMessage: getErrorMessage(e),
@@ -1182,15 +1180,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
         log(output.join("\n"));
 
-        console.log("SENTINEL: 1185");
-
         return results;
       });
     } finally {
-      console.log("SENTINEL: 1188");
       await this._logger.close();
       await tracingManager?.close().then(() => console.log("SENTINEL: tracing manager closed"));
-      await waitForTime(10000);
+      await waitForTime(6000);
     }
   }
 }

@@ -18,6 +18,7 @@ function setupOpenTelemetryTracing(serviceName: string) {
   });
 
   tracingManager = { tracer: traceApi.getTracer(serviceName), close: sdk.shutdown };
+
   sdk.start();
 }
 
