@@ -67,6 +67,10 @@ class Logger {
   }
 
   async close() {
+    if (process.env.REPLAY_TELEMETRY_DISABLED) {
+      return;
+    }
+
     return this.grafana.flush();
   }
 
