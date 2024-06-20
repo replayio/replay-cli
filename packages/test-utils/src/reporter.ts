@@ -26,8 +26,6 @@ function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
 }
 
-const debug = dbg("replay:test-utils:reporter");
-
 interface TestRunTestInputModel {
   testId: string;
   runnerGroupId: string | null;
@@ -183,17 +181,17 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function createGraphqlError(operation: string, errors: any) {
-  errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
+function createGraphqlError(operation: string, errors: any, logger: Logger) {
+  const errorMessages = errors.map(getErrorMessage);
+  logger.error("GraphQlOperationFailed", { operation, errors: errors.map(getErrorMessage) });
+
   for (const error of errors) {
     switch (error.extensions?.code) {
       case "UNAUTHENTICATED":
         return new Error(error.message);
     }
   }
-  return new Error(
-    `GraphQL request for ${operation} failed (${errors.map(getErrorMessage).join(", ")})`
-  );
+  return new Error(`GraphQL request for ${operation} failed (${errorMessages.join(", ")})`);
 }
 
 function isNonNullable<T>(arg: T) {
@@ -283,10 +281,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
         .then(ids => {
           this._logger.identify(ids);
-          this._logger.info("Identification added to logger instance");
+          this._logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
         .catch(e =>
-          this._logger.debug("failed to add auth ids to the logger", {
+          this._logger.info("ReplayReporter:LoggerIdentificationFailed", {
             errorMessage: getErrorMessage(e),
           })
         );
@@ -446,7 +444,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       this._parseConfig(config, metadataKey);
     }
 
-    debug("onTestSuiteBegin: Reporter Configuration: %o", {
+    this._logger.info("OnTestSuiteBegin:ReporterConfiguration", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       runner: this._runner,
@@ -457,7 +455,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     if (!this._apiKey) {
-      debug("Skipping starting test run: API key not set");
+      this._logger.info("OnTestSuiteBegin:NoApiKey");
       return;
     }
 
@@ -470,14 +468,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {
+    this._logger.info("StartTestRunShard:Started");
+
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
     } catch (e) {
-      debug(
-        "Failed to initialize source metadata to create test run shard: %s",
-        e instanceof Error ? e.message : e
-      );
+      this._logger.error("StartTestRunShard:InitMetadataFailed", {
+        errorMessage: getErrorMessage(e),
+      });
     }
 
     const { REPLAY_METADATA_TEST_RUN_MODE, RECORD_REPLAY_METADATA_TEST_RUN_MODE } = process.env;
@@ -499,7 +498,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       triggerReason: metadata.source?.trigger?.workflow ?? null,
     };
 
-    debug("Creating test run shard for user-key %s", this._baseId);
+    this._logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
 
     try {
       return exponentialBackoffRetry(async () => {
@@ -526,7 +525,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run",
-            error: createGraphqlError("CreateTestRunShard", resp.errors),
+            error: createGraphqlError("CreateTestRunShard", resp.errors, this._logger),
           };
         }
 
@@ -539,7 +538,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           };
         }
 
-        debug("Created test run shard %s for user key %s", testRunShardId, this._baseId);
+        this._logger.info("StartTestRunShard:CreatedShard", {
+          testRunShardId,
+          baseId: this._baseId,
+        });
         this._testRunShardId = testRunShardId;
 
         return {
@@ -549,7 +551,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         };
       });
     } catch (e) {
-      debug("start test run error: %s", e);
+      this._logger.error("StartTestRunShardFailed", {
+        errorMessage: getErrorMessage(e),
+      });
+
       return {
         type: "test-run",
         error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(e)}`),
@@ -560,6 +565,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private async _addTestsToShard(
     tests: TestRunTestInputModel[]
   ): Promise<TestRunTestsPendingWork | undefined> {
+    this._logger.info("AddTestsToSharded", { testsLength: tests.length });
+
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
@@ -568,7 +575,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         return;
       }
     }
-    debug("Adding %d tests to shard %s", tests.length, testRunShardId);
+    this._logger.info("AddTestsToShard:WillAddTests", {
+      testsLength: tests.length,
+      testRunShardId,
+    });
 
     try {
       await exponentialBackoffRetry(async () => {
@@ -594,18 +604,18 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run-tests",
-            error: createGraphqlError("AddTestsToShard", resp.errors),
+            error: createGraphqlError("AddTestsToShard", resp.errors, this._logger),
           };
         }
       });
 
-      debug("Successfully added tests to shard %s", testRunShardId);
+      this._logger.info("AddTestsToShard:AddedTests", { testRunShardId });
 
       return {
         type: "test-run-tests",
       };
     } catch (e) {
-      debug("Add tests to run error: %s", e);
+      this._logger.error("AddTestsToShard:Failed", { errorMessage: getErrorMessage(e) });
       return {
         type: "test-run-tests",
         error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
@@ -614,6 +624,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   private async _completeTestRunShard(): Promise<TestRunPendingWork | undefined> {
+    this._logger.info("CompleteTestRunShard:Started");
+
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
@@ -623,7 +635,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       }
     }
 
-    debug("Marking test run shard %s complete", testRunShardId);
+    this._logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
 
     try {
       await exponentialBackoffRetry(async () => {
@@ -647,12 +659,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run",
-            error: createGraphqlError("CompleteTestRunShard", resp.errors),
+            error: createGraphqlError("CompleteTestRunShard", resp.errors, this._logger),
           };
         }
       });
 
-      debug("Successfully marked test run shard %s complete", testRunShardId);
+      this._logger.info("CompleteTestRunShard:MarkedComplete", { testRunShardId });
 
       return {
         type: "test-run",
@@ -660,7 +672,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         phase: "complete",
       };
     } catch (e) {
-      debug("complete test run shard error: %s", e);
+      this._logger.error("CompleteTestRunShard:Failed", {
+        errorMessage: getErrorMessage(e),
+        testRunShardId,
+      });
       return {
         type: "test-run",
         error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
@@ -669,7 +684,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
-    debug("onTestBegin: %o", testExecutionId);
+    this._logger.info("OnTestBegin:Started", { testExecutionId });
 
     this._errors = [];
     const metadata = {
@@ -679,13 +694,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       },
     };
 
-    debug("onTestBegin: Writing metadata to %s: %o", metadataFilePath, metadata);
+    this._logger.info("OnTestBegin:WillWriteMetadata", { metadataFilePath, metadata });
 
     try {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
     } catch (e) {
-      warn("Failed to initialize Replay metadata", e);
+      this._logger.error("OnTestBegin:InitReplayMetadataFailed", {
+        errorMessage: getErrorMessage(e),
+      });
     }
   }
 
@@ -702,12 +719,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     extraMetadata?: Record<string, unknown>;
     runnerGroupKey?: string;
   }) {
-    debug("onTestEnd: %s", specFile);
+    this._logger.info("OnTestEnd:Started", { specFile });
 
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
-      debug("onTestEnd: No tests found");
+      this._logger.info("OnTestEnd:NoTestsFound", { specFile });
       return;
     }
 
@@ -721,11 +738,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   ): Promise<UploadPendingWork | undefined> {
     // Cypress retries are on the same recordings, we only want to upload a single recording once
     if (this._uploadedRecordings.has(recording.id)) {
-      debug("Recording %s was already scheduled to be uploaded", recording.id);
+      this._logger.info("UploadRecording:AlreadyScheduled", {
+        recordingId: recording.id,
+      });
       return;
     }
     this._uploadedRecordings.add(recording.id);
-    debug("Starting upload of %s", recording.id);
+    this._logger.info("UploadRecording:Started", { recordingId: recording.id });
 
     try {
       await uploadRecording(recording.id, {
@@ -738,7 +757,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         removeAssets: false,
       });
 
-      debug("Successfully uploaded %s", recording.id);
+      this._logger.info("UploadRecording:Succeeded", { recording: recording.id });
 
       const recordings = listAllRecordings({ filter: r => r.id === recording.id, all: true });
 
@@ -747,7 +766,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         recording: recordings[0],
       };
     } catch (e) {
-      debug("upload error: %s", e);
+      this._logger.error("UploadRecording:Failed", {
+        errorMessage: getErrorMessage(e),
+        recordingId: recording.id,
+        buildId: recording.buildId,
+      });
       return {
         type: "upload",
         recording,
@@ -767,7 +790,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       filter,
     });
 
-    debug("Found %d recs with filter %s", recordings.length, filter);
+    this._logger.info("GetRecordingsForTest:FoundRecordings", {
+      recoridngsLength: recordings.length,
+      filter,
+    });
 
     return recordings;
   }
@@ -811,11 +837,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ) {
-    debug(
-      "setRecordingMetadata: Adding test metadata to %o",
-      recordings.map(r => r.id)
-    );
-    debug("setRecordingMetadata: Includes %s errors", this._errors.length);
+    this._logger.info("SetRecordingMetadata:Started", {
+      recordingIds: recordings.map(r => r.id),
+      errorLength: this._errors.length,
+    });
 
     const validatedTestMetadata = testMetadata.init({
       ...testRun,
@@ -837,7 +862,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         ...validatedSourceMetadata,
       };
     } catch (e) {
-      debug("Failed to generate source metadata: %s", e instanceof Error ? e.message : e);
+      this._logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
+        errorMessage: getErrorMessage(e),
+      });
     }
 
     recordings.forEach(rec => add(rec.id, mergedMetadata));
@@ -885,7 +912,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       if (this._apiKey) {
         this._pendingWork.push(this._addTestsToShard(testInputs));
       } else {
-        debug("Skipping adding tests to test run: API key not set");
+        this._logger.info("EnqueuePostTestWork:WillSkipAddTests");
       }
 
       const testRun = this._buildTestMetadata(tests, specFile);
@@ -934,7 +961,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         testRun,
       };
     } catch (e) {
-      debug("post-test error: %s", e);
+      this._logger.error("EnqueuePostTestWork:Failed");
       return {
         type: "post-test",
         error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
@@ -1105,10 +1132,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async onEnd(): Promise<PendingWork[]> {
     try {
-      debug("onEnd");
+      this._logger.info("OnEnd:Started");
 
       await this._cacheAuthIdsPromise?.catch(e => {
-        this._logger.debug("failed to add auth ids to the logger", {
+        this._logger.error("OnEnd:AddingLoggerAuthFailed", {
           errorMessage: getErrorMessage(e),
         });
       });
@@ -1122,8 +1149,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       while (this._pendingWork.length) {
         const pendingWork = this._pendingWork;
-        debug("Outstanding tasks: %d", pendingWork.length);
-
+        this._logger.info("OnEnd:PendingWork", { pendingWorkLength: pendingWork.length });
         this._pendingWork = [];
         completedWork.push(...(await Promise.allSettled(pendingWork)));
       }
@@ -1132,7 +1158,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
         completedWork.push(...postSettledWork);
       } else {
-        debug("Skipping completing test run: API Key not set");
+        this._logger.info("OnEnd:WillSkipCompletingTestRun");
       }
 
       const failures = completedWork.filter(r => r.status === "rejected");
