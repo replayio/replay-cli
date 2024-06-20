@@ -17,8 +17,9 @@
   "scripts": {
     "prepare": "yarn run build",
     "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
-    "test": "echo \"Error: no test specified\"",
-    "typecheck": "tsc --noEmit"
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "fixtures-app": "next dev tests/fixtures-app"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.1",
@@ -28,6 +29,11 @@
     "@types/stack-utils": "^2.0.3",
     "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.10",
+    "jest": "^28.1.3",
+    "next": "^14.2.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-jest": "^28.0.6",
     "typescript": "^5.4.5"
   },
   "repository": {
