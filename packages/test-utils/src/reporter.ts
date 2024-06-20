@@ -262,7 +262,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
     if (this._apiKey) {
       this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
-        .then(ids => this._logger.identify(ids))
+        .then(ids => {
+          this._logger.identify(ids);
+          this._logger.info("Identification added to logger instance");
+        })
         .catch(e =>
           this._logger.debug("failed to add auth ids to the logger", {
             errorMessage: getErrorMessage(e),
@@ -996,8 +999,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       debug("onEnd");
 
       await this._cacheAuthIdsPromise;
-
-      this._logger.info("Identification added to logger instance");
 
       const output: string[] = [];
       let completedWork: PromiseSettledResult<PendingWork>[] = [];
