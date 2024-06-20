@@ -20,6 +20,7 @@ import { log, warn } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { Logger, getAuthIds } from "./logger";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -260,6 +261,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
+  private _cacheAuthIdsPromise: Promise<void> | null = null;
+  private _logger: Logger;
   private _uploadedRecordings = new Set<string>();
 
   constructor(
@@ -269,9 +272,24 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   ) {
     this._runner = runner;
     this._schemaVersion = schemaVersion;
+    this._logger = new Logger(this._runner.name);
+
     if (config) {
       const { metadataKey, ...rest } = config;
       this._parseConfig(rest, metadataKey);
+    }
+
+    if (this._apiKey) {
+      this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
+        .then(ids => {
+          this._logger.identify(ids);
+          this._logger.info("Identification added to logger instance");
+        })
+        .catch(e =>
+          this._logger.debug("failed to add auth ids to the logger", {
+            errorMessage: getErrorMessage(e),
+          })
+        );
     }
   }
 
@@ -1086,118 +1104,128 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   async onEnd(): Promise<PendingWork[]> {
-    debug("onEnd");
+    try {
+      debug("onEnd");
 
-    const output: string[] = [];
-    let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
-
-    if (this._pendingWork.length) {
-      log("🕑 Completing some outstanding work ...");
-    }
-
-    while (this._pendingWork.length) {
-      const pendingWork = this._pendingWork;
-      debug("Outstanding tasks: %d", pendingWork.length);
-
-      this._pendingWork = [];
-      completedWork.push(...(await Promise.allSettled(pendingWork)));
-    }
-
-    if (this._apiKey) {
-      const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
-      completedWork.push(...postSettledWork);
-    } else {
-      debug("Skipping completing test run: API Key not set");
-    }
-
-    const failures = completedWork.filter(
-      (r): r is PromiseRejectedResult => r.status === "rejected"
-    );
-
-    if (failures.length > 0) {
-      output.push("Encountered unexpected errors while processing replays");
-      failures.forEach(f => output.push(`  ${f.reason}`));
-    }
-
-    const results = completedWork
-      .filter(
-        (r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled" && !!r.value
-      )
-      .map(r => r.value);
-
-    const errors = {
-      "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
-      "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
-      "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
-      upload: [] as Extract<UploadPendingWork, { error: {} }>[],
-    };
-    let uploads: RecordingEntry[] = [];
-    for (const r of results) {
-      if ("error" in r) {
-        errors[r.type].push(r as any);
-      } else {
-        if (r.type === "upload") {
-          uploads.push(r.recording);
-        }
-      }
-    }
-
-    if (errors["post-test"].length > 0) {
-      output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
-      output.push(...logPendingWorkErrors(errors["post-test"]));
-    }
-
-    if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
-      output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
-      output.push(...logPendingWorkErrors(errors["test-run-tests"]));
-      output.push(...logPendingWorkErrors(errors["test-run"]));
-    }
-
-    if (errors["upload"].length > 0) {
-      output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
-
-      errors["upload"].forEach(err => {
-        if ("recording" in err) {
-          const r = err.recording;
-          output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
-          output.push(`      ${getErrorMessage(err.error)}\n`);
-        }
+      await this._cacheAuthIdsPromise?.catch(e => {
+        this._logger.debug("failed to add auth ids to the logger", {
+          errorMessage: getErrorMessage(e),
+        });
       });
-    }
 
-    if (uploads.length > 0) {
-      const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
-      for (const recordingId of recordingIds) {
-        removeRecording(recordingId);
+      const output: string[] = [];
+      let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
+
+      if (this._pendingWork.length) {
+        log("🕑 Completing some outstanding work ...");
       }
 
-      const uploaded = uploads.filter(u => u.status === "uploaded");
-      const crashed = uploads.filter(u => u.status === "crashUploaded");
+      while (this._pendingWork.length) {
+        const pendingWork = this._pendingWork;
+        debug("Outstanding tasks: %d", pendingWork.length);
 
-      if (uploaded.length > 0) {
-        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
-        const sortedUploads = sortRecordingsByResult(uploads);
-        sortedUploads.forEach(r => {
-          output.push(
-            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
-          );
-          output.push(
-            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
-          );
+        this._pendingWork = [];
+        completedWork.push(...(await Promise.allSettled(pendingWork)));
+      }
+
+      if (this._apiKey) {
+        const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
+        completedWork.push(...postSettledWork);
+      } else {
+        debug("Skipping completing test run: API Key not set");
+      }
+
+      const failures = completedWork.filter(
+        (r): r is PromiseRejectedResult => r.status === "rejected"
+      );
+
+      if (failures.length > 0) {
+        output.push("Encountered unexpected errors while processing replays");
+        failures.forEach(f => output.push(`  ${f.reason}`));
+      }
+
+      const results = completedWork
+        .filter(
+          (r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled" && !!r.value
+        )
+        .map(r => r.value);
+
+      const errors = {
+        "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
+        "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
+        "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
+        upload: [] as Extract<UploadPendingWork, { error: {} }>[],
+      };
+      let uploads: RecordingEntry[] = [];
+      for (const r of results) {
+        if ("error" in r) {
+          errors[r.type].push(r as any);
+        } else {
+          if (r.type === "upload") {
+            uploads.push(r.recording);
+          }
+        }
+      }
+
+      if (errors["post-test"].length > 0) {
+        output.push(`\n❌ We encountered some unexpected errors processing your recordings`);
+        output.push(...logPendingWorkErrors(errors["post-test"]));
+      }
+
+      if (errors["test-run-tests"].length > 0 || errors["test-run"].length > 0) {
+        output.push("\n❌ We encountered some unexpected errors creating your tests on replay.io");
+        output.push(...logPendingWorkErrors(errors["test-run-tests"]));
+        output.push(...logPendingWorkErrors(errors["test-run"]));
+      }
+
+      if (errors["upload"].length > 0) {
+        output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
+
+        errors["upload"].forEach(err => {
+          if ("recording" in err) {
+            const r = err.recording;
+            output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
+            output.push(`      ${getErrorMessage(err.error)}\n`);
+          }
         });
       }
 
-      if (crashed.length > 0) {
-        output.push(
-          `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
-        );
-        output.push(`  The Replay team has been notified.`);
+      if (uploads.length > 0) {
+        const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
+        for (const recordingId of recordingIds) {
+          removeRecording(recordingId);
+        }
+
+        const uploaded = uploads.filter(u => u.status === "uploaded");
+        const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+        if (uploaded.length > 0) {
+          output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+          const sortedUploads = sortRecordingsByResult(uploads);
+          sortedUploads.forEach(r => {
+            output.push(
+              `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+            );
+            output.push(
+              `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+            );
+          });
+        }
+
+        if (crashed.length > 0) {
+          output.push(
+            `\n❗️ ${crashed.length} crash reports were generated for tests that crashed while recording.\n`
+          );
+          output.push(`  The Replay team has been notified.`);
+        }
       }
+
+      log(output.join("\n"));
+
+      return results;
+    } finally {
+      await this._logger.close().catch(() => {});
     }
-
-    log(output.join("\n"));
-
-    return results;
   }
 }
 
