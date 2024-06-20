@@ -1,6 +1,6 @@
 import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "assert";
-import WebSocket from "ws";
+import { WebSocket } from "undici";
 import { replayWsServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";
 import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
@@ -28,10 +28,10 @@ export default class ProtocolClient {
 
     this.socket = new WebSocket(replayWsServer);
 
-    this.socket.on("close", this.onSocketClose);
-    this.socket.on("error", this.onSocketError);
-    this.socket.on("open", this.onSocketOpen);
-    this.socket.on("message", this.onSocketMessage);
+    this.socket.addEventListener("close", this.onSocketClose);
+    this.socket.addEventListener("error", this.onSocketError);
+    this.socket.addEventListener("open", this.onSocketOpen);
+    this.socket.addEventListener("message", event => this.onSocketMessage(event.data));
 
     this.listenForMessage("Recording.sessionError", (error: sessionError) => {
       if (error.sessionId) {
@@ -91,11 +91,12 @@ export default class ProtocolClient {
       sessionId,
     };
 
-    this.socket.send(JSON.stringify(command), error => {
-      if (error) {
-        debug("Received socket error: %s", error);
-      }
-    });
+    try {
+      this.socket.send(JSON.stringify(command));
+    } catch (error) {
+      debug("Socket error when sending: %s", error);
+      throw error;
+    }
 
     const deferred = createDeferred<ResponseType, CommandData>({ sessionId, command });
 
@@ -122,7 +123,7 @@ export default class ProtocolClient {
     }
   };
 
-  private onSocketMessage = (contents: WebSocket.RawData) => {
+  private onSocketMessage = (contents: any) => {
     const { error, id, method, params, result } = JSON.parse(String(contents));
 
     if (id) {

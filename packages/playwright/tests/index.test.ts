@@ -6,7 +6,7 @@ const fixturesPages = path.join(__dirname, "fixtures-app", "app");
 const playwrightPath = cp.spawnSync("yarn", ["bin", "playwright"]).stdout.toString().trim();
 
 fs.readdirSync(fixturesPages).forEach(name => {
-  if (!fs.statSync(path.join(fixturesPages, name)).isDirectory()) {
+  if (name.startsWith("_") || !fs.statSync(path.join(fixturesPages, name)).isDirectory()) {
     return;
   }
   it(name, async () => {

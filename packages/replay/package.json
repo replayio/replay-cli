@@ -48,7 +48,7 @@
     "semver": "^7.5.4",
     "superstruct": "^0.15.4",
     "text-table": "^0.2.0",
-    "ws": "^7.5.0"
+    "undici": "^5.28.4"
   },
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",
