@@ -167,6 +167,8 @@ class CypressReporter {
   private getTestResults(spec: Cypress.Spec, result: CypressCommandLine.RunResult): Test[] {
     const placeholderTest: Test = {
       id: 0,
+      executionGroupId: "single",
+      executionId: [spec.relative, 1].join("-"),
       approximateDuration: 0,
       source: {
         title: spec.relative,
@@ -204,6 +206,7 @@ class CypressReporter {
     }
 
     let testsWithoutSteps = getTestsFromResults(
+      spec,
       result.tests,
       this.steps.filter(s => s.event === "test:start")
     );

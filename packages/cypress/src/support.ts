@@ -574,7 +574,7 @@ function register() {
 
       // if we failed to find an assertion command but this log is for an
       // assert, it's a chai assertion so we'll emit the command:start now
-      if (!maybeCurrentAssertion && log.name === "assert") {
+      if (maybeCurrentAssertion?.get("type") !== "assertion") {
         // TODO [ryanjduffy]: This is making a log look like a command. This
         // works in this very narrow case but we should fix this acknowledge
         // that this is a chai assertion which is special and shouldn't
@@ -586,13 +586,6 @@ function register() {
           toJSON: () => [],
           create: () => ({} as any),
         };
-      } else if (maybeCurrentAssertion?.get("type") !== "assertion") {
-        // debug("Received an assertion log without a prior assertion or command: %o", {
-        //   lastAssertionCommandId: lastAssertionCommand && getCypressId(lastAssertionCommand),
-        //   lastCommandId: lastCommand && getCypressId(lastCommand),
-        //   currentAssertion: maybeCurrentAssertion && maybeCurrentAssertion.toJSON(),
-        // });
-        return;
       }
 
       if (!maybeCurrentAssertion || shouldIgnoreCommand(maybeCurrentAssertion)) {

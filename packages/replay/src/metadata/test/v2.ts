@@ -1,15 +1,15 @@
 import {
+  Infer,
   array,
+  assign,
   defaulted,
   enums,
+  nullable,
   number,
   object,
   optional,
-  string,
-  nullable,
-  Infer,
-  assign,
   record,
+  string,
 } from "superstruct";
 
 import { firstEnvValueOf } from "../env";
@@ -120,6 +120,8 @@ const test_v2_1_0 = assign(
 const test_v2_2_0 = assign(
   test_v2_1_0,
   object({
+    executionId: string(),
+    executionGroupId: string(),
     maxAttempts: number(),
   })
 );

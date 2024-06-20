@@ -1,6 +1,6 @@
 {
   "name": "@replayio/cypress",
-  "version": "2.1.3",
+  "version": "3.0.1",
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "./dist/index.js",
   "exports": {

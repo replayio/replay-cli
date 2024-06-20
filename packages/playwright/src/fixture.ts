@@ -31,8 +31,10 @@ export interface FixtureStepStart extends StepStartDetail {
   id: string;
 }
 
-export interface TestIdData {
-  id: number;
+export interface TestExecutionIdData {
+  filePath: string;
+  projectName: string | undefined;
+  repeatEachIndex: number;
   attempt: number;
   source: {
     title: string;
@@ -42,7 +44,7 @@ export interface TestIdData {
 
 interface FixtureStepStartEvent extends FixtureStepStart {
   event: "step:start";
-  test: TestIdData;
+  test: TestExecutionIdData;
 }
 
 interface StepEndDetail {
@@ -55,12 +57,12 @@ export interface FixtureStepEnd extends StepEndDetail {
 
 interface FixtureStepEndEvent extends FixtureStepEnd {
   event: "step:end";
-  test: TestIdData;
+  test: TestExecutionIdData;
 }
 
 interface ReporterErrorEvent extends ReporterError {
   event: "error";
-  test: TestIdData;
+  test: TestExecutionIdData;
 }
 
 export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent | ReporterErrorEvent;
@@ -191,8 +193,10 @@ export async function replayFixture(
     throw error;
   }
 
-  const testIdData: TestIdData = {
-    id: 0,
+  const testIdData: TestExecutionIdData = {
+    filePath: testInfo.file,
+    projectName: testInfo.project.name,
+    repeatEachIndex: testInfo.repeatEachIndex,
     attempt: testInfo.retry + 1,
     source: {
       title: testInfo.title,

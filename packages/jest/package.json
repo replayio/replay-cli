@@ -1,6 +1,6 @@
 {
   "name": "@replayio/jest",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "./dist/index.js",
   "bin": {

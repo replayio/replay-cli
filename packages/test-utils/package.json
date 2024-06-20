@@ -1,12 +1,15 @@
 {
   "name": "@replayio/test-utils",
-  "version": "2.1.2",
+  "version": "3.0.1",
   "description": "Utilities for recording tests with replay.io",
   "main": "./dist/index.js",
   "exports": {
     ".": "./dist/index.js",
     "./testId": "./dist/testId.js",
     "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "prepare": "yarn run build",

@@ -22,6 +22,10 @@ import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import { Logger, getAuthIds } from "./logger";
 
+function last<T>(arr: T[]): T | undefined {
+  return arr[arr.length - 1];
+}
+
 const debug = dbg("replay:test-utils:reporter");
 
 interface TestRunTestInputModel {
@@ -38,12 +42,6 @@ interface TestRunTestInputModel {
   recordingIds: string[];
 }
 
-export interface TestIdContext {
-  title: string;
-  scope: string[];
-  attempt: number;
-}
-
 export type UploadStatusThreshold = "all" | "failed-and-flaky" | "failed";
 
 type UploadStatusThresholdInternal = UploadStatusThreshold | "none";
@@ -51,16 +49,31 @@ type UploadStatusThresholdInternal = UploadStatusThreshold | "none";
 export type UploadOption =
   | boolean
   | {
+      /**
+       * Minimize the number of recordings uploaded for a test attempt (within a shard).
+       * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
+       * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
+       */
       minimizeUploads?: boolean;
       statusThreshold?: UploadStatusThreshold;
     };
 
-interface UploadableTestRunResult<TRecordingMetadata extends UnstructuredMetadata> {
+interface UploadableTestExecutionResult<TRecordingMetadata extends UnstructuredMetadata> {
+  executionGroupId: string;
   attempt: number;
   maxAttempts: number;
   recordings: RecordingEntry<TRecordingMetadata>[];
   result: TestRun["result"];
   testId: string;
+}
+
+interface UploadableTestResult<TRecordingMetadata extends UnstructuredMetadata> {
+  aggregateStatus: "passed" | "failed" | "flaky" | undefined;
+  didUploadStatuses: {
+    passed: boolean;
+    failed: boolean;
+  };
+  executions: Record<string, UploadableTestExecutionResult<TRecordingMetadata>[]>;
 }
 
 export interface ReplayReporterConfig<
@@ -170,9 +183,15 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function throwGraphqlErrors(operation: string, errors: any) {
+function createGraphqlError(operation: string, errors: any) {
   errors.forEach((e: any) => debug("Error from GraphQL operation %s: %o", operation, e));
-  throw new Error(
+  for (const error of errors) {
+    switch (error.extensions?.code) {
+      case "UNAUTHENTICATED":
+        return new Error(error.message);
+    }
+  }
+  return new Error(
     `GraphQL request for ${operation} failed (${errors.map(getErrorMessage).join(", ")})`
   );
 }
@@ -235,16 +254,16 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _runner: TestRunner;
   private _errors: ReporterError[] = [];
   private _apiKey?: string;
-  private _pendingWork: Promise<PendingWork>[] = [];
+  private _pendingWork: Promise<PendingWork | undefined>[] = [];
   private _upload = false;
   private _filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   private _minimizeUploads = false;
-  private _uploadableResults: Map<string, UploadableTestRunResult<TRecordingMetadata>[]> =
-    new Map();
+  private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
   private _cacheAuthIdsPromise: Promise<void> | null = null;
   private _logger: Logger;
+  private _uploadedRecordings = new Set<string>();
 
   constructor(
     runner: TestRunner,
@@ -339,14 +358,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     return { approximateDuration, resultCounts };
-  }
-
-  private _getTestId(source?: TestIdContext) {
-    if (!source) {
-      return this._baseId;
-    }
-
-    return `${this._baseId}-${[...source.scope, source.title].join("-")}-${source.attempt}`;
   }
 
   private _parseConfig(
@@ -513,7 +524,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("CreateTestRunShard", resp.errors);
+          return {
+            type: "test-run",
+            error: createGraphqlError("CreateTestRunShard", resp.errors),
+          };
         }
 
         const testRunShardId = resp.data.startTestRunShard.testRunShardId;
@@ -543,16 +557,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private async _addTestsToShard(tests: TestRunTestInputModel[]): Promise<TestRunTestsPendingWork> {
+  private async _addTestsToShard(
+    tests: TestRunTestInputModel[]
+  ): Promise<TestRunTestsPendingWork | undefined> {
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
       testRunShardId = this._testRunShardId;
       if (!testRunShardId) {
-        return {
-          type: "test-run-tests",
-          error: new Error("Unable to add tests to test run: ID not set"),
-        };
+        return;
       }
     }
     debug("Adding %d tests to shard %s", tests.length, testRunShardId);
@@ -579,7 +592,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("AddTestsToShard", resp.errors);
+          return {
+            type: "test-run-tests",
+            error: createGraphqlError("AddTestsToShard", resp.errors),
+          };
         }
       });
 
@@ -597,16 +613,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private async _completeTestRunShard(): Promise<TestRunPendingWork> {
+  private async _completeTestRunShard(): Promise<TestRunPendingWork | undefined> {
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
       await this._testRunShardIdPromise;
       testRunShardId = this._testRunShardId;
       if (!testRunShardId) {
-        return {
-          type: "test-run",
-          error: new Error("Unable to complete test run: ID not set"),
-        };
+        return;
       }
     }
 
@@ -632,7 +645,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         );
 
         if (resp.errors) {
-          throwGraphqlErrors("CompleteTestRunShard", resp.errors);
+          return {
+            type: "test-run",
+            error: createGraphqlError("CompleteTestRunShard", resp.errors),
+          };
         }
       });
 
@@ -652,18 +668,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  onTestBegin(
-    testIdContext?: TestIdContext,
-    metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)
-  ) {
-    debug("onTestBegin: %o", testIdContext);
+  onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+    debug("onTestBegin: %o", testExecutionId);
 
-    const id = this._getTestId(testIdContext);
     this._errors = [];
     const metadata = {
       ...(this._baseMetadata || {}),
       "x-replay-test": {
-        id,
+        id: testExecutionId ? `${this._baseId}-${testExecutionId}` : this._baseId,
       },
     };
 
@@ -704,7 +716,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     );
   }
 
-  private async _uploadRecording(recording: RecordingEntry): Promise<UploadPendingWork> {
+  private async _uploadRecording(
+    recording: RecordingEntry<TRecordingMetadata>
+  ): Promise<UploadPendingWork | undefined> {
+    // Cypress retries are on the same recordings, we only want to upload a single recording once
+    if (this._uploadedRecordings.has(recording.id)) {
+      debug("Recording %s was already scheduled to be uploaded", recording.id);
+      return;
+    }
+    this._uploadedRecordings.add(recording.id);
     debug("Starting upload of %s", recording.id);
 
     try {
@@ -736,15 +756,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  getRecordingsForTest(tests: Test[]) {
+  getRecordingsForTest(tests: { executionId: string }[]) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
-      ...tests.map(test =>
-        this._getTestId({
-          ...test.source,
-          attempt: test.attempt,
-        })
-      ),
-      this._getTestId(),
+      ...tests.map(test => `${this._baseId}-${test.executionId}`),
+      this._baseId,
     ])} and $not($exists($v.metadata.test)) }`;
 
     const recordings = listAllRecordings({
@@ -886,6 +901,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         this._storeUploadableTestResults(
           tests.map(test => {
             return {
+              executionGroupId: test.executionGroupId,
               attempt: test.attempt,
               maxAttempts: test.maxAttempts,
               recordings: recordingsWithMetadata,
@@ -926,7 +942,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  private _storeUploadableTestResults(results: UploadableTestRunResult<TRecordingMetadata>[]) {
+  private _storeUploadableTestResults(
+    results: UploadableTestExecutionResult<TRecordingMetadata>[]
+  ) {
     if (this._uploadStatusThreshold === "none") {
       return;
     }
@@ -938,52 +956,111 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       let uploadableResults = this._uploadableResults.get(result.testId);
       if (!uploadableResults) {
-        uploadableResults = [];
+        uploadableResults = {
+          executions: {},
+          aggregateStatus: undefined,
+          didUploadStatuses: {
+            passed: false,
+            failed: false,
+          },
+        };
         this._uploadableResults.set(result.testId, uploadableResults);
       }
-      uploadableResults.push(result);
+      let executions = uploadableResults.executions[result.executionGroupId];
+      if (!executions) {
+        executions = [];
+        uploadableResults.executions[result.executionGroupId] = executions;
+      }
+      executions.push(result);
 
       if (result.result === "passed" || result.attempt >= result.maxAttempts) {
-        this._enqueueUploads(uploadableResults);
+        this._enqueueUploads(uploadableResults, result.executionGroupId);
       }
     }
   }
 
-  private _enqueueUploads(results: UploadableTestRunResult<TRecordingMetadata>[]) {
-    const latestResult = results[results.length - 1];
-    assert(!!latestResult, "Expected at least one result in the list");
+  private _enqueueUploads(
+    result: UploadableTestResult<TRecordingMetadata>,
+    executionGroupId: string
+  ) {
+    if (this._uploadStatusThreshold === "none") {
+      return;
+    }
+    const executions = result.executions[executionGroupId];
+    const latestExecution = last(executions);
+    assert(!!latestExecution, "Expected at least one execution in the list");
 
-    let toUpload: typeof results | undefined;
+    let toUpload: typeof executions = [];
 
-    switch (this._uploadStatusThreshold) {
-      case "all":
-        toUpload = this._minimizeUploads ? [latestResult] : results;
+    const aggregateStatus = this._assignAggregateStatus(result, executions);
+
+    switch (aggregateStatus) {
+      case "failed": {
+        if (!this._minimizeUploads) {
+          result.didUploadStatuses.failed = true;
+          toUpload.push(...executions);
+          break;
+        }
+        if (result.didUploadStatuses.failed) {
+          break;
+        }
+        result.didUploadStatuses.failed = true;
+        toUpload.push(latestExecution);
         break;
-      case "failed-and-flaky":
-        // retries can be disables so we need to always check if the latest result is not passed
-        // with retries enabled we know that we only have to upload when there was more than one attempt at the test
-        // a single passed attempt can be safely ignored, multiple attempts mean that the test is flaky or failing
-        if (latestResult.result !== "passed" || results.length > 1) {
-          if (!this._minimizeUploads) {
-            toUpload = results;
-          } else if (results.length > 1) {
-            toUpload = [results[0], latestResult];
-          } else {
-            toUpload = [latestResult];
+      }
+      case "flaky": {
+        if (this._uploadStatusThreshold === "failed") {
+          break;
+        }
+        if (!this._minimizeUploads) {
+          result.didUploadStatuses.failed ||= executions.some(r => r.result !== "passed");
+          result.didUploadStatuses.passed ||= executions.some(r => r.result === "passed");
+
+          // currently previously completed execution groups that could be entirely passed or failed are not retroactively uploaded here
+          toUpload.push(...executions);
+
+          // fallthrough so we don't miss the other status when the flake was detected across different execution groups
+        }
+
+        if (!result.didUploadStatuses.failed) {
+          const failedExecution = Object.values(result.executions)
+            .flatMap(e => e)
+            .find(r => r.result !== "passed");
+
+          if (failedExecution) {
+            result.didUploadStatuses.failed = true;
+            toUpload.push(failedExecution);
+          }
+        }
+
+        if (!result.didUploadStatuses.passed) {
+          const passedExecution = Object.values(result.executions)
+            .flatMap(e => e)
+            .find(r => r.result === "passed");
+
+          if (passedExecution) {
+            result.didUploadStatuses.failed = true;
+            toUpload.push(passedExecution);
           }
         }
         break;
-      case "failed":
-        if (latestResult.result !== "passed") {
-          toUpload = this._minimizeUploads ? [latestResult] : results;
+      }
+      case "passed": {
+        if (this._uploadStatusThreshold !== "all") {
+          break;
         }
+        if (!this._minimizeUploads) {
+          result.didUploadStatuses.passed = true;
+          toUpload.push(...executions);
+          break;
+        }
+        if (result.didUploadStatuses.passed) {
+          break;
+        }
+        result.didUploadStatuses.passed = true;
+        toUpload.push(latestExecution);
         break;
-      case "none":
-        return;
-    }
-
-    if (!toUpload) {
-      return;
+      }
     }
 
     this._pendingWork.push(
@@ -992,6 +1069,38 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         .filter(r => (this._filter ? this._filter(r) : true))
         .map(r => this._uploadRecording(r))
     );
+  }
+
+  private _assignAggregateStatus(
+    result: UploadableTestResult<TRecordingMetadata>,
+    newExecutions: UploadableTestExecutionResult<TRecordingMetadata>[]
+  ) {
+    if (!result.aggregateStatus) {
+      const latestExecution = last(newExecutions);
+      assert(latestExecution, "Expected at least one execution in the list");
+      result.aggregateStatus =
+        latestExecution.result !== "passed"
+          ? "failed"
+          : newExecutions.length > 1
+          ? "flaky"
+          : "passed";
+      return result.aggregateStatus;
+    }
+
+    switch (result.aggregateStatus) {
+      case "passed":
+        if (newExecutions.some(r => r.result !== "passed")) {
+          result.aggregateStatus = "flaky";
+        }
+        return result.aggregateStatus;
+      case "failed":
+        if (newExecutions.some(r => r.result === "passed")) {
+          result.aggregateStatus = "flaky";
+        }
+        return result.aggregateStatus;
+      case "flaky":
+        return result.aggregateStatus;
+    }
   }
 
   async onEnd(): Promise<PendingWork[]> {
@@ -1005,7 +1114,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       });
 
       const output: string[] = [];
-      let completedWork: PromiseSettledResult<PendingWork>[] = [];
+      let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
 
       if (this._pendingWork.length) {
         log("🕑 Completing some outstanding work ...");
@@ -1036,7 +1145,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       }
 
       const results = completedWork
-        .filter((r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled")
+        .filter(
+          (r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled" && !!r.value
+        )
         .map(r => r.value);
 
       const errors = {
