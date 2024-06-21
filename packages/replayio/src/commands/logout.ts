@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { getAccessToken } from "../utils/authentication/getAccessToken";
 import { logoutIfAuthenticated } from "../utils/authentication/logoutIfAuthenticated";
 import { registerCommand } from "../utils/commander/registerCommand";
