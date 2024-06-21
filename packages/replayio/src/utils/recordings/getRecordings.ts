@@ -1,4 +1,4 @@
-import assert from "assert";
+import assert from "node:assert/strict";
 import { existsSync } from "fs-extra";
 import { basename } from "path";
 import { recordingLogPath } from "./config";

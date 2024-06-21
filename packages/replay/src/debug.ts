@@ -1,7 +1,7 @@
 import dbg from "debug";
 import fs from "fs";
 import path from "path";
-import util from "util";
+import util from "node:util";
 import { getDirectory } from "./utils";
 
 const debugDebug = dbg("replay:cli:debug");

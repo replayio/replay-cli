@@ -2,7 +2,6 @@ const fs = require("fs/promises");
 const path = require("path");
 
 async function mirrorDistFiles(sourceDir, targetDir) {
-  debugger;
   const sourceFiles = await fs.readdir(sourceDir);
 
   await Promise.all(

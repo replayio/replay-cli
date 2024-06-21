@@ -1,4 +1,4 @@
-import assert from "assert";
+import assert from "node:assert/strict";
 import { ReadStream, createReadStream, stat } from "fs-extra";
 import { fetch } from "undici";
 import { replayWsServer } from "../../../config";

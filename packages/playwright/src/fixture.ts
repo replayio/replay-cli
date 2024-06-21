@@ -1,6 +1,6 @@
 import { Browser, TestInfoError, test } from "@playwright/test";
 import { ReporterError } from "@replayio/test-utils";
-import assert from "assert";
+import assert from "node:assert/strict";
 import dbg from "debug";
 import WebSocket from "ws";
 import { Errors } from "./error";

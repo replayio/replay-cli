@@ -1,6 +1,6 @@
 import debug from "debug";
 import { appendFileSync, ensureFileSync } from "fs-extra";
-import util from "util";
+import util from "node:util";
 import { getReplayPath } from "./getReplayPath";
 
 export function createLog(name: string, logFilePath?: string) {

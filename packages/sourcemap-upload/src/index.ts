@@ -5,9 +5,9 @@
 import { pathToFileURL, URL } from "url";
 import path from "path";
 import fs from "fs";
-import util from "util";
+import util from "node:util";
 import crypto from "crypto";
-import assert from "assert";
+import assert from "node:assert/strict";
 
 import fetch, { Response } from "node-fetch";
 import pMap from "p-map";

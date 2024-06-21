@@ -55,5 +55,11 @@
   },
   "peerDependencies": {
     "cypress": "^13"
+  },
+  "@replayio/pkg-build": {
+    "entrypoints": [
+      "./src/index.ts",
+      "./src/support.ts"
+    ]
   }
 }

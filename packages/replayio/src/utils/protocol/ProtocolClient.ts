@@ -1,5 +1,5 @@
 import { SessionId, sessionError } from "@replayio/protocol";
-import assert from "assert";
+import assert from "node:assert/strict";
 import WebSocket from "ws";
 import { replayWsServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";

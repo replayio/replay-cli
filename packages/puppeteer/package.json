@@ -36,5 +36,12 @@
   "dependencies": {
     "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^"
+  },
+  "@replayio/pkg-build": {
+    "entrypoints": [
+      "./src/bin.ts",
+      "./src/first-run.ts",
+      "./src/index.ts"
+    ]
   }
 }
