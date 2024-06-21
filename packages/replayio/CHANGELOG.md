@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.1
+
+### Patch Changes
+
+- [#550](https://github.com/replayio/replay-cli/pull/550) [`678082b`](https://github.com/replayio/replay-cli/commit/678082bbc3a2909bb747d936dc85ec5689f42152) Thanks [@Andarist](https://github.com/Andarist)! - Add an explicit dependency on `uuid` module
+
+- [#546](https://github.com/replayio/replay-cli/pull/546) [`e042f96`](https://github.com/replayio/replay-cli/commit/e042f9646481fd6aa522a0cccbed6eec44629f77) Thanks [@Andarist](https://github.com/Andarist)! - Add an explicit dependency on `chalk` module
+
 ## 1.4.0
 
 ### Minor Changes

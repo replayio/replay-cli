@@ -1,5 +1,11 @@
 # @replayio/test-utils
 
+## 3.0.2
+
+### Patch Changes
+
+- [#533](https://github.com/replayio/replay-cli/pull/533) [`88f8122`](https://github.com/replayio/replay-cli/commit/88f8122) Thanks [@miriambudayr](https://github.com/miriambudayr)! - Added a logger that uses Grafana.
+
 ## 3.0.1
 
 ### Patch Changes
