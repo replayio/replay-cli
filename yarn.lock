@@ -15570,7 +15570,7 @@ __metadata:
     uuid: "npm:^8.3.2"
     ws: "npm:^7.5.0"
   bin:
-    replayio: ./replayio.js
+    replayio: ./bin.js
   languageName: unknown
   linkType: soft
 

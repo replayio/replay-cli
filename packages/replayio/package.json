@@ -2,7 +2,7 @@
   "name": "replayio",
   "version": "1.4.1",
   "description": "CLI tool for uploading and managing recordings",
-  "bin": "./replayio.js",
+  "bin": "./bin.js",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"
@@ -72,5 +72,11 @@
     "prettier": "^2.7.1",
     "ts-jest": "^28.0.6",
     "typescript": "^5.5.2"
+  },
+  "@replayio/pkg-build": {
+    "entrypoints": [
+      "./src/index.ts",
+      "./src/bin.ts"
+    ]
   }
 }

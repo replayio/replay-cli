@@ -1,15 +1,15 @@
-import path from "path";
-import fs from "fs/promises";
-import fsSync from "fs";
-import builtInModules from "builtin-modules";
-import { rollup } from "rollup";
-import { spawnSync } from "child_process";
 import { getPackages } from "@manypkg/get-packages";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import normalizePath from "normalize-path";
+import builtInModules from "builtin-modules";
+import { spawnSync } from "child_process";
 import * as esbuild from "esbuild";
 import fastGlob from "fast-glob";
+import fsSync from "fs";
+import fs from "fs/promises";
+import normalizePath from "normalize-path";
+import path from "path";
+import { rollup } from "rollup";
 
 const rootDir = path.join(__dirname, "..");
 const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
@@ -35,7 +35,7 @@ async function build() {
   const allPackageNames = new Set(packages.map(pkg => pkg.packageJson.name));
 
   await Promise.all(
-    packages.flatMap(async pkg => [rm(`${pkg.dir}/dist`), rm(`${pkg.dir}/tsconfig.tsbuildinfo`)])
+    packages.flatMap(pkg => [rm(`${pkg.dir}/dist`), rm(`${pkg.dir}/tsconfig.tsbuildinfo`)])
   );
 
   // generate typescript declaration files
@@ -52,6 +52,11 @@ async function build() {
       .filter(pkg => !pkg.packageJson.private && fsSync.existsSync(`${pkg.dir}/tsconfig.json`))
       .map(async pkg => {
         const packageJson = pkg.packageJson;
+
+        const isExternal = makeExternalPredicate([
+          ...Object.keys(packageJson.dependencies || {}),
+          ...Object.keys(packageJson.peerDependencies || {}),
+        ]);
 
         const bundledDependencies = new Set(
           Object.keys(pkg.packageJson.devDependencies || {}).filter(name =>
@@ -80,6 +85,23 @@ async function build() {
                 name: "resolve-errors",
                 // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
                 async resolveId(source, importer) {
+                  if (source.startsWith("\0")) {
+                    return;
+                  }
+                  if (
+                    !source.startsWith(".") &&
+                    !source.startsWith("/") &&
+                    !isExternal(source) &&
+                    !bundledDependencies.has(source)
+                  ) {
+                    throw new Error(
+                      `"${source}" is imported ${
+                        importer
+                          ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" `
+                          : ""
+                      }but the package is not specified in dependencies or peerDependencies`
+                    );
+                  }
                   let resolved = await this.resolve(source, importer, {
                     skipSelf: true,
                   });
@@ -133,10 +155,7 @@ async function build() {
                 },
               },
             ],
-            external: makeExternalPredicate([
-              ...Object.keys(packageJson.dependencies || {}),
-              ...Object.keys(packageJson.peerDependencies || {}),
-            ]),
+            external: isExternal,
           });
 
           await bundle.write({
@@ -144,6 +163,7 @@ async function build() {
             format: "cjs",
             exports: "named",
             preserveModules: true,
+            preserveModulesRoot: `${pkg.dir}/src`,
           });
           return {
             status: "fulfilled" as const,
