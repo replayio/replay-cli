@@ -29,8 +29,8 @@ function validate(metadata: { test: UnstructuredMetadata }) {
 
 type Metadata = (typeof versions)[keyof typeof versions];
 
-function getVersion(k: string): Struct {
-  const v: Struct | undefined = (versions as any)[k];
+function getVersion(k: string): Struct<unknown, unknown> {
+  const v: Struct<unknown, unknown> | undefined = (versions as any)[k];
   if (!v) {
     console.warn(`Unable to validate unknown version of test metadata:${k} `);
     return any();
@@ -49,7 +49,7 @@ function init(data: Metadata | UnstructuredMetadata = {}) {
     version = data.schemaVersion;
   }
 
-  let schema: Struct;
+  let schema: Struct<unknown, unknown>;
   try {
     schema = getVersion(version);
   } catch {

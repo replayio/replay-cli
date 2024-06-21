@@ -35,9 +35,6 @@
     "typescript": "^5.5.2",
     "ws": "^8.17.0"
   },
-  "dependencies": {
-    "node-fetch": "^3.3.1"
-  },
   "resolutions": {
     "@jest/types": "^27.5.1",
     "@types/jest": "^28.1.5",

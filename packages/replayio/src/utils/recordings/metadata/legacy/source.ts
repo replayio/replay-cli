@@ -230,7 +230,7 @@ export function getTestRunIdFromEnvironment(env: NodeJS.ProcessEnv) {
   return userTestRunId || ciTestRunId;
 }
 
-const versions: () => Record<number, Struct<any>> = () => ({
+const versions: () => Record<number, Struct<any, any>> = () => ({
   1: object({
     branch: optional(
       envString(
