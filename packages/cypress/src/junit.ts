@@ -63,7 +63,7 @@ function findDescendentsByTagName(node: INode, tagName: string, matches: INode[]
   return matches;
 }
 
-function isNode(n: INode | string | undefined): n is INode {
+function isNode(n: INode | string | undefined) {
   return !!n && typeof n !== "string";
 }
 

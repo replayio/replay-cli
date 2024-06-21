@@ -53,6 +53,6 @@ export function readRecordingLog() {
         });
       }
     })
-    .filter((value): value is LogEntry => !!value)
+    .filter(value => !!value)
     .sort((a, b) => RECORDING_LOG_KINDS.indexOf(a.kind) - RECORDING_LOG_KINDS.indexOf(b.kind));
 }

@@ -196,7 +196,7 @@ function createGraphqlError(operation: string, errors: any) {
   );
 }
 
-function isNonNullable<T>(arg: T): arg is NonNullable<T> {
+function isNonNullable<T>(arg: T) {
   return arg !== null && arg !== undefined;
 }
 
@@ -1135,20 +1135,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         debug("Skipping completing test run: API Key not set");
       }
 
-      const failures = completedWork.filter(
-        (r): r is PromiseRejectedResult => r.status === "rejected"
-      );
+      const failures = completedWork.filter(r => r.status === "rejected");
 
       if (failures.length > 0) {
         output.push("Encountered unexpected errors while processing replays");
         failures.forEach(f => output.push(`  ${f.reason}`));
       }
 
-      const results = completedWork
-        .filter(
-          (r): r is PromiseFulfilledResult<PendingWork> => r.status === "fulfilled" && !!r.value
-        )
-        .map(r => r.value);
+      const results = completedWork.map(r => r.status === "fulfilled" && r.value).filter(r => !!r);
 
       const errors = {
         "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],

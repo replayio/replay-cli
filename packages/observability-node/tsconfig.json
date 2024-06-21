@@ -1,8 +1,5 @@
 {
   "extends": "@replay-cli/tsconfig/base.json",
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist"
-  },
+  "compilerOptions": {},
   "include": ["src/**/*.ts"]
 }

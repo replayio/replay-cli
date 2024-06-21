@@ -1,8 +1,6 @@
 {
   "extends": "@replay-cli/tsconfig/base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
     "lib": ["ES2019"],
     "types": ["node", "jest"]
   },

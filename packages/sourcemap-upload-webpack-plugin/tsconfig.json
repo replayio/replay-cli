@@ -1,8 +1,6 @@
 {
   "extends": "@replay-cli/tsconfig/base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
     // some clients use 10.x everywhere to be consistent with it.
     "target": "es2018",
     "lib": ["es2018", "dom"]

@@ -21,7 +21,7 @@
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.2"
   },
   "repository": {
     "type": "git",
