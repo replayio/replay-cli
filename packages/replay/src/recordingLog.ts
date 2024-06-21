@@ -56,7 +56,7 @@ export function readRecordings(dir?: string, includeHidden = false) {
         return null;
       }
     })
-    .filter((o): o is RecordingLogEntry => o != null)
+    .filter(o => o != null)
     .sort((a, b) => RECORDING_LOG_KIND.indexOf(a.kind) - RECORDING_LOG_KIND.indexOf(b.kind));
 
   for (const obj of lines) {

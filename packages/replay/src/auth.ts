@@ -22,11 +22,7 @@ class GraphQLError extends Error {
 }
 
 function isInternalError(e: unknown): e is { id: string } {
-  if (typeof e === "object" && e && "id" in e) {
-    return typeof (e as any).id === "string";
-  }
-
-  return false;
+  return typeof e === "object" && !!e && "id" in e && typeof e.id === "string";
 }
 
 function getAuthHost() {
