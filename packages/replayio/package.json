@@ -56,8 +56,7 @@
     "strip-ansi": "^6.0.1",
     "superstruct": "^0.15.4",
     "table": "^6.8.2",
-    "undici": "^5.28.4",
-    "ws": "^7.5.0"
+    "undici": "^5.28.4"
   },
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",

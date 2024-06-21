@@ -1,7 +1,6 @@
 import dbg from "./debug";
-import WebSocket from "ws";
+import { WebSocket } from "undici";
 import { defer } from "./utils";
-import { Agent } from "http";
 
 const debug = dbg("replay:protocol");
 
@@ -45,17 +44,15 @@ class ProtocolClient {
   eventListeners = new Map();
   nextMessageId = 1;
 
-  constructor(address: string, callbacks: Callbacks, agent?: Agent) {
-    debug("Creating WebSocket for %s with %o", address, { agent });
-    this.socket = new WebSocket(address, {
-      agent: agent,
-    });
+  constructor(address: string, callbacks: Callbacks) {
+    debug("Creating WebSocket for %s", address);
+    this.socket = new ((globalThis as any).WebSocket || WebSocket)(address);
     this.callbacks = callbacks;
 
-    this.socket.on("open", callbacks.onOpen);
-    this.socket.on("close", callbacks.onClose);
-    this.socket.on("error", callbacks.onError);
-    this.socket.on("message", message => this.onMessage(message));
+    this.socket.addEventListener("open", () => callbacks.onOpen(this.socket));
+    this.socket.addEventListener("close", () => callbacks.onClose(this.socket));
+    this.socket.addEventListener("error", () => callbacks.onError(this.socket));
+    this.socket.addEventListener("message", message => this.onMessage(message.data));
   }
 
   close() {
@@ -79,31 +76,24 @@ class ProtocolClient {
   async sendCommand<T = unknown, P extends object = Record<string, unknown>>(
     method: string,
     params: P,
-    data?: any,
-    sessionId?: string,
-    callback?: (err?: Error) => void
+    sessionId?: string
   ) {
     const id = this.nextMessageId++;
     debug("Sending command %s: %o", method, { id, params, sessionId });
-    this.socket.send(
-      JSON.stringify({
-        id,
-        method,
-        params,
-        binary: data ? true : undefined,
-        sessionId,
-      }),
-      err => {
-        if (!err && data) {
-          this.socket.send(data, callback);
-        } else {
-          if (err) {
-            debug("Received socket error: %s", err);
-          }
-          callback?.(err);
-        }
-      }
-    );
+    try {
+      this.socket.send(
+        JSON.stringify({
+          id,
+          method,
+          params,
+          sessionId,
+        })
+      );
+    } catch (err) {
+      debug("Received socket error: %s", err);
+      throw err;
+    }
+
     const waiter = defer<T>();
     this.pendingMessages.set(id, waiter);
     return waiter.promise;
@@ -113,7 +103,7 @@ class ProtocolClient {
     this.eventListeners.set(method, callback);
   }
 
-  onMessage(contents: WebSocket.RawData) {
+  onMessage(contents: any) {
     const msg = JSON.parse(String(contents));
     debug("Received message %o", msg);
     if (msg.id) {

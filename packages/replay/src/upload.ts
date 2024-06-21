@@ -21,31 +21,27 @@ class ReplayClient {
   client: ProtocolClient | undefined;
   clientReady = defer<boolean>();
 
-  async initConnection(server: string, accessToken?: string, verbose?: boolean, agent?: Agent) {
+  async initConnection(server: string, accessToken?: string, verbose?: boolean) {
     if (!this.client) {
       let { resolve } = this.clientReady;
-      this.client = new ProtocolClient(
-        server,
-        {
-          onOpen: async () => {
-            try {
-              await this.client!.setAccessToken(accessToken);
-              resolve(true);
-            } catch (err) {
-              maybeLog(verbose, `Error authenticating with server: ${err}`);
-              resolve(false);
-            }
-          },
-          onClose() {
+      this.client = new ProtocolClient(server, {
+        onOpen: async () => {
+          try {
+            await this.client!.setAccessToken(accessToken);
+            resolve(true);
+          } catch (err) {
+            maybeLog(verbose, `Error authenticating with server: ${err}`);
             resolve(false);
-          },
-          onError(e) {
-            maybeLog(verbose, `Error connecting to server: ${e}`);
-            resolve(false);
-          },
+          }
         },
-        agent
-      );
+        onClose() {
+          resolve(false);
+        },
+        onError(e) {
+          maybeLog(verbose, `Error connecting to server: ${e}`);
+          resolve(false);
+        },
+      });
     }
 
     return this.clientReady.promise;
@@ -151,7 +147,7 @@ class ReplayClient {
     this.client.setEventListener("Session.unprocessedRegions", () => {});
 
     this.client
-      .sendCommand("Session.ensureProcessed", { level: "basic" }, null, sessionId)
+      .sendCommand("Session.ensureProcessed", { level: "basic" }, sessionId)
       .then(() => waiter.resolve(null));
 
     const error = await waiter.promise;

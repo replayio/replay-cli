@@ -4,7 +4,7 @@ import { getPackument } from "query-registry";
 import { compare } from "semver";
 import dbg from "./debug";
 import { query } from "./graphql";
-import { getCurrentVersion, getHttpAgent } from "./utils";
+import { getCurrentVersion } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -145,12 +145,11 @@ async function doUploadCrash(
   server: string,
   recording: RecordingEntry,
   verbose?: boolean,
-  apiKey?: string,
-  agent?: Agent
+  apiKey?: string
 ) {
   const client = new ReplayClient();
   maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
-  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
+  if (!(await client.initConnection(server, apiKey, verbose))) {
     maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
@@ -327,11 +326,9 @@ async function doUploadRecording(
     apiKey = await readToken({ directory: dir });
   }
 
-  const agent = getHttpAgent(server, agentOptions);
-
   if (recording.status == "crashed") {
     debug("Uploading crash %o", recording);
-    await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
+    await doUploadCrash(dir, server, recording, verbose, apiKey);
     maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
     if (removeAssets) {
       removeRecordingAssets(recording, { directory: dir });
@@ -343,7 +340,7 @@ async function doUploadRecording(
 
   debug("Uploading recording %o", recording);
   const client = new ReplayClient();
-  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
+  if (!(await client.initConnection(server, apiKey, verbose))) {
     handleUploadingError(`Cannot connect to server ${server}`, strict, verbose);
     return null;
   }
@@ -468,7 +465,6 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
 
 async function processUploadedRecording(recordingId: string, opts: Options) {
   const server = getServer(opts);
-  const agent = getHttpAgent(server, opts.agentOptions);
   const { verbose } = opts;
   let apiKey = opts.apiKey;
 
@@ -479,7 +475,7 @@ async function processUploadedRecording(recordingId: string, opts: Options) {
   }
 
   const client = new ReplayClient();
-  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
+  if (!(await client.initConnection(server, apiKey, verbose))) {
     maybeLog(verbose, `Processing failed: can't connect to server ${server}`);
     return false;
   }
