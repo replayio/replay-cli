@@ -22,31 +22,49 @@ class GitHubHttpError extends Error {
   }
 }
 
-// Add a basic cache so we don't refetch data from GH repeatedly for the same resources
-const gFetchCache: Record<string, { json: any | null; status: number; statusText: string }> = {};
-async function fetchWithCache(
+type CacheEntry = { json: any | null; status: number; statusText: string };
+
+export const cache: Map<string, CacheEntry> = new Map();
+
+// TODO [PRO-676] Import this from the "shared" package
+export async function fetchWithCacheAndRetry(
   url: string,
-  init?: RequestInit
-): Promise<{ json: any | null; status: number; statusText: string }> {
-  if (!(url in gFetchCache)) {
+  init?: RequestInit,
+  options: {
+    baseDelay?: number;
+    maxAttempts?: number;
+  } = {}
+): Promise<CacheEntry> {
+  const { baseDelay = 1_000, maxAttempts = 3 } = options;
+
+  let attempt = 0;
+
+  while (!cache.has(url)) {
+    attempt++;
+
     const resp = await fetch(url, init);
     if (resp.status === 200) {
       const json = await resp.json();
-      gFetchCache[url] = {
+      cache.set(url, {
+        json,
         status: resp.status,
         statusText: resp.statusText,
-        json,
-      };
+      });
+    } else if (attempt < maxAttempts) {
+      // Retry with exponential backoff (e.g. 1s, 2s, 4s, ...)
+      const delay = Math.pow(2, attempt) * baseDelay;
+      await new Promise(resolve => setTimeout(resolve, delay));
     } else {
-      gFetchCache[url] = {
+      // If we've run out of retries, store and return the error
+      cache.set(url, {
         json: null,
         status: resp.status,
         statusText: resp.statusText,
-      };
+      });
     }
   }
 
-  return gFetchCache[url];
+  return cache.get(url)!;
 }
 
 function getCircleCISourceControlProvider(env: NodeJS.ProcessEnv) {
@@ -137,7 +155,7 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
 
   debug("Fetching commit metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCache(url, {
+  const resp = await fetchWithCacheAndRetry(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,
@@ -183,7 +201,7 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
 
   debug("Fetching merge metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCache(url, {
+  const resp = await fetchWithCacheAndRetry(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,

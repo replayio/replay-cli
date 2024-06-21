@@ -1,7 +1,7 @@
 import fs from "fs";
 import { create, defaulted, number, object, optional, Struct } from "superstruct";
-import { fetch, RequestInit } from "undici";
 import { createLog } from "../../../createLog";
+import { fetchWithCacheAndRetry } from "../../../fetchWithCacheAndRetry";
 import { UnstructuredMetadata } from "../../types";
 import { envString } from "./env";
 
@@ -20,33 +20,6 @@ class GitHubHttpError extends Error {
     this.status = status;
     this.statusText = statusText;
   }
-}
-
-// Add a basic cache so we don't refetch data from GH repeatedly for the same resources
-const gFetchCache: Record<string, { json: any | null; status: number; statusText: string }> = {};
-async function fetchWithCache(
-  url: string,
-  init?: RequestInit
-): Promise<{ json: any | null; status: number; statusText: string }> {
-  if (!(url in gFetchCache)) {
-    const resp = await fetch(url, init);
-    if (resp.status === 200) {
-      const json = await resp.json();
-      gFetchCache[url] = {
-        status: resp.status,
-        statusText: resp.statusText,
-        json,
-      };
-    } else {
-      gFetchCache[url] = {
-        json: null,
-        status: resp.status,
-        statusText: resp.statusText,
-      };
-    }
-  }
-
-  return gFetchCache[url];
 }
 
 function getCircleCISourceControlProvider(env: NodeJS.ProcessEnv) {
@@ -137,7 +110,7 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
 
   debug("Fetching commit metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCache(url, {
+  const resp = await fetchWithCacheAndRetry(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,
@@ -183,7 +156,7 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
 
   debug("Fetching merge metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCache(url, {
+  const resp = await fetchWithCacheAndRetry(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,
