@@ -1,6 +1,6 @@
 import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
-import { getReplayPath } from "../getReplayPath";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { spawnProcess } from "../spawnProcess";

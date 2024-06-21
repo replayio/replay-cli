@@ -3412,6 +3412,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@replay-cli/shared@workspace:^, @replay-cli/shared@workspace:packages/shared":
+  version: 0.0.0-use.local
+  resolution: "@replay-cli/shared@workspace:packages/shared"
+  languageName: unknown
+  linkType: soft
+
 "@replay-cli/tsconfig@workspace:^, @replay-cli/tsconfig@workspace:scripts/tsconfig":
   version: 0.0.0-use.local
   resolution: "@replay-cli/tsconfig@workspace:scripts/tsconfig"
@@ -15530,6 +15536,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "replayio@workspace:packages/replayio"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/protocol": "npm:^0.71.0"
     "@replayio/sourcemap-upload": "workspace:^"

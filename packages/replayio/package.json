@@ -61,6 +61,7 @@
     "ws": "^7.5.0"
   },
   "devDependencies": {
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
     "@types/fs-extra": "latest",

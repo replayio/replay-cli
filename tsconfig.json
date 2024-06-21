@@ -3,13 +3,14 @@
   "references": [
     { "path": "./packages/cypress" },
     { "path": "./packages/jest" },
+    { "path": "./packages/observability-node" },
     { "path": "./packages/playwright" },
     { "path": "./packages/puppeteer" },
     { "path": "./packages/replay" },
     { "path": "./packages/replayio" },
-    { "path": "./packages/sourcemap-upload" },
+    { "path": "./packages/shared" },
     { "path": "./packages/sourcemap-upload-webpack-plugin" },
-    { "path": "./packages/test-utils" },
-    { "path": "./packages/observability-node" }
+    { "path": "./packages/sourcemap-upload" },
+    { "path": "./packages/test-utils" }
   ]
 }

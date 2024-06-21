@@ -1,0 +1,10 @@
+{
+  "extends": "@replay-cli/tsconfig/base.json",
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "target": "es2022",
+    "lib": ["es2023"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -2,7 +2,7 @@ import { readFile, writeFileSync } from "fs-extra";
 import { fetch, File, FormData } from "undici";
 import { replayApiServer } from "../../config";
 import { findMostRecentFile } from "../../utils/findMostRecentFile";
-import { getReplayPath } from "../../utils/getReplayPath";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { getUserAgent } from "../../utils/getUserAgent";
 import { checkAuthentication } from "../../utils/initialization/checkAuthentication";
 import { getCurrentRuntimeMetadata } from "../../utils/initialization/getCurrentRuntimeMetadata";

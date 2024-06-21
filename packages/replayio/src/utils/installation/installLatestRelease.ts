@@ -4,7 +4,7 @@ import { get } from "https";
 import { join } from "path";
 import { logAsyncOperation } from "../async/logAsyncOperation";
 import { writeToCache } from "../cache";
-import { getReplayPath } from "../getReplayPath";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";

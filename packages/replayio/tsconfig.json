@@ -11,6 +11,9 @@
   "references": [
     {
       "path": "../sourcemap-upload"
+    },
+    {
+      "path": "../sourcemap-upload"
     }
   ]
 }
