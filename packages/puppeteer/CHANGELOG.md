@@ -1,5 +1,12 @@
 # @replayio/puppeteer
 
+## 0.2.6
+
+### Patch Changes
+
+- Updated dependencies [[`0488c9f`](https://github.com/replayio/replay-cli/commit/0488c9f9cbffe33b1a52b1109c7765802a0ed304)]:
+  - @replayio/test-utils@3.0.2
+
 ## 0.2.5
 
 ### Patch Changes
