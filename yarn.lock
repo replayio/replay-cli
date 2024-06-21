@@ -15118,6 +15118,7 @@ __metadata:
     ts-jest: "npm:^28.0.6"
     typescript: "npm:^5.5.2"
     undici: "npm:^5.28.4"
+    uuid: "npm:^8.3.2"
     ws: "npm:^7.5.0"
   bin:
     replayio: ./replayio.js
