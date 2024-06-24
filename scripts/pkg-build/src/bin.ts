@@ -11,7 +11,6 @@ import path from "node:path";
 import normalizePath from "normalize-path";
 import { rollup } from "rollup";
 
-const rootDir = path.join(__dirname, "..");
 const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
 
 async function rm(path: string) {
@@ -34,7 +33,7 @@ function makePackagePredicate(names: string[]) {
 }
 
 async function build() {
-  const { packages } = await getPackages(rootDir);
+  const { packages } = await getPackages(process.cwd());
   const allPackageNames = new Set(packages.map(pkg => pkg.packageJson.name));
 
   await Promise.all(
