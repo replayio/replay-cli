@@ -17,7 +17,7 @@ To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) 
 ## Developing
 
 1. `yarn`
-2. `yarn run bootstrap`
+2. `yarn run build`
 
 That should create an installed version of the package in `dist` within each directory in `packages`.
 
