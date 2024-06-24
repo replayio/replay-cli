@@ -1,14 +1,15 @@
+#!/usr/bin/env tsx
 import { getPackages } from "@manypkg/get-packages";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
-import { spawnSync } from "child_process";
 import * as esbuild from "esbuild";
 import fastGlob from "fast-glob";
-import fsSync from "fs";
-import fs from "fs/promises";
+import { spawnSync } from "node:child_process";
+import fsSync from "node:fs";
+import fs from "node:fs/promises";
+import path from "node:path";
 import normalizePath from "normalize-path";
-import path from "path";
 import { rollup } from "rollup";
 
 const rootDir = path.join(__dirname, "..");

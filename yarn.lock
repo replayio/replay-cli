@@ -3412,6 +3412,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@replay-cli/pkg-build@workspace:^, @replay-cli/pkg-build@workspace:scripts/pkg-build":
+  version: 0.0.0-use.local
+  resolution: "@replay-cli/pkg-build@workspace:scripts/pkg-build"
+  dependencies:
+    "@manypkg/get-packages": "npm:^2.2.1"
+    "@replay-cli/tsconfig": "workspace:^"
+    "@rollup/plugin-json": "npm:^6.1.0"
+    "@rollup/plugin-node-resolve": "npm:^15.2.3"
+    "@types/normalize-path": "npm:^3.0.2"
+    builtin-modules: "npm:^3.3.0"
+    esbuild: "npm:^0.21.5"
+    fast-glob: "npm:^3.3.2"
+    normalize-path: "npm:^3.0.0"
+    rollup: "npm:^4.18.0"
+    tsx: "npm:^4.15.7"
+  bin:
+    pkg-build: ./src/bin.ts
+  languageName: unknown
+  linkType: soft
+
 "@replay-cli/shared@workspace:^, @replay-cli/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@replay-cli/shared@workspace:packages/shared"
@@ -15512,21 +15532,12 @@ __metadata:
   dependencies:
     "@changesets/changelog-github": "npm:^0.5.0"
     "@changesets/cli": "npm:^2.27.5"
-    "@manypkg/get-packages": "npm:^2.2.1"
+    "@replay-cli/pkg-build": "workspace:^"
     "@replayio/protocol": "npm:^0.73.0"
     "@replayio/replay": "workspace:^"
-    "@rollup/plugin-json": "npm:^6.1.0"
-    "@rollup/plugin-node-resolve": "npm:^15.2.3"
-    "@types/normalize-path": "npm:^3.0.2"
     "@types/ws": "npm:^8"
-    builtin-modules: "npm:^3.3.0"
-    esbuild: "npm:^0.21.5"
-    fast-glob: "npm:^3.3.2"
-    normalize-path: "npm:^3.0.0"
     prettier: "npm:^2.7.1"
     replayio: "workspace:^"
-    rollup: "npm:^4.18.0"
-    tsx: "npm:^4.15.7"
     typescript: "npm:^5.5.2"
     ws: "npm:^8.17.0"
   languageName: unknown

@@ -12,7 +12,7 @@
     "example": "examples"
   },
   "scripts": {
-    "build": "tsx ./scripts/build.ts",
+    "build": "pkg-build",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
@@ -26,21 +26,12 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.27.5",
-    "@manypkg/get-packages": "^2.2.1",
+    "@replay-cli/pkg-build": "workspace:^",
     "@replayio/protocol": "^0.73.0",
     "@replayio/replay": "workspace:^",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@types/normalize-path": "^3.0.2",
     "@types/ws": "^8",
-    "builtin-modules": "^3.3.0",
-    "esbuild": "^0.21.5",
-    "fast-glob": "^3.3.2",
-    "normalize-path": "^3.0.0",
     "prettier": "^2.7.1",
     "replayio": "workspace:^",
-    "rollup": "^4.18.0",
-    "tsx": "^4.15.7",
     "typescript": "^5.5.2",
     "ws": "^8.17.0"
   },
