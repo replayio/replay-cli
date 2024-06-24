@@ -8,7 +8,7 @@ describe("source", () => {
         process.env.BUILDKITE_PULL_REQUEST = "false";
 
         const source = await init();
-        expect(source).toHaveProperty("source.merge.id", undefined);
+        expect(source).not.toHaveProperty("source.merge.id");
       });
 
       it("includes merge.id when BUILDKITE_PULL_REQUEST is valued", async () => {
