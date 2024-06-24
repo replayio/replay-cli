@@ -3428,7 +3428,7 @@ __metadata:
     rollup: "npm:^4.18.0"
     tsx: "npm:^4.15.7"
   bin:
-    pkg-build: ./src/bin.ts
+    pkg-build: ./bin.js
   languageName: unknown
   linkType: soft
 

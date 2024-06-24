@@ -1,4 +1,3 @@
-#!/usr/bin/env tsx
 import { getPackages } from "@manypkg/get-packages";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
@@ -18,7 +17,7 @@ const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
 async function rm(path: string) {
   try {
     await fs.rm(path, { recursive: true });
-  } catch (err) {
+  } catch (err: any) {
     if (err.code !== "ENOENT") {
       throw err;
     }

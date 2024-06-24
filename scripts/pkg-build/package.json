@@ -2,7 +2,7 @@
   "name": "@replay-cli/pkg-build",
   "private": true,
   "version": "0.0.0",
-  "bin": "./src/bin.ts",
+  "bin": "./bin.js",
   "dependencies": {
     "@manypkg/get-packages": "^2.2.1",
     "@rollup/plugin-json": "^6.1.0",
