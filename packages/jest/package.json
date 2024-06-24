@@ -47,7 +47,7 @@
     "jest-environment-node": "^27.5.1",
     "uuid": "^8.3.2"
   },
-  "@replayio/pkg-build": {
+  "@replay-cli/pkg-build": {
     "entrypoints": [
       "./src/bin.ts",
       "./src/index.ts",

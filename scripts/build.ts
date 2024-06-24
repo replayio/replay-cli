@@ -24,10 +24,13 @@ async function rm(path: string) {
   }
 }
 
-function makeExternalPredicate(externalArr: string[]) {
+function makePackagePredicate(names: string[]) {
+  if (names.length === 0) {
+    return () => false;
+  }
   // this makes sure nested imports of external packages are external
-  const pattern = new RegExp(`^(${[...externalArr, ...builtInModules].join("|")})($|/)`);
-  return (id: string) => pattern.test(id) || id.startsWith("node:");
+  const pattern = new RegExp(`^(${names.join("|")})($|/)`);
+  return (id: string) => pattern.test(id);
 }
 
 async function build() {
@@ -53,24 +56,28 @@ async function build() {
       .map(async pkg => {
         const packageJson = pkg.packageJson;
 
-        const isExternal = makeExternalPredicate([
+        const isExternal = makePackagePredicate([
           ...Object.keys(packageJson.dependencies || {}),
           ...Object.keys(packageJson.peerDependencies || {}),
+          ...builtInModules,
+          ...builtInModules.map(m => `node:${m}`),
         ]);
 
-        const bundledDependencies = new Set(
-          Object.keys(pkg.packageJson.devDependencies || {}).filter(name =>
-            allPackageNames.has(name)
-          )
+        const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(
+          name => allPackageNames.has(name)
+        );
+        const isBundledDependency = makePackagePredicate(bundledDependencies);
+        const bundledDependenciesDirs = bundledDependencies.map(
+          pkgName => packages.find(p => p.packageJson.name === pkgName)!.dir
         );
 
         const input =
-          "@replayio/pkg-build" in packageJson &&
-          !!packageJson["@replayio/pkg-build"] &&
-          typeof packageJson["@replayio/pkg-build"] === "object" &&
-          "entrypoints" in packageJson["@replayio/pkg-build"] &&
-          Array.isArray(packageJson["@replayio/pkg-build"].entrypoints)
-            ? await fastGlob(packageJson["@replayio/pkg-build"].entrypoints, {
+          "@replay-cli/pkg-build" in packageJson &&
+          !!packageJson["@replay-cli/pkg-build"] &&
+          typeof packageJson["@replay-cli/pkg-build"] === "object" &&
+          "entrypoints" in packageJson["@replay-cli/pkg-build"] &&
+          Array.isArray(packageJson["@replay-cli/pkg-build"].entrypoints)
+            ? await fastGlob(packageJson["@replay-cli/pkg-build"].entrypoints, {
                 cwd: pkg.dir,
                 onlyFiles: true,
                 absolute: true,
@@ -85,15 +92,10 @@ async function build() {
                 name: "resolve-errors",
                 // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
                 async resolveId(source, importer) {
-                  if (source.startsWith("\0")) {
+                  if (source.startsWith("\0") || isBundledDependency(source)) {
                     return;
                   }
-                  if (
-                    !source.startsWith(".") &&
-                    !source.startsWith("/") &&
-                    !isExternal(source) &&
-                    !bundledDependencies.has(source)
-                  ) {
+                  if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
                     throw new Error(
                       `"${source}" is imported ${
                         importer
@@ -125,7 +127,10 @@ async function build() {
                     return resolved;
                   }
 
-                  if (resolved.id.startsWith(pkg.dir)) {
+                  if (
+                    resolved.id.startsWith(pkg.dir) ||
+                    bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
+                  ) {
                     return resolved;
                   }
 

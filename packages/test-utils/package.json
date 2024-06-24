@@ -44,7 +44,7 @@
     "@types/node-fetch": "^2.6.2",
     "typescript": "^5.5.2"
   },
-  "@replayio/pkg-build": {
+  "@replay-cli/pkg-build": {
     "entrypoints": [
       "./src/index.ts",
       "./src/testId.ts"

@@ -74,7 +74,7 @@
     "ts-jest": "^28.0.6",
     "typescript": "^5.5.2"
   },
-  "@replayio/pkg-build": {
+  "@replay-cli/pkg-build": {
     "entrypoints": [
       "./src/index.ts",
       "./src/bin.ts"
