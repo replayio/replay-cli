@@ -1,17 +1,16 @@
-import { getPackages } from "@manypkg/get-packages";
+import { getPackages, type Package } from "@manypkg/get-packages";
+import { graphSequencer } from "@pnpm/deps.graph-sequencer";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
 import * as esbuild from "esbuild";
 import fastGlob from "fast-glob";
-import { spawnSync } from "node:child_process";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import normalizePath from "normalize-path";
 import { rollup } from "rollup";
-
-const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
+import { dts } from "rollup-plugin-dts";
 
 async function rm(path: string) {
   try {
@@ -32,156 +31,180 @@ function makePackagePredicate(names: string[]) {
   return (id: string) => pattern.test(id);
 }
 
-async function build() {
-  const { packages } = await getPackages(process.cwd());
-  const allPackageNames = new Set(packages.map(pkg => pkg.packageJson.name));
-
-  await Promise.all(
-    packages.flatMap(pkg => [rm(`${pkg.dir}/dist`), rm(`${pkg.dir}/tsconfig.tsbuildinfo`)])
+// based on https://github.com/pnpm/pnpm/blob/6e031e7428b3e46fc093f47a5702ac8510703a91/workspace/sort-packages/src/index.ts
+function sortPackages(packages: Package[]) {
+  const keys = packages.map(pkg => pkg.packageJson.name);
+  const setOfKeys = new Set(keys);
+  const graph = new Map(
+    packages.map(pkg => [
+      pkg.packageJson.name,
+      [
+        ...Object.keys(pkg.packageJson.dependencies || {}),
+        ...Object.keys(pkg.packageJson.devDependencies || {}),
+        ...Object.keys(pkg.packageJson.peerDependencies || {}),
+      ].filter(d => d !== pkg.packageJson.name && setOfKeys.has(d)),
+    ])
   );
-
-  // generate typescript declaration files
-  const tscResult = spawnSync(tscPath, ["-b"], { stdio: "inherit" });
-
-  if (tscResult.status !== 0) {
-    process.exit(1);
+  const sequenced = graphSequencer(graph, keys);
+  if (sequenced.cycles.length) {
+    throw new Error(
+      `Cycles detected in the package graph: ${sequenced.cycles
+        .map(cycle => cycle.join(" -> "))
+        .join(", ")}`
+    );
   }
+  return sequenced.chunks;
+}
 
-  // now let's overwrite the generated dist files
+async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
+  const packageJson = pkg.packageJson;
 
-  const results = await Promise.all(
-    packages
-      .filter(pkg => !pkg.packageJson.private && fsSync.existsSync(`${pkg.dir}/tsconfig.json`))
-      .map(async pkg => {
-        const packageJson = pkg.packageJson;
+  const isExternal = makePackagePredicate([
+    ...Object.keys(packageJson.dependencies || {}),
+    ...Object.keys(packageJson.peerDependencies || {}),
+    ...builtInModules,
+    ...builtInModules.map(m => `node:${m}`),
+  ]);
 
-        const isExternal = makePackagePredicate([
-          ...Object.keys(packageJson.dependencies || {}),
-          ...Object.keys(packageJson.peerDependencies || {}),
-          ...builtInModules,
-          ...builtInModules.map(m => `node:${m}`),
-        ]);
-
-        const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(
-          name => allPackageNames.has(name)
-        );
-        const isBundledDependency = makePackagePredicate(bundledDependencies);
-        const bundledDependenciesDirs = bundledDependencies.map(
-          pkgName => packages.find(p => p.packageJson.name === pkgName)!.dir
-        );
-
-        const input =
-          "@replay-cli/pkg-build" in packageJson &&
-          !!packageJson["@replay-cli/pkg-build"] &&
-          typeof packageJson["@replay-cli/pkg-build"] === "object" &&
-          "entrypoints" in packageJson["@replay-cli/pkg-build"] &&
-          Array.isArray(packageJson["@replay-cli/pkg-build"].entrypoints)
-            ? await fastGlob(packageJson["@replay-cli/pkg-build"].entrypoints, {
-                cwd: pkg.dir,
-                onlyFiles: true,
-                absolute: true,
-              })
-            : `${pkg.dir}/src/index.ts`;
-
-        try {
-          const bundle = await rollup({
-            input,
-            plugins: [
-              {
-                name: "resolve-errors",
-                // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
-                async resolveId(source, importer) {
-                  if (source.startsWith("\0") || isBundledDependency(source)) {
-                    return;
-                  }
-                  if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
-                    throw new Error(
-                      `"${source}" is imported ${
-                        importer
-                          ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" `
-                          : ""
-                      }but the package is not specified in dependencies or peerDependencies`
-                    );
-                  }
-                  let resolved = await this.resolve(source, importer, {
-                    skipSelf: true,
-                  });
-                  if (resolved === null) {
-                    if (!source.startsWith(".")) {
-                      throw new Error(
-                        `"${source}" is imported ${
-                          importer
-                            ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" `
-                            : ""
-                        }but the package is not specified in dependencies or peerDependencies`
-                      );
-                    }
-                    throw new Error(
-                      `Could not resolve ${source} ` +
-                        (importer ? `from ${path.relative(pkg.relativeDir, importer)}` : "")
-                    );
-                  }
-
-                  if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
-                    return resolved;
-                  }
-
-                  if (
-                    resolved.id.startsWith(pkg.dir) ||
-                    bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
-                  ) {
-                    return resolved;
-                  }
-
-                  throw new Error(
-                    `all relative imports in a package should only import modules inside of their package directory but ${
-                      importer
-                        ? `"${normalizePath(path.relative(pkg.relativeDir, importer))}"`
-                        : "a module"
-                    } is importing "${source}"`
-                  );
-                },
-              },
-              json(),
-              nodeResolve({
-                extensions: [".ts"],
-              }),
-              {
-                name: "esbuild",
-                async transform(code, id) {
-                  if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
-                    return null;
-                  }
-                  const result = await esbuild.transform(code, {
-                    loader: "ts",
-                  });
-                  return result.code;
-                },
-              },
-            ],
-            external: isExternal,
-          });
-
-          await bundle.write({
-            dir: `${pkg.dir}/dist`,
-            format: "cjs",
-            exports: "named",
-            preserveModules: true,
-            preserveModulesRoot: `${pkg.dir}/src`,
-          });
-          return {
-            status: "fulfilled" as const,
-            pkg: packageJson.name,
-          };
-        } catch (error) {
-          return {
-            status: "rejected" as const,
-            reason: error,
-            pkg: packageJson.name,
-          };
-        }
-      })
+  const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(name =>
+    packagesByName.has(name)
   );
+  const isBundledDependency = makePackagePredicate(bundledDependencies);
+  const bundledDependenciesDirs = bundledDependencies.map(
+    pkgName => [...packagesByName.values()].find(p => p.packageJson.name === pkgName)!.dir
+  );
+
+  const input =
+    "@replay-cli/pkg-build" in packageJson &&
+    !!packageJson["@replay-cli/pkg-build"] &&
+    typeof packageJson["@replay-cli/pkg-build"] === "object" &&
+    "entrypoints" in packageJson["@replay-cli/pkg-build"] &&
+    Array.isArray(packageJson["@replay-cli/pkg-build"].entrypoints)
+      ? await fastGlob(packageJson["@replay-cli/pkg-build"].entrypoints, {
+          cwd: pkg.dir,
+          onlyFiles: true,
+          absolute: true,
+        })
+      : `${pkg.dir}/src/index.ts`;
+
+  try {
+    const bundle = await rollup({
+      input,
+      plugins: [
+        {
+          name: "resolve-errors",
+          // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
+          async resolveId(source, importer) {
+            if (source.startsWith("\0") || isBundledDependency(source)) {
+              return;
+            }
+            if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
+              throw new Error(
+                `"${source}" is imported ${
+                  importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
+                }but the package is not specified in dependencies or peerDependencies`
+              );
+            }
+            let resolved = await this.resolve(source, importer, {
+              skipSelf: true,
+            });
+            if (resolved === null) {
+              if (!source.startsWith(".")) {
+                throw new Error(
+                  `"${source}" is imported ${
+                    importer
+                      ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" `
+                      : ""
+                  }but the package is not specified in dependencies or peerDependencies`
+                );
+              }
+              throw new Error(
+                `Could not resolve ${source} ` +
+                  (importer ? `from ${path.relative(pkg.relativeDir, importer)}` : "")
+              );
+            }
+
+            if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
+              return resolved;
+            }
+
+            if (
+              resolved.id.startsWith(pkg.dir) ||
+              bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
+            ) {
+              return resolved;
+            }
+
+            throw new Error(
+              `all relative imports in a package should only import modules inside of their package directory but ${
+                importer
+                  ? `"${normalizePath(path.relative(pkg.relativeDir, importer))}"`
+                  : "a module"
+              } is importing "${source}"`
+            );
+          },
+        },
+        json(),
+        nodeResolve({
+          extensions: [".ts"],
+        }),
+        {
+          name: "esbuild",
+          async transform(code, id) {
+            if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
+              return null;
+            }
+            const result = await esbuild.transform(code, {
+              loader: "ts",
+            });
+            return result.code;
+          },
+        },
+        dts({
+          respectExternal: true,
+        }),
+      ],
+      external: isExternal,
+    });
+
+    await bundle.write({
+      dir: `${pkg.dir}/dist`,
+      format: "cjs",
+      exports: "named",
+      preserveModules: true,
+      preserveModulesRoot: `${pkg.dir}/src`,
+    });
+    return {
+      status: "fulfilled" as const,
+      pkg: packageJson.name,
+    };
+  } catch (error) {
+    return {
+      status: "rejected" as const,
+      reason: error,
+      pkg: packageJson.name,
+    };
+  }
+}
+
+async function buildAll() {
+  const { packages } = await getPackages(process.cwd());
+  const packagesByName = new Map(packages.map(pkg => [pkg.packageJson.name, pkg]));
+
+  await Promise.all(packages.flatMap(pkg => rm(`${pkg.dir}/dist`)));
+
+  const sortedPackageGroups = sortPackages(
+    packages.filter(
+      pkg => !pkg.packageJson.private && fsSync.existsSync(`${pkg.dir}/tsconfig.json`)
+    )
+  );
+
+  const results: Awaited<ReturnType<typeof buildPkg>>[] = [];
+
+  for (const group of sortedPackageGroups) {
+    const packages = group.map(name => packagesByName.get(name)!);
+    results.push(...(await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)))));
+  }
 
   const errors = results.filter(r => r.status === "rejected");
   if (errors.length > 0) {
@@ -192,4 +215,4 @@ async function build() {
   }
 }
 
-build();
+buildAll();
