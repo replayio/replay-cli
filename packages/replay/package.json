@@ -46,7 +46,7 @@
     "p-map": "^4.0.0",
     "query-registry": "^2.6.0",
     "semver": "^7.5.4",
-    "superstruct": "patch:superstruct@npm%3A1.0.4#~/.yarn/patches/superstruct-npm-1.0.4-44d328b887.patch",
+    "superstruct": "^1.0.4",
     "text-table": "^0.2.0",
     "ws": "^7.5.0"
   },
