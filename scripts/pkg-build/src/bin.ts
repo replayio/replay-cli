@@ -9,7 +9,7 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import normalizePath from "normalize-path";
-import { rollup } from "rollup";
+import { rollup, RollupOptions } from "rollup";
 import { dts } from "rollup-plugin-dts";
 
 async function rm(path: string) {
@@ -22,7 +22,9 @@ async function rm(path: string) {
   }
 }
 
-function makePackagePredicate(names: string[]) {
+type PackagePredicate = (id: string) => boolean;
+
+function makePackagePredicate(names: string[]): PackagePredicate {
   if (names.length === 0) {
     return () => false;
   }
@@ -36,14 +38,17 @@ function sortPackages(packages: Package[]) {
   const keys = packages.map(pkg => pkg.packageJson.name);
   const setOfKeys = new Set(keys);
   const graph = new Map(
-    packages.map(pkg => [
-      pkg.packageJson.name,
-      [
-        ...Object.keys(pkg.packageJson.dependencies || {}),
-        ...Object.keys(pkg.packageJson.devDependencies || {}),
-        ...Object.keys(pkg.packageJson.peerDependencies || {}),
-      ].filter(d => d !== pkg.packageJson.name && setOfKeys.has(d)),
-    ])
+    packages.map(
+      pkg =>
+        [
+          pkg.packageJson.name,
+          [
+            ...Object.keys(pkg.packageJson.dependencies || {}),
+            ...Object.keys(pkg.packageJson.devDependencies || {}),
+            ...Object.keys(pkg.packageJson.peerDependencies || {}),
+          ].filter(d => d !== pkg.packageJson.name && setOfKeys.has(d)),
+        ] as const
+    )
   );
   const sequenced = graphSequencer(graph, keys);
   if (sequenced.cycles.length) {
@@ -54,6 +59,135 @@ function sortPackages(packages: Package[]) {
     );
   }
   return sequenced.chunks;
+}
+
+async function buildRuntime(
+  pkg: Package,
+  {
+    bundledDependenciesDirs,
+    input,
+    isBundledDependency,
+    isExternal,
+  }: {
+    bundledDependenciesDirs: string[];
+    input: string[];
+    isBundledDependency: PackagePredicate;
+    isExternal: PackagePredicate;
+  }
+) {
+  const bundle = await rollup({
+    input,
+    plugins: [
+      {
+        name: "resolve-errors",
+        // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
+        async resolveId(source, importer) {
+          if (source.startsWith("\0") || isBundledDependency(source)) {
+            return;
+          }
+          if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
+            throw new Error(
+              `"${source}" is imported ${
+                importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
+              }but the package is not specified in dependencies or peerDependencies`
+            );
+          }
+          let resolved = await this.resolve(source, importer, {
+            skipSelf: true,
+          });
+          if (resolved === null) {
+            if (!source.startsWith(".")) {
+              throw new Error(
+                `"${source}" is imported ${
+                  importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
+                }but the package is not specified in dependencies or peerDependencies`
+              );
+            }
+            throw new Error(
+              `Could not resolve ${source} ` +
+                (importer ? `from ${path.relative(pkg.relativeDir, importer)}` : "")
+            );
+          }
+
+          if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
+            return resolved;
+          }
+
+          if (
+            resolved.id.startsWith(pkg.dir) ||
+            bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
+          ) {
+            return resolved;
+          }
+
+          throw new Error(
+            `all relative imports in a package should only import modules inside of their package directory but ${
+              importer ? `"${normalizePath(path.relative(pkg.relativeDir, importer))}"` : "a module"
+            } is importing "${source}"`
+          );
+        },
+      },
+      json(),
+      nodeResolve({
+        extensions: [".ts"],
+      }),
+      {
+        name: "esbuild",
+        async transform(code, id) {
+          if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
+            return null;
+          }
+          const result = await esbuild.transform(code, {
+            loader: "ts",
+          });
+          return result.code;
+        },
+      },
+    ],
+    external: isExternal,
+  });
+
+  await bundle.write({
+    dir: `${pkg.dir}/dist`,
+    format: "cjs",
+    exports: "named",
+    preserveModules: true,
+    preserveModulesRoot: `${pkg.dir}/src`,
+  });
+}
+
+async function buildDts(
+  pkg: Package,
+  {
+    input,
+    isExternal,
+  }: {
+    input: string[];
+    isExternal: PackagePredicate;
+  }
+) {
+  const bundle = await rollup({
+    input,
+    plugins: [
+      json(),
+      nodeResolve({
+        extensions: [".ts"],
+      }),
+      dts({
+        respectExternal: true,
+        tsconfig: `${pkg.dir}/tsconfig.json`,
+      }),
+    ],
+    external: isExternal,
+  });
+
+  await bundle.write({
+    dir: `${pkg.dir}/dist`,
+    format: "cjs",
+    exports: "named",
+    preserveModules: true,
+    preserveModulesRoot: `${pkg.dir}/src`,
+  });
 }
 
 async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
@@ -85,95 +219,11 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
           onlyFiles: true,
           absolute: true,
         })
-      : `${pkg.dir}/src/index.ts`;
+      : [`${pkg.dir}/src/index.ts`];
 
   try {
-    const bundle = await rollup({
-      input,
-      plugins: [
-        {
-          name: "resolve-errors",
-          // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
-          async resolveId(source, importer) {
-            if (source.startsWith("\0") || isBundledDependency(source)) {
-              return;
-            }
-            if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
-              throw new Error(
-                `"${source}" is imported ${
-                  importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
-                }but the package is not specified in dependencies or peerDependencies`
-              );
-            }
-            let resolved = await this.resolve(source, importer, {
-              skipSelf: true,
-            });
-            if (resolved === null) {
-              if (!source.startsWith(".")) {
-                throw new Error(
-                  `"${source}" is imported ${
-                    importer
-                      ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" `
-                      : ""
-                  }but the package is not specified in dependencies or peerDependencies`
-                );
-              }
-              throw new Error(
-                `Could not resolve ${source} ` +
-                  (importer ? `from ${path.relative(pkg.relativeDir, importer)}` : "")
-              );
-            }
-
-            if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
-              return resolved;
-            }
-
-            if (
-              resolved.id.startsWith(pkg.dir) ||
-              bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
-            ) {
-              return resolved;
-            }
-
-            throw new Error(
-              `all relative imports in a package should only import modules inside of their package directory but ${
-                importer
-                  ? `"${normalizePath(path.relative(pkg.relativeDir, importer))}"`
-                  : "a module"
-              } is importing "${source}"`
-            );
-          },
-        },
-        json(),
-        nodeResolve({
-          extensions: [".ts"],
-        }),
-        {
-          name: "esbuild",
-          async transform(code, id) {
-            if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
-              return null;
-            }
-            const result = await esbuild.transform(code, {
-              loader: "ts",
-            });
-            return result.code;
-          },
-        },
-        dts({
-          respectExternal: true,
-        }),
-      ],
-      external: isExternal,
-    });
-
-    await bundle.write({
-      dir: `${pkg.dir}/dist`,
-      format: "cjs",
-      exports: "named",
-      preserveModules: true,
-      preserveModulesRoot: `${pkg.dir}/src`,
-    });
+    const options = { bundledDependenciesDirs, input, isBundledDependency, isExternal };
+    await Promise.all([buildRuntime(pkg, options), buildDts(pkg, options)]);
     return {
       status: "fulfilled" as const,
       pkg: packageJson.name,
@@ -201,9 +251,14 @@ async function buildAll() {
 
   const results: Awaited<ReturnType<typeof buildPkg>>[] = [];
 
+  console.log(JSON.stringify(sortedPackageGroups, null, 2));
   for (const group of sortedPackageGroups) {
     const packages = group.map(name => packagesByName.get(name)!);
     results.push(...(await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)))));
+
+    if (packages.find(a => a.packageJson.name === "@replayio/replay")) {
+      return;
+    }
   }
 
   const errors = results.filter(r => r.status === "rejected");
