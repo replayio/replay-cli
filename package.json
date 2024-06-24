@@ -12,7 +12,6 @@
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --exclude=packages/node --topological run build",
     "build": "tsx ./scripts/build.ts",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",

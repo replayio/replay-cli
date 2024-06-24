@@ -34,7 +34,7 @@ jobs:
 
       - run: yarn --immutable
 
-      - run: yarn run bootstrap
+      - run: yarn run build
 
       - name: Set up NPM token
         run: |
