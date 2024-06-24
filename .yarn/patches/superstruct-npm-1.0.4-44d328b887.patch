@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 6f759661ef1f6ad76ed41b150b63a922b00e11b3..9928998719f56bb23d1b0603ee45ba7e737e1604 100644
+--- a/package.json
++++ b/package.json
+@@ -4,7 +4,6 @@
+   "version": "1.0.4",
+   "license": "MIT",
+   "repository": "git://github.com/ianstormtaylor/superstruct.git",
+-  "type": "module",
+   "main": "./dist/index.cjs",
+   "module": "./dist/index.mjs",
+   "types": "./dist/index.d.ts",

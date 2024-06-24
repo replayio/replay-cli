@@ -134,7 +134,7 @@ type PostTestPendingWork = PendingWorkEntry<
     testRun: TestRun;
   }
 >;
-type PendingWork =
+export type PendingWork =
   | TestRunPendingWork
   | TestRunTestsPendingWork
   | UploadPendingWork

@@ -2,6 +2,7 @@ const assert = require("assert");
 const { WebSocket } = require("ws");
 const { SimpleProtocolClient } = require("@replayio/protocol");
 const replay = require("@replayio/replay");
+const fetch = require("node-fetch");
 
 (async () => {
   try {
@@ -29,7 +30,6 @@ const replay = require("@replayio/replay");
 })();
 
 async function getTestMetadata(recordingId, apiKey) {
-  const { default: fetch } = await import("node-fetch");
   const resp = await fetch("https://api.replay.io/v1/graphql", {
     method: "POST",
     headers: {

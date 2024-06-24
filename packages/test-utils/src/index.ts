@@ -1,6 +1,6 @@
 import ReplayReporter from "./reporter";
 
-export type { TestMetadataV1, TestMetadataV2, ReplayReporterConfig } from "./reporter";
+export type { TestMetadataV1, TestMetadataV2, ReplayReporterConfig, PendingWork } from "./reporter";
 export { buildTestId } from "./testId";
 export { ReporterError } from "./reporter";
 export { pingTestMetrics } from "./metrics";

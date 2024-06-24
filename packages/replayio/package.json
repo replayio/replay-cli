@@ -54,7 +54,7 @@
     "query-registry": "^2.6.0",
     "semver": "^7.5.4",
     "strip-ansi": "^6.0.1",
-    "superstruct": "^0.15.4",
+    "superstruct": "^1.0.4",
     "table": "^6.8.2",
     "undici": "^5.28.4",
     "uuid": "^8.3.2",
