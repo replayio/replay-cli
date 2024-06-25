@@ -1,3 +1,3 @@
-import { Logger } from "@replay-cli/shared/logger/logger";
+import { Logger } from "../logger";
 
 export const logger = new Logger("shared:runtime");
