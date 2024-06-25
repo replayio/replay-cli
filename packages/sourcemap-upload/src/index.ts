@@ -5,7 +5,6 @@
 import { pathToFileURL, URL } from "url";
 import path from "path";
 import fs from "fs";
-import util from "node:util";
 import crypto from "crypto";
 import assert from "node:assert/strict";
 
@@ -14,8 +13,6 @@ import pMap from "p-map";
 import makeDebug from "debug";
 import glob from "glob";
 import matchAll from "string.prototype.matchall";
-
-const globPromisified = util.promisify(glob);
 
 const debug = makeDebug("replay:sourcemap-upload");
 
@@ -581,7 +578,7 @@ async function listAllFiles(
   } else if (stat.isDirectory()) {
     assert(extensions.every((ext) => !glob.hasMagic(ext)));
 
-    return globPromisified(`**/*+(${extensions.join("|")})`, {
+    return glob.glob(`**/*+(${extensions.join("|")})`, {
       cwd: absPath,
       ignore: ignorePatterns,
       absolute: true,
