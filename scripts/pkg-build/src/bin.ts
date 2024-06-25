@@ -3,6 +3,7 @@ import { graphSequencer } from "@pnpm/deps.graph-sequencer";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
+import chalk from "chalk";
 import * as esbuild from "esbuild";
 import fastGlob from "fast-glob";
 import { spawnSync } from "node:child_process";
@@ -12,6 +13,9 @@ import path from "node:path";
 import normalizePath from "normalize-path";
 import { rollup } from "rollup";
 import { dts } from "rollup-plugin-dts";
+
+const statusFailed = chalk.redBright;
+const statusSuccess = chalk.greenBright;
 
 const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
 
@@ -277,19 +281,23 @@ async function buildAll() {
     )
   );
 
-  const results: Awaited<ReturnType<typeof buildPkg>>[] = [];
-
   for (const group of sortedPackageGroups) {
     const packages = group.map(name => packagesByName.get(name)!);
-    results.push(...(await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)))));
-  }
+    const results = await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)));
+    const successes = results.filter(r => r.status === "fulfilled");
 
-  const errors = results.filter(r => r.status === "rejected");
-  if (errors.length > 0) {
-    for (const { pkg, reason } of errors) {
-      console.error(`[${pkg}]`, reason);
+    successes.forEach(({ pkg }) => {
+      console.log(`${statusSuccess("✔")} Built ${pkg}`);
+    });
+
+    if (successes.length !== results.length) {
+      const failures = results.filter(r => r.status === "rejected");
+
+      failures.forEach(({ pkg, reason }) => {
+        console.log(`${statusFailed("✘")} Failed to build ${pkg}:\n`, reason);
+      });
+      process.exit(1);
     }
-    process.exit(1);
   }
 }
 

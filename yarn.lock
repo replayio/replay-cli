@@ -3430,6 +3430,7 @@ __metadata:
     "@rollup/plugin-node-resolve": "npm:^15.2.3"
     "@types/normalize-path": "npm:^3.0.2"
     builtin-modules: "npm:^3.3.0"
+    chalk: "npm:^4.1.2"
     esbuild: "npm:^0.21.5"
     fast-glob: "npm:^3.3.2"
     normalize-path: "npm:^3.0.0"
@@ -3499,6 +3500,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/jest@workspace:packages/jest"
   dependencies:
+    "@jest/environment": "npm:^27.5.1"
     "@jest/reporters": "npm:^27.5.1"
     "@jest/test-result": "npm:^27.5.1"
     "@jest/types": "npm:^27.5.1"
@@ -3508,6 +3510,7 @@ __metadata:
     "@types/node": "npm:^20.11.27"
     jest-circus: "npm:^27.5.1"
     jest-environment-node: "npm:^27.5.1"
+    jest-runtime: "npm:^27.5.1"
     typescript: "npm:^5.5.2"
     uuid: "npm:^8.3.2"
   bin:

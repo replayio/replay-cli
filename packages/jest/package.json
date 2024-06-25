@@ -47,8 +47,8 @@
     "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
     "jest-circus": "^27.5.1",
-    "jest-runtime": "^27.5.1",
     "jest-environment-node": "^27.5.1",
+    "jest-runtime": "^27.5.1",
     "uuid": "^8.3.2"
   },
   "@replay-cli/pkg-build": {
