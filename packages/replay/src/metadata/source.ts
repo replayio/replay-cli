@@ -34,10 +34,10 @@ export async function fetchWithCacheAndRetry(
   options: {
     baseDelay?: number;
     maxAttempts?: number;
-    shouldRetry?: (response: fetch.Response) => boolean;
+    shouldRetry?: (response: fetch.Response) => Promise<boolean>;
   } = {}
 ): Promise<CacheEntry> {
-  const { baseDelay = 1_000, maxAttempts = 3, shouldRetry } = options;
+  const { baseDelay = 1_000, maxAttempts = 3, shouldRetry: shouldRetryFn } = options;
 
   let attempt = 0;
 
@@ -53,8 +53,9 @@ export async function fetchWithCacheAndRetry(
         statusText: resp.statusText,
       });
     } else if (attempt < maxAttempts) {
-      if (shouldRetry) {
-        if (!shouldRetry(resp)) {
+      if (shouldRetryFn) {
+        const shouldRetry = await shouldRetryFn(resp);
+        if (!shouldRetry) {
           cache.set(url, {
             json: null,
             status: resp.status,

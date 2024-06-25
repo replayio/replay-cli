@@ -147,7 +147,7 @@ describe("cachedFetch", () => {
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       maxAttempts: 3,
-      shouldRetry: response => {
+      shouldRetry: async response => {
         assert(response.status === 500);
         retryCount++;
         return retryCount === 1;
@@ -170,7 +170,7 @@ describe("cachedFetch", () => {
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       maxAttempts: 2,
-      shouldRetry: response => true,
+      shouldRetry: () => Promise.resolve(true),
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);

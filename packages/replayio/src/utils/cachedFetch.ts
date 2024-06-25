@@ -10,10 +10,10 @@ export async function cachedFetch(
   options: {
     baseDelay?: number;
     maxAttempts?: number;
-    shouldRetry?: (response: Response) => boolean;
+    shouldRetry?: (response: Response) => Promise<boolean>;
   } = {}
 ): Promise<CacheEntry> {
-  const { baseDelay = 1_000, maxAttempts = 3, shouldRetry } = options;
+  const { baseDelay = 1_000, maxAttempts = 3, shouldRetry: shouldRetryFn } = options;
 
   let attempt = 0;
 
@@ -29,8 +29,9 @@ export async function cachedFetch(
         statusText: resp.statusText,
       });
     } else if (attempt < maxAttempts) {
-      if (shouldRetry) {
-        if (!shouldRetry(resp)) {
+      if (shouldRetryFn) {
+        const shouldRetry = await shouldRetryFn(resp);
+        if (!shouldRetry) {
           cache.set(url, {
             json: null,
             status: resp.status,
