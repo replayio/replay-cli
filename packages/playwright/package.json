@@ -42,8 +42,8 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/playwright/README.md",
   "dependencies": {
-    "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
+    "chalk": "^4.1.2",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
     "stack-utils": "^2.0.6",

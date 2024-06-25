@@ -113,22 +113,6 @@ async function ensureBrowsersInstalled(
   }
 }
 
-/**
- * Installs the Replay-enabled playwright browsers for the current platform is
- * not already installed
- */
-function ensurePlaywrightBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
-  return ensureBrowsersInstalled(kind, false, opts);
-}
-
-/**
- * Installs the Replay-enabled puppeteer browsers for the current platform is
- * not already installed
- */
-function ensurePuppeteerBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
-  return ensureBrowsersInstalled("chromium", false, opts);
-}
-
 async function updateBrowsers(opts: Options & { browsers?: BrowserName[] }) {
   if (opts.browsers) {
     for (const browserName of opts.browsers) {
@@ -265,10 +249,4 @@ async function downloadReplayFile(downloadFile: string, opts: Options) {
   throw new Error("Download failed, giving up");
 }
 
-export {
-  getExecutablePath,
-  ensureBrowsersInstalled,
-  ensurePlaywrightBrowsersInstalled,
-  ensurePuppeteerBrowsersInstalled,
-  updateBrowsers,
-};
+export { getExecutablePath, ensureBrowsersInstalled, updateBrowsers };

@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 import { RecordingEntry } from "@replay-cli/shared/recording/types";
-import { getBrowserPath } from "@replay-cli/shared/runtime/getBrowserPath";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initMetadataFile, warn } from "@replayio/test-utils";
 import chalk from "chalk";
 import dbg from "debug";
@@ -315,7 +315,7 @@ const plugin = (
       debug("Command log enabled? %s", config.env.NO_COMMAND_LOG);
     }
 
-    const chromiumPath = getBrowserPath();
+    const chromiumPath = getRuntimePath();
     if (chromiumPath) {
       debug("Adding chromium to cypress at %s", chromiumPath);
       config.browsers = config.browsers.concat({

@@ -1,4 +1,4 @@
-import { getBrowserPath } from "@replay-cli/shared/runtime/getBrowserPath";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
@@ -33,7 +33,7 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 export function getExecutablePath() {
-  return getBrowserPath();
+  return getRuntimePath();
 }
 
 export const devices = {

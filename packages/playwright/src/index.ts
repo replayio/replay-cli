@@ -1,4 +1,4 @@
-import { getBrowserPath } from "@replay-cli/shared/runtime/getBrowserPath";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { addReplayFixture } from "./fixture";
@@ -47,7 +47,7 @@ function getDeviceConfig() {
 }
 
 export function getExecutablePath() {
-  return getBrowserPath();
+  return getRuntimePath();
 }
 
 export const devices = {

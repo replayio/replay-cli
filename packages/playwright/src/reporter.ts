@@ -19,7 +19,7 @@ import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
-import { getBrowserPath } from "@replay-cli/shared/runtime/getBrowserPath";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
@@ -163,7 +163,7 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin({ version, projects }: FullConfig) {
-    const replayBrowserPath = getBrowserPath();
+    const replayBrowserPath = getRuntimePath();
     this._foundReplayBrowser = !!projects.find(
       p => p.use.launchOptions?.executablePath === replayBrowserPath
     );

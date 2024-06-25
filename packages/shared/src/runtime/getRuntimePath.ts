@@ -1,11 +1,8 @@
-import { join } from "path";
 import { getReplayPath } from "../getReplayPath";
 import { runtimeMetadata } from "./config";
 import { logger } from "./logger";
 
-export const runtimePath = getReplayPath("runtimes");
-
-export function getBrowserPath() {
+export function getRuntimePath() {
   const overridePathKey = `REPLAY_CHROMIUM_EXECUTABLE_PATH`;
   const overridePath = process.env[overridePathKey];
   if (overridePath) {
@@ -13,5 +10,5 @@ export function getBrowserPath() {
     return overridePath;
   }
 
-  return join(runtimePath, ...runtimeMetadata.path);
+  return getReplayPath(...runtimeMetadata.path);
 }

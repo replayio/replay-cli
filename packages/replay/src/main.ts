@@ -15,13 +15,7 @@ import jsonata from "jsonata";
 import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
 import { readToken } from "./auth";
 import { ProtocolError } from "./client";
-import {
-  ensureBrowsersInstalled,
-  ensurePlaywrightBrowsersInstalled,
-  ensurePuppeteerBrowsersInstalled,
-  getExecutablePath,
-  updateBrowsers,
-} from "./install";
+import { ensureBrowsersInstalled, getExecutablePath, updateBrowsers } from "./install";
 import {
   addRecordingEvent,
   readRecordings,
@@ -834,8 +828,6 @@ export {
   ExternalRecordingEntry,
   UnstructuredMetadata,
   addLocalRecordingMetadata,
-  ensurePlaywrightBrowsersInstalled,
-  ensurePuppeteerBrowsersInstalled,
   exponentialBackoffRetry,
   getDirectory,
   launchBrowser,

@@ -1,12 +1,11 @@
-import { getDirectory } from "@replayio/replay/utils";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { existsSync, writeFileSync } from "fs";
-import path from "path";
 import { warn } from "./logging";
 
 export function getMetadataFilePath(base: string, workerIndex = 0) {
   return (
     process.env.RECORD_REPLAY_METADATA_FILE ||
-    path.join(getDirectory(), `${base.toUpperCase()}_METADATA_${workerIndex}`)
+    getReplayPath(`${base.toUpperCase()}_METADATA_${workerIndex}`)
   );
 }
 

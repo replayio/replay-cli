@@ -1,5 +1,7 @@
 import { homedir } from "os";
 import { join } from "path";
+import { getReplayPath } from "../getReplayPath";
+import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 
 type Metadata = {
@@ -69,9 +71,9 @@ switch (process.platform) {
         sourceName: "replay-chromium",
       };
     } else {
-      console.log(
-        "\nReplay does not support Windows at this time.\nPlease use the Windows Subsystem for Linux (WSL) instead."
-      );
+      console.log("");
+      console.log(emphasize("Replay does not support Windows at this time."));
+      console.log("Please use the Windows Subsystem for Linux (WSL) instead.");
       process.exit(1);
     }
     break;
@@ -79,3 +81,6 @@ switch (process.platform) {
     throw Error(`Unsupported platform "${process.platform}"`);
   }
 }
+
+export const runtimeBasePath = getReplayPath("runtimes");
+export const metadataPath = getReplayPath("runtimes", "metadata.json");
