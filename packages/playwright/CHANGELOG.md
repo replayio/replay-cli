@@ -1,5 +1,13 @@
 # @replayio/playwright
 
+## 3.1.4
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @replayio/replay@0.22.9
+  - @replayio/test-utils@3.0.4
+
 ## 3.1.3
 
 ### Patch Changes
