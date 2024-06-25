@@ -1,6 +1,6 @@
 import { fetch } from "undici";
 import { getUserAgent } from "../../userAgent";
-import { logger } from "./debug";
+import { logger } from "../logger";
 import { replayApiServer } from "../config";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
