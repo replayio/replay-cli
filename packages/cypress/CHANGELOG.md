@@ -1,5 +1,13 @@
 # @replayio/cypress
 
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @replayio/replay@0.22.9
+  - @replayio/test-utils@3.0.4
+
 ## 3.0.3
 
 ### Patch Changes

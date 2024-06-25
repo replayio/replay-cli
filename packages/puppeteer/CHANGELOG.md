@@ -1,5 +1,13 @@
 # @replayio/puppeteer
 
+## 0.2.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @replayio/replay@0.22.9
+  - @replayio/test-utils@3.0.4
+
 ## 0.2.7
 
 ### Patch Changes

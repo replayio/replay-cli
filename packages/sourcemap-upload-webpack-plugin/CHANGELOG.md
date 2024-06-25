@@ -1,5 +1,14 @@
 # @replayio/sourcemap-upload-webpack-plugin
 
+## 2.0.3
+
+### Patch Changes
+
+- [#549](https://github.com/replayio/replay-cli/pull/549) [`ac7aa52`](https://github.com/replayio/replay-cli/commit/ac7aa52) Thanks [@Andarist](https://github.com/Andarist)! - Fixed the generated `.js` output to correctly reference `glob` package
+
+- Updated dependencies [[`e7bd234`](https://github.com/replayio/replay-cli/commit/e7bd234980e9dfc7ab9584d47ebaf1812712f291)]:
+  - @replayio/sourcemap-upload@2.0.6
+
 ## 2.0.2
 
 ### Patch Changes

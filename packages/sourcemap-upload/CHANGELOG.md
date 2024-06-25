@@ -1,5 +1,11 @@
 # @replayio/sourcemap-upload
 
+## 2.0.6
+
+### Patch Changes
+
+- [#549](https://github.com/replayio/replay-cli/pull/549) [`ac7aa52`](https://github.com/replayio/replay-cli/commit/ac7aa52) Thanks [@Andarist](https://github.com/Andarist)! - Fixed the generated `.js` output to correctly reference `glob` package
+
 ## 2.0.5
 
 ### Patch Changes
