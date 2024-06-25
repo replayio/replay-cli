@@ -174,7 +174,7 @@ async function buildDts(
     plugins: [
       json(),
       nodeResolve({
-        extensions: [".ts"],
+        extensions: [".d.ts"],
       }),
       dts({
         respectExternal: true,
@@ -196,6 +196,13 @@ async function buildDts(
     exports: "named",
     preserveModules: true,
     preserveModulesRoot: `${pkg.dir}/src`,
+    sanitizeFileName: fileName => {
+      // we are working on declaration file inputs here
+      // so we need to ddrop the extra `.d` "extension" from the file name
+      // to work nicely with `chunkFileNames` and `entryFileNames`
+      // https://github.com/Swatinem/rollup-plugin-dts/blob/26e96d6c29a0e7c14c4a5be27fd774b989229649/src/transform/index.ts#L62-L63
+      return fileName.replace(/\.d$/, "");
+    },
   });
 }
 
