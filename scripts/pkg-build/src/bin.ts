@@ -199,7 +199,7 @@ async function buildDts(
     format: "cjs",
     exports: "named",
     preserveModules: true,
-    preserveModulesRoot: `${pkg.dir}/src`,
+    preserveModulesRoot: `${pkg.dir}/dist`,
     sanitizeFileName: fileName => {
       // we are working on declaration file inputs here
       // so we need to ddrop the extra `.d` "extension" from the file name
