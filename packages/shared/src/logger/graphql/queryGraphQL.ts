@@ -1,7 +1,5 @@
-// TODO [PRO-629] Move this into the "shared" package.
-
 import { fetch } from "undici";
-import { getUserAgent } from "../getUserAgent";
+import { getUserAgent } from "../../userAgent";
 import { logger } from "./debug";
 import { replayApiServer } from "../config";
 

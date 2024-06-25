@@ -9,18 +9,19 @@ import {
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { spawnSync } from "child_process";
-import dbg from "debug";
 import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 
+import { Logger, getAuthIds } from "@replay-cli/shared/logger";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 import { UnstructuredMetadata } from "@replayio/replay";
-import { log, warn } from "./logging";
+import * as pkgJson from "../package.json";
+import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { Logger, getAuthIds } from "./logger";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -268,8 +269,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     schemaVersion: string,
     config?: ReplayReporterConfig<TRecordingMetadata>
   ) {
+    setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
     this._runner = runner;
     this._schemaVersion = schemaVersion;
+
     this._logger = new Logger(this._runner.name);
 
     if (config) {

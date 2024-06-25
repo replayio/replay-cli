@@ -1,5 +1,3 @@
-// TODO [PRO-629] Move this into the "shared" package.
-
 import { ensureFileSync, existsSync, readFileSync, removeSync, writeFileSync } from "fs-extra";
 
 export function readFromCache<Type>(path: string): Type | undefined {

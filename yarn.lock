@@ -3446,6 +3446,12 @@ __metadata:
 "@replay-cli/shared@workspace:^, @replay-cli/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@replay-cli/shared@workspace:packages/shared"
+  dependencies:
+    debug: "npm:^4.3.4"
+    fs-extra: "npm:^11.2.0"
+    undici: "npm:^5.28.4"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
   languageName: unknown
   linkType: soft
 
@@ -3524,17 +3530,6 @@ __metadata:
   resolution: "@replayio/node@workspace:packages/node"
   bin:
     replay-node: bin/replay-node
-  languageName: unknown
-  linkType: soft
-
-"@replayio/observability-node@workspace:packages/observability-node":
-  version: 0.0.0-use.local
-  resolution: "@replayio/observability-node@workspace:packages/observability-node"
-  dependencies:
-    "@replay-cli/tsconfig": "workspace:^"
-    typescript: "npm:^5.5.2"
-    winston: "npm:^3.13.0"
-    winston-loki: "npm:^6.1.2"
   languageName: unknown
   linkType: soft
 
@@ -3674,6 +3669,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/test-utils@workspace:packages/test-utils"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@types/debug": "npm:^4.1.7"

@@ -1,5 +1,0 @@
-{
-  "extends": "@replay-cli/tsconfig/base.json",
-  "compilerOptions": {},
-  "include": ["src/**/*.ts"]
-}
