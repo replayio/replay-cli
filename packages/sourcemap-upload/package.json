@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/sourcemap-upload/README.md",
   "devDependencies": {
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.5",
     "@types/glob": "^7.1.3",
