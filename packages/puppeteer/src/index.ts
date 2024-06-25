@@ -1,10 +1,9 @@
-import { getPuppeteerBrowserPath, BrowserName } from "@replayio/replay";
+import { getBrowserPath } from "@replay-cli/shared/runtime/getBrowserPath";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
 } from "@replayio/test-utils";
 
-const browserName: BrowserName = "chromium";
 function getDeviceConfig() {
   const executablePath = getExecutablePath();
 
@@ -16,10 +15,8 @@ function getDeviceConfig() {
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
     env.RECORD_ALL_CONTENT = "";
-    if (browserName === "chromium") {
-      // Setting an invalid path for chromium will disable recording
-      env.RECORD_REPLAY_DRIVER = __filename;
-    }
+    // Setting an invalid path for chromium will disable recording
+    env.RECORD_REPLAY_DRIVER = __filename;
   }
 
   return {
@@ -27,7 +24,7 @@ function getDeviceConfig() {
       executablePath,
       env,
     },
-    defaultBrowserType: browserName,
+    defaultBrowserType: "chromium",
   };
 }
 
@@ -36,7 +33,7 @@ export function getMetadataFilePath(workerIndex = 0) {
 }
 
 export function getExecutablePath() {
-  return getPuppeteerBrowserPath(browserName);
+  return getBrowserPath();
 }
 
 export const devices = {

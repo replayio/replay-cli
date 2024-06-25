@@ -44,7 +44,6 @@
     "typescript": "^5.5.2"
   },
   "dependencies": {
-    "@replayio/replay": "workspace:^",
     "@replayio/test-utils": "workspace:^",
     "chalk": "^4.1.2",
     "debug": "^4.3.4",
@@ -52,6 +51,8 @@
     "terminate": "^2.6.1",
     "txml": "^3.2.5",
     "uuid": "^8.3.2",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2",
     "ws": "^8.14.2"
   },
   "peerDependencies": {

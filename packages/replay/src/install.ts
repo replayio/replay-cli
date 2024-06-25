@@ -165,20 +165,6 @@ function getExecutablePath(browserName: BrowserName, opts?: Options) {
   return executablePathParts ? path.join(getRuntimesDirectory(opts), ...executablePathParts) : null;
 }
 
-/**
- * Returns the path to playwright for the current platform
- */
-function getPlaywrightBrowserPath(kind: BrowserName) {
-  return getExecutablePath(kind);
-}
-
-/**
- * Returns the path to puppeteer for the current platform
- */
-function getPuppeteerBrowserPath(kind: BrowserName) {
-  return getExecutablePath(kind);
-}
-
 function extractBrowserArchive(browserDir: string, name: string) {
   const fullName = path.join(browserDir, name);
   const tarResult = spawnSync("tar", ["xf", name], { cwd: browserDir });
@@ -284,7 +270,5 @@ export {
   ensureBrowsersInstalled,
   ensurePlaywrightBrowsersInstalled,
   ensurePuppeteerBrowsersInstalled,
-  getPlaywrightBrowserPath,
-  getPuppeteerBrowserPath,
   updateBrowsers,
 };

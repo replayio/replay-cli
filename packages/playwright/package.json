@@ -47,6 +47,8 @@
     "debug": "^4.3.4",
     "stack-utils": "^2.0.6",
     "uuid": "^8.3.2",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2",
     "ws": "^8.13.0"
   },
   "peerDependencies": {

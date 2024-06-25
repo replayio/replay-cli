@@ -20,8 +20,6 @@ import {
   ensurePlaywrightBrowsersInstalled,
   ensurePuppeteerBrowsersInstalled,
   getExecutablePath,
-  getPlaywrightBrowserPath,
-  getPuppeteerBrowserPath,
   updateBrowsers,
 } from "./install";
 import {
@@ -840,8 +838,6 @@ export {
   ensurePuppeteerBrowsersInstalled,
   exponentialBackoffRetry,
   getDirectory,
-  getPlaywrightBrowserPath,
-  getPuppeteerBrowserPath,
   launchBrowser,
   listAllRecordings,
   processRecording,
