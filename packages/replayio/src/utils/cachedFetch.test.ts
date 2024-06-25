@@ -1,3 +1,4 @@
+import assert from "assert";
 import { cachedFetch, resetCache } from "./cachedFetch";
 
 class Response {
@@ -137,5 +138,30 @@ describe("cachedFetch", () => {
 
     expect(responseA).not.toBe(uncachedResponseA);
     expect(responseB).toBe(cachedResponseB);
+  });
+
+  it("should allow the caller to decide if a retry should be attempted", async () => {
+    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+
+    let retryCount = 0;
+
+    const response = await cachedFetch("https://www.test.com", undefined, {
+      maxAttempts: 3,
+      shouldRetry: response => {
+        assert(response.status === 500);
+        retryCount++;
+        return retryCount === 1;
+      },
+    });
+
+    assert(retryCount === 2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(response).toMatchInlineSnapshot(`
+      Object {
+        "json": null,
+        "status": 500,
+        "statusText": "error",
+      }
+    `);
   });
 });

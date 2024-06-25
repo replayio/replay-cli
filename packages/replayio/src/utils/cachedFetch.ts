@@ -10,9 +10,10 @@ export async function cachedFetch(
   options: {
     baseDelay?: number;
     maxAttempts?: number;
+    shouldRetry?: (response: Response) => boolean;
   } = {}
 ): Promise<CacheEntry> {
-  const { baseDelay = 1_000, maxAttempts = 3 } = options;
+  const { baseDelay = 1_000, maxAttempts = 3, shouldRetry } = options;
 
   let attempt = 0;
 
@@ -28,6 +29,17 @@ export async function cachedFetch(
         statusText: resp.statusText,
       });
     } else if (attempt < maxAttempts) {
+      if (shouldRetry) {
+        if (!shouldRetry(resp)) {
+          cache.set(url, {
+            json: null,
+            status: resp.status,
+            statusText: resp.statusText,
+          });
+          break;
+        }
+      }
+
       // Retry with exponential backoff (e.g. 1s, 2s, 4s, ...)
       const delay = Math.pow(2, attempt) * baseDelay;
       await new Promise(resolve => setTimeout(resolve, delay));
