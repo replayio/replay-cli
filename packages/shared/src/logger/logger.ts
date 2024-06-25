@@ -91,4 +91,15 @@ class Logger {
   }
 }
 
-export { Logger };
+let logger: Logger;
+
+// This should be called with the name once at the entry point.
+// For example, with the Playwright plugin, it is called in the Reporter interface constructor.
+function initLogger(name: string) {
+  if (!logger) {
+    logger = new Logger(name);
+  }
+  return logger;
+}
+
+export { initLogger, logger };
