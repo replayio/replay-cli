@@ -6,6 +6,7 @@
   "dependencies": {
     "@manypkg/get-packages": "^2.2.1",
     "@pnpm/deps.graph-sequencer": "^2.0.1",
+    "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "builtin-modules": "^3.3.0",

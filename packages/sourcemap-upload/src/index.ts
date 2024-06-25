@@ -14,10 +14,6 @@ import pMap from "p-map";
 import makeDebug from "debug";
 import glob from "glob";
 import matchAll from "string.prototype.matchall";
-export { Thing } from "@replay-cli/shared/thing";
-import { Thing } from "@replay-cli/shared/thing";
-
-export const thing = new Thing("thing");
 
 const globPromisified = util.promisify(glob);
 

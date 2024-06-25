@@ -1,5 +1,6 @@
 import { getPackages, type Package } from "@manypkg/get-packages";
 import { graphSequencer } from "@pnpm/deps.graph-sequencer";
+import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
@@ -138,6 +139,8 @@ async function buildRuntime(
       nodeResolve({
         extensions: [".ts"],
       }),
+      // in practice this only targets bundled dependencies as everything gets built as CJS
+      commonjs(),
       {
         name: "esbuild",
         async transform(code, id) {
@@ -268,7 +271,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
 }
 
 async function buildAll() {
-  const { packages } = await getPackages(process.cwd());
+  const cwd = process.cwd();
+  const { packages } = await getPackages(cwd);
   const packagesByName = new Map(packages.map(pkg => [pkg.packageJson.name, pkg]));
 
   await Promise.all(
@@ -277,7 +281,10 @@ async function buildAll() {
 
   const sortedPackageGroups = sortPackages(
     packages.filter(
-      pkg => !pkg.packageJson.private && fsSync.existsSync(`${pkg.dir}/tsconfig.json`)
+      pkg =>
+        pkg.relativeDir.startsWith("packages/") &&
+        !/\/examples?($|\/)/.test(pkg.relativeDir) &&
+        fsSync.existsSync(`${pkg.dir}/tsconfig.json`)
     )
   );
 
