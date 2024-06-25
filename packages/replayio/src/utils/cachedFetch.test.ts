@@ -164,4 +164,22 @@ describe("cachedFetch", () => {
       }
     `);
   });
+
+  it("should still honor the maxAttempts setting even when shouldRetry is provided", async () => {
+    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+
+    const response = await cachedFetch("https://www.test.com", undefined, {
+      maxAttempts: 2,
+      shouldRetry: response => true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(response).toMatchInlineSnapshot(`
+      Object {
+        "json": null,
+        "status": 500,
+        "statusText": "error",
+      }
+    `);
+  });
 });
