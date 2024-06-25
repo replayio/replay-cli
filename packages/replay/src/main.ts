@@ -341,8 +341,7 @@ async function doUploadRecording(
 
   let recordingId: string;
   try {
-    const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
-    if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
+    if (size > MIN_MULTIPART_UPLOAD_SIZE) {
       recordingId = await multipartUploadRecording(
         server,
         client,

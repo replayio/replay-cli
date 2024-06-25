@@ -27,14 +27,13 @@ export async function uploadRecording(
   client: ProtocolClient,
   recording: LocalRecording,
   options: {
-    multiPartUpload: boolean;
     processingBehavior: ProcessingBehavior;
   }
 ) {
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
-  const { multiPartUpload, processingBehavior } = options;
+  const { processingBehavior } = options;
 
   const { size } = await stat(path);
 
@@ -45,7 +44,7 @@ export async function uploadRecording(
   recording.uploadStatus = "uploading";
 
   try {
-    if (multiPartUpload && size > multiPartMinSizeThreshold) {
+    if (size > multiPartMinSizeThreshold) {
       const { chunkSize, partLinks, recordingId, uploadId } = await beginRecordingMultipartUpload(
         client,
         {
