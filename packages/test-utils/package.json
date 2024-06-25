@@ -1,6 +1,6 @@
 {
   "name": "@replayio/test-utils",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Utilities for recording tests with replay.io",
   "main": "./dist/index.js",
   "exports": {
