@@ -1,7 +1,9 @@
 import winston from "winston";
 import LokiTransport from "winston-loki";
 import dbg from "debug";
+import { randomUUID } from "crypto";
 import { AuthIds } from "./graphql/fetchAuthIdsFromGraphQL";
+import { getDeviceId } from "./identifier/getDeviceId";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -14,6 +16,8 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 type Tags = Record<string, unknown>;
 
 class Logger {
+  private deviceId: string;
+  private sessionId: string;
   private authIds?: AuthIds;
   private grafana: {
     logger: winston.Logger;
@@ -27,6 +31,8 @@ class Logger {
     this.name = `replayio:${name}`;
     this.localDebugger = dbg(name);
     this.grafana = this.initGrafana();
+    this.deviceId = getDeviceId();
+    this.sessionId = randomUUID();
   }
 
   private initGrafana() {
@@ -63,7 +69,14 @@ class Logger {
       return;
     }
 
-    this.grafana.logger.log({ level, message, ...tags, ...this.authIds });
+    this.grafana.logger.log({
+      level,
+      message,
+      ...tags,
+      ...this.authIds,
+      deviceId: this.deviceId,
+      sessionId: this.sessionId,
+    });
   }
 
   async close() {
