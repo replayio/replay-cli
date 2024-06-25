@@ -49,22 +49,10 @@ import { ReplayClient } from "./upload";
 import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
 import { getLaunchDarkly } from "./launchdarkly";
 import { Agent, AgentOptions } from "http";
+export { updateStatus } from "./updateStatus";
 export type { BrowserName, RecordingEntry } from "./types";
 
 const debug = dbg("replay:cli");
-
-export function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"]) {
-  // Once a recording enters an unusable or crashed status, don't change it
-  // except to mark crashes as uploaded.
-  if (
-    recording.status == "unusable" ||
-    recording.status == "crashUploaded" ||
-    (recording.status == "crashed" && status != "crashUploaded")
-  ) {
-    return;
-  }
-  recording.status = status;
-}
 
 export function filterRecordings(
   recordings: RecordingEntry[],

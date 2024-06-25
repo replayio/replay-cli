@@ -12,8 +12,8 @@
     "example": "examples"
   },
   "scripts": {
-    "bootstrap": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --exclude=packages/node --topological run build",
-    "build": "tsc -b",
+    "build": "pkg-build",
+    "bootstrap": "pkg-build",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.27.5",
+    "@replay-cli/pkg-build": "workspace:^",
     "@replayio/protocol": "^0.73.0",
     "@replayio/replay": "workspace:^",
     "@types/ws": "^8",

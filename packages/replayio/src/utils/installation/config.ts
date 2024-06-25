@@ -1,6 +1,6 @@
 import { homedir } from "os";
 import { join } from "path";
-import { getReplayPath } from "../getReplayPath";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 

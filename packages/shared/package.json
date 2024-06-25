@@ -1,0 +1,13 @@
+{
+  "name": "@replay-cli/shared",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "@replay-cli/pkg-build": {
+    "entrypoints": [
+      "./src/*.ts"
+    ]
+  }
+}

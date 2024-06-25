@@ -5,7 +5,7 @@ WORKDIR /usr/build
 
 build:
   COPY . .
-  RUN yarn --immutable && yarn run bootstrap
+  RUN yarn --immutable && yarn run build
 
 lint:
   FROM +build

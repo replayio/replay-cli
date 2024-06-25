@@ -1,0 +1,25 @@
+{
+  "name": "@replay-cli/pkg-build",
+  "private": true,
+  "version": "0.0.0",
+  "bin": "./bin.js",
+  "dependencies": {
+    "@manypkg/get-packages": "^2.2.1",
+    "@pnpm/deps.graph-sequencer": "^2.0.1",
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "builtin-modules": "^3.3.0",
+    "chalk": "^4.1.2",
+    "esbuild": "^0.21.5",
+    "fast-glob": "^3.3.2",
+    "normalize-path": "^3.0.0",
+    "rollup": "^4.18.0",
+    "rollup-plugin-dts": "^6.1.1",
+    "tsx": "^4.15.7"
+  },
+  "devDependencies": {
+    "@replay-cli/tsconfig": "workspace:^",
+    "@types/normalize-path": "^3.0.2"
+  }
+}

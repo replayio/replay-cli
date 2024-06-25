@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { RecordingEntry } from "./types";
 import { generateDefaultTitle } from "./generateDefaultTitle";
-import { updateStatus } from "./main";
+import { updateStatus } from "./updateStatus";
 import { getDirectory } from "./utils";
 
 const debug = dbg("replay:cli:recording-log");

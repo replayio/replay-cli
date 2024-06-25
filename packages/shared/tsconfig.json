@@ -1,0 +1,8 @@
+{
+  "extends": "@replay-cli/tsconfig/base.json",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2023"]
+  },
+  "include": ["src/**/*.ts"]
+}

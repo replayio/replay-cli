@@ -3,7 +3,7 @@ This project uses the [Yarn package manager](https://yarnpkg.com/). To install p
 ```bash
 # Workspace root
 yarn
-yarn run bootstrap
+yarn run build
 ```
 
 To build the CLI:
@@ -17,7 +17,7 @@ To test your changes locally:
 
 ```bash
 # packages/replayio
-./replayio.js
+./bin.js
 ```
 
 Before submitting a pull request, make sure you've checked types, formatting, and tests:

@@ -6,8 +6,7 @@ import {
   UploadOptions,
   LogCallback,
 } from "@replayio/sourcemap-upload";
-import assert from "assert";
-import path from "path";
+import assert from "node:assert/strict";
 
 export interface PluginOptions extends UploadOptions {
   logLevel?: "quiet" | "normal" | "verbose";

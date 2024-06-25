@@ -1,6 +1,6 @@
 import { Browser, TestInfoError, test } from "@playwright/test";
 import { ReporterError } from "@replayio/test-utils";
-import assert from "assert";
+import assert from "node:assert/strict";
 import dbg from "debug";
 import WebSocket from "ws";
 import { Errors } from "./error";
@@ -126,7 +126,7 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
   };
 }
 
-type Playwright = typeof import("playwright-core") & {
+type Playwright = {
   // it's available (as non-nullable) since 1.34.0
   _instrumentation: ClientInstrumentation;
 };
