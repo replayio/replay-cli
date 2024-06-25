@@ -1,5 +1,12 @@
 # @replayio/replay
 
+## 0.22.8
+
+### Patch Changes
+
+- Updated dependencies [[`89c5082`](https://github.com/replayio/replay-cli/commit/89c5082a06265255ffdc8b4f1e87dcb1d3d9c2d2)]:
+  - @replayio/sourcemap-upload@2.0.5
+
 ## 0.22.7
 
 ### Patch Changes
