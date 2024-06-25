@@ -1,4 +1,4 @@
-import { cache, fetchWithCacheAndRetry } from "./fetchWithCacheAndRetry";
+import { cachedFetch, resetCache } from "./cachedFetch";
 
 class Response {
   public status: number;
@@ -19,7 +19,7 @@ class Response {
 const failedResponse = new Response(500, "error");
 const successResponse = new Response(200, "ok");
 
-describe("fetchWithCacheAndRetry", () => {
+describe("cachedFetch", () => {
   let globalFetch: typeof fetch;
   let mockFetch: jest.Mock;
 
@@ -33,11 +33,11 @@ describe("fetchWithCacheAndRetry", () => {
   afterEach(() => {
     global.fetch = globalFetch;
 
-    cache.clear();
+    resetCache();
   });
 
   it("should return a successful response", async () => {
-    const response = await fetchWithCacheAndRetry("https://www.test.com");
+    const response = await cachedFetch("https://www.test.com");
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledWith("https://www.test.com", undefined);
@@ -55,7 +55,7 @@ describe("fetchWithCacheAndRetry", () => {
   it("should retry after a failed request", async () => {
     mockFetch.mockReturnValueOnce(Promise.resolve(failedResponse));
 
-    const response = await fetchWithCacheAndRetry("https://www.test.com", undefined, {
+    const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
     });
 
@@ -75,7 +75,7 @@ describe("fetchWithCacheAndRetry", () => {
   it("should return a failed response after retries have been exhausted", async () => {
     mockFetch.mockReturnValue(Promise.resolve(failedResponse));
 
-    const response = await fetchWithCacheAndRetry("https://www.test.com", undefined, {
+    const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
       maxAttempts: 2,
     });
@@ -92,11 +92,11 @@ describe("fetchWithCacheAndRetry", () => {
   });
 
   it("should cache a successful response", async () => {
-    const response = await fetchWithCacheAndRetry("https://www.test.com");
+    const response = await cachedFetch("https://www.test.com");
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
-    const cachedResponse = await fetchWithCacheAndRetry("https://www.test.com");
+    const cachedResponse = await cachedFetch("https://www.test.com");
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(response).toBe(cachedResponse);
@@ -105,16 +105,37 @@ describe("fetchWithCacheAndRetry", () => {
   it("should cache a failed response", async () => {
     mockFetch.mockReturnValue(Promise.resolve(failedResponse));
 
-    const response = await fetchWithCacheAndRetry("https://www.test.com", undefined, {
+    const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
       maxAttempts: 2,
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
-    const cachedResponse = await fetchWithCacheAndRetry("https://www.test.com");
+    const cachedResponse = await cachedFetch("https://www.test.com");
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(response).toBe(cachedResponse);
+  });
+
+  it("should allow a single cached value to be evicted", async () => {
+    mockFetch.mockReturnValue(new Response(200, "A"));
+    const responseA = await cachedFetch("https://www.test.com/A");
+
+    mockFetch.mockReturnValue(new Response(200, "B"));
+    const responseB = await cachedFetch("https://www.test.com/B");
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(responseA).not.toBe(responseB);
+
+    resetCache("https://www.test.com/A");
+
+    const uncachedResponseA = await cachedFetch("https://www.test.com/A");
+    const cachedResponseB = await cachedFetch("https://www.test.com/B");
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    expect(responseA).not.toBe(uncachedResponseA);
+    expect(responseB).toBe(cachedResponseB);
   });
 });

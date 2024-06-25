@@ -1,7 +1,7 @@
 import fs from "fs";
 import { create, defaulted, number, object, optional, Struct } from "superstruct";
 import { createLog } from "../../../createLog";
-import { fetchWithCacheAndRetry } from "../../../fetchWithCacheAndRetry";
+import { cachedFetch } from "../../../cachedFetch";
 import { UnstructuredMetadata } from "../../types";
 import { envString } from "./env";
 
@@ -110,7 +110,7 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
 
   debug("Fetching commit metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCacheAndRetry(url, {
+  const resp = await cachedFetch(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,
@@ -156,7 +156,7 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
 
   debug("Fetching merge metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
 
-  const resp = await fetchWithCacheAndRetry(url, {
+  const resp = await cachedFetch(url, {
     headers: GITHUB_TOKEN
       ? {
           Authorization: `token ${GITHUB_TOKEN}`,

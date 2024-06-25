@@ -1,7 +1,7 @@
 import dbg from "debug";
 import fs from "fs";
 import fetch, { RequestInit } from "node-fetch";
-import { create, defaulted, number, object, optional, Struct } from "superstruct";
+import { create, defaulted, number, object, optional } from "superstruct";
 
 import { UnstructuredMetadata } from "../types";
 import { envString } from "./env";
@@ -26,6 +26,7 @@ type CacheEntry = { json: any | null; status: number; statusText: string };
 
 export const cache: Map<string, CacheEntry> = new Map();
 
+// Note that this method should not be used for GraphQL queries because it caches responses by URL.
 // TODO [PRO-676] Import this from the "shared" package
 export async function fetchWithCacheAndRetry(
   url: string,
@@ -65,6 +66,14 @@ export async function fetchWithCacheAndRetry(
   }
 
   return cache.get(url)!;
+}
+
+export function resetCache(url?: string) {
+  if (url) {
+    cache.delete(url);
+  } else {
+    cache.clear();
+  }
 }
 
 function getCircleCISourceControlProvider(env: NodeJS.ProcessEnv) {

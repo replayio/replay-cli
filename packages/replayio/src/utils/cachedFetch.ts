@@ -2,8 +2,9 @@ type CacheEntry = { json: any | null; status: number; statusText: string };
 
 export const cache: Map<string, CacheEntry> = new Map();
 
+// Note that this method should not be used for GraphQL queries because it caches responses by URL.
 // TODO [PRO-676] Move this into the "shared" package
-export async function fetchWithCacheAndRetry(
+export async function cachedFetch(
   url: string,
   init?: RequestInit,
   options: {
@@ -41,4 +42,12 @@ export async function fetchWithCacheAndRetry(
   }
 
   return cache.get(url)!;
+}
+
+export function resetCache(url?: string) {
+  if (url) {
+    cache.delete(url);
+  } else {
+    cache.clear();
+  }
 }
