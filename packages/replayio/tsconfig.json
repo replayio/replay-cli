@@ -10,7 +10,7 @@
   "exclude": ["**/*.test.ts"],
   "references": [
     {
-      "path": "../sourcemap-upload"
+      "path": "../shared"
     },
     {
       "path": "../sourcemap-upload"
