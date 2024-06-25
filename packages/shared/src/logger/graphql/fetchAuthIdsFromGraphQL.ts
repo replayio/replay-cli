@@ -1,5 +1,3 @@
-// TODO [PRO-629] Move this into the "shared" package.
-
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 import { base64Decode } from "../strings/decode";

@@ -1,5 +1,3 @@
-// TODO [PRO-629] Move this into the "shared" package.
-
 import { readFromCache } from "../cache";
 import { cachePath } from "./cachePath";
 import { AuthIds, fetchAuthIdsFromGraphQL } from "./fetchAuthIdsFromGraphQL";

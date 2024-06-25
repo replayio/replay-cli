@@ -18,7 +18,7 @@ export function resolveErrors({
   return {
     name: "resolve-errors",
     // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
-    async resolveId(source, importer) {
+    async resolveId(source, importer, options) {
       if (source.startsWith("\0") || isBundledDependency(source)) {
         return;
       }
@@ -30,6 +30,7 @@ export function resolveErrors({
         );
       }
       let resolved = await this.resolve(source, importer, {
+        ...options,
         skipSelf: true,
       });
       if (resolved === null) {
