@@ -126,7 +126,7 @@ function parseError(error: TestInfoError): ParsedErrorFrame {
   };
 }
 
-type Playwright = typeof import("playwright-core") & {
+type Playwright = {
   // it's available (as non-nullable) since 1.34.0
   _instrumentation: ClientInstrumentation;
 };

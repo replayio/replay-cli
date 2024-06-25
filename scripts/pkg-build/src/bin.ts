@@ -5,12 +5,15 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
 import * as esbuild from "esbuild";
 import fastGlob from "fast-glob";
+import { spawnSync } from "node:child_process";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import normalizePath from "normalize-path";
-import { rollup, RollupOptions } from "rollup";
+import { rollup } from "rollup";
 import { dts } from "rollup-plugin-dts";
+
+const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
 
 async function rm(path: string) {
   try {
@@ -179,6 +182,12 @@ async function buildDts(
       }),
     ],
     external: isExternal,
+    onLog: (level, log, defaultHandler) => {
+      if (log.code === "EMPTY_BUNDLE") {
+        return;
+      }
+      defaultHandler(level, log);
+    },
   });
 
   await bundle.write({
@@ -208,7 +217,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
     pkgName => [...packagesByName.values()].find(p => p.packageJson.name === pkgName)!.dir
   );
 
-  const input =
+  const input = (
     "@replay-cli/pkg-build" in packageJson &&
     !!packageJson["@replay-cli/pkg-build"] &&
     typeof packageJson["@replay-cli/pkg-build"] === "object" &&
@@ -219,11 +228,21 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
           onlyFiles: true,
           absolute: true,
         })
-      : [`${pkg.dir}/src/index.ts`];
+      : [`${pkg.dir}/src/index.ts`]
+  ).filter(input => !/\.(test|spec)\./i.test(input));
 
   try {
     const options = { bundledDependenciesDirs, input, isBundledDependency, isExternal };
-    await Promise.all([buildRuntime(pkg, options), buildDts(pkg, options)]);
+    // TODO: parallelize this better
+    const tscResult = spawnSync(tscPath, ["-b"], { stdio: "inherit" });
+    if (tscResult.status !== 0) {
+      throw new Error("tsc failed");
+    }
+    await buildRuntime(pkg, options);
+    await buildDts(pkg, {
+      ...options,
+      input: input.map(f => f.replace("/src/", "/dist/").replace(/\.ts$/, ".d.ts")),
+    });
     return {
       status: "fulfilled" as const,
       pkg: packageJson.name,
@@ -241,7 +260,9 @@ async function buildAll() {
   const { packages } = await getPackages(process.cwd());
   const packagesByName = new Map(packages.map(pkg => [pkg.packageJson.name, pkg]));
 
-  await Promise.all(packages.flatMap(pkg => rm(`${pkg.dir}/dist`)));
+  await Promise.all(
+    packages.flatMap(pkg => [rm(`${pkg.dir}/dist`), rm(`${pkg.dir}/tsconfig.tsbuildinfo`)])
+  );
 
   const sortedPackageGroups = sortPackages(
     packages.filter(
@@ -251,14 +272,9 @@ async function buildAll() {
 
   const results: Awaited<ReturnType<typeof buildPkg>>[] = [];
 
-  console.log(JSON.stringify(sortedPackageGroups, null, 2));
   for (const group of sortedPackageGroups) {
     const packages = group.map(name => packagesByName.get(name)!);
     results.push(...(await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)))));
-
-    if (packages.find(a => a.packageJson.name === "@replayio/replay")) {
-      return;
-    }
   }
 
   const errors = results.filter(r => r.status === "rejected");
