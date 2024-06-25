@@ -1,5 +1,14 @@
 # @replayio/test-utils
 
+## 3.0.3
+
+### Patch Changes
+
+- [#554](https://github.com/replayio/replay-cli/pull/554) [`f1e815a`](https://github.com/replayio/replay-cli/commit/f1e815a) Thanks [@miriambudayr](https://github.com/miriambudayr)! - Added info and error log calls
+
+- Updated dependencies []:
+  - @replayio/replay@0.22.8
+
 ## 3.0.2
 
 ### Patch Changes

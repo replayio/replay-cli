@@ -1,5 +1,13 @@
 # @replayio/cypress
 
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`40a1ec8`](https://github.com/replayio/replay-cli/commit/40a1ec8a828b398605c3855746d675bea3090d0c)]:
+  - @replayio/test-utils@3.0.3
+  - @replayio/replay@0.22.8
+
 ## 3.0.2
 
 ### Patch Changes

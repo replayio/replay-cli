@@ -1,5 +1,14 @@
 # @replayio/sourcemap-upload-webpack-plugin
 
+## 2.0.2
+
+### Patch Changes
+
+- [#556](https://github.com/replayio/replay-cli/pull/556) [`89c5082`](https://github.com/replayio/replay-cli/commit/89c5082a06265255ffdc8b4f1e87dcb1d3d9c2d2) Thanks [@markerikson](https://github.com/markerikson)! - Updated glob version to fix nested dependency deprecation warning
+
+- Updated dependencies [[`89c5082`](https://github.com/replayio/replay-cli/commit/89c5082a06265255ffdc8b4f1e87dcb1d3d9c2d2)]:
+  - @replayio/sourcemap-upload@2.0.5
+
 ## 2.0.1
 
 ### Patch Changes

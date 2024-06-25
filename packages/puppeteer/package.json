@@ -1,6 +1,6 @@
 {
   "name": "@replayio/puppeteer",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "./dist/index.js",
   "bin": {
