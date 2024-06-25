@@ -3475,6 +3475,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/cypress@workspace:packages/cypress"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
@@ -3532,6 +3533,7 @@ __metadata:
   resolution: "@replayio/playwright@workspace:packages/playwright"
   dependencies:
     "@playwright/test": "npm:^1.40.1"
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
@@ -3568,6 +3570,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/puppeteer@workspace:packages/puppeteer"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"

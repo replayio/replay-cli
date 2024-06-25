@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/cypress/README.md",
   "devDependencies": {
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
     "@types/node": "^20.11.27",
