@@ -1,4 +1,4 @@
-import { timeoutAfter } from "@replay-cli/shared/async/timteoutAfter";
+import { timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 import { createPromiseQueue } from "./createPromiseQueue";
 
 function asyncSpy(implementation: () => unknown = () => {}) {
