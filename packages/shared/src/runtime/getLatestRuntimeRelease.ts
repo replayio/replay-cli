@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { replayAppHost } from "../config";
 import { runtimeMetadata } from "./config";
-import { logger } from "./logger";
+import { logger } from "../logger/logger";
 import { Release } from "./types";
 
 const { architecture, platform, runtime } = runtimeMetadata;

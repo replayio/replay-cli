@@ -37,6 +37,7 @@ class Logger {
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
       replaceTimestamp: true,
+      timeout: 5000,
       onConnectionError: err => this.localDebugger("Grafana connection error", err),
       gracefulShutdown: true,
     });
@@ -71,6 +72,7 @@ class Logger {
       return;
     }
 
+    this.grafana.logger.close();
     return this.grafana.flush();
   }
 
