@@ -4,6 +4,7 @@ dist
 lerna-debug.log
 e2e-repos
 tsconfig.tsbuildinfo
+.turbo
 
 .pnp.*
 .yarn/*

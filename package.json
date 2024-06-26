@@ -12,8 +12,8 @@
     "example": "examples"
   },
   "scripts": {
-    "build": "pkg-build",
-    "bootstrap": "pkg-build",
+    "build": "turbo run build --filter=\"./packages/*\"",
+    "watch": "turbo watch build --filter=\"./packages/*\"",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",
     "typecheck": "yarn workspaces foreach --all run typecheck",
@@ -33,6 +33,7 @@
     "@types/ws": "^8",
     "prettier": "^2.7.1",
     "replayio": "workspace:^",
+    "turbo": "^2.0.5",
     "typescript": "^5.5.2",
     "ws": "^8.17.0"
   },

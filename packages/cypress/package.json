@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "prepare": "npm run build",
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },

@@ -6,7 +6,7 @@
     "node": ">=10.13"
   },
   "scripts": {
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "yarn run build",
