@@ -6,7 +6,7 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-  "include": ["src/**/*.ts", "../shared/src/cachedFetch.test.ts", "../shared/src/cachedFetch.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["**/*.test.ts"],
   "references": [
     {
