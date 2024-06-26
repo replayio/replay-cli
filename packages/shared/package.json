@@ -7,7 +7,8 @@
     "./*": "./dist/*.js"
   },
   "scripts": {
-    "build": "pkg-build"
+    "build": "pkg-build",
+    "test": "jest --ci"
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -19,6 +20,8 @@
   },
   "devDependencies": {
     "@replay-cli/pkg-build": "workspace:^",
+    "@types/jest": "^28.1.5",
+    "jest": "^28.1.3",
     "typescript": "^5.5.2"
   },
   "@replay-cli/pkg-build": {

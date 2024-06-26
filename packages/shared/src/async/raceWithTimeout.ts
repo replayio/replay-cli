@@ -1,4 +1,4 @@
-import { isTimeoutResult, timeoutAfter } from "./timeoutAfter";
+import { isTimeoutResult, timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 
 export async function raceWithTimeout<Type>(
   promise: Promise<Type>,

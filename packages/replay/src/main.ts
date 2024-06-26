@@ -1,3 +1,4 @@
+import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import fs from "fs";
 import path from "path";
 import { getPackument } from "query-registry";
@@ -11,11 +12,13 @@ import { getCurrentVersion, getHttpAgent } from "./utils";
 import pMap from "p-map";
 
 import { spawn } from "child_process";
+import { Agent, AgentOptions } from "http";
 import jsonata from "jsonata";
-import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
 import { readToken } from "./auth";
 import { ProtocolError } from "./client";
 import { ensureBrowsersInstalled, getExecutablePath, updateBrowsers } from "./install";
+import { getLaunchDarkly } from "./launchdarkly";
+import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
 import {
   addRecordingEvent,
   readRecordings,
@@ -38,11 +41,9 @@ import {
   type UnstructuredMetadata,
 } from "./types";
 import { ReplayClient } from "./upload";
-import { exponentialBackoffRetry, getDirectory, maybeLog, openExecutable } from "./utils";
-import { getLaunchDarkly } from "./launchdarkly";
-import { Agent, AgentOptions } from "http";
-export { updateStatus } from "./updateStatus";
+import { getDirectory, maybeLog, openExecutable } from "./utils";
 export type { BrowserName, RecordingEntry } from "./types";
+export { updateStatus } from "./updateStatus";
 
 const debug = dbg("replay:cli");
 
@@ -196,7 +197,7 @@ async function setMetadata(
 ) {
   if (metadata) {
     try {
-      await exponentialBackoffRetry(
+      await retryWithExponentialBackoff(
         () => client.setRecordingMetadata(recordingId, metadata),
         e => {
           debug("Failed to set recording metadata. Will be retried:  %j", e);
@@ -265,7 +266,7 @@ async function directUploadRecording(
     server,
     recordingId,
   });
-  await exponentialBackoffRetry(
+  await retryWithExponentialBackoff(
     () => client.uploadRecording(recording.path!, uploadLink, size),
     e => {
       debug("Upload failed with error. Will be retried:  %j", e);
@@ -828,7 +829,6 @@ export {
   ExternalRecordingEntry,
   UnstructuredMetadata,
   addLocalRecordingMetadata,
-  exponentialBackoffRetry,
   getDirectory,
   launchBrowser,
   listAllRecordings,

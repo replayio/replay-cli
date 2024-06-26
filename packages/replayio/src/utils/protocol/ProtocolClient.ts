@@ -1,9 +1,9 @@
+import { Deferred, STATUS_PENDING, createDeferred } from "@replay-cli/shared/async/createDeferred";
 import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "node:assert/strict";
 import WebSocket from "ws";
 import { replayWsServer } from "../../config";
 import { getAccessToken } from "../authentication/getAccessToken";
-import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
 import { ProtocolError } from "./ProtocolError";
 import { setAccessToken } from "./api/setAccessToken";
 import { debug } from "./debug";

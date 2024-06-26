@@ -1,4 +1,4 @@
-import { raceWithTimeout } from "../async/raceWithTimeout";
+import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
 import { debug } from "./debug";
 import { getLaunchDarklyClient } from "./getLaunchDarklyClient";
 

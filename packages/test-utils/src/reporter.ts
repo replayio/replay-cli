@@ -1,11 +1,6 @@
-import {
-  RecordingEntry,
-  exponentialBackoffRetry,
-  listAllRecordings,
-  query,
-  removeRecording,
-  uploadRecording,
-} from "@replayio/replay";
+import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
+import { RecordingEntry } from "@replay-cli/shared/recording/types";
+import { listAllRecordings, query, removeRecording, uploadRecording } from "@replayio/replay";
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { spawnSync } from "child_process";
@@ -504,7 +499,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
 
     try {
-      return exponentialBackoffRetry(async () => {
+      return retryWithExponentialBackoff(async () => {
         const resp = await query(
           "CreateTestRunShard",
           `
@@ -584,7 +579,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     try {
-      await exponentialBackoffRetry(async () => {
+      await retryWithExponentialBackoff(async () => {
         const resp = await query(
           "AddTestsToShard",
           `
@@ -641,7 +636,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
 
     try {
-      await exponentialBackoffRetry(async () => {
+      await retryWithExponentialBackoff(async () => {
         const resp = await query(
           "CompleteTestRunShard",
           `

@@ -3440,9 +3440,11 @@ __metadata:
   resolution: "@replay-cli/shared@workspace:packages/shared"
   dependencies:
     "@replay-cli/pkg-build": "workspace:^"
+    "@types/jest": "npm:^28.1.5"
     chalk: "npm:^4.1.2"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    jest: "npm:^28.1.3"
     typescript: "npm:^5.5.2"
     undici: "npm:^5.28.4"
     winston: "npm:^3.13.0"
@@ -3598,6 +3600,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/replay@workspace:packages/replay"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.7"

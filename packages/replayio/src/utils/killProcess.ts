@@ -1,7 +1,7 @@
+import { createDeferred } from "@replay-cli/shared/async/createDeferred";
+import { timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 import findProcess from "find-process";
 import { kill } from "process";
-import { createDeferred } from "./async/createDeferred";
-import { timeoutAfter } from "./async/timeoutAfter";
 
 export async function killProcess(
   pid: number,

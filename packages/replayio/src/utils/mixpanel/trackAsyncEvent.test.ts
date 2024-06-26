@@ -1,4 +1,4 @@
-import { createDeferred } from "../async/createDeferred";
+import { createDeferred } from "@replay-cli/shared/async/createDeferred";
 import { MixpanelAPI } from "./types";
 
 describe("trackAsyncEvent", () => {
