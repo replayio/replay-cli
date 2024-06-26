@@ -75,7 +75,6 @@
   },
   "@replay-cli/pkg-build": {
     "entrypoints": [
-      "./src/index.ts",
       "./src/bin.ts"
     ]
   }
