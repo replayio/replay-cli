@@ -1,5 +1,11 @@
 # @replayio/replay
 
+## 0.22.10
+
+### Patch Changes
+
+- [#567](https://github.com/replayio/replay-cli/pull/567) [`40beb19`](https://github.com/replayio/replay-cli/commit/40beb199c1d1dec640611fec0e04e911e24b5fe3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with missing some files realted to `/metadata` entrypoint
+
 ## 0.22.9
 
 ### Patch Changes
