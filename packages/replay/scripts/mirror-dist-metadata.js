@@ -10,7 +10,13 @@ async function mirrorDistFiles(sourceDir, targetDir) {
       const targetPath = path.join(targetDir, filename);
 
       if ((await fs.stat(sourcePath)).isDirectory()) {
-        await fs.mkdir(targetPath);
+        try {
+          await fs.mkdir(targetPath);
+        } catch (err) {
+          if (err.code !== "EEXIST") {
+            throw err;
+          }
+        }
         await mirrorDistFiles(sourcePath, targetPath);
         return;
       }
@@ -40,6 +46,14 @@ async function mirrorDistFiles(sourceDir, targetDir) {
 (async () => {
   const source = path.join(__dirname, "..", "dist", "metadata");
   const target = path.join(__dirname, "..", "metadata");
-  await fs.mkdir(target);
+
+  try {
+    await fs.mkdir(target);
+  } catch (err) {
+    if (err.code !== "EEXIST") {
+      throw err;
+    }
+  }
+
   await mirrorDistFiles(source, target);
 })();

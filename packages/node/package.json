@@ -6,7 +6,6 @@
     "replay-node": "bin/replay-node"
   },
   "scripts": {
-    "build": "echo \"Error: no build specified\"",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "echo \"Error: no typecheck specified\""
   },

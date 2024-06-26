@@ -11,7 +11,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "rm -rf dist/ metadata/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "lint": "prettier --write .",
     "test": "jest --ci",
     "typecheck": "tsc --noEmit",
