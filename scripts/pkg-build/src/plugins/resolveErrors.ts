@@ -29,10 +29,7 @@ export function resolveErrors({
           }but the package is not specified in dependencies or peerDependencies`
         );
       }
-      let resolved = await this.resolve(source, importer, {
-        ...options,
-        skipSelf: true,
-      });
+      const resolved = await this.resolve(source, importer, options);
       if (resolved === null) {
         if (!source.startsWith(".")) {
           throw new Error(
@@ -41,7 +38,10 @@ export function resolveErrors({
             }but the package is not specified in dependencies or peerDependencies`
           );
         }
-        return;
+        throw new Error(
+          `Could not resolve ${source} ` +
+            (importer ? `from ${path.relative(pkg.relativeDir, importer)}` : "")
+        );
       }
 
       if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
