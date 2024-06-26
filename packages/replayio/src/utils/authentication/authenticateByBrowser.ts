@@ -1,6 +1,6 @@
+import { timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 import open from "open";
 import { replayAppHost } from "../../config";
-import { timeoutAfter } from "../async/timeoutAfter";
 import { writeToCache } from "../cache";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";

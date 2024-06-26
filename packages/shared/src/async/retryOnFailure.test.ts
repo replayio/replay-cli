@@ -1,4 +1,4 @@
-import { retryWithExponentialBackoff, retryWithLinearBackoff } from "./retry";
+import { retryWithExponentialBackoff, retryWithLinearBackoff } from "./retryOnFailure";
 
 describe("retryWithExponentialBackoff", () => {
   it("retries until it succeeds", async () => {

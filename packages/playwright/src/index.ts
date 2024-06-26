@@ -1,4 +1,4 @@
-import { getPlaywrightBrowserPath } from "@replayio/replay";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initMetadataFile } from "@replayio/test-utils";
 
 import { addReplayFixture } from "./fixture";
@@ -47,7 +47,7 @@ function getDeviceConfig() {
 }
 
 export function getExecutablePath() {
-  return getPlaywrightBrowserPath("chromium");
+  return getRuntimePath();
 }
 
 export const devices = {

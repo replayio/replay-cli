@@ -1,8 +1,6 @@
-// TODO [PRO-720] Consolidate with code in @replay-cli/shared/src/runtime
-
 import { homedir } from "os";
 import { join } from "path";
-import { getReplayPath } from "@replay-cli/shared/getReplayPath";
+import { getReplayPath } from "../getReplayPath";
 import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 
@@ -84,5 +82,5 @@ switch (process.platform) {
   }
 }
 
-export const runtimePath = getReplayPath("runtimes");
+export const runtimeBasePath = getReplayPath("runtimes");
 export const metadataPath = getReplayPath("runtimes", "metadata.json");

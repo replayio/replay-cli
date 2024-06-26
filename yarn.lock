@@ -3440,8 +3440,11 @@ __metadata:
   resolution: "@replay-cli/shared@workspace:packages/shared"
   dependencies:
     "@replay-cli/pkg-build": "workspace:^"
+    "@types/jest": "npm:^28.1.5"
+    chalk: "npm:^4.1.2"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    jest: "npm:^28.1.3"
     typescript: "npm:^5.5.2"
     undici: "npm:^5.28.4"
     winston: "npm:^3.13.0"
@@ -3475,8 +3478,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/cypress@workspace:packages/cypress"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/debug": "npm:^4.1.7"
     "@types/node": "npm:^20.11.27"
@@ -3486,11 +3489,15 @@ __metadata:
     chalk: "npm:^4.1.2"
     cypress: "npm:^13.11.0"
     debug: "npm:^4.3.4"
+    fs-extra: "npm:^11.2.0"
     semver: "npm:^7.5.2"
     terminate: "npm:^2.6.1"
     txml: "npm:^3.2.5"
     typescript: "npm:^5.5.2"
+    undici: "npm:^5.28.4"
     uuid: "npm:^8.3.2"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
     ws: "npm:^8.14.2"
   peerDependencies:
     cypress: ^13
@@ -3532,18 +3539,23 @@ __metadata:
   resolution: "@replayio/playwright@workspace:packages/playwright"
   dependencies:
     "@playwright/test": "npm:^1.40.1"
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/debug": "npm:^4.1.8"
     "@types/node": "npm:^20.11.27"
     "@types/stack-utils": "npm:^2.0.3"
     "@types/uuid": "npm:^8.3.4"
     "@types/ws": "npm:^8.5.10"
+    chalk: "npm:^4.1.2"
     debug: "npm:^4.3.4"
+    fs-extra: "npm:^11.2.0"
     stack-utils: "npm:^2.0.6"
     typescript: "npm:^5.5.2"
+    undici: "npm:^5.28.4"
     uuid: "npm:^8.3.2"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
     ws: "npm:^8.13.0"
   peerDependencies:
     "@playwright/test": ^1.34.0
@@ -3568,11 +3580,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/puppeteer@workspace:packages/puppeteer"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
+    chalk: "npm:^4.1.2"
+    debug: "npm:^4.3.4"
+    fs-extra: "npm:^11.2.0"
     typescript: "npm:^5.5.2"
+    undici: "npm:^5.28.4"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
   bin:
     replayio-puppeteer: ./bin.js
   languageName: unknown
@@ -3582,6 +3600,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/replay@workspace:packages/replay"
   dependencies:
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
     "@types/debug": "npm:^4.1.7"
@@ -3604,6 +3623,9 @@ __metadata:
     text-table: "npm:^0.2.0"
     ts-jest: "npm:^28.0.6"
     typescript: "npm:^5.5.2"
+    undici: "npm:^5.28.4"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
     ws: "npm:^7.5.0"
   bin:
     replay: ./bin.js
@@ -3645,6 +3667,7 @@ __metadata:
     "@types/string.prototype.matchall": "npm:^4.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^4.22.0"
     "@typescript-eslint/parser": "npm:^4.22.0"
+    chalk: "npm:^4.1.2"
     commander: "npm:^7.2.0"
     debug: "npm:^4.3.1"
     eslint: "npm:^7.25.0"

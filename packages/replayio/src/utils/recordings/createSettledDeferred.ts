@@ -1,4 +1,4 @@
-import { createDeferred } from "../async/createDeferred";
+import { createDeferred } from "@replay-cli/shared/async/createDeferred";
 import { debug } from "./debug";
 
 export function createSettledDeferred<Data>(data: Data, promise: Promise<void>) {

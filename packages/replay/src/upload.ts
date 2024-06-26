@@ -1,3 +1,4 @@
+import { retryWithLinearBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import crypto from "crypto";
 import fs from "fs";
 import type { Agent, AgentOptions } from "http";
@@ -9,7 +10,7 @@ import ProtocolClient from "./client";
 import dbg, { logPath } from "./debug";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import { defer, getUserAgent, isValidUUID, linearBackoffRetry, maybeLog } from "./utils";
+import { defer, getUserAgent, isValidUUID, maybeLog } from "./utils";
 
 const debug = dbg("replay:cli:upload");
 
@@ -210,7 +211,7 @@ class ReplayClient {
     const results = await pMap(
       partUploadLinks,
       async (url, index) => {
-        return linearBackoffRetry(
+        return retryWithLinearBackoff(
           async () => {
             const partNumber = index + 1;
             const start = index * partSize;

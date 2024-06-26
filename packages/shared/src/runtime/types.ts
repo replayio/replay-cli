@@ -1,5 +1,3 @@
-// TODO [PRO-720] Consolidate with code in @replay-cli/shared/src/runtime
-
 export type Executable = "darwin:chromium" | "linux:chromium" | "win32:chromium";
 export type Platform = "macOS" | "linux" | "windows";
 
