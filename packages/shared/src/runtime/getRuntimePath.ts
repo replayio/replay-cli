@@ -10,5 +10,5 @@ export function getRuntimePath() {
     return overridePath;
   }
 
-  return getReplayPath(...runtimeMetadata.path);
+  return getReplayPath("runtimes", ...runtimeMetadata.path);
 }
