@@ -39,7 +39,6 @@ export const uploadRecordings = withTrackAsyncEvent(
       return [];
     }
 
-    const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
     const client = new ProtocolClient();
     try {
       await client.waitUntilAuthenticated();
@@ -70,7 +69,7 @@ export const uploadRecordings = withTrackAsyncEvent(
       } else {
         return createSettledDeferred<LocalRecording>(
           recording,
-          uploadRecording(client, recording, { multiPartUpload, processingBehavior })
+          uploadRecording(client, recording, { processingBehavior })
         );
       }
     });
