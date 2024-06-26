@@ -7,7 +7,7 @@ export type Cached = {
   [accessToken: string]: AuthIds;
 };
 
-async function getAuthIds(accessToken: string): Promise<AuthIds> {
+export async function getAuthIds(accessToken: string): Promise<AuthIds> {
   const cached = readFromCache<Cached>(cachePath) ?? {};
   let authIds = cached[accessToken];
 
@@ -18,5 +18,3 @@ async function getAuthIds(accessToken: string): Promise<AuthIds> {
 
   return authIds;
 }
-
-export { getAuthIds };

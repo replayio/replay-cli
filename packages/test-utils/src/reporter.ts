@@ -1,6 +1,15 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
+import { getAuthIds } from "@replay-cli/shared/graphql/getAuthIds";
+import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
+import { Logger } from "@replay-cli/shared/logger";
 import { RecordingEntry } from "@replay-cli/shared/recording/types";
-import { listAllRecordings, query, removeRecording, uploadRecording } from "@replayio/replay";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
+import {
+  UnstructuredMetadata,
+  listAllRecordings,
+  removeRecording,
+  uploadRecording,
+} from "@replayio/replay";
 import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
 import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { spawnSync } from "child_process";
@@ -8,10 +17,6 @@ import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
-
-import { Logger, getAuthIds } from "@replay-cli/shared/logger";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
-import { UnstructuredMetadata } from "@replayio/replay";
 import * as pkgJson from "../package.json";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
@@ -500,7 +505,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
     try {
       return retryWithExponentialBackoff(async () => {
-        const resp = await query(
+        const resp = await queryGraphQL(
           "CreateTestRunShard",
           `
           mutation CreateTestRunShard($clientKey: String!, $testRun: TestRunShardInput!) {
@@ -580,7 +585,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
     try {
       await retryWithExponentialBackoff(async () => {
-        const resp = await query(
+        const resp = await queryGraphQL(
           "AddTestsToShard",
           `
           mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
@@ -637,7 +642,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
     try {
       await retryWithExponentialBackoff(async () => {
-        const resp = await query(
+        const resp = await queryGraphQL(
           "CompleteTestRunShard",
           `
         mutation CompleteTestRunShard($testRunShardId: String!) {

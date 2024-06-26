@@ -3623,6 +3623,9 @@ __metadata:
     text-table: "npm:^0.2.0"
     ts-jest: "npm:^28.0.6"
     typescript: "npm:^5.5.2"
+    undici: "npm:^5.28.4"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
     ws: "npm:^7.5.0"
   bin:
     replay: ./bin.js

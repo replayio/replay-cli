@@ -4,7 +4,6 @@ import path from "path";
 import { getPackument } from "query-registry";
 import { compare } from "semver";
 import dbg from "./debug";
-import { query } from "./graphql";
 import { getCurrentVersion, getHttpAgent } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
@@ -833,7 +832,6 @@ export {
   launchBrowser,
   listAllRecordings,
   processRecording,
-  query,
   removeAllRecordings,
   removeRecording,
   updateBrowsers,

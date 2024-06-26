@@ -48,6 +48,9 @@
     "semver": "^7.5.4",
     "superstruct": "^1.0.4",
     "text-table": "^0.2.0",
+    "undici": "^5.28.4",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2",
     "ws": "^7.5.0"
   },
   "devDependencies": {

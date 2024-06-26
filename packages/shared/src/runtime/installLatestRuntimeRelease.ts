@@ -3,7 +3,7 @@ import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs
 import { get } from "https";
 import { join } from "node:path";
 import { getReplayPath } from "../getReplayPath";
-import { writeToCache } from "../logger/cache";
+import { writeToCache } from "../cache";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeBasePath, runtimeMetadata } from "./config";
 import { getLatestRuntimeRelease } from "./getLatestRuntimeRelease";
