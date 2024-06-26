@@ -1,18 +1,19 @@
 /// <reference types="cypress" />
 
-import semver from "semver";
-import { getPlaywrightBrowserPath, RecordingEntry } from "@replayio/replay";
+import { RecordingEntry } from "@replay-cli/shared/recording/types";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initMetadataFile, warn } from "@replayio/test-utils";
-import path from "path";
-import dbg from "debug";
 import chalk from "chalk";
+import dbg from "debug";
+import path from "path";
+import semver from "semver";
 
 import { CONNECT_TASK_NAME } from "./constants";
-import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
-import type { StepEvent } from "./support";
+import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import { createServer } from "./server";
+import type { StepEvent } from "./support";
 
 export type { PluginOptions } from "./reporter";
 
@@ -314,7 +315,7 @@ const plugin = (
       debug("Command log enabled? %s", config.env.NO_COMMAND_LOG);
     }
 
-    const chromiumPath = getPlaywrightBrowserPath("chromium");
+    const chromiumPath = getRuntimePath();
     if (chromiumPath) {
       debug("Adding chromium to cypress at %s", chromiumPath);
       config.browsers = config.browsers.concat({
@@ -342,12 +343,12 @@ export function getCypressReporter() {
 
 export default plugin;
 export {
+  getMetadataFilePath,
+  onAfterRun,
+  onAfterSpec,
+  onBeforeBrowserLaunch,
+  onBeforeRun,
+  onBeforeSpec,
   plugin,
   cypressOnWrapper as wrapOn,
-  onBeforeRun,
-  onBeforeBrowserLaunch,
-  onBeforeSpec,
-  onAfterSpec,
-  onAfterRun,
-  getMetadataFilePath,
 };

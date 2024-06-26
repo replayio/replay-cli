@@ -1,5 +1,5 @@
+import { createDeferred, Deferred } from "@replay-cli/shared/async/createDeferred";
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
-import { createDeferred, Deferred } from "./async/createDeferred";
 import { ProcessError } from "./ProcessError";
 
 export function spawnProcess(

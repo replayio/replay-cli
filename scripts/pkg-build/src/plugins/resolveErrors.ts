@@ -29,10 +29,7 @@ export function resolveErrors({
           }but the package is not specified in dependencies or peerDependencies`
         );
       }
-      let resolved = await this.resolve(source, importer, {
-        ...options,
-        skipSelf: true,
-      });
+      const resolved = await this.resolve(source, importer, options);
       if (resolved === null) {
         if (!source.startsWith(".")) {
           throw new Error(

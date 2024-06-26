@@ -1,5 +1,5 @@
+import { timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 import { createPromiseQueue } from "./createPromiseQueue";
-import { timeoutAfter } from "./timeoutAfter";
 
 function asyncSpy(implementation: () => unknown = () => {}) {
   return jest.fn().mockImplementation(async () => implementation());

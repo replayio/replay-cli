@@ -1,4 +1,4 @@
-import { timeoutAfter } from "./async/timeoutAfter";
+import { timeoutAfter } from "@replay-cli/shared/async/timeoutAfter";
 import { close as finalizeLaunchDarkly } from "./launch-darkly/close";
 import { getPendingEvents } from "./mixpanel/pendingEvents";
 

@@ -1,4 +1,4 @@
-import { STATUS_PENDING, createDeferred } from "../async/createDeferred";
+import { STATUS_PENDING, createDeferred } from "@replay-cli/shared/async/createDeferred";
 import { debug } from "./debug";
 import { getMixpanelAPI } from "./getMixpanelAPI";
 import { addPendingEvent, removePendingEvent } from "./pendingEvents";

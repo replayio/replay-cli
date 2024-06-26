@@ -47,7 +47,7 @@ async function buildJs(
       }),
       json(),
       nodeResolve({
-        extensions: [".ts"],
+        extensions: [".ts", ".js"],
       }),
       // in practice this only targets bundled dependencies as everything gets built as CJS
       commonjs(),

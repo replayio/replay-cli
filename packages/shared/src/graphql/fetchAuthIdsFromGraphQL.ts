@@ -1,7 +1,7 @@
-import { GraphQLError } from "./GraphQLError";
-import { queryGraphQL } from "./queryGraphQL";
 import { base64Decode } from "../strings/decode";
+import { GraphQLError } from "./GraphQLError";
 import { logger } from "./debug";
+import { queryGraphQL } from "./queryGraphQL";
 
 export type AuthIds = { userId: string | null; workspaceId: string | null };
 

@@ -1,7 +1,7 @@
+import { cachedFetch } from "@replay-cli/shared/cachedFetch";
 import fs from "fs";
 import { create, defaulted, number, object, optional, Struct } from "superstruct";
 import { createLog } from "../../../createLog";
-import { cachedFetch } from "../../../cachedFetch";
 import { UnstructuredMetadata } from "../../types";
 import { envString } from "./env";
 

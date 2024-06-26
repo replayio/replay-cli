@@ -113,22 +113,6 @@ async function ensureBrowsersInstalled(
   }
 }
 
-/**
- * Installs the Replay-enabled playwright browsers for the current platform is
- * not already installed
- */
-function ensurePlaywrightBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
-  return ensureBrowsersInstalled(kind, false, opts);
-}
-
-/**
- * Installs the Replay-enabled puppeteer browsers for the current platform is
- * not already installed
- */
-function ensurePuppeteerBrowsersInstalled(kind: BrowserName | "all" = "all", opts: Options = {}) {
-  return ensureBrowsersInstalled("chromium", false, opts);
-}
-
 async function updateBrowsers(opts: Options & { browsers?: BrowserName[] }) {
   if (opts.browsers) {
     for (const browserName of opts.browsers) {
@@ -163,20 +147,6 @@ function getExecutablePath(browserName: BrowserName, opts?: Options) {
 
   const executablePathParts = EXECUTABLE_PATHS[key];
   return executablePathParts ? path.join(getRuntimesDirectory(opts), ...executablePathParts) : null;
-}
-
-/**
- * Returns the path to playwright for the current platform
- */
-function getPlaywrightBrowserPath(kind: BrowserName) {
-  return getExecutablePath(kind);
-}
-
-/**
- * Returns the path to puppeteer for the current platform
- */
-function getPuppeteerBrowserPath(kind: BrowserName) {
-  return getExecutablePath(kind);
 }
 
 function extractBrowserArchive(browserDir: string, name: string) {
@@ -279,12 +249,4 @@ async function downloadReplayFile(downloadFile: string, opts: Options) {
   throw new Error("Download failed, giving up");
 }
 
-export {
-  getExecutablePath,
-  ensureBrowsersInstalled,
-  ensurePlaywrightBrowsersInstalled,
-  ensurePuppeteerBrowsersInstalled,
-  getPlaywrightBrowserPath,
-  getPuppeteerBrowserPath,
-  updateBrowsers,
-};
+export { getExecutablePath, ensureBrowsersInstalled, updateBrowsers };

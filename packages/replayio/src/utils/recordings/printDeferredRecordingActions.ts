@@ -1,6 +1,6 @@
+import { Deferred, STATUS_RESOLVED } from "@replay-cli/shared/async/createDeferred";
 import { dots } from "cli-spinners";
 import { disableAnimatedLog } from "../../config";
-import { Deferred, STATUS_RESOLVED } from "../async/createDeferred";
 import { logUpdate } from "../logUpdate";
 import { printTable } from "../table";
 import { statusFailed, statusPending, statusSuccess } from "../theme";

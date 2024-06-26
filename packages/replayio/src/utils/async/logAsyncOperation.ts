@@ -1,8 +1,13 @@
+import {
+  STATUS_PENDING,
+  STATUS_REJECTED,
+  STATUS_RESOLVED,
+  Status,
+} from "@replay-cli/shared/async/createDeferred";
 import { dots } from "cli-spinners";
 import { disableAnimatedLog } from "../../config";
 import { logUpdate } from "../logUpdate";
 import { statusFailed, statusPending, statusSuccess } from "../theme";
-import { STATUS_PENDING, STATUS_REJECTED, STATUS_RESOLVED, Status } from "./createDeferred";
 
 export type LogProgressOptions = { delayBeforeLoggingMs?: number };
 
