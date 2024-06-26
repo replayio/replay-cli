@@ -1,6 +1,6 @@
 {
   "name": "@replayio/cypress",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Plugin to record your Cypress tests with Replay",
   "main": "./dist/index.js",
   "exports": {
@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "prepare": "npm run build",
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },

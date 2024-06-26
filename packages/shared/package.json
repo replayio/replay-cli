@@ -6,11 +6,8 @@
     "./logger": "./dist/logger/index.js",
     "./*": "./dist/*.js"
   },
-  "@replay-cli/pkg-build": {
-    "entrypoints": [
-      "./src/*.ts",
-      "./src/logger/index.ts"
-    ]
+  "scripts": {
+    "build": "pkg-build"
   },
   "dependencies": {
     "debug": "^4.3.4",
@@ -18,5 +15,15 @@
     "undici": "^5.28.4",
     "winston": "^3.13.0",
     "winston-loki": "^6.1.2"
+  },
+  "devDependencies": {
+    "@replay-cli/pkg-build": "workspace:^",
+    "typescript": "^5.5.2"
+  },
+  "@replay-cli/pkg-build": {
+    "entrypoints": [
+      "./src/*.ts",
+      "./src/logger/index.ts"
+    ]
   }
 }

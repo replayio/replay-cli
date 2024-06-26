@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.22.9",
+  "version": "0.22.10",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./bin.js",
   "main": "./dist/main.js",
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "prepare": "yarn run build",
-    "build": "rm -rf dist/ metadata/ tsconfig.tsbuildinfo && tsc && node ./scripts/mirror-dist-metadata.js",
+    "build": "pkg-build && node ./scripts/mirror-dist-metadata.js",
     "test": "jest --ci",
     "typecheck": "tsc --noEmit"
   },

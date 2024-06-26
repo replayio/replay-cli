@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "3.1.4",
+  "version": "3.1.5",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "./dist/index.js",
   "exports": {
@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "prepare": "yarn run build",
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
