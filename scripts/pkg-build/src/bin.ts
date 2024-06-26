@@ -16,7 +16,11 @@ import { resolveErrors } from "./plugins/resolveErrors";
 const statusFailed = chalk.redBright;
 const statusSuccess = chalk.greenBright;
 
-const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
+const tscPathResult = spawnSync("yarn", ["bin", "tsc"]);
+if (tscPathResult.status !== 0) {
+  throw new Error("Failed to find tsc");
+}
+const tscPath = tscPathResult.stdout.toString().trim();
 
 async function buildJs(
   pkg: Package,
