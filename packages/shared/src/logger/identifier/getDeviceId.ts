@@ -1,4 +1,4 @@
-import { readFromCache, writeToCache } from "../cache";
+import { readFromCache, writeToCache } from "../../cache";
 import { cachePath } from "./cachePath";
 import { randomUUID } from "crypto";
 
