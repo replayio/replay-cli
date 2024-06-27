@@ -17,7 +17,7 @@ class Logger {
   private authIds?: AuthIds;
   private grafana: {
     logger: winston.Logger;
-    flush: () => Promise<null>;
+    close: () => Promise<void>;
   };
 
   private name: string;
@@ -49,7 +49,10 @@ class Logger {
         level: "info",
         transports: [lokiTransport],
       }),
-      flush: async () => lokiTransport?.flush(),
+      close: async () => {
+        await lokiTransport.flush().catch(() => {});
+        lokiTransport.close?.();
+      },
     };
   }
 
@@ -72,8 +75,7 @@ class Logger {
       return;
     }
 
-    this.grafana.logger.close();
-    return this.grafana.flush();
+    return this.grafana.close();
   }
 
   debug(message: string, tags?: Record<string, any>) {

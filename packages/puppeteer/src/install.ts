@@ -3,8 +3,11 @@ import { installLatestRuntimeRelease } from "@replay-cli/shared/runtime/installL
 
 async function install() {
   initLogger("puppeteer");
-  await installLatestRuntimeRelease();
-  await logger.close().catch(() => {});
+  try {
+    await installLatestRuntimeRelease();
+  } finally {
+    await logger.close();
+  }
 }
 
 export default install;

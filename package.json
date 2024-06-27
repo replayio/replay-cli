@@ -27,12 +27,9 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.27.5",
-    "@replay-cli/pkg-build": "workspace:^",
     "@replayio/protocol": "^0.73.0",
-    "@replayio/replay": "workspace:^",
     "@types/ws": "^8",
     "prettier": "^2.7.1",
-    "replayio": "workspace:^",
     "turbo": "^2.0.5",
     "typescript": "^5.5.2",
     "ws": "^8.17.0"
