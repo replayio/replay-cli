@@ -7,7 +7,7 @@ import { writeToCache } from "../cache";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeBasePath, runtimeMetadata } from "./config";
 import { getLatestRuntimeRelease } from "./getLatestRuntimeRelease";
-import { logger } from "./logger";
+import { logger } from "../logger/logger";
 import { MetadataJSON } from "./types";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
@@ -84,7 +84,6 @@ export async function installLatestRuntimeRelease(): Promise<Result | undefined>
     };
   } catch (error) {
     logger.debug(`Browser installation failed: ${error}`);
-
     // TODO [PRO-711]
     // TODO [PRO-712] Add Mixpanel tracking "failed"
   }

@@ -1,7 +1,7 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import { getAuthIds } from "@replay-cli/shared/graphql/getAuthIds";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
-import { Logger } from "@replay-cli/shared/logger";
+import { initLogger, logger } from "@replay-cli/shared/logger";
 import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
@@ -17,6 +17,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
+
 import * as pkgJson from "../package.json";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
@@ -182,7 +183,7 @@ function parseRuntime(runtime?: string) {
   return ["chromium", "gecko", "node"].find(r => runtime?.includes(r));
 }
 
-function createGraphqlError(operation: string, errors: any, logger: Logger) {
+function createGraphqlError(operation: string, errors: any) {
   const errorMessages = errors.map(getErrorMessage);
   logger.error("GraphQlOperationFailed", { operation, errors: errors.map(getErrorMessage) });
 
@@ -261,7 +262,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
   private _cacheAuthIdsPromise: Promise<void> | null = null;
-  private _logger: Logger;
   private _uploadedRecordings = new Set<string>();
 
   constructor(
@@ -273,7 +273,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._runner = runner;
     this._schemaVersion = schemaVersion;
 
-    this._logger = new Logger(this._runner.name);
+    initLogger(this._runner.name);
 
     if (config) {
       const { metadataKey, ...rest } = config;
@@ -283,11 +283,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     if (this._apiKey) {
       this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
         .then(ids => {
-          this._logger.identify(ids);
-          this._logger.info("ReplayReporter:LoggerIdentificationAdded");
+          logger.identify(ids);
+          logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
         .catch(e =>
-          this._logger.info("ReplayReporter:LoggerIdentificationFailed", {
+          logger.info("ReplayReporter:LoggerIdentificationFailed", {
             errorMessage: getErrorMessage(e),
           })
         );
@@ -447,7 +447,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       this._parseConfig(config, metadataKey);
     }
 
-    this._logger.info("OnTestSuiteBegin:ReporterConfiguration", {
+    logger.info("OnTestSuiteBegin:ReporterConfiguration", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       runner: this._runner,
@@ -458,7 +458,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     if (!this._apiKey) {
-      this._logger.info("OnTestSuiteBegin:NoApiKey");
+      logger.info("OnTestSuiteBegin:NoApiKey");
       return;
     }
 
@@ -471,13 +471,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {
-    this._logger.info("StartTestRunShard:Started");
+    logger.info("StartTestRunShard:Started");
 
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
     } catch (e) {
-      this._logger.error("StartTestRunShard:InitMetadataFailed", {
+      logger.error("StartTestRunShard:InitMetadataFailed", {
         errorMessage: getErrorMessage(e),
       });
     }
@@ -501,7 +501,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       triggerReason: metadata.source?.trigger?.workflow ?? null,
     };
 
-    this._logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
+    logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
 
     try {
       return retryWithExponentialBackoff(async () => {
@@ -528,7 +528,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run",
-            error: createGraphqlError("CreateTestRunShard", resp.errors, this._logger),
+            error: createGraphqlError("CreateTestRunShard", resp.errors),
           };
         }
 
@@ -541,7 +541,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
           };
         }
 
-        this._logger.info("StartTestRunShard:CreatedShard", {
+        logger.info("StartTestRunShard:CreatedShard", {
           testRunShardId,
           baseId: this._baseId,
         });
@@ -554,7 +554,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         };
       });
     } catch (e) {
-      this._logger.error("StartTestRunShardFailed", {
+      logger.error("StartTestRunShardFailed", {
         errorMessage: getErrorMessage(e),
       });
 
@@ -568,7 +568,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private async _addTestsToShard(
     tests: TestRunTestInputModel[]
   ): Promise<TestRunTestsPendingWork | undefined> {
-    this._logger.info("AddTestsToSharded", { testsLength: tests.length });
+    logger.info("AddTestsToSharded", { testsLength: tests.length });
 
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
@@ -578,7 +578,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         return;
       }
     }
-    this._logger.info("AddTestsToShard:WillAddTests", {
+    logger.info("AddTestsToShard:WillAddTests", {
       testsLength: tests.length,
       testRunShardId,
     });
@@ -607,18 +607,18 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run-tests",
-            error: createGraphqlError("AddTestsToShard", resp.errors, this._logger),
+            error: createGraphqlError("AddTestsToShard", resp.errors),
           };
         }
       });
 
-      this._logger.info("AddTestsToShard:AddedTests", { testRunShardId });
+      logger.info("AddTestsToShard:AddedTests", { testRunShardId });
 
       return {
         type: "test-run-tests",
       };
     } catch (e) {
-      this._logger.error("AddTestsToShard:Failed", { errorMessage: getErrorMessage(e) });
+      logger.error("AddTestsToShard:Failed", { errorMessage: getErrorMessage(e) });
       return {
         type: "test-run-tests",
         error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
@@ -627,7 +627,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   private async _completeTestRunShard(): Promise<TestRunPendingWork | undefined> {
-    this._logger.info("CompleteTestRunShard:Started");
+    logger.info("CompleteTestRunShard:Started");
 
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
@@ -638,7 +638,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       }
     }
 
-    this._logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
+    logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
 
     try {
       await retryWithExponentialBackoff(async () => {
@@ -662,12 +662,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         if (resp.errors) {
           return {
             type: "test-run",
-            error: createGraphqlError("CompleteTestRunShard", resp.errors, this._logger),
+            error: createGraphqlError("CompleteTestRunShard", resp.errors),
           };
         }
       });
 
-      this._logger.info("CompleteTestRunShard:MarkedComplete", { testRunShardId });
+      logger.info("CompleteTestRunShard:MarkedComplete", { testRunShardId });
 
       return {
         type: "test-run",
@@ -675,7 +675,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         phase: "complete",
       };
     } catch (e) {
-      this._logger.error("CompleteTestRunShard:Failed", {
+      logger.error("CompleteTestRunShard:Failed", {
         errorMessage: getErrorMessage(e),
         testRunShardId,
       });
@@ -687,7 +687,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
-    this._logger.info("OnTestBegin:Started", { testExecutionId });
+    logger.info("OnTestBegin:Started", { testExecutionId });
 
     this._errors = [];
     const metadata = {
@@ -697,13 +697,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       },
     };
 
-    this._logger.info("OnTestBegin:WillWriteMetadata", { metadataFilePath, metadata });
+    logger.info("OnTestBegin:WillWriteMetadata", { metadataFilePath, metadata });
 
     try {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
     } catch (e) {
-      this._logger.error("OnTestBegin:InitReplayMetadataFailed", {
+      logger.error("OnTestBegin:InitReplayMetadataFailed", {
         errorMessage: getErrorMessage(e),
       });
     }
@@ -722,12 +722,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     extraMetadata?: Record<string, unknown>;
     runnerGroupKey?: string;
   }) {
-    this._logger.info("OnTestEnd:Started", { specFile });
+    logger.info("OnTestEnd:Started", { specFile });
 
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
-      this._logger.info("OnTestEnd:NoTestsFound", { specFile });
+      logger.info("OnTestEnd:NoTestsFound", { specFile });
       return;
     }
 
@@ -741,13 +741,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   ): Promise<UploadPendingWork | undefined> {
     // Cypress retries are on the same recordings, we only want to upload a single recording once
     if (this._uploadedRecordings.has(recording.id)) {
-      this._logger.info("UploadRecording:AlreadyScheduled", {
+      logger.info("UploadRecording:AlreadyScheduled", {
         recordingId: recording.id,
       });
       return;
     }
     this._uploadedRecordings.add(recording.id);
-    this._logger.info("UploadRecording:Started", { recordingId: recording.id });
+    logger.info("UploadRecording:Started", { recordingId: recording.id });
 
     try {
       await uploadRecording(recording.id, {
@@ -760,7 +760,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         removeAssets: false,
       });
 
-      this._logger.info("UploadRecording:Succeeded", { recording: recording.id });
+      logger.info("UploadRecording:Succeeded", { recording: recording.id });
 
       const recordings = listAllRecordings({ filter: r => r.id === recording.id, all: true });
 
@@ -769,7 +769,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         recording: recordings[0],
       };
     } catch (e) {
-      this._logger.error("UploadRecording:Failed", {
+      logger.error("UploadRecording:Failed", {
         errorMessage: getErrorMessage(e),
         recordingId: recording.id,
         buildId: recording.buildId,
@@ -793,7 +793,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       filter,
     });
 
-    this._logger.info("GetRecordingsForTest:FoundRecordings", {
+    logger.info("GetRecordingsForTest:FoundRecordings", {
       recoridngsLength: recordings.length,
       filter,
     });
@@ -840,7 +840,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ) {
-    this._logger.info("SetRecordingMetadata:Started", {
+    logger.info("SetRecordingMetadata:Started", {
       recordingIds: recordings.map(r => r.id),
       errorLength: this._errors.length,
     });
@@ -865,7 +865,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         ...validatedSourceMetadata,
       };
     } catch (e) {
-      this._logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
+      logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
         errorMessage: getErrorMessage(e),
       });
     }
@@ -915,7 +915,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       if (this._apiKey) {
         this._pendingWork.push(this._addTestsToShard(testInputs));
       } else {
-        this._logger.info("EnqueuePostTestWork:WillSkipAddTests");
+        logger.info("EnqueuePostTestWork:WillSkipAddTests");
       }
 
       const testRun = this._buildTestMetadata(tests, specFile);
@@ -964,7 +964,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         testRun,
       };
     } catch (e) {
-      this._logger.error("EnqueuePostTestWork:Failed");
+      logger.error("EnqueuePostTestWork:Failed");
       return {
         type: "post-test",
         error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
@@ -1135,10 +1135,10 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
   async onEnd(): Promise<PendingWork[]> {
     try {
-      this._logger.info("OnEnd:Started");
+      logger.info("OnEnd:Started");
 
       await this._cacheAuthIdsPromise?.catch(e => {
-        this._logger.error("OnEnd:AddingLoggerAuthFailed", {
+        logger.error("OnEnd:AddingLoggerAuthFailed", {
           errorMessage: getErrorMessage(e),
         });
       });
@@ -1152,7 +1152,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       while (this._pendingWork.length) {
         const pendingWork = this._pendingWork;
-        this._logger.info("OnEnd:PendingWork", { pendingWorkLength: pendingWork.length });
+        logger.info("OnEnd:PendingWork", { pendingWorkLength: pendingWork.length });
         this._pendingWork = [];
         completedWork.push(...(await Promise.allSettled(pendingWork)));
       }
@@ -1161,7 +1161,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
         const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
         completedWork.push(...postSettledWork);
       } else {
-        this._logger.info("OnEnd:WillSkipCompletingTestRun");
+        logger.info("OnEnd:WillSkipCompletingTestRun");
       }
 
       const failures = completedWork.filter(r => r.status === "rejected");
@@ -1247,7 +1247,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       return results;
     } finally {
-      await this._logger.close().catch(() => {});
+      await logger.close().catch(() => {});
     }
   }
 }
