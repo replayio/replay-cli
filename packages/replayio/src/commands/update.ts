@@ -1,10 +1,10 @@
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { statusSuccess } from "@replay-cli/shared/theme";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
 import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";
 import { installLatestRelease } from "../utils/installation/installLatestRelease";
-import { statusSuccess } from "../utils/theme";
 
 registerCommand("update", {
   checkForRuntimeUpdate: false,

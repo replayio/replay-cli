@@ -1,5 +1,5 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
-import { AuthInfo, getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
+import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { RecordingEntry } from "@replay-cli/shared/recording/types";

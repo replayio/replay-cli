@@ -1,9 +1,10 @@
 // @ts-ignore TS types are busted; see github.com/enquirer/enquirer/issues/212
-import { canUpload } from "@replay-cli/shared/recording/canUpload";
-import { LocalRecording } from "@replay-cli/shared/recording/types";
-import { dim, select, transparent } from "@replay-cli/shared/theme";
 import { MultiSelect } from "bvaughn-enquirer";
+
+import { dim, select, transparent } from "../theme";
+import { canUpload } from "./canUpload";
 import { printRecordings } from "./printRecordings";
+import { LocalRecording } from "./types";
 
 export async function selectRecordings(
   recordings: LocalRecording[],

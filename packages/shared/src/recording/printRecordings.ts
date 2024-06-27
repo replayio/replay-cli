@@ -1,6 +1,6 @@
-import { printTable } from "@replay-cli/shared/printTable";
-import { formatRecording } from "@replay-cli/shared/recording/formatRecording";
-import { LocalRecording } from "@replay-cli/shared/recording/types";
+import { printTable } from "../printTable";
+import { formatRecording } from "./formatRecording";
+import { LocalRecording } from "./types";
 
 export function printRecordings(
   recordings: LocalRecording[],

@@ -1,6 +1,6 @@
 import { logger } from "@replay-cli/shared/logger";
+import { highlight } from "@replay-cli/shared/theme";
 import findProcess from "find-process";
-import { highlight } from "../theme";
 import { getBrowserPath } from "./getBrowserPath";
 
 export async function getRunningProcess() {

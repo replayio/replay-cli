@@ -1,8 +1,8 @@
-import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { logoutIfAuthenticated } from "@replay-cli/shared/authentication/logoutIfAuthenticated";
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { highlight } from "@replay-cli/shared/theme";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { highlight } from "../utils/theme";
 
 registerCommand("logout").description("Log out of your Replay account").action(logout);
 

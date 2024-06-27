@@ -11,16 +11,25 @@
     "test": "jest --ci"
   },
   "dependencies": {
+    "bvaughn-enquirer": "2.4.2",
     "chalk": "^4.1.2",
+    "cli-spinners": "^2.9.2",
     "date-fns": "^2.28.0",
     "debug": "^4.3.4",
+    "find-process": "^1.4.7",
     "fs-extra": "^11.2.0",
+    "launchdarkly-node-client-sdk": "^3.2.1",
     "log-update": "^4",
+    "mixpanel": "^0.18.0",
+    "open": "^8.4.2",
     "pretty-ms": "^7.0.1",
+    "strip-ansi": "^6.0.1",
+    "superstruct": "^1.0.4",
     "table": "^6.8.2",
     "undici": "^5.28.4",
     "winston": "^3.13.0",
-    "winston-loki": "^6.1.2"
+    "winston-loki": "^6.1.2",
+    "ws": "^7.5.0"
   },
   "devDependencies": {
     "@replay-cli/pkg-build": "workspace:^",

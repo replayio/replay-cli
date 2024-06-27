@@ -1,9 +1,9 @@
 // TODO [PRO-720] Consolidate with code in @replay-cli/shared/src/runtime
 
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
+import { emphasize } from "@replay-cli/shared/theme";
 import { homedir } from "os";
 import { join } from "path";
-import { getReplayPath } from "@replay-cli/shared/getReplayPath";
-import { emphasize } from "../theme";
 import { Architecture, Platform, Runtime } from "./types";
 
 type Metadata = {
