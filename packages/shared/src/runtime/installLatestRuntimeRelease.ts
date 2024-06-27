@@ -4,7 +4,7 @@ import { get } from "https";
 import { join } from "node:path";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
-import { logger } from "../logger/logger";
+import { logger } from "../logger";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeBasePath, runtimeMetadata } from "./config";
 import { getLatestRuntimeRelease } from "./getLatestRuntimeRelease";

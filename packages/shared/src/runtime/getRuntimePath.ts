@@ -1,5 +1,5 @@
 import { getReplayPath } from "../getReplayPath";
-import { logger } from "../logger/logger";
+import { logger } from "../logger";
 import { runtimeMetadata } from "./config";
 
 export function getRuntimePath() {

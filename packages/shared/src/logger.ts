@@ -1,7 +1,7 @@
 import dbg from "debug";
 import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
-import { AuthInfo } from "../graphql/fetchAuthInfoFromGraphQL";
+import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
