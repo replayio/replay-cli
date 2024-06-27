@@ -273,7 +273,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._runner = runner;
     this._schemaVersion = schemaVersion;
 
-    initLogger(this._runner.name);
+    initLogger(this._runner.name, this._runner.version);
 
     if (config) {
       const { metadataKey, ...rest } = config;

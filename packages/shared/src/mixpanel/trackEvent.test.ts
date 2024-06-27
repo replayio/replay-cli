@@ -13,7 +13,6 @@ describe("trackEvent", () => {
 
   const anyCallback = expect.any(Function);
   const anyProperties = expect.any(Object);
-  const anyString = expect.any(String);
 
   beforeEach(() => {
     mockMixpanelAPI = {
@@ -22,8 +21,8 @@ describe("trackEvent", () => {
     };
 
     // jest.resetModules does not work with import; only works with require()
-    getPendingEvents = require("./pendingEvents").getPendingEvents;
     configureSession = require("./session").configureSession;
+    getPendingEvents = require("./pendingEvents").getPendingEvents;
     trackEvent = require("./trackEvent").trackEvent;
 
     require("./getMixpanelAPI").setMixpanelAPIForTests(mockMixpanelAPI);
@@ -42,7 +41,10 @@ describe("trackEvent", () => {
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(0);
 
       await act(() => {
-        configureSession("fake-user-id");
+        configureSession("fake-access-token", {
+          packageName: "fake-package",
+          packageVersion: "fake-version",
+        });
       });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(3);
@@ -54,12 +56,18 @@ describe("trackEvent", () => {
     });
 
     it("should track events after authentication fails", async () => {
-      trackEvent("pending-1");
+      trackEvent("pending-1", {
+        packageName: "fake-package",
+        packageVersion: "fake-version",
+      });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(0);
 
       await act(() => {
-        configureSession(undefined);
+        configureSession(undefined, {
+          packageName: "fake-package",
+          packageVersion: "fake-version",
+        });
       });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(1);
@@ -74,20 +82,23 @@ describe("trackEvent", () => {
       trackEvent("replayio.some-args", { foo: 123, bar: "abc" });
 
       await act(() => {
-        configureSession(undefined);
+        configureSession(undefined, {
+          packageName: "fake-package",
+          packageVersion: "fake-version",
+        });
       });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(2);
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         1,
         "replayio.no-args",
-        { packageVersion: anyString },
+        { packageName: "fake-package", packageVersion: "fake-version" },
         anyCallback
       );
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         2,
         "replayio.some-args",
-        { foo: 123, bar: "abc", packageVersion: anyString },
+        { foo: 123, bar: "abc", packageName: "fake-package", packageVersion: "fake-version" },
         anyCallback
       );
     });
@@ -95,7 +106,10 @@ describe("trackEvent", () => {
 
   describe("authenticated", () => {
     beforeEach(() => {
-      configureSession("fake-user-id");
+      configureSession("fake-user-id", {
+        packageName: "fake-package",
+        packageVersion: "fake-version",
+      });
     });
 
     it("should enforce the replayio. namespace prefix", async () => {
@@ -118,7 +132,10 @@ describe("trackEvent", () => {
     });
 
     it("should include additional user-specific default properties when authenticated", async () => {
-      configureSession("fake-user-id");
+      configureSession("fake-user-id", {
+        packageName: "fake-package",
+        packageVersion: "fake-version",
+      });
 
       trackEvent("replayio.no-args");
       trackEvent("replayio.some-args", { foo: 123, bar: "abc" });
@@ -127,13 +144,23 @@ describe("trackEvent", () => {
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         1,
         "replayio.no-args",
-        { distinct_id: "fake-user-id", packageVersion: anyString },
+        {
+          distinct_id: "fake-user-id",
+          packageName: "fake-package",
+          packageVersion: "fake-version",
+        },
         anyCallback
       );
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         2,
         "replayio.some-args",
-        { distinct_id: "fake-user-id", foo: 123, bar: "abc", packageVersion: anyString },
+        {
+          distinct_id: "fake-user-id",
+          foo: 123,
+          bar: "abc",
+          packageName: "fake-package",
+          packageVersion: "fake-version",
+        },
         anyCallback
       );
     });

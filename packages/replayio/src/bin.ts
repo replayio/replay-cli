@@ -14,6 +14,9 @@ import "./commands/remove";
 import "./commands/update";
 import "./commands/upload";
 import "./commands/upload-source-maps";
+import { initLogger } from "@replay-cli/shared/logger";
+
+initLogger(name, version);
 
 setUserAgent(`${name}/${version}`);
 

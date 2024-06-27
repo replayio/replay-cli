@@ -18,21 +18,28 @@ class Logger {
   private grafana: {
     logger: winston.Logger;
     close: () => Promise<void>;
-  };
-
-  private name: string;
+  } | null = null;
+  private initialized: boolean = false;
   private localDebugger: debug.Debugger;
 
-  constructor(name: string) {
-    this.name = `replayio:${name}`;
-    this.localDebugger = dbg(name);
-    this.grafana = this.initGrafana();
+  constructor() {
+    this.localDebugger = dbg("replay");
   }
 
-  private initGrafana() {
+  initialize(app: string, version: string | undefined) {
+    if (this.initialized) {
+      console.warn(`Logger already initialized.`);
+    }
+
+    this.initialized = true;
+    this.localDebugger = dbg(app);
+    this.grafana = this.initGrafana(app, version);
+  }
+
+  private initGrafana(app: string, version: string | undefined) {
     const lokiTransport = new LokiTransport({
       host: HOST,
-      labels: { app: this.name },
+      labels: { app, version },
       json: true,
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
@@ -82,7 +89,9 @@ class Logger {
       }
     }
 
-    this.grafana.logger.log(entry);
+    if (this.grafana) {
+      this.grafana.logger.log(entry);
+    }
   }
 
   async close() {
@@ -90,7 +99,9 @@ class Logger {
       return;
     }
 
-    return this.grafana.close();
+    if (this.grafana) {
+      return this.grafana.close();
+    }
   }
 
   debug(message: string, tags?: Record<string, any>) {
@@ -110,17 +121,10 @@ class Logger {
   }
 }
 
-let logger: Logger;
+export const logger = new Logger();
 
 // This should be called with the name once at the entry point.
 // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-function initLogger(name: string) {
-  if (logger) {
-    console.warn(`Logger already initialized.`);
-    return logger;
-  }
-  logger = new Logger(name);
-  return logger;
+export function initLogger(app: string, version: string | undefined) {
+  logger.initialize(app, version);
 }
-
-export { initLogger, logger };
