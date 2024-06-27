@@ -1,5 +1,5 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
-import { exitProcess } from "./utils/exitProcess";
 
 // Commands self-register with "commander"
 import "./commands/info";

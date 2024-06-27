@@ -2,12 +2,12 @@ import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "node:path";
-import { getReplayPath } from "../getReplayPath";
 import { writeToCache } from "../cache";
+import { getReplayPath } from "../getReplayPath";
+import { logger } from "../logger/logger";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeBasePath, runtimeMetadata } from "./config";
 import { getLatestRuntimeRelease } from "./getLatestRuntimeRelease";
-import { logger } from "../logger/logger";
 import { MetadataJSON } from "./types";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
@@ -83,7 +83,8 @@ export async function installLatestRuntimeRelease(): Promise<Result | undefined>
       forkedVersion: latestVersion,
     };
   } catch (error) {
-    logger.debug(`Browser installation failed: ${error}`);
+    logger.debug("Browser installation failed", { error });
+
     // TODO [PRO-711]
     // TODO [PRO-712] Add Mixpanel tracking "failed"
   }
@@ -128,7 +129,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        logger.debug(`Download error ${error}, retrying...`);
+        logger.debug("Download error; retrying ...", { error });
         request.destroy();
         resolve(null);
       });
@@ -149,8 +150,7 @@ async function extractBrowserArchive(runtimeBasePath: string, downloadFilePath: 
     cwd: runtimeBasePath,
   });
   if (tarResult.status !== 0) {
-    logger.debug(`Failed to extract ${downloadFilePath}`);
-    logger.debug(String(tarResult.stderr));
+    logger.debug(`Failed to extract ${downloadFilePath}`, { stderr: String(tarResult.stderr) });
 
     throw new Error("Unable to extract browser archive");
   }

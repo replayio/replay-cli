@@ -1,10 +1,10 @@
+import { logger } from "@replay-cli/shared/logger";
+import { withTrackAsyncEvent } from "@replay-cli/shared/mixpanel/withTrackAsyncEvent";
 import { existsSync } from "fs-extra";
 import { getBrowserPath } from "../browser/getBrowserPath";
 import { getLatestRelease } from "../installation/getLatestReleases";
 import { Release } from "../installation/types";
-import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 import { shouldPrompt } from "../prompt/shouldPrompt";
-import { debug } from "./debug";
 import { getCurrentRuntimeMetadata } from "./getCurrentRuntimeMetadata";
 import { UpdateCheck } from "./types";
 
@@ -23,14 +23,14 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
       latestRelease = await getLatestRelease();
       latestBuildId = latestRelease?.buildId ?? null;
       if (latestBuildId == null) {
-        debug("No release found; skipping update check");
+        logger.debug("No release found; skipping update check");
 
         return {
           hasUpdate: undefined,
         };
       }
     } catch (error) {
-      debug("Release check failed:", error);
+      logger.debug("Release check failed", { error });
 
       return {
         hasUpdate: undefined,
@@ -48,9 +48,9 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
 
     const { buildId: currentBuildId } = getCurrentRuntimeMetadata("chromium") ?? {};
     if (currentBuildId) {
-      debug("Current build id: %s", currentBuildId);
+      logger.debug(`Current build id: ${currentBuildId}`);
     } else {
-      debug("Installed version metadata not found");
+      logger.debug("Installed version metadata not found");
     }
 
     return {

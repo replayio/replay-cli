@@ -1,7 +1,7 @@
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { installLatestRuntimeRelease } from "@replay-cli/shared/runtime/installLatestRuntimeRelease";
 
-async function install() {
+export default async function install() {
   initLogger("puppeteer");
   try {
     await installLatestRuntimeRelease();
@@ -9,5 +9,3 @@ async function install() {
     await logger.close();
   }
 }
-
-export default install;

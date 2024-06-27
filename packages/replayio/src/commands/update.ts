@@ -1,5 +1,5 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
 import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
 import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";

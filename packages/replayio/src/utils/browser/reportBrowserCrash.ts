@@ -1,4 +1,5 @@
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
+import { logger } from "@replay-cli/shared/logger";
 import { readFile, writeFileSync } from "fs-extra";
 import { File, FormData, fetch } from "undici";
 import { replayApiServer } from "../../config";
@@ -7,7 +8,6 @@ import { checkAuthentication } from "../../utils/initialization/checkAuthenticat
 import { getCurrentRuntimeMetadata } from "../../utils/initialization/getCurrentRuntimeMetadata";
 import { runtimeMetadata } from "../../utils/installation/config";
 import { findMostRecentFile } from "../findMostRecentFile";
-import { debug } from "./debug";
 
 export async function reportBrowserCrash(stderr: string) {
   const errorLogPath = getReplayPath("recorder-crash.log");
@@ -62,8 +62,8 @@ export async function reportBrowserCrash(stderr: string) {
         uploaded: true,
       };
     }
-  } catch (err) {
-    debug("Crash data failed to be uploaded: %o", err);
+  } catch (error) {
+    logger.debug("Crash data failed to be uploaded", { error });
   }
 
   return {

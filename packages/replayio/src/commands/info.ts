@@ -1,8 +1,8 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { parseBuildId } from "@replay-cli/shared/runtime/parseBuildId";
 import { name as packageName, version as packageVersion } from "../../package.json";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
 import { getCurrentRuntimeMetadata } from "../utils/initialization/getCurrentRuntimeMetadata";
-import { parseBuildId } from "../utils/installation/parseBuildId";
 import { highlight } from "../utils/theme";
 
 registerCommand("info", {

@@ -1,6 +1,6 @@
 import { getReplayPath } from "../getReplayPath";
-import { runtimeMetadata } from "./config";
 import { logger } from "../logger/logger";
+import { runtimeMetadata } from "./config";
 
 export function getRuntimePath() {
   const overridePathKey = `REPLAY_CHROMIUM_EXECUTABLE_PATH`;

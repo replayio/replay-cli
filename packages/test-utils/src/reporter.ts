@@ -1,5 +1,5 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
-import { getAuthIds } from "@replay-cli/shared/graphql/getAuthIds";
+import { AuthInfo, getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { RecordingEntry } from "@replay-cli/shared/recording/types";
@@ -281,9 +281,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (this._apiKey) {
-      this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
-        .then(ids => {
-          logger.identify(ids);
+      this._cacheAuthIdsPromise = getAuthInfo(this._apiKey)
+        .then(authInfo => {
+          logger.identify(authInfo);
           logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
         .catch(e =>

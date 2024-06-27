@@ -1,8 +1,8 @@
+import { logger } from "@replay-cli/shared/logger";
+import { withTrackAsyncEvent } from "@replay-cli/shared/mixpanel/withTrackAsyncEvent";
 import { fetch } from "undici";
 import { version as currentVersion, name as packageName } from "../../../package.json";
-import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
 import { shouldPrompt } from "../prompt/shouldPrompt";
-import { debug } from "./debug";
 import { UpdateCheck } from "./types";
 
 const PROMPT_ID = "npm-update";
@@ -29,7 +29,7 @@ export const checkForNpmUpdate = withTrackAsyncEvent(
         toVersion: latestVersion,
       };
     } catch (error) {
-      debug("Failed to check for npm update", error);
+      logger.debug("Failed to check for npm update", { error });
     }
 
     return {

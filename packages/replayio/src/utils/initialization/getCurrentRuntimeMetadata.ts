@@ -1,4 +1,4 @@
-import { readFromCache } from "../cache";
+import { readFromCache } from "@replay-cli/shared/cache";
 import { metadataPath } from "../installation/config";
 import { MetadataJSON, Runtime } from "../installation/types";
 

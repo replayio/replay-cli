@@ -1,7 +1,7 @@
+import { logger } from "@replay-cli/shared/logger";
 import { fetch } from "undici";
 import { replayApiServer } from "../../config";
 import { getUserAgent } from "../getUserAgent";
-import { debug } from "./debug";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
   const options = {
@@ -21,11 +21,11 @@ export async function queryGraphQL(name: string, query: string, variables = {}, 
     options.headers.Authorization = `Bearer ${apiKey.trim()}`;
   }
 
-  debug("Querying %s over %s graphql endpoint", name, replayApiServer);
+  logger.debug(`Querying ${name} over ${replayApiServer} graphql endpoint`);
   const result = await fetch(`${replayApiServer}/v1/graphql`, options);
 
   const json: any = await result.json();
-  debug("GraphQL Response: %O", json);
+  logger.debug("GraphQL Response", { json });
 
   return json;
 }
