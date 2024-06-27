@@ -19,7 +19,8 @@ export interface Deferred<Type, Data = undefined> {
   status: StatusPending | StatusRejected | StatusResolved;
 }
 
-export type Status = StatusPending | StatusRejected | StatusResolved;
+type Status = StatusPending | StatusRejected | StatusResolved;
+export { type Status };
 
 export function createDeferred<Type, Data>(data: Data, debugLabel?: string): Deferred<Type, Data>;
 export function createDeferred<Type, Data = undefined>(
