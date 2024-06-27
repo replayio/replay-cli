@@ -30,7 +30,7 @@
   },
   "@replay-cli/pkg-build": {
     "entrypoints": [
-      "./src/*.ts",
+      "./src/**/*.ts",
       "./src/logger/index.ts"
     ]
   }
