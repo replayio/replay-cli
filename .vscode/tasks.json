@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "tsc -w",
+      "label": "turbo watch",
       "type": "shell",
-      "command": "yarn build -w",
+      "command": "yarn run watch",
       "presentation": {
         "echo": true,
         "reveal": "silent",

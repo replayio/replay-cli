@@ -64,67 +64,6 @@ function isValidUUID(str: unknown) {
   return true;
 }
 
-async function waitForTime(ms: number): Promise<void> {
-  return new Promise(r => setTimeout(r, ms));
-}
-
-// Random extra delay under 100ms to avoid retrying in bursts.
-function jitter(): number {
-  return Math.random() * 100.0;
-}
-
-// Returns backoff timeouts (in ms) in a geometric progression, and with jitter.
-function geometricBackoff(iteration: number): number {
-  return 2 ** iteration * 100 + jitter();
-}
-
-function linearBackoff(): number {
-  return 100 + jitter();
-}
-
-const MAX_ATTEMPTS = 5;
-
-async function retry<T>(
-  fn: () => Promise<T>,
-  backOffStrategy: (iteration: number) => number,
-  onFail?: (e: unknown) => void,
-  maxTries?: number
-): Promise<T> {
-  const maxAttempts = maxTries || MAX_ATTEMPTS;
-  let currentAttempt = 0;
-  while (currentAttempt <= maxAttempts) {
-    currentAttempt++;
-    try {
-      return await fn();
-    } catch (e) {
-      if (onFail) {
-        onFail(e);
-      }
-      if (currentAttempt == maxAttempts) {
-        throw e;
-      }
-      await waitForTime(backOffStrategy(currentAttempt));
-    }
-  }
-  throw Error("ShouldBeUnreachable");
-}
-
-export async function exponentialBackoffRetry<T>(
-  fn: () => Promise<T>,
-  onFail?: (e: unknown) => void,
-  maxTries?: number
-): Promise<T> {
-  return retry(fn, geometricBackoff, onFail, maxTries);
-}
-
-export async function linearBackoffRetry<T>(
-  fn: () => Promise<T>,
-  onFail?: (e: unknown) => void,
-  maxTries?: number
-): Promise<T> {
-  return retry(fn, linearBackoff, onFail, maxTries);
-}
-
 function fuzzyBrowserName(browser?: string): BrowserName {
   browser = browser?.toLowerCase()?.trim();
 

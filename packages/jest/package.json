@@ -1,6 +1,6 @@
 {
   "name": "@replayio/jest",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Configuration utilities for using capturing metadata from Jest for Replay browsers",
   "main": "./dist/index.js",
   "bin": {
@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "prepare": "yarn run build",
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
@@ -36,6 +36,7 @@
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",
     "@jest/types": "^27.5.1",
+    "@replay-cli/pkg-build": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
     "typescript": "^5.5.2"

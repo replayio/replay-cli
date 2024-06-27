@@ -1,3 +1,5 @@
+// TODO [PRO-720] Consolidate with code in @replay-cli/shared/src/runtime
+
 import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";

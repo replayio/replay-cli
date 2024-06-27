@@ -1,10 +1,9 @@
-import fs from "fs";
-import path from "path";
-import dbg from "debug";
-import { xml, stringify, INode } from "txml";
-import { readFileSync, writeFileSync } from "fs";
+import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { warn } from "@replayio/test-utils";
-import { RecordingEntry } from "@replayio/replay";
+import dbg from "debug";
+import fs, { readFileSync, writeFileSync } from "fs";
+import path from "path";
+import { INode, stringify, xml } from "txml";
 
 const debug = dbg("replay:cypress:junit");
 

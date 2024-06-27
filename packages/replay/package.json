@@ -1,6 +1,6 @@
 {
   "name": "@replayio/replay",
-  "version": "0.22.9",
+  "version": "0.22.10",
   "description": "CLI tool for uploading and managing recordings",
   "bin": "./bin.js",
   "main": "./dist/main.js",
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "prepare": "yarn run build",
-    "build": "rm -rf dist/ metadata/ tsconfig.tsbuildinfo && tsc && node ./scripts/mirror-dist-metadata.js",
+    "build": "pkg-build && node ./scripts/mirror-dist-metadata.js",
     "test": "jest --ci",
     "typecheck": "tsc --noEmit"
   },
@@ -48,9 +48,14 @@
     "semver": "^7.5.4",
     "superstruct": "^1.0.4",
     "text-table": "^0.2.0",
+    "undici": "^5.28.4",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2",
     "ws": "^7.5.0"
   },
   "devDependencies": {
+    "@replay-cli/pkg-build": "workspace:^",
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
     "@types/jest": "^28.1.5",

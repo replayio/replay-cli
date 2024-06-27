@@ -1,5 +1,5 @@
+import { createDeferred } from "@replay-cli/shared/async/createDeferred";
 import { version as currentVersion } from "../../../package.json";
-import { createDeferred } from "../async/createDeferred";
 
 export const defaultProperties: Record<string, any> = {
   packageVersion: currentVersion,

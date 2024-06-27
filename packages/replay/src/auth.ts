@@ -4,7 +4,7 @@ import dbg from "./debug";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import path from "path";
 
-import { query } from "./graphql";
+import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { Options } from "./types";
 import { getLaunchDarkly } from "./launchdarkly";
@@ -126,7 +126,7 @@ function initAuthRequest(options: Options = {}) {
 }
 
 async function fetchToken(key: string) {
-  const resp = await query(
+  const resp = await queryGraphQL(
     "CloseAuthRequest",
     `
         mutation CloseAuthRequest($key: String!) {
@@ -280,7 +280,7 @@ export async function maybeAuthenticateUser(options: Options = {}) {
 }
 
 async function getAuthInfo(key: string): Promise<string> {
-  const resp = await query(
+  const resp = await queryGraphQL(
     "AuthInfo",
     `
         query AuthInfo {

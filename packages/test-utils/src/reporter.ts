@@ -1,8 +1,12 @@
+import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
+import { getAuthIds } from "@replay-cli/shared/graphql/getAuthIds";
+import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
+import { initLogger, logger } from "@replay-cli/shared/logger";
+import { RecordingEntry } from "@replay-cli/shared/recording/types";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
-  RecordingEntry,
-  exponentialBackoffRetry,
+  UnstructuredMetadata,
   listAllRecordings,
-  query,
   removeRecording,
   uploadRecording,
 } from "@replayio/replay";
@@ -14,9 +18,6 @@ import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 
-import { getAuthIds, initLogger, logger } from "@replay-cli/shared/logger";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
-import { UnstructuredMetadata } from "@replayio/replay";
 import * as pkgJson from "../package.json";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
@@ -503,8 +504,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
 
     try {
-      return exponentialBackoffRetry(async () => {
-        const resp = await query(
+      return retryWithExponentialBackoff(async () => {
+        const resp = await queryGraphQL(
           "CreateTestRunShard",
           `
           mutation CreateTestRunShard($clientKey: String!, $testRun: TestRunShardInput!) {
@@ -583,8 +584,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     });
 
     try {
-      await exponentialBackoffRetry(async () => {
-        const resp = await query(
+      await retryWithExponentialBackoff(async () => {
+        const resp = await queryGraphQL(
           "AddTestsToShard",
           `
           mutation AddTestsToShard($testRunShardId: String!, $tests: [TestRunTestInputType!]!) {
@@ -640,8 +641,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
 
     try {
-      await exponentialBackoffRetry(async () => {
-        const resp = await query(
+      await retryWithExponentialBackoff(async () => {
+        const resp = await queryGraphQL(
           "CompleteTestRunShard",
           `
         mutation CompleteTestRunShard($testRunShardId: String!) {

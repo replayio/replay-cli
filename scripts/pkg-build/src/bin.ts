@@ -5,11 +5,10 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import builtInModules from "builtin-modules";
 import chalk from "chalk";
 import fastGlob from "fast-glob";
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import fs from "node:fs/promises";
 import { rollup } from "rollup";
 import { dts } from "rollup-plugin-dts";
-import { getBuildablePackageGroups } from "./getBuildablePackageGroups";
 import { makePackagePredicate, PackagePredicate } from "./makePackagePredicate";
 import { esbuild } from "./plugins/esbuild";
 import { resolveErrors } from "./plugins/resolveErrors";
@@ -17,17 +16,11 @@ import { resolveErrors } from "./plugins/resolveErrors";
 const statusFailed = chalk.redBright;
 const statusSuccess = chalk.greenBright;
 
-const tscPath = spawnSync("yarn", ["bin", "tsc"]).stdout.toString().trim();
-
-async function rm(path: string) {
-  try {
-    await fs.rm(path, { recursive: true });
-  } catch (err: any) {
-    if (err.code !== "ENOENT") {
-      throw err;
-    }
-  }
+const tscPathResult = spawnSync("yarn", ["bin", "tsc"]);
+if (tscPathResult.status !== 0) {
+  throw new Error("Failed to find tsc");
 }
+const tscPath = tscPathResult.stdout.toString().trim();
 
 async function buildJs(
   pkg: Package,
@@ -54,7 +47,7 @@ async function buildJs(
       }),
       json(),
       nodeResolve({
-        extensions: [".ts"],
+        extensions: [".ts", ".js"],
       }),
       // in practice this only targets bundled dependencies as everything gets built as CJS
       commonjs(),
@@ -165,60 +158,35 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       : [`${pkg.dir}/src/index.ts`]
   ).filter(input => !/\.(test|spec)\./i.test(input));
 
-  try {
-    const options = { bundledDependenciesDirs, input, isBundledDependency, isExternal };
-    // TODO: parallelize this better
-    const tscResult = spawnSync(tscPath, ["-b"], { stdio: "inherit" });
-    if (tscResult.status !== 0) {
-      throw new Error("tsc failed");
-    }
-    await buildJs(pkg, options);
-    await buildDts(pkg, {
-      ...options,
-      input: input.map(f => f.replace("/src/", "/dist/").replace(/\.ts$/, ".d.ts")),
-    });
-    return {
-      status: "fulfilled" as const,
-      pkg: packageJson.name,
-    };
-  } catch (error) {
-    return {
-      status: "rejected" as const,
-      reason: error,
-      pkg: packageJson.name,
-    };
+  const options = { bundledDependenciesDirs, input, isBundledDependency, isExternal };
+  // TODO: parallelize this better
+  const tscResult = spawnSync(tscPath, [], { stdio: "inherit" });
+  if (tscResult.status !== 0) {
+    throw new Error("tsc failed");
   }
+  await buildJs(pkg, options);
+  await buildDts(pkg, {
+    ...options,
+    input: input.map(f => f.replace("/src/", "/dist/").replace(/\.ts$/, ".d.ts")),
+  });
 }
 
-async function buildAll() {
+async function build() {
   const cwd = process.cwd();
   const { packages } = await getPackages(cwd);
+
+  const pkg = packages.find(pkg => pkg.dir === cwd);
+  assert(pkg, `Could not find monorepo package at current directory: ${cwd}`);
+
   const packagesByName = new Map(packages.map(pkg => [pkg.packageJson.name, pkg]));
 
-  await Promise.all(
-    packages.flatMap(pkg => [rm(`${pkg.dir}/dist`), rm(`${pkg.dir}/tsconfig.tsbuildinfo`)])
-  );
-
-  const packageGroups = getBuildablePackageGroups(packages);
-
-  for (const group of packageGroups) {
-    const packages = group.map(name => packagesByName.get(name)!);
-    const results = await Promise.all(packages.map(pkg => buildPkg(pkg, packagesByName)));
-    const successes = results.filter(r => r.status === "fulfilled");
-
-    successes.forEach(({ pkg }) => {
-      console.log(`${statusSuccess("✔")} Built ${pkg}`);
-    });
-
-    if (successes.length !== results.length) {
-      const failures = results.filter(r => r.status === "rejected");
-
-      failures.forEach(({ pkg, reason }) => {
-        console.log(`${statusFailed("✘")} Failed to build ${pkg}:\n`, reason);
-      });
-      process.exit(1);
-    }
+  try {
+    await buildPkg(pkg, packagesByName);
+    console.log(`${statusSuccess("✔")} Built successfully`);
+  } catch (e) {
+    console.error(`${statusFailed("✘")} Failed to build:\n`, e);
+    process.exit(1);
   }
 }
 
-buildAll();
+build();

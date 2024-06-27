@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import { createPromiseQueue } from "../../async/createPromiseQueue";
+import { createPromiseQueue } from "@replay-cli/shared/async/createPromiseQueue";
 import { hashValue } from "../../hashValue";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { addOriginalSource } from "../../protocol/api/addOriginalSource";

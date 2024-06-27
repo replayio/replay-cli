@@ -1,8 +1,7 @@
+import dbg from "debug";
 import winston from "winston";
 import LokiTransport from "winston-loki";
-import dbg from "debug";
-import { randomUUID } from "crypto";
-import { AuthIds } from "./graphql/fetchAuthIdsFromGraphQL";
+import { AuthIds } from "../graphql/fetchAuthIdsFromGraphQL";
 import { getDeviceId } from "./identifier/getDeviceId";
 
 const GRAFANA_USER = "909360";
@@ -21,7 +20,7 @@ class Logger {
   private authIds?: AuthIds;
   private grafana: {
     logger: winston.Logger;
-    flush: () => Promise<null>;
+    close: () => Promise<void>;
   };
 
   private name: string;
@@ -43,6 +42,7 @@ class Logger {
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
       replaceTimestamp: true,
+      timeout: 5000,
       onConnectionError: err => this.localDebugger("Grafana connection error", err),
       gracefulShutdown: true,
     });
@@ -54,7 +54,10 @@ class Logger {
         level: "info",
         transports: [lokiTransport],
       }),
-      flush: async () => lokiTransport?.flush(),
+      close: async () => {
+        await lokiTransport.flush().catch(() => {});
+        lokiTransport.close?.();
+      },
     };
   }
 
@@ -84,7 +87,7 @@ class Logger {
       return;
     }
 
-    return this.grafana.flush();
+    return this.grafana.close();
   }
 
   debug(message: string, tags?: Record<string, any>) {
@@ -118,3 +121,6 @@ function initLogger(name: string) {
 }
 
 export { initLogger, logger };
+function randomUUID(): string {
+  throw new Error("Function not implemented.");
+}

@@ -1,7 +1,13 @@
-import { ensurePuppeteerBrowsersInstalled } from "@replayio/replay";
+import { initLogger, logger } from "@replay-cli/shared/logger";
+import { installLatestRuntimeRelease } from "@replay-cli/shared/runtime/installLatestRuntimeRelease";
 
 async function install() {
-  await ensurePuppeteerBrowsersInstalled("chromium", { verbose: true });
+  initLogger("puppeteer");
+  try {
+    await installLatestRuntimeRelease();
+  } finally {
+    await logger.close();
+  }
 }
 
 export default install;

@@ -1,6 +1,6 @@
 {
   "name": "@replayio/puppeteer",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Configuration utilities for using the Replay browsers with puppeteer",
   "main": "./dist/index.js",
   "bin": {
@@ -14,11 +14,13 @@
   "scripts": {
     "postinstall": "node ./first-run.js",
     "prepare": "yarn run build",
-    "build": "rm -rf dist/ tsconfig.tsbuildinfo && tsc",
+    "build": "pkg-build",
     "test": "echo \"Error: no test specified\"",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@replay-cli/pkg-build": "workspace:^",
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
     "typescript": "^5.5.2"
@@ -34,8 +36,13 @@
   },
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/puppeteer/README.md",
   "dependencies": {
-    "@replayio/replay": "workspace:^",
-    "@replayio/test-utils": "workspace:^"
+    "@replayio/test-utils": "workspace:^",
+    "chalk": "^4.1.2",
+    "debug": "^4.3.4",
+    "fs-extra": "^11.2.0",
+    "undici": "^5.28.4",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2"
   },
   "@replay-cli/pkg-build": {
     "entrypoints": [

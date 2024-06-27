@@ -18,7 +18,8 @@ test:
 setup:
   FROM +build
   RUN apt update && apt install xz-utils
-  RUN npx replayio install
+  # it's added here to deps to avoid affecting Turborepo's dependency graph and related caching
+  RUN yarn add --dev "replayio@workspace:^" && npx --no replayio install
   # download binary openssl packages from Impish builds
   RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/openssl_1.1.1f-1ubuntu2.22_amd64.deb
   RUN wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1f-1ubuntu2.22_amd64.deb

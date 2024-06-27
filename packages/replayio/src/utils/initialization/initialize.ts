@@ -1,5 +1,5 @@
+import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
 import { logPromise } from "../async/logPromise";
-import { raceWithTimeout } from "../async/raceWithTimeout";
 import { initLaunchDarklyFromAccessToken } from "../launch-darkly/initLaunchDarklyFromAccessToken";
 import { initMixpanelForUserSession } from "../mixpanel/initMixpanelForUserSession";
 import { checkAuthentication } from "./checkAuthentication";

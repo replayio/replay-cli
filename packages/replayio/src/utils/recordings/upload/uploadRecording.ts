@@ -1,10 +1,13 @@
-import assert from "node:assert/strict";
+import { createDeferred } from "@replay-cli/shared/async/createDeferred";
+import {
+  retryWithExponentialBackoff,
+  retryWithLinearBackoff,
+} from "@replay-cli/shared/async/retryOnFailure";
 import { ReadStream, createReadStream, stat } from "fs-extra";
+import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { replayWsServer } from "../../../config";
-import { createDeferred } from "../../async/createDeferred";
-import { createPromiseQueue } from "../../async/createPromiseQueue";
-import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retry";
+import { createPromiseQueue } from "@replay-cli/shared/async/createPromiseQueue";
 import { getUserAgent } from "../../getUserAgent";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
