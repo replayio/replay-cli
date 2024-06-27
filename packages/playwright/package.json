@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.1",
+    "@replay-cli/pkg-build": "workspace:^",
     "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.8",

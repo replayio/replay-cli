@@ -39,6 +39,7 @@
     "winston-loki": "^6.1.2"
   },
   "devDependencies": {
+    "@replay-cli/pkg-build": "workspace:^",
     "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",

@@ -36,6 +36,7 @@
     "@jest/reporters": "^27.5.1",
     "@jest/test-result": "^27.5.1",
     "@jest/types": "^27.5.1",
+    "@replay-cli/pkg-build": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@types/node": "^20.11.27",
     "typescript": "^5.5.2"
