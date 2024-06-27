@@ -2,7 +2,6 @@ import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFai
 import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { initLogger, logger } from "@replay-cli/shared/logger";
-import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   UnstructuredMetadata,
@@ -23,6 +22,7 @@ import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { RecordingEntry } from "./types";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];

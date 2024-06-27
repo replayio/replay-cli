@@ -15739,6 +15739,7 @@ __metadata:
     undici: "npm:^5.28.4"
     uuid: "npm:^8.3.2"
     winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
     ws: "npm:^7.5.0"
   bin:
     replayio: ./bin.js
