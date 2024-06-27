@@ -3,7 +3,7 @@ import { logger } from "@replay-cli/shared/logger";
 import { readFile, writeFileSync } from "fs-extra";
 import { File, FormData, fetch } from "undici";
 import { replayApiServer } from "../../config";
-import { getUserAgent } from "../../utils/getUserAgent";
+import { getUserAgent } from "@replay-cli/shared/userAgent";
 import { checkAuthentication } from "../../utils/initialization/checkAuthentication";
 import { getCurrentRuntimeMetadata } from "../../utils/initialization/getCurrentRuntimeMetadata";
 import { runtimeMetadata } from "../../utils/installation/config";
