@@ -1,10 +1,10 @@
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { dim } from "@replay-cli/shared/theme";
 import { uploadSourceMaps as uploadSourceMapsExternal } from "@replayio/sourcemap-upload";
 import { replayApiServer } from "../config";
-import { getAccessToken } from "../utils/authentication/getAccessToken";
-import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { dim } from "../utils/theme";
 import { logPromise } from "../utils/async/logPromise";
+import { registerCommand } from "../utils/commander/registerCommand";
 
 registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
   .description("Upload source-maps for a Workspace")

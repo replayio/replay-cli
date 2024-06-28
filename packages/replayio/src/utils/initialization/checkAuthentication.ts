@@ -1,4 +1,4 @@
-import { getAccessToken } from "../authentication/getAccessToken";
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 
 export async function checkAuthentication() {
   return await getAccessToken();

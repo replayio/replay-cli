@@ -57,6 +57,8 @@
     "table": "^6.8.2",
     "undici": "^5.28.4",
     "uuid": "^8.3.2",
+    "winston": "^3.13.0",
+    "winston-loki": "^6.1.2",
     "ws": "^7.5.0"
   },
   "devDependencies": {

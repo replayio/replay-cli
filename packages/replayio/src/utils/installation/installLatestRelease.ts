@@ -1,16 +1,16 @@
 // TODO [PRO-720] Consolidate with code in @replay-cli/shared/src/runtime
 
+import { writeToCache } from "@replay-cli/shared/cache";
+import { getReplayPath } from "@replay-cli/shared/getReplayPath";
+import { logger } from "@replay-cli/shared/logger";
+import { withTrackAsyncEvent } from "@replay-cli/shared/mixpanel/withTrackAsyncEvent";
+import { dim, link } from "@replay-cli/shared/theme";
 import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
 import { get } from "https";
 import { join } from "path";
 import { logAsyncOperation } from "../async/logAsyncOperation";
-import { writeToCache } from "../cache";
-import { getReplayPath } from "@replay-cli/shared/getReplayPath";
-import { withTrackAsyncEvent } from "../mixpanel/withTrackAsyncEvent";
-import { dim, link } from "../theme";
 import { metadataPath, runtimeMetadata } from "./config";
-import { debug } from "./debug";
 import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
 
@@ -38,17 +38,17 @@ export const installLatestRelease = withTrackAsyncEvent(
 
       progress.setPending("Processing downloaded browser archive");
 
-      debug("Removing previous installation at %s", runtimePath);
+      logger.debug(`Removing previous installation at ${runtimePath}`);
       rmSync(runtimePath, { force: true, recursive: true });
 
       ensureDirSync(runtimeBaseDir);
 
-      debug("Writing downloaded file data to %s", downloadFilePath);
+      logger.debug(`Writing downloaded file data to ${downloadFilePath}`);
       writeFileSync(downloadFilePath, buffers);
 
       extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-      debug("Deleting downloaded file %s", downloadFilePath);
+      logger.debug(`Deleting downloaded file ${downloadFilePath}`);
       unlinkSync(downloadFilePath);
 
       // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
@@ -66,7 +66,7 @@ export const installLatestRelease = withTrackAsyncEvent(
       const latestVersion = latestRelease.version;
 
       // Write version metadata to disk so we can compare against the latest release and prompt to update
-      debug("Saving release metadata to %s", metadataPath);
+      logger.debug(`Saving release metadata to ${metadataPath}`);
       writeToCache<MetadataJSON>(metadataPath, {
         chromium: {
           buildId: latestBuildId,
@@ -82,7 +82,7 @@ export const installLatestRelease = withTrackAsyncEvent(
         forkedVersion: latestVersion,
       };
     } catch (error) {
-      debug("Browser installation failed: %o", error);
+      logger.debug("Browser installation failed", { error });
 
       progress.setFailed(
         "Something went wrong installing the Replay browser. Please try again later."
@@ -124,7 +124,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
       const request = get(options, response => {
         if (response.statusCode != 200) {
-          debug(`Download received status code ${response.statusCode}, retrying...`);
+          logger.debug(`Download received status code ${response.statusCode}, retrying...`);
           request.destroy();
           resolve(null);
           return;
@@ -135,7 +135,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        debug(`Download error ${error}, retrying...`);
+        logger.debug(`Download error ${error}, retrying...`);
         request.destroy();
         resolve(null);
       });
@@ -150,14 +150,14 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
 }
 
 async function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string) {
-  debug("Extracting archived file at %s", downloadFilePath);
+  logger.debug(`Extracting archived file at ${downloadFilePath}`);
 
   const tarResult = spawnSync("tar", ["xf", runtimeMetadata.downloadFileName], {
     cwd: runtimeBaseDir,
   });
   if (tarResult.status !== 0) {
-    debug("Failed to extract", downloadFilePath);
-    debug(String(tarResult.stderr));
+    logger.debug(`Failed to extract ${downloadFilePath}`);
+    logger.debug(String(tarResult.stderr));
 
     throw new Error("Unable to extract browser archive");
   }

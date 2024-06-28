@@ -1,13 +1,12 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { canUpload } from "../utils/recordings/canUpload";
-import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { dim } from "../utils/theme";
+import { findRecordingsWithShortIds } from "@replay-cli/shared/recording/findRecordingsWithShortIds";
+import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
+import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
+import { LocalRecording } from "@replay-cli/shared/recording/types";
+import { uploadRecordings } from "@replay-cli/shared/recording/upload/uploadRecordings";
+import { dim } from "@replay-cli/shared/theme";
 
 registerCommand("upload", { requireAuthentication: true })
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))

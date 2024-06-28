@@ -1,7 +1,7 @@
+import { highlight } from "@replay-cli/shared/theme";
 import { name as packageName } from "../../../package.json";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
-import { highlight } from "../theme";
 import { UpdateCheckResult } from "./types";
 
 const PROMPT_ID = "npm-update";

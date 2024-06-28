@@ -1,12 +1,12 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { findRecordingsWithShortIds } from "@replay-cli/shared/recording/findRecordingsWithShortIds";
+import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
+import { removeAllFromDisk, removeFromDisk } from "@replay-cli/shared/recording/removeFromDisk";
+import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
+import { LocalRecording } from "@replay-cli/shared/recording/types";
+import { dim } from "@replay-cli/shared/theme";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
-import { findRecordingsWithShortIds } from "../utils/recordings/findRecordingsWithShortIds";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { removeAllFromDisk, removeFromDisk } from "../utils/recordings/removeFromDisk";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { dim } from "../utils/theme";
 
 registerCommand("remove")
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))

@@ -1,5 +1,5 @@
+import { highlight, highlightAlternate } from "@replay-cli/shared/theme";
 import { drawBoxAroundText } from "../formatting";
-import { highlight, highlightAlternate } from "../theme";
 import { formatCommandOrOptionLine } from "./formatCommandOrOptionLine";
 import { Block } from "./types";
 

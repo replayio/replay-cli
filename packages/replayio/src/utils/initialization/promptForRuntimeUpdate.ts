@@ -1,9 +1,9 @@
+import { trackEvent } from "@replay-cli/shared/mixpanel/trackEvent";
+import { emphasize } from "@replay-cli/shared/theme";
 import { name as packageName } from "../../../package.json";
 import { installLatestRelease } from "../installation/installLatestRelease";
-import { trackEvent } from "../mixpanel/trackEvent";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
-import { emphasize } from "../theme";
 import { Version } from "./checkForRuntimeUpdate";
 import { UpdateCheckResult } from "./types";
 
