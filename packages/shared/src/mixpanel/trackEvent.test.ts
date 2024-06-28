@@ -43,7 +43,7 @@ describe("trackEvent", () => {
       await act(() => {
         configureSession("fake-access-token", {
           packageName: "fake-package",
-          packageVersion: "fake-version",
+          packageVersion: "0.0.0",
         });
       });
 
@@ -58,7 +58,7 @@ describe("trackEvent", () => {
     it("should track events after authentication fails", async () => {
       trackEvent("pending-1", {
         packageName: "fake-package",
-        packageVersion: "fake-version",
+        packageVersion: "0.0.0",
       });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(0);
@@ -66,7 +66,7 @@ describe("trackEvent", () => {
       await act(() => {
         configureSession(undefined, {
           packageName: "fake-package",
-          packageVersion: "fake-version",
+          packageVersion: "0.0.0",
         });
       });
 
@@ -78,27 +78,27 @@ describe("trackEvent", () => {
     });
 
     it("should still include non-user-specific default properties", async () => {
-      trackEvent("replayio.no-args");
-      trackEvent("replayio.some-args", { foo: 123, bar: "abc" });
+      trackEvent("fake-package.no-args");
+      trackEvent("fake-package.some-args", { foo: 123, bar: "abc" });
 
       await act(() => {
         configureSession(undefined, {
           packageName: "fake-package",
-          packageVersion: "fake-version",
+          packageVersion: "0.0.0",
         });
       });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(2);
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         1,
-        "replayio.no-args",
-        { packageName: "fake-package", packageVersion: "fake-version" },
+        "fake-package.no-args",
+        { packageName: "fake-package", packageVersion: "0.0.0" },
         anyCallback
       );
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         2,
-        "replayio.some-args",
-        { foo: 123, bar: "abc", packageName: "fake-package", packageVersion: "fake-version" },
+        "fake-package.some-args",
+        { foo: 123, bar: "abc", packageName: "fake-package", packageVersion: "0.0.0" },
         anyCallback
       );
     });
@@ -108,24 +108,24 @@ describe("trackEvent", () => {
     beforeEach(() => {
       configureSession("fake-user-id", {
         packageName: "fake-package",
-        packageVersion: "fake-version",
+        packageVersion: "0.0.0",
       });
     });
 
-    it("should enforce the replayio. namespace prefix", async () => {
+    it("should enforce the package name prefix", async () => {
       trackEvent("has.no.prefix");
-      trackEvent("replayio.has-prefix");
+      trackEvent("fake-package.has-prefix");
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(2);
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         1,
-        "replayio.has.no.prefix",
+        "fake-package.has.no.prefix",
         anyProperties,
         anyCallback
       );
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         2,
-        "replayio.has-prefix",
+        "fake-package.has-prefix",
         anyProperties,
         anyCallback
       );
@@ -134,32 +134,32 @@ describe("trackEvent", () => {
     it("should include additional user-specific default properties when authenticated", async () => {
       configureSession("fake-user-id", {
         packageName: "fake-package",
-        packageVersion: "fake-version",
+        packageVersion: "0.0.0",
       });
 
-      trackEvent("replayio.no-args");
-      trackEvent("replayio.some-args", { foo: 123, bar: "abc" });
+      trackEvent("fake-package.no-args");
+      trackEvent("fake-package.some-args", { foo: 123, bar: "abc" });
 
       expect(mockMixpanelAPI.track).toHaveBeenCalledTimes(2);
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         1,
-        "replayio.no-args",
+        "fake-package.no-args",
         {
           distinct_id: "fake-user-id",
           packageName: "fake-package",
-          packageVersion: "fake-version",
+          packageVersion: "0.0.0",
         },
         anyCallback
       );
       expect(mockMixpanelAPI.track).toHaveBeenNthCalledWith(
         2,
-        "replayio.some-args",
+        "fake-package.some-args",
         {
           distinct_id: "fake-user-id",
           foo: 123,
           bar: "abc",
           packageName: "fake-package",
-          packageVersion: "fake-version",
+          packageVersion: "0.0.0",
         },
         anyCallback
       );

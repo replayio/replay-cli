@@ -3,16 +3,17 @@ import { logger } from "../logger";
 import { getMixpanelAPI } from "./getMixpanelAPI";
 import { addPendingEvent, removePendingEvent } from "./pendingEvents";
 import { defaultProperties, deferredSession } from "./session";
-import { EventProperties, MixpanelAPI } from "./types";
+import { MixpanelAPI, Properties } from "./types";
 
-export function trackEvent(eventName: string, properties: EventProperties = {}) {
+export function trackEvent(eventName: string, properties: Properties = {}) {
   const mixpanelAPI = getMixpanelAPI();
   if (!mixpanelAPI) {
     return;
   }
 
-  if (!eventName.startsWith("replayio.")) {
-    eventName = `replayio.${eventName}`;
+  const prefix = defaultProperties.packageName ? `${defaultProperties.packageName}.` : "";
+  if (prefix && !eventName.startsWith(prefix)) {
+    eventName = prefix + eventName;
   }
 
   logger.debug(`trackEvent: "${eventName}"`, { properties });
@@ -26,7 +27,7 @@ export function trackEvent(eventName: string, properties: EventProperties = {}) 
 async function trackEventImplementation(
   mixpanelAPI: MixpanelAPI,
   eventName: string,
-  properties: EventProperties
+  properties: Properties
 ) {
   const deferredEvent = createDeferred<boolean, string>(eventName);
 

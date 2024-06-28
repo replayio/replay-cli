@@ -14,7 +14,10 @@ describe("withTrackAsyncEvent", () => {
     // jest.resetModules does not work with import; only works with require()
     withTrackAsyncEvent = require("./withTrackAsyncEvent").withTrackAsyncEvent;
 
-    require("./session").configureSession("fake-user-id");
+    require("./session").configureSession("fake-user-id", {
+      packageName: "fake-name",
+      packageVersion: "0.0.0",
+    });
     require("./getMixpanelAPI").setMixpanelAPIForTests(mockMixpanelAPI);
   });
 

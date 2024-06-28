@@ -1,4 +1,4 @@
-import { readFromCache } from "../cache";
+import { readFromCache, writeToCache } from "../cache";
 import { updateCachedAuthInfo } from "../graphql/updateCachedAuthInfo";
 import { cachedAuthPath } from "./config";
 import { CachedAuthDetails } from "./types";
@@ -8,4 +8,6 @@ export async function logoutIfAuthenticated() {
   if (accessToken) {
     updateCachedAuthInfo(accessToken, undefined);
   }
+
+  writeToCache(cachedAuthPath, undefined);
 }

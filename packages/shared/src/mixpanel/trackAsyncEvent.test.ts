@@ -20,7 +20,10 @@ describe("trackAsyncEvent", () => {
 
     require("./getMixpanelAPI").setMixpanelAPIForTests(mockMixpanelAPI);
 
-    configureSession("fake-user-id");
+    configureSession("fake-user-id", {
+      packageName: "fake-package",
+      packageVersion: "0.0.0",
+    });
   });
 
   afterEach(() => {

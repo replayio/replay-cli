@@ -1,11 +1,11 @@
 import { logger } from "../logger";
 import { trackEvent } from "./trackEvent";
-import { EventProperties } from "./types";
+import { Properties } from "./types";
 
 export async function trackAsyncEvent<Type>(
   promise: Promise<Type>,
   eventName: string,
-  properties?: EventProperties | ((result: Type | undefined, error: any) => EventProperties)
+  properties?: Properties | ((result: Type | undefined, error: any) => Properties)
 ): Promise<Type> {
   logger.debug(`trackAsyncEvent: "${eventName}" (awaiting promise)`, { eventName, properties });
 

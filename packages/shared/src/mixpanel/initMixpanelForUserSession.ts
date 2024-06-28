@@ -2,13 +2,11 @@ import { getAuthInfo } from "../graphql/getAuthInfo";
 import { logger } from "../logger";
 import { getMixpanelAPI } from "./getMixpanelAPI";
 import { configureSession } from "./session";
+import { DefaultProperties } from "./types";
 
 export async function initMixpanelForUserSession(
   accessToken: string | undefined,
-  packageMetadata: {
-    packageName: string;
-    packageVersion: string;
-  }
+  defaultProperties: DefaultProperties
 ) {
   let id: string | undefined = undefined;
 
@@ -27,5 +25,5 @@ export async function initMixpanelForUserSession(
     }
   }
 
-  configureSession(id, packageMetadata);
+  configureSession(id, defaultProperties);
 }
