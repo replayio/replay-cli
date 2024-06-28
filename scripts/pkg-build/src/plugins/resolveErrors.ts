@@ -36,6 +36,9 @@ export function resolveErrors({
         importer = bundledSourceId;
       }
       const resolved = await this.resolve(source, importer, options);
+      if (source.includes("_bundled")) {
+        return resolved;
+      }
       if (resolved === null) {
         if (!source.startsWith(".")) {
           throw new Error(

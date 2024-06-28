@@ -66,7 +66,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       {
         name: "bundled",
         async load(id) {
-          if (id.startsWith("\0") && id.includes("_bundled")) {
+          if (id.includes("_bundled")) {
             let bundledId = id.replace(/^(.)+\/_bundled\//, "");
             let entrypointStart = bundledId.indexOf("/");
             if (entrypointStart !== -1 && bundledId.startsWith("@")) {
@@ -119,7 +119,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
           if (!id.includes("_bundled")) {
             return null;
           }
-          return `\0${id}`;
+          return id;
         },
       },
       nodeResolve({
