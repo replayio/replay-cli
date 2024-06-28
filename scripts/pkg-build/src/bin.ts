@@ -52,7 +52,9 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       : [`${pkg.dir}/src/index.ts`]
   ).filter(input => !/\.(test|spec)\./i.test(input));
 
+  // TODO: recheck if this is needed and if its name can be improved
   const bundledIdsCache = new Map<string, string>();
+  const bundledResolvedIdToLocalId = new Map<string, string>();
 
   const bundle = await rollup({
     input,
@@ -68,35 +70,6 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       {
         name: "bundled",
         async load(id) {
-          if (id.includes("_bundled")) {
-            let bundledId = id.replace(/^(.)+\/_bundled\//, "");
-            let entrypointStart = bundledId.indexOf("/");
-            if (entrypointStart !== -1 && bundledId.startsWith("@")) {
-              entrypointStart = bundledId.indexOf("/", entrypointStart + 1);
-            }
-            let originalId;
-            let sourceId;
-            if (entrypointStart !== -1) {
-              const pkgId = bundledId.slice(0, entrypointStart);
-              const entrypoint = bundledId.slice(entrypointStart);
-              originalId = `${pkgId}${entrypoint}`;
-              sourceId = `${packagesByName.get(pkgId)!.dir}/src${entrypoint}`;
-            } else {
-              originalId = bundledId;
-              sourceId = `${packagesByName.get(bundledId)!.dir}/src/index`;
-            }
-
-            bundledIdsCache.set(id, sourceId);
-
-            // TODO: handle nested bundled dependencies
-            const resolved = await this.resolve(sourceId, id);
-            if (!resolved) {
-              throw new Error(
-                "Could not resolve bundled dependency source file for: " + originalId
-              );
-            }
-            return fs.readFile(resolved.id, "utf8");
-          }
           if (!/\.(mts|cts|ts|tsx)$/.test(id) || !bundledDependencies.length) {
             return null;
           }
@@ -118,13 +91,53 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
 
           fsMap.set(id, code);
 
+          if (bundledIdsCache.has(id)) {
+            // pretend they actually exist within input directory
+            fsMap.set(bundledResolvedIdToLocalId.get(id)!, code);
+          }
+
           return code;
         },
         async resolveId(id, importer, options) {
           if (!id.includes("_bundled")) {
             return null;
           }
-          return id;
+          let bundledId = id.replace(/^(.)+\/_bundled\//, "");
+          let entrypointStart = bundledId.indexOf("/");
+          if (entrypointStart !== -1 && bundledId.startsWith("@")) {
+            entrypointStart = bundledId.indexOf("/", entrypointStart + 1);
+          }
+          let bundledPkgId;
+          let bundledSrcPath;
+          let originalId;
+          let sourceId;
+
+          if (entrypointStart !== -1) {
+            const entrypoint = bundledId.slice(entrypointStart);
+            bundledPkgId = bundledId.slice(0, entrypointStart);
+            bundledSrcPath = `${packagesByName.get(bundledPkgId)!.dir}/src`;
+            originalId = `${bundledPkgId}${entrypoint}`;
+            sourceId = `${bundledSrcPath}${entrypoint}`;
+          } else {
+            bundledPkgId = bundledId;
+            originalId = bundledId;
+            bundledSrcPath = `${packagesByName.get(bundledId)!.dir}/src`;
+            sourceId = `${bundledSrcPath}/index`;
+          }
+
+          const resolved = await this.resolve(sourceId, undefined, options);
+
+          if (resolved) {
+            bundledIdsCache.set(resolved.id, sourceId);
+            assert(importer, "a bundled dependency should always be imported by another file");
+            const localId = `${bundledRoot}/${bundledPkgId}${resolved.id.replace(
+              bundledSrcPath,
+              ""
+            )}`;
+            bundledResolvedIdToLocalId.set(resolved.id, localId);
+          }
+
+          return resolved;
         },
       },
       nodeResolve({
