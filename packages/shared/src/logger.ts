@@ -2,7 +2,7 @@ import dbg from "debug";
 import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
-import { getDeviceId } from "./identifier/getDeviceId";
+import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
 
 const GRAFANA_USER = "909360";

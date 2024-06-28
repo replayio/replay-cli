@@ -1,6 +1,8 @@
-import { readFromCache, writeToCache } from "../cache";
-import { cachePath } from "./cachePath";
+import { readFromCache, writeToCache } from "./cache";
+import { getObservabilityCachePath } from "./getObservabilityCachePath";
 import { randomUUID } from "crypto";
+
+const cachePath = getObservabilityCachePath("device.json");
 
 type Cached = {
   [id: string]: string;
