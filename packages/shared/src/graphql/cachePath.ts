@@ -1,3 +1,3 @@
-import { getReplayPath } from "../getReplayPath";
+import { getObservabilityCachePath } from "../getObservabilityCachePath";
 
-export const cachePath = getReplayPath("observability-profile", "graphql.json");
+export const cachePath = getObservabilityCachePath("graphql.json");
