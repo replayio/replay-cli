@@ -19,7 +19,10 @@ export interface Deferred<Type, Data = undefined> {
   status: StatusPending | StatusRejected | StatusResolved;
 }
 
-export type Status = StatusPending | StatusRejected | StatusResolved;
+type Status = StatusPending | StatusRejected | StatusResolved;
+
+// TODO [PRO-720] Undo this workaround; it's required at the moment to prevent the type from being stripped
+export { type Status };
 
 export function createDeferred<Type, Data>(data: Data, debugLabel?: string): Deferred<Type, Data>;
 export function createDeferred<Type, Data = undefined>(

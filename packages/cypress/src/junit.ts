@@ -1,5 +1,5 @@
-import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { warn } from "@replayio/test-utils";
+import { RecordingEntry } from "@replayio/test-utils";
 import dbg from "debug";
 import fs, { readFileSync, writeFileSync } from "fs";
 import path from "path";

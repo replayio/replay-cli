@@ -1,5 +1,5 @@
+import { dim } from "@replay-cli/shared/theme";
 import strip from "strip-ansi";
-import { dim } from "./theme";
 
 export function drawBoxAroundText(
   text: string,

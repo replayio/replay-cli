@@ -1,4 +1,4 @@
-import { readFromCache } from "../cache";
+import { readFromCache } from "@replay-cli/shared/cache";
 import { promptHistoryPath } from "./config";
 import { PromptHistory } from "./types";
 

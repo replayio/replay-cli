@@ -1,4 +1,4 @@
-import { dim, highlight, highlightAlternate } from "../theme";
+import { dim, highlight, highlightAlternate } from "@replay-cli/shared/theme";
 
 export function formatCommandOrOptionLine(line: string): string {
   // drop aliases

@@ -1,7 +1,7 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { killBrowserIfRunning } from "../utils/browser/killBrowserIfRunning";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { exitProcess } from "../utils/exitProcess";
 
 registerCommand("open", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)

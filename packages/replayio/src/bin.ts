@@ -1,5 +1,7 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
+import { name, version } from "../package.json";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
-import { exitProcess } from "./utils/exitProcess";
 
 // Commands self-register with "commander"
 import "./commands/info";
@@ -12,6 +14,11 @@ import "./commands/remove";
 import "./commands/update";
 import "./commands/upload";
 import "./commands/upload-source-maps";
+import { initLogger } from "@replay-cli/shared/logger";
+
+initLogger(name, version);
+
+setUserAgent(`${name}/${version}`);
 
 finalizeCommander();
 

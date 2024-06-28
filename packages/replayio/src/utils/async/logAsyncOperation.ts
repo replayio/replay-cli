@@ -4,10 +4,10 @@ import {
   STATUS_RESOLVED,
   Status,
 } from "@replay-cli/shared/async/createDeferred";
+import { statusFailed, statusPending, statusSuccess } from "@replay-cli/shared/theme";
 import { dots } from "cli-spinners";
+import { logUpdate } from "../../../../shared/src/logUpdate";
 import { disableAnimatedLog } from "../../config";
-import { logUpdate } from "../logUpdate";
-import { statusFailed, statusPending, statusSuccess } from "../theme";
 
 export type LogProgressOptions = { delayBeforeLoggingMs?: number };
 
@@ -21,7 +21,7 @@ export function logAsyncOperation(
   let displayedMessage = initialMessage;
 
   const print = () => {
-    let prefix: string;
+    let prefix: string = "";
     switch (status) {
       case STATUS_PENDING:
         if (!disableAnimatedLog && delayBeforeLoggingMs > 0 && Date.now() < logAfter) {

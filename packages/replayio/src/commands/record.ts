@@ -1,21 +1,21 @@
+import { ProcessError } from "@replay-cli/shared/ProcessError";
+import { trackEvent } from "@replay-cli/shared/mixpanel/trackEvent";
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { canUpload } from "@replay-cli/shared/recording/canUpload";
+import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
+import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
+import { LocalRecording } from "@replay-cli/shared/recording/types";
+import { uploadRecordings } from "@replay-cli/shared/recording/upload/uploadRecordings";
+import { dim, statusFailed } from "@replay-cli/shared/theme";
 import debug from "debug";
 import { v4 as uuid } from "uuid";
-import { ProcessError } from "../utils/ProcessError";
 import { logAsyncOperation } from "../utils/async/logAsyncOperation";
 import { killBrowserIfRunning } from "../utils/browser/killBrowserIfRunning";
 import { launchBrowser } from "../utils/browser/launchBrowser";
 import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
-import { exitProcess } from "../utils/exitProcess";
-import { trackEvent } from "../utils/mixpanel/trackEvent";
-import { canUpload } from "../utils/recordings/canUpload";
-import { getRecordings } from "../utils/recordings/getRecordings";
-import { printRecordings } from "../utils/recordings/printRecordings";
-import { selectRecordings } from "../utils/recordings/selectRecordings";
-import { LocalRecording } from "../utils/recordings/types";
-import { uploadRecordings } from "../utils/recordings/upload/uploadRecordings";
-import { dim, statusFailed } from "../utils/theme";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)

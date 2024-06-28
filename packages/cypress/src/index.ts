@@ -1,8 +1,7 @@
 /// <reference types="cypress" />
 
-import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
-import { initMetadataFile, warn } from "@replayio/test-utils";
+import { RecordingEntry, initMetadataFile, warn } from "@replayio/test-utils";
 import chalk from "chalk";
 import dbg from "debug";
 import path from "path";
@@ -16,6 +15,16 @@ import { createServer } from "./server";
 import type { StepEvent } from "./support";
 
 export type { PluginOptions } from "./reporter";
+export {
+  getMetadataFilePath,
+  onAfterRun,
+  onAfterSpec,
+  onBeforeBrowserLaunch,
+  onBeforeRun,
+  onBeforeSpec,
+  plugin,
+  cypressOnWrapper as wrapOn,
+};
 
 const debug = dbg("replay:cypress:plugin");
 const debugTask = debug.extend("task");
@@ -342,13 +351,3 @@ export function getCypressReporter() {
 }
 
 export default plugin;
-export {
-  getMetadataFilePath,
-  onAfterRun,
-  onAfterSpec,
-  onBeforeBrowserLaunch,
-  onBeforeRun,
-  onBeforeSpec,
-  plugin,
-  cypressOnWrapper as wrapOn,
-};

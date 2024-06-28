@@ -1,6 +1,6 @@
+import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { killProcess } from "@replay-cli/shared/process/killProcess";
 import { confirm } from "../confirm";
-import { exitProcess } from "../exitProcess";
-import { killProcess } from "../killProcess";
 import { getRunningProcess } from "./getRunningProcess";
 
 export async function killBrowserIfRunning() {

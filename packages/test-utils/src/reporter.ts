@@ -1,8 +1,7 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
-import { getAuthIds } from "@replay-cli/shared/graphql/getAuthIds";
+import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { initLogger, logger } from "@replay-cli/shared/logger";
-import { RecordingEntry } from "@replay-cli/shared/recording/types";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   UnstructuredMetadata,
@@ -23,6 +22,7 @@ import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
+import { RecordingEntry } from "./types";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -273,7 +273,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._runner = runner;
     this._schemaVersion = schemaVersion;
 
-    initLogger(this._runner.name);
+    initLogger(this._runner.name, this._runner.version);
 
     if (config) {
       const { metadataKey, ...rest } = config;
@@ -281,9 +281,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
 
     if (this._apiKey) {
-      this._cacheAuthIdsPromise = getAuthIds(this._apiKey)
-        .then(ids => {
-          logger.identify(ids);
+      this._cacheAuthIdsPromise = getAuthInfo(this._apiKey)
+        .then(authInfo => {
+          logger.identify(authInfo);
           logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
         .catch(e =>

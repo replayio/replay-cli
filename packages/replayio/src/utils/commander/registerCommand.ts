@@ -1,6 +1,6 @@
+import { trackEvent } from "@replay-cli/shared/mixpanel/trackEvent";
 import { program } from "commander";
 import { initialize } from "../initialization/initialize";
-import { trackEvent } from "../mixpanel/trackEvent";
 
 export function registerCommand(
   commandName: string,
