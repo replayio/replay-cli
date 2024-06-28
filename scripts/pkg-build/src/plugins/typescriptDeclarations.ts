@@ -132,12 +132,9 @@ function getDeclarations(
             (node): typeof node => {
               const visitor = (node: Node): Node => {
                 const specifier = getModuleSpecifier(ts, node);
-                if (specifier) {
+                if (specifier?.text.startsWith(".")) {
                   const resolvedModule = resolveModule(specifier.text, fileName);
-                  if (
-                    resolvedModule &&
-                    !resolvedModule.resolvedFileName.includes("/node_modules/")
-                  ) {
+                  if (resolvedModule) {
                     depQueue.add(resolvedModule.resolvedFileName);
                   }
                 }

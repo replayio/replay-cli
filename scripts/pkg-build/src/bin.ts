@@ -27,8 +27,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
   ]);
 
   // TODO: filter to packages within packages directory
-  const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(name =>
-    packagesByName.has(name)
+  const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(
+    name => packagesByName.has(name) && !isExternal(name)
   );
   const isBundledDependency = makePackagePredicate(bundledDependencies);
   const bundledDependenciesDirs = bundledDependencies.map(

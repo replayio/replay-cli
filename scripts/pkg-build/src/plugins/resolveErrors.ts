@@ -27,7 +27,7 @@ export function resolveErrors({
       if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
         throw new Error(
           `"${source}" is imported ${
-            importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
+            importer ? `by "${importer}" ` : ""
           }but the package is not specified in dependencies or peerDependencies`
         );
       }
