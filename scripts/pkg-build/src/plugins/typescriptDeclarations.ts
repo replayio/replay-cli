@@ -1,17 +1,18 @@
 import { Package } from "@manypkg/get-packages";
 import assert from "node:assert/strict";
 import { EOL } from "node:os";
+import path from "path";
 import { Plugin } from "rollup";
 import type { FormatDiagnosticsHost, Node, Program, ResolvedModuleFull, System } from "typescript";
 
 type EmittedFile = {
-  name: string;
+  fileName: string;
   content: string;
 };
 
 type EmittedDeclarationOutput = {
-  types: EmittedFile;
-  filename: string;
+  fileName: string;
+  dts: EmittedFile;
 };
 
 function getSystem(ts: typeof import("typescript"), { cwd }: { cwd: string }): System {
@@ -56,8 +57,8 @@ function getModuleSpecifier(ts: typeof import("typescript"), node: Node) {
   }
 }
 
-async function getProgram(ts: typeof import("typescript"), host: System, dirname: string) {
-  const configFileName = ts.findConfigFile(dirname, host.fileExists);
+async function getProgram(ts: typeof import("typescript"), host: System, cwd: string) {
+  const configFileName = ts.findConfigFile(cwd, host.fileExists);
   if (!configFileName) {
     throw new Error("Not tsconfig.json found");
   }
@@ -66,16 +67,10 @@ async function getProgram(ts: typeof import("typescript"), host: System, dirname
     host.readFile(configFileName, "utf8")!
   );
 
-  const parsed = ts.parseJsonConfigFileContent(
-    result.config,
-    host,
-    process.cwd(),
-    undefined,
-    configFileName
-  );
+  const parsed = ts.parseJsonConfigFileContent(result.config, host, cwd, undefined, configFileName);
 
-  parsed.options.outDir = undefined;
-  parsed.options.declarationDir = undefined;
+  // parsed.options.outDir = "dist";
+  // parsed.options.declarationDir = "dist";
   parsed.options.declaration = true;
   // supporting declarationMap for bundled dependencies is tricky
   // a published package doesn't have the relevant source files
@@ -107,26 +102,26 @@ function getDeclarations(
   const diagnosticsHost = getDiagnosticsHost(ts, { cwd });
   const emitted: EmittedDeclarationOutput[] = [];
 
-  for (const filename of depQueue) {
-    const sourceFile = program.getSourceFile(filename);
-    assert(sourceFile, `Could not find source file for ${filename}`);
+  for (const fileName of depQueue) {
+    const sourceFile = program.getSourceFile(fileName);
+    assert(sourceFile, `Could not find source file for ${fileName}`);
 
-    if (/\.d\.[cm]?ts$/.test(filename)) {
+    if (/\.d\.[cm]?ts$/.test(fileName)) {
       throw new Error("Declaration files should not be used. Please use a TS source file.");
     }
 
     let dts: EmittedFile | undefined;
-    const otherEmitted: { name: string; content: string }[] = [];
+    const otherEmitted: EmittedFile[] = [];
     const { diagnostics } = program.emit(
       sourceFile,
-      (name, content) => {
-        if (name.endsWith(".d.ts")) {
+      (fileName, content) => {
+        if (fileName.endsWith(".d.ts")) {
           dts = {
-            name,
+            fileName,
             content,
           };
         } else {
-          otherEmitted.push({ name, content });
+          otherEmitted.push({ fileName, content });
         }
       },
       undefined,
@@ -138,7 +133,7 @@ function getDeclarations(
               const visitor = (node: Node): Node => {
                 const specifier = getModuleSpecifier(ts, node);
                 if (specifier) {
-                  const resolvedModule = resolveModule(specifier.text, filename);
+                  const resolvedModule = resolveModule(specifier.text, fileName);
                   if (
                     resolvedModule &&
                     !resolvedModule.resolvedFileName.includes("/node_modules/")
@@ -156,20 +151,20 @@ function getDeclarations(
 
     if (!dts || diagnostics.length) {
       throw new Error(
-        `Generating TypeScript declarations for ${filename} failed:\n${ts.formatDiagnosticsWithColorAndContext(
+        `Generating TypeScript declarations for ${fileName} failed:\n${ts.formatDiagnosticsWithColorAndContext(
           diagnostics,
           diagnosticsHost
         )}${
           otherEmitted.length
             ? `\n\nTypeScript emitted other files when attempting to emit .d.ts files:\n${otherEmitted
-                .map(x => `${x.name}\n\n${x.content}`)
+                .map(x => `${x.fileName}\n\n${x.content}`)
                 .join("\n\n")}`
             : ""
         }`
       );
     }
 
-    emitted.push({ types: dts, filename });
+    emitted.push({ dts, fileName });
   }
   return emitted;
 }
@@ -186,10 +181,11 @@ export function typescriptDeclarations(
 ): Plugin {
   return {
     name: "typescript-declarations",
+    options(opts) {},
     async generateBundle(opts, bundle) {
       const ts = await import("typescript");
       const host = getSystem(ts, { cwd });
-      const { program, options } = await getProgram(ts, host, pkg.dir);
+      const { program, options } = await getProgram(ts, host, cwd);
 
       let moduleResolutionCache = ts.createModuleResolutionCache(
         cwd,
@@ -218,11 +214,11 @@ export function typescriptDeclarations(
         resolveModule,
       });
 
-      for (const { filename, types } of declarations) {
+      for (const { dts } of declarations) {
         this.emitFile({
           type: "asset",
-          fileName: filename,
-          source: types.content,
+          fileName: path.relative(opts.dir!, dts.fileName),
+          source: dts.content,
         });
       }
     },
