@@ -82,7 +82,7 @@ class ReplayPlaywrightReporter implements Reporter {
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
-    const runnerName = "test_adi";
+    const runnerName = "playwright";
     initLogger(runnerName, pluginVersion);
 
     if (!config || typeof config !== "object") {
