@@ -5,9 +5,9 @@ import builtInModules from "builtin-modules";
 import chalk from "chalk";
 import fastGlob from "fast-glob";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { rollup } from "rollup";
-import fs from "fs/promises";
-import path from "path";
 import { makePackagePredicate } from "./makePackagePredicate";
 import { esbuild } from "./plugins/esbuild";
 import { resolveErrors } from "./plugins/resolveErrors";
@@ -126,7 +126,10 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
         extensions: [".tsx", ".ts", ".js"],
       }),
       esbuild(),
-      // typescriptDeclarations(pkg),
+      typescriptDeclarations(pkg, {
+        cwd,
+        entrypoints: input,
+      }),
     ],
     external: isExternal,
     onLog: (level, log, defaultHandler) => {
