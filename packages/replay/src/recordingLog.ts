@@ -53,6 +53,9 @@ export function readRecordings(dir?: string, includeHidden = false) {
       try {
         return JSON.parse(line) as RecordingLogEntry;
       } catch {
+        if (line) {
+          debug('Failed to parse recordings.log entry: "%s"', line);
+        }
         return null;
       }
     })
