@@ -127,7 +127,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       }),
       esbuild(),
       typescriptDeclarations(pkg, {
-        cwd,
+        cwd: pkg.dir,
         entrypoints: input,
       }),
     ],
