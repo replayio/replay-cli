@@ -3421,6 +3421,7 @@ __metadata:
     "@rollup/plugin-json": "npm:^6.1.0"
     "@rollup/plugin-node-resolve": "npm:^15.2.3"
     "@types/normalize-path": "npm:^3.0.2"
+    "@typescript/vfs": "npm:^1.5.3"
     builtin-modules: "npm:^3.3.0"
     chalk: "npm:^4.1.2"
     esbuild: "npm:^0.21.5"
@@ -5068,6 +5069,17 @@ __metadata:
     "@typescript-eslint/types": "npm:5.62.0"
     eslint-visitor-keys: "npm:^3.3.0"
   checksum: 10c0/7c3b8e4148e9b94d9b7162a596a1260d7a3efc4e65199693b8025c71c4652b8042501c0bc9f57654c1e2943c26da98c0f77884a746c6ae81389fcb0b513d995d
+  languageName: node
+  linkType: hard
+
+"@typescript/vfs@npm:^1.5.3":
+  version: 1.5.3
+  resolution: "@typescript/vfs@npm:1.5.3"
+  dependencies:
+    debug: "npm:^4.1.1"
+  peerDependencies:
+    typescript: "*"
+  checksum: 10c0/266b1c045feddadf36f420ee53a5bc7d8a6ddea13c1851422ec7c43a321c7ab00b6099ebae040a6b1239bbac69bf354b86254829328e19305979716167a6c052
   languageName: node
   linkType: hard
 

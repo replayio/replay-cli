@@ -36,7 +36,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
   );
   const bundledRoot = `${pkg.dir}/src/_bundled`;
 
-  const fsMap: Record<string, string> = {};
+  const fsMap = new Map<string, string>();
 
   const input = (
     "@replay-cli/pkg-build" in packageJson &&
@@ -116,7 +116,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
             }
           );
 
-          fsMap[id] = code;
+          fsMap.set(id, code);
+
           return code;
         },
         async resolveId(id, importer, options) {

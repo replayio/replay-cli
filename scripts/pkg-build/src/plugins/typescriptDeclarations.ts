@@ -1,4 +1,5 @@
 import { Package } from "@manypkg/get-packages";
+import { createFSBackedSystem, createVirtualCompilerHost } from "@typescript/vfs";
 import assert from "node:assert/strict";
 import { EOL } from "node:os";
 import path from "path";
@@ -14,22 +15,6 @@ type EmittedDeclarationOutput = {
   fileName: string;
   dts: EmittedFile;
 };
-
-function getSystem(
-  ts: typeof import("typescript"),
-  { cwd, fsMap }: { cwd: string; fsMap: Record<string, string> }
-): System {
-  return {
-    ...ts.sys,
-    getCurrentDirectory: () => cwd,
-    readFile: (path, encoding) => {
-      if (path.includes("reporter")) {
-        debugger;
-      }
-      return fsMap[path] ?? ts.sys.readFile(path, encoding);
-    },
-  };
-}
 
 function getDiagnosticsHost(
   ts: typeof import("typescript"),
@@ -70,7 +55,9 @@ async function getProgram(
   ts: typeof import("typescript"),
   { cwd, system }: { cwd: string; system: System }
 ) {
-  const configFileName = ts.findConfigFile(cwd, system.fileExists);
+  // intentionally use `ts.sys` here over `system` because the latter doesn't want to load `tsconfig.json` files:
+  // https://github.com/microsoft/TypeScript-Website/blob/c341935c7f3b7b34812a7438b1b0de5c5cc42e04/packages/typescript-vfs/src/index.ts#L505-L506
+  const configFileName = ts.findConfigFile(cwd, ts.sys.fileExists);
   if (!configFileName) {
     throw new Error("Not tsconfig.json found");
   }
@@ -96,8 +83,7 @@ async function getProgram(
   parsed.options.emitDeclarationOnly = true;
   parsed.options.noEmit = false;
 
-  const compilerHost = ts.createCompilerHost(parsed.options, false);
-  compilerHost.readFile = system.readFile;
+  const { compilerHost } = createVirtualCompilerHost(system, parsed.options, ts);
 
   return {
     options: parsed.options,
@@ -196,7 +182,7 @@ export function typescriptDeclarations(
   }: {
     cwd: string;
     entrypoints: string[];
-    fsMap: Record<string, string>;
+    fsMap: Map<string, string>;
   }
 ): Plugin {
   return {
@@ -204,7 +190,7 @@ export function typescriptDeclarations(
     options(opts) {},
     async generateBundle(opts, bundle) {
       const ts = await import("typescript");
-      const system = getSystem(ts, { cwd, fsMap });
+      const system = createFSBackedSystem(fsMap, cwd, ts);
       const { program, options } = await getProgram(ts, { cwd, system });
 
       let moduleResolutionCache = ts.createModuleResolutionCache(
