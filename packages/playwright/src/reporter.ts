@@ -12,7 +12,6 @@ import {
   ReplayReporterConfig,
   TestMetadataV2,
 } from "@replayio/test-utils";
-import dbg from "debug";
 import { readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
@@ -24,9 +23,7 @@ import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixtu
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
 import { initLogger, logger } from "@replay-cli/shared/logger";
-
-const debug = dbg("replay:playwright:reporter");
-const pluginVersion = require("@replayio/playwright/package.json").version;
+import packageJson from "../package.json";
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
@@ -82,9 +79,7 @@ class ReplayPlaywrightReporter implements Reporter {
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
-    const runnerName = "playwright";
-    initLogger(runnerName, pluginVersion);
-
+    initLogger(packageJson.name, packageJson.version);
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -94,9 +89,9 @@ class ReplayPlaywrightReporter implements Reporter {
     this.config = config;
     this.reporter = new ReplayReporter(
       {
-        name: runnerName,
+        name: "playwright",
         version: undefined,
-        plugin: pluginVersion,
+        plugin: packageJson.version,
       },
       "2.2.0",
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
