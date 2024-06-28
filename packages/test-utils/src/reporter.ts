@@ -2,22 +2,17 @@ import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFai
 import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { initLogger, logger } from "@replay-cli/shared/logger";
+import { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
-import {
-  UnstructuredMetadata,
-  listAllRecordings,
-  removeRecording,
-  uploadRecording,
-} from "@replayio/replay";
-import { add, source as sourceMetadata, test as testMetadata } from "@replayio/replay/metadata";
-import type { TestMetadataV1, TestMetadataV2 } from "@replayio/replay/metadata/test";
 import { spawnSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
-
 import * as pkgJson from "../package.json";
+import { listAllRecordings, removeRecording, uploadRecording } from "./legacy-cli";
+import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
+import type { TestMetadataV1, TestMetadataV2 } from "./legacy-cli/metadata/test";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
