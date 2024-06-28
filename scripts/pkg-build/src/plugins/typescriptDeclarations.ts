@@ -1,8 +1,6 @@
 import { Package } from "@manypkg/get-packages";
 import assert from "node:assert/strict";
 import { EOL } from "node:os";
-import path from "node:path";
-import normalizePath from "normalize-path";
 import { Plugin } from "rollup";
 import type { FormatDiagnosticsHost, Node, Program, ResolvedModuleFull, System } from "typescript";
 
@@ -193,10 +191,8 @@ export function typescriptDeclarations(
       const host = getSystem(ts, { cwd });
       const { program, options } = await getProgram(ts, host, pkg.dir);
 
-      let normalizedDirname = normalizePath(pkg.dir);
-
       let moduleResolutionCache = ts.createModuleResolutionCache(
-        normalizedDirname,
+        cwd,
         x => (ts.sys.useCaseSensitiveFileNames ? x : x.toLowerCase()),
         options
       );
