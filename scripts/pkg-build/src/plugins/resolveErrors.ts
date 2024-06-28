@@ -6,11 +6,13 @@ import { PackagePredicate } from "../makePackagePredicate";
 
 export function resolveErrors({
   bundledDependenciesDirs,
+  bundledIdsCache,
   isBundledDependency,
   isExternal,
   pkg,
 }: {
   bundledDependenciesDirs: string[];
+  bundledIdsCache: Map<string, string>;
   isBundledDependency: PackagePredicate;
   isExternal: PackagePredicate;
   pkg: Package;
@@ -28,6 +30,10 @@ export function resolveErrors({
             importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
           }but the package is not specified in dependencies or peerDependencies`
         );
+      }
+      const bundledSourceId = importer && bundledIdsCache.get(importer);
+      if (bundledSourceId) {
+        importer = bundledSourceId;
       }
       const resolved = await this.resolve(source, importer, options);
       if (resolved === null) {

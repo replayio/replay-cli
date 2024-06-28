@@ -50,6 +50,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       : [`${pkg.dir}/src/index.ts`]
   ).filter(input => !/\.(test|spec)\./i.test(input));
 
+  const bundledIdsCache = new Map<string, string>();
+
   const bundle = await rollup({
     input,
     plugins: [
@@ -58,6 +60,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
         isBundledDependency,
         isExternal,
         pkg,
+        bundledIdsCache,
       }),
       json(),
       {
@@ -80,6 +83,9 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
               originalId = bundledId;
               sourceId = `${packagesByName.get(bundledId)!.dir}/src/index`;
             }
+
+            bundledIdsCache.set(id, sourceId);
+
             // TODO: handle nested bundled dependencies
             const resolved = await this.resolve(sourceId, id);
             if (!resolved) {
