@@ -15,10 +15,19 @@ type EmittedDeclarationOutput = {
   dts: EmittedFile;
 };
 
-function getSystem(ts: typeof import("typescript"), { cwd }: { cwd: string }): System {
+function getSystem(
+  ts: typeof import("typescript"),
+  { cwd, fsMap }: { cwd: string; fsMap: Record<string, string> }
+): System {
   return {
     ...ts.sys,
     getCurrentDirectory: () => cwd,
+    readFile: (path, encoding) => {
+      if (path.includes("reporter")) {
+        debugger;
+      }
+      return fsMap[path] ?? ts.sys.readFile(path, encoding);
+    },
   };
 }
 
@@ -57,17 +66,26 @@ function getModuleSpecifier(ts: typeof import("typescript"), node: Node) {
   }
 }
 
-async function getProgram(ts: typeof import("typescript"), host: System, cwd: string) {
-  const configFileName = ts.findConfigFile(cwd, host.fileExists);
+async function getProgram(
+  ts: typeof import("typescript"),
+  { cwd, system }: { cwd: string; system: System }
+) {
+  const configFileName = ts.findConfigFile(cwd, system.fileExists);
   if (!configFileName) {
     throw new Error("Not tsconfig.json found");
   }
   const result = ts.parseConfigFileTextToJson(
     configFileName,
-    host.readFile(configFileName, "utf8")!
+    system.readFile(configFileName, "utf8")!
   );
 
-  const parsed = ts.parseJsonConfigFileContent(result.config, host, cwd, undefined, configFileName);
+  const parsed = ts.parseJsonConfigFileContent(
+    result.config,
+    system,
+    cwd,
+    undefined,
+    configFileName
+  );
 
   // parsed.options.outDir = "dist";
   // parsed.options.declarationDir = "dist";
@@ -78,9 +96,12 @@ async function getProgram(ts: typeof import("typescript"), host: System, cwd: st
   parsed.options.emitDeclarationOnly = true;
   parsed.options.noEmit = false;
 
+  const compilerHost = ts.createCompilerHost(parsed.options, false);
+  compilerHost.readFile = system.readFile;
+
   return {
     options: parsed.options,
-    program: ts.createProgram(parsed.fileNames, parsed.options),
+    program: ts.createProgram(parsed.fileNames, parsed.options, compilerHost),
   };
 }
 
@@ -171,9 +192,11 @@ export function typescriptDeclarations(
   {
     cwd,
     entrypoints,
+    fsMap,
   }: {
     cwd: string;
     entrypoints: string[];
+    fsMap: Record<string, string>;
   }
 ): Plugin {
   return {
@@ -181,12 +204,12 @@ export function typescriptDeclarations(
     options(opts) {},
     async generateBundle(opts, bundle) {
       const ts = await import("typescript");
-      const host = getSystem(ts, { cwd });
-      const { program, options } = await getProgram(ts, host, cwd);
+      const system = getSystem(ts, { cwd, fsMap });
+      const { program, options } = await getProgram(ts, { cwd, system });
 
       let moduleResolutionCache = ts.createModuleResolutionCache(
         cwd,
-        x => (ts.sys.useCaseSensitiveFileNames ? x : x.toLowerCase()),
+        x => (system.useCaseSensitiveFileNames ? x : x.toLowerCase()),
         options
       );
 

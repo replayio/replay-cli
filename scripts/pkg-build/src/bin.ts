@@ -36,6 +36,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
   );
   const bundledRoot = `${pkg.dir}/src/_bundled`;
 
+  const fsMap: Record<string, string> = {};
+
   const input = (
     "@replay-cli/pkg-build" in packageJson &&
     !!packageJson["@replay-cli/pkg-build"] &&
@@ -113,6 +115,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
               return statementSlice + `"${bundledPath}"`;
             }
           );
+
+          fsMap[id] = code;
           return code;
         },
         async resolveId(id, importer, options) {
@@ -129,6 +133,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       typescriptDeclarations(pkg, {
         cwd: pkg.dir,
         entrypoints: input,
+        fsMap,
       }),
     ],
     external: isExternal,
