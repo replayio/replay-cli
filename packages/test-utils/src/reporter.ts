@@ -273,7 +273,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     this._runner = runner;
     this._schemaVersion = schemaVersion;
 
-    initLogger(this._runner.name, this._runner.version);
+    // TODO: PRO-736 Remove init when test-utils is inlined
+    initLogger(this._runner.name, this._runner.plugin);
 
     if (config) {
       const { metadataKey, ...rest } = config;
@@ -1246,6 +1247,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       log(output.join("\n"));
 
       return results;
+      // TODO: PRO-736 Remove close when test-utils is inlined
     } finally {
       await logger.close().catch(() => {});
     }

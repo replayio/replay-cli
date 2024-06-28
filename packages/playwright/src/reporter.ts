@@ -23,6 +23,7 @@ import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
+import { initLogger, logger } from "@replay-cli/shared/logger";
 
 const debug = dbg("replay:playwright:reporter");
 const pluginVersion = require("@replayio/playwright/package.json").version;
@@ -81,6 +82,9 @@ class ReplayPlaywrightReporter implements Reporter {
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
+    const runnerName = "test_adi";
+    initLogger(runnerName, pluginVersion);
+
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -90,7 +94,7 @@ class ReplayPlaywrightReporter implements Reporter {
     this.config = config;
     this.reporter = new ReplayReporter(
       {
-        name: "playwright",
+        name: runnerName,
         version: undefined,
         plugin: pluginVersion,
       },
@@ -104,7 +108,6 @@ class ReplayPlaywrightReporter implements Reporter {
             process.env.PLAYWRIGHT_REPLAY_CAPTURE_TEST_FILE?.toLowerCase() || "true"
           );
     const port = getServerPort();
-    debug(`Starting plugin WebSocket server on ${port}`);
     this.wss = startServer({
       port,
       onStepStart: (test, step) => {
@@ -269,7 +272,10 @@ class ReplayPlaywrightReporter implements Reporter {
               try {
                 return [filename, readFileSync(filename, "utf8")];
               } catch (e) {
-                debug(`Failed to read playwright test source for: ${filename}`, e);
+                logger.error("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
+                  filename,
+                  error: e,
+                });
                 return [filename, undefined];
               }
             })
@@ -322,16 +328,20 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 
   async onEnd() {
-    await this.reporter.onEnd();
-    if (!this._foundReplayBrowser) {
-      console.warn(
-        "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
-      );
+    try {
+      await this.reporter.onEnd();
+      if (!this._foundReplayBrowser) {
+        console.warn(
+          "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
+        );
+      }
+    } finally {
+      await logger.close().catch(() => {});
     }
   }
 
   parseArguments(apiName: string, params: any) {
-    debug("Arguments: %s %o", apiName, params);
+    logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
     if (!params || typeof params !== "object") {
       return [];
     }
