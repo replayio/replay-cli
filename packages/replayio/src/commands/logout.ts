@@ -9,12 +9,12 @@ registerCommand("logout").description("Log out of your Replay account").action(l
 async function logout() {
   await logoutIfAuthenticated();
 
-  const token = await getAccessToken();
-  if (token) {
-    const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
-
+  const { accessToken, apiKeySource } = await getAccessToken();
+  if (accessToken && apiKeySource) {
     console.log(
-      `You are now signed out but still authenticated via the ${highlight(name)} env variable`
+      `You have been signed out but you are still authenticated by the ${highlight(
+        apiKeySource
+      )} env variable`
     );
   } else {
     console.log("You are now signed out");

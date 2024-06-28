@@ -1,10 +1,10 @@
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { logger } from "@replay-cli/shared/logger";
+import { getUserAgent } from "@replay-cli/shared/userAgent";
 import { readFile, writeFileSync } from "fs-extra";
 import { File, FormData, fetch } from "undici";
 import { replayApiServer } from "../../config";
-import { getUserAgent } from "@replay-cli/shared/userAgent";
-import { checkAuthentication } from "../../utils/initialization/checkAuthentication";
 import { getCurrentRuntimeMetadata } from "../../utils/initialization/getCurrentRuntimeMetadata";
 import { runtimeMetadata } from "../../utils/installation/config";
 import { findMostRecentFile } from "../findMostRecentFile";
@@ -13,8 +13,7 @@ export async function reportBrowserCrash(stderr: string) {
   const errorLogPath = getReplayPath("recorder-crash.log");
   writeFileSync(errorLogPath, stderr, "utf8");
 
-  const accessToken = await checkAuthentication();
-
+  const { accessToken } = await getAccessToken();
   if (!accessToken) {
     return {
       errorLogPath,

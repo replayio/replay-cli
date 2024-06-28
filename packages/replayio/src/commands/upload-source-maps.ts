@@ -41,12 +41,13 @@ async function uploadSourceMaps(
     root?: string;
   }
 ) {
+  const { accessToken } = await getAccessToken();
   const uploadPromise = uploadSourceMapsExternal({
     extensions,
     filepaths: filePaths,
     group,
     ignore,
-    key: await getAccessToken(),
+    key: accessToken,
     root,
     server: replayApiServer,
   });

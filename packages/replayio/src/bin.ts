@@ -1,3 +1,4 @@
+import { initLogger } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import { name, version } from "../package.json";
@@ -14,7 +15,7 @@ import "./commands/remove";
 import "./commands/update";
 import "./commands/upload";
 import "./commands/upload-source-maps";
-import { initLogger } from "@replay-cli/shared/logger";
+import "./commands/whoami";
 
 initLogger(name, version);
 

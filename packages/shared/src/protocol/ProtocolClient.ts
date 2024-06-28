@@ -153,7 +153,7 @@ export default class ProtocolClient {
 
   private onSocketOpen = async () => {
     try {
-      const accessToken = await getAccessToken();
+      const { accessToken } = await getAccessToken();
       assert(accessToken, "No access token found");
 
       await setAccessToken(this, { accessToken });
