@@ -9,8 +9,8 @@ registerCommand("logout").description("Log out of your Replay account").action(l
 async function logout() {
   await logoutIfAuthenticated();
 
-  const token = await getAccessToken();
-  if (token) {
+  const { accessToken } = await getAccessToken();
+  if (accessToken) {
     const name = process.env.REPLAY_API_KEY ? "REPLAY_API_KEY" : "RECORD_REPLAY_API_KEY";
 
     console.log(
