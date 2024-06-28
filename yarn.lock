@@ -3528,7 +3528,6 @@ __metadata:
     "@jest/types": "npm:^27.5.1"
     "@replay-cli/pkg-build": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
-    "@replayio/replay": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
     jest-circus: "npm:^27.5.1"

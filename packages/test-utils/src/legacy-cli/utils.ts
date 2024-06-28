@@ -8,6 +8,7 @@ import dbg from "debug";
 import { AgentOptions, Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 import path from "path";
+import { name as packageName, version as packageVersion } from "../../package.json";
 
 import { Options } from "./types";
 
@@ -65,9 +66,7 @@ function isValidUUID(str: unknown) {
 }
 
 function getNameAndVersion() {
-  // TODO [PRO-720]
-  const pkg = require("@replayio/replay/package.json");
-  return `${pkg.name}/${pkg.version}`;
+  return `${packageName}/${packageVersion}`;
 }
 
 function getUserAgent() {
