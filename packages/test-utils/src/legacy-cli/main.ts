@@ -1,46 +1,31 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import fs from "fs";
-import path from "path";
-import { getPackument } from "query-registry";
-import { compare } from "semver";
 import dbg from "./debug";
-import { getCurrentVersion, getHttpAgent } from "./utils";
+import { getHttpAgent } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
 import pMap from "p-map";
 
-import { spawn } from "child_process";
 import { Agent, AgentOptions } from "http";
 import jsonata from "jsonata";
 import { readToken } from "./auth";
 import { ProtocolError } from "./client";
-import { ensureBrowsersInstalled, getExecutablePath, updateBrowsers } from "./install";
 import { getLaunchDarkly } from "./launchdarkly";
-import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
+import { addRecordingEvent, readRecordings, removeRecordingFromLog } from "./recordingLog";
 import {
-  addRecordingEvent,
-  readRecordings,
-  removeRecordingFromLog,
-  removeRecordingsFile,
-} from "./recordingLog";
-import {
-  BrowserName,
   FilterOptions,
-  LaunchOptions,
   ListOptions,
-  MetadataOptions,
   Options,
   RecordingEntry,
   RecordingMetadata,
   SourceMapEntry,
-  UploadAllOptions,
   UploadOptions,
   type ExternalRecordingEntry,
   type UnstructuredMetadata,
 } from "./types";
 import { ReplayClient } from "./upload";
-import { getDirectory, maybeLog, openExecutable } from "./utils";
+import { getDirectory, maybeLog } from "./utils";
 export type { BrowserName, RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
@@ -478,146 +463,6 @@ async function processUploadedRecording(recordingId: string, opts: Options) {
   return true;
 }
 
-async function processRecording(id: string, opts: Options = {}) {
-  const recordingId = await uploadRecording(id, opts);
-  if (!recordingId) {
-    return null;
-  }
-  const succeeded = await processUploadedRecording(recordingId, opts);
-  return succeeded ? recordingId : null;
-}
-
-async function uploadAllRecordings(opts: UploadAllOptions = {}) {
-  const server = getServer(opts);
-  const dir = getDirectory(opts);
-  const allRecordings = readRecordings(dir).filter(r => !uploadSkipReason(r));
-  const recordings = filterRecordings(allRecordings, opts.filter, opts.includeCrashes);
-
-  if (
-    allRecordings.some(r => r.status === "crashed") &&
-    !recordings.some(r => r.status === "crashed") &&
-    opts.filter &&
-    !opts.includeCrashes
-  ) {
-    maybeLog(
-      opts.verbose,
-      `\n⚠️ Warning: Some crash reports were created but will not be uploaded because of the provided filter. Add --include-crashes to upload crash reports.\n`
-    );
-  }
-
-  if (recordings.length === 0) {
-    if (opts.filter && allRecordings.length > 0) {
-      maybeLog(opts.verbose, `No replays matched the provided filter`);
-    } else {
-      maybeLog(opts.verbose, `No replays were found to upload`);
-    }
-
-    return true;
-  }
-
-  maybeLog(opts.verbose, `Starting upload of ${recordings.length} replays`);
-  if (opts.batchSize) {
-    debug("Batching upload in groups of %d", opts.batchSize);
-  }
-
-  const batchSize = Math.min(opts.batchSize || 20, 25);
-
-  const recordingIds: (string | null)[] = await pMap(
-    recordings,
-    (r: RecordingEntry) =>
-      doUploadRecording(
-        dir,
-        server,
-        r,
-        opts.verbose,
-        opts.apiKey,
-        opts.agentOptions,
-        false,
-        opts.strict
-      ),
-    { concurrency: batchSize, stopOnError: false }
-  );
-
-  recordingIds.forEach(id => {
-    const recording = recordings.find(r => r.id === id);
-    if (!recording) return;
-
-    removeRecordingAssets(recording, opts);
-  });
-
-  return recordingIds.every(r => r !== null);
-}
-
-async function doViewRecording(
-  dir: string,
-  server: string,
-  recording: RecordingEntry,
-  verbose?: boolean,
-  apiKey?: string,
-  agentOptions?: AgentOptions,
-  viewServer?: string
-) {
-  let recordingId;
-  if (recording.status === "crashUploaded") {
-    maybeLog(verbose, "Crash report already uploaded");
-    return true;
-  } else if (recording.status == "uploaded") {
-    recordingId = recording.recordingId;
-    server = recording.server!;
-  } else {
-    recordingId = await doUploadRecording(
-      dir,
-      server,
-      recording,
-      verbose,
-      apiKey,
-      agentOptions,
-      true
-    );
-
-    if (!recordingId) {
-      return false;
-    } else if (recording.status === "crashed") {
-      return true;
-    }
-  }
-  const devtools = viewServer ?? "https://app.replay.io";
-  const dispatch = server != "wss://dispatch.replay.io" ? `&dispatch=${server}` : "";
-  spawn(openExecutable(), [`${devtools}?id=${recordingId}${dispatch}`]);
-  return true;
-}
-
-async function viewRecording(id: string, opts: Options = {}) {
-  let server = getServer(opts);
-  const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
-  const recording = recordings.find(r => r.id == id);
-  if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
-    return false;
-  }
-  return doViewRecording(dir, server, recording, opts.verbose, opts.apiKey, opts.agentOptions);
-}
-
-async function viewLatestRecording(opts: Options = {}) {
-  let server = getServer(opts);
-  const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
-  if (!recordings.length) {
-    maybeLog(opts.verbose, "No recordings to view");
-    return false;
-  }
-  return doViewRecording(
-    dir,
-    server,
-    recordings[recordings.length - 1],
-    opts.verbose,
-    opts.apiKey,
-    opts.agentOptions,
-    opts.viewServer
-  );
-}
-
 function maybeRemoveAssetFile(asset?: string) {
   if (asset) {
     try {
@@ -674,172 +519,11 @@ function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "
   });
 }
 
-function removeAllRecordings(opts: Options = {}) {
-  const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
-  recordings.forEach(r => removeRecordingAssets(r, opts));
-
-  removeRecordingsFile(dir);
-}
-
-function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
-  add(recordingId, metadata);
-}
-
-async function updateMetadata({
-  init: metadata,
-  keys = [],
-  filter,
-  includeCrashes,
-  verbose,
-  warn,
-  directory,
-}: MetadataOptions & FilterOptions) {
-  let md: any = {};
-  if (metadata) {
-    md = JSON.parse(metadata);
-  }
-
-  const keyedObjects = await pMap<string, Record<string, any> | null>(keys, async v => {
-    try {
-      switch (v) {
-        case "source":
-          return await sourceMetadata.init(md.source || {});
-        case "test":
-          return await testMetadata.init(md.test || {});
-      }
-    } catch (e) {
-      debug("Metadata initialization error: %o", e);
-      if (!warn) {
-        throw e;
-      }
-
-      console.warn(`Unable to initialize metadata field: "${v}"`);
-      if (e instanceof Error) {
-        console.warn(" ->", e.message);
-      }
-    }
-
-    return null;
-  });
-
-  const data = Object.assign(md, ...keyedObjects);
-  const sanitized = await sanitize(data);
-
-  debug("Sanitized metadata: %O", sanitized);
-
-  const recordings = listAllRecordings({ directory, filter, includeCrashes });
-
-  recordings.forEach(r => {
-    maybeLog(verbose, `Setting metadata for ${r.id}`);
-    add(r.id, sanitized);
-  });
-}
-
-async function launchBrowser(
-  browserName: BrowserName,
-  args: string[] = [],
-  record: boolean = false,
-  opts?: Options & LaunchOptions
-) {
-  debug("launchBrowser: %s %o %s %o", browserName, args, record, opts);
-  const execPath = getExecutablePath(browserName, opts);
-  if (!execPath) {
-    throw new Error(`${browserName} not supported on the current platform`);
-  }
-
-  if (!fs.existsSync(execPath)) {
-    maybeLog(opts?.verbose, `Installing ${browserName}`);
-    await ensureBrowsersInstalled(browserName, false, opts);
-  }
-
-  const profileDir = path.join(getDirectory(opts), "runtimes", "profiles", browserName);
-
-  const browserArgs: Record<BrowserName, string[]> = {
-    chromium: [
-      "--no-first-run",
-      "--no-default-browser-check",
-      `--user-data-dir=${profileDir}`,
-      ...args,
-    ],
-    firefox: ["-foreground", ...args],
-  };
-
-  const env = {
-    ...process.env,
-  };
-
-  if (record) {
-    env.RECORD_ALL_CONTENT = "1";
-  }
-
-  if (opts?.directory) {
-    env.RECORD_REPLAY_DIRECTORY = opts?.directory;
-  }
-
-  const proc = spawn(execPath, browserArgs[browserName], {
-    detached: !opts?.attach,
-    env,
-    stdio: "inherit",
-  });
-  if (!opts?.attach) {
-    proc.unref();
-  } else {
-    // Wait for the browser process to finish.
-    await new Promise<void>((resolve, reject) => {
-      proc.on("error", reject);
-      proc.on("exit", (code, signal) => {
-        if (code || signal) {
-          reject(new Error(`Process failed code=${code}, signal=${signal}`));
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  return proc;
-}
-
-async function version() {
-  const version = getCurrentVersion();
-  let update = false;
-  let latest: string | null = null;
-
-  try {
-    // TODO [PRO-720]
-    const data = await getPackument({ name: "@replayio/replay" });
-    latest = data.distTags.latest;
-
-    if (compare(version, latest) < 0) {
-      update = true;
-    }
-  } catch (e) {
-    debug("Error retrieving latest package info: %o", e);
-  }
-
-  return {
-    version,
-    update,
-    latest,
-  };
-}
-
 export {
   ExternalRecordingEntry,
   UnstructuredMetadata,
-  addLocalRecordingMetadata,
   getDirectory,
-  launchBrowser,
   listAllRecordings,
-  processRecording,
-  removeAllRecordings,
   removeRecording,
-  updateBrowsers,
-  updateMetadata,
-  uploadAllRecordings,
   uploadRecording,
-  version,
-  viewLatestRecording,
-  viewRecording,
 };

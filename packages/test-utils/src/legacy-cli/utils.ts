@@ -5,11 +5,11 @@
 // https://github.com/cypress-io/cypress/blob/fb87950d6337ba99d13cb5fa3ce129e5f5cac02b/npm/webpack-batteries-included-preprocessor/index.js#L151
 // TODO: decouple this more so we never run into problems with this - we shouldn't rely on implementation details of Cypress bundling
 import dbg from "debug";
-import path from "path";
-import { Agent as HttpAgent, AgentOptions } from "http";
+import { AgentOptions, Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
+import path from "path";
 
-import { BrowserName, Options } from "./types";
+import { Options } from "./types";
 
 const debug = dbg("replay:cli");
 
@@ -64,31 +64,6 @@ function isValidUUID(str: unknown) {
   return true;
 }
 
-function fuzzyBrowserName(browser?: string): BrowserName {
-  browser = browser?.toLowerCase()?.trim();
-
-  switch (browser) {
-    case "chrome":
-      return "chromium";
-    case "gecko":
-      return "firefox";
-  }
-
-  return browser as BrowserName;
-}
-
-function assertValidBrowserName(browser?: string): asserts browser is BrowserName {
-  if (!browser || (browser !== "chromium" && browser !== "firefox")) {
-    throw new Error("Unsupported browser: " + browser);
-  }
-}
-
-function getCurrentVersion() {
-  // TODO [PRO-720]
-  const pkg = require("@replayio/replay/package.json");
-  return pkg.version;
-}
-
 function getNameAndVersion() {
   // TODO [PRO-720]
   const pkg = require("@replayio/replay/package.json");
@@ -114,14 +89,4 @@ function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
 }
 
-export {
-  assertValidBrowserName,
-  fuzzyBrowserName,
-  defer,
-  maybeLog,
-  getDirectory,
-  isValidUUID,
-  getCurrentVersion,
-  getUserAgent,
-  getHttpAgent,
-};
+export { defer, getDirectory, getHttpAgent, getUserAgent, isValidUUID, maybeLog };

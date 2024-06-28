@@ -1,7 +1,7 @@
 import dbg from "debug";
 import fs from "fs";
-import path from "path";
 import util from "node:util";
+import path from "path";
 import { getDirectory } from "./utils";
 
 const debugDebug = dbg("replay:cli:debug");
@@ -51,12 +51,6 @@ export default function debug(namespace: string, pathToLog: string = logPath) {
       }
     }
   };
-}
-
-export function printLogPath() {
-  if (logPath && fs.existsSync(logPath)) {
-    console.error("\n📄 Additional logs available in", logPath, "\n");
-  }
 }
 
 init();
