@@ -2,8 +2,9 @@ import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken
 import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { dim, emphasize, highlight, link } from "@replay-cli/shared/theme";
-import { registerCommand } from "../utils/commander/registerCommand";
 import { name as packageName } from "../../package.json";
+import { registerCommand } from "../utils/commander/registerCommand";
+import { fetchViewerFromGraphQL } from "../utils/graphql/fetchViewerFromGraphQL";
 
 registerCommand("whoami", {
   checkForNpmUpdate: false,
@@ -20,22 +21,22 @@ async function info() {
   if (accessToken) {
     const authInfo = await getAuthInfo(accessToken);
 
+    const { userEmail, userName, teamName } = await fetchViewerFromGraphQL(accessToken);
+
     if (apiKeySource) {
       console.log(`You are authenticated by API key ${dim(`(process.env.${apiKeySource})`)}`);
       console.log("");
       if (authInfo.type === "user") {
-        console.log(`This is a ${emphasize("personal")} API key`);
+        console.log(`This API key belongs to ${emphasize(userName)} (${userEmail})`);
         console.log(`Recordings you upload are ${emphasize("private")} by default`);
       } else {
-        console.log(`This is a ${emphasize("team")} API key`);
-        console.log(`Recordings you upload are ${emphasize("shared with other team members")}`);
+        console.log(`This API key belongs to the team named ${emphasize(teamName)}`);
+        console.log(`Recordings you upload are ${emphasize("shared")} with other team members`);
       }
       console.log("");
       console.log(`Learn more about API keys at ${link(DOCS_URL)}`);
     } else {
-      console.log(
-        `You signed into your Replay account using an ${emphasize("email and password")}`
-      );
+      console.log(`You signed in as ${emphasize(userName)} (${userEmail})`);
       console.log("");
       console.log(`Recordings you upload are ${emphasize("private")} by default`);
       console.log("");
