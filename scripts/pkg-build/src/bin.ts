@@ -5,10 +5,9 @@ import builtInModules from "builtin-modules";
 import chalk from "chalk";
 import fastGlob from "fast-glob";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { rollup } from "rollup";
 import { makePackagePredicate } from "./makePackagePredicate";
+import { bundledDependencies } from "./plugins/bundledDependencies";
 import { esbuild } from "./plugins/esbuild";
 import { resolveErrors } from "./plugins/resolveErrors";
 import { typescriptDeclarations } from "./plugins/typescriptDeclarations";
@@ -27,16 +26,14 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
   ]);
 
   // TODO: filter to packages within packages directory
-  const bundledDependencies = Object.keys(pkg.packageJson.devDependencies || {}).filter(
-    name => packagesByName.has(name) && !isExternal(name)
+  const isBundledDependency = makePackagePredicate(
+    Object.keys(pkg.packageJson.devDependencies || {}).filter(
+      name => packagesByName.has(name) && !isExternal(name)
+    )
   );
-  const isBundledDependency = makePackagePredicate(bundledDependencies);
-  const bundledDependenciesDirs = bundledDependencies.map(
-    pkgName => [...packagesByName.values()].find(p => p.packageJson.name === pkgName)!.dir
-  );
-  const bundledRoot = `${pkg.dir}/src/_bundled`;
 
   const fsMap = new Map<string, string>();
+  const resolvedBundledIds = new Map<string, string>();
 
   const input = (
     "@replay-cli/pkg-build" in packageJson &&
@@ -52,7 +49,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       : [`${pkg.dir}/src/index.ts`]
   ).filter(input => !/\.(test|spec)\./i.test(input));
 
-  const bundledIdsToOriginalIds = new Map<string, string>();
+  const rootDir = `${pkg.dir}/src`;
 
   const bundle = await rollup({
     input,
@@ -62,80 +59,13 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
         pkg,
       }),
       json(),
-      {
-        name: "bundled",
-        async load(id) {
-          if (!/\.(mts|cts|ts|tsx)$/.test(id) || !bundledDependencies.length) {
-            return null;
-          }
-          let code = await fs.readFile(bundledIdsToOriginalIds.get(id) ?? id, "utf8");
-          // TODO: handle dynamic imports
-          code = code.replace(
-            /((?:import|export)\s+(?:{[\w\s,]*}\s+from\s+)?)["'](.+)["']/g,
-            (match, statementSlice, importedId) => {
-              if (!isBundledDependency(importedId)) {
-                return match;
-              }
-              let bundledPath = path.relative(path.dirname(id), `${bundledRoot}/${importedId}`);
-              if (!bundledPath.startsWith(".")) {
-                bundledPath = `./${bundledPath}`;
-              }
-              return statementSlice + `"${bundledPath}"`;
-            }
-          );
-
-          fsMap.set(id, code);
-
-          return code;
-        },
-        async resolveId(id, importer, options) {
-          if (!id.includes("_bundled")) {
-            return null;
-          }
-          let bundledId = id.replace(/^(.)+\/_bundled\//, "");
-          let entrypointStart = bundledId.indexOf("/");
-          if (entrypointStart !== -1 && bundledId.startsWith("@")) {
-            entrypointStart = bundledId.indexOf("/", entrypointStart + 1);
-          }
-          let bundledPkgId;
-          let bundledSrcPath;
-          let originalId;
-          let sourceId;
-
-          if (entrypointStart !== -1) {
-            const entrypoint = bundledId.slice(entrypointStart);
-            bundledPkgId = bundledId.slice(0, entrypointStart);
-            bundledSrcPath = `${packagesByName.get(bundledPkgId)!.dir}/src`;
-            originalId = `${bundledPkgId}${entrypoint}`;
-            sourceId = `${bundledSrcPath}${entrypoint}`;
-          } else {
-            bundledPkgId = bundledId;
-            originalId = bundledId;
-            bundledSrcPath = `${packagesByName.get(bundledId)!.dir}/src`;
-            sourceId = `${bundledSrcPath}/index`;
-          }
-
-          const resolved = await this.resolve(sourceId, undefined, {
-            ...options,
-            custom: {
-              ...options.custom,
-              bundled: true,
-            },
-          });
-
-          if (!resolved) {
-            throw new Error(`Could not resolve ${sourceId}`);
-          }
-
-          const bundledLocalId = `${bundledRoot}/${bundledPkgId}${resolved.id.replace(
-            bundledSrcPath,
-            ""
-          )}`;
-          bundledIdsToOriginalIds.set(bundledLocalId, resolved.id);
-
-          return bundledLocalId;
-        },
-      },
+      bundledDependencies({
+        fsMap,
+        isBundledDependency,
+        packagesByName,
+        resolvedBundledIds,
+        rootDir,
+      }),
       nodeResolve({
         extensions: [".tsx", ".ts", ".js"],
       }),
@@ -144,6 +74,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
         cwd: pkg.dir,
         entrypoints: input,
         fsMap,
+        resolvedBundledIds,
+        rootDir,
       }),
     ],
     external: isExternal,

@@ -1,10 +1,13 @@
 import { Package } from "@manypkg/get-packages";
 import { createFSBackedSystem, createVirtualCompilerHost } from "@typescript/vfs";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { EOL } from "node:os";
 import path from "path";
 import { Plugin } from "rollup";
 import type { FormatDiagnosticsHost, Node, Program, ResolvedModuleFull, System } from "typescript";
+import { PackagePredicate } from "../makePackagePredicate";
+import { transformImportSources } from "./bundledDependencies";
 
 type EmittedFile = {
   fileName: string;
@@ -49,6 +52,64 @@ function getModuleSpecifier(ts: typeof import("typescript"), node: Node) {
   if (ts.isExternalModuleReference(node) && ts.isStringLiteral(node.expression)) {
     return node.expression;
   }
+}
+
+function createSystem(
+  fsMap: Map<string, string>,
+  cwd: string,
+  ts: typeof import("typescript"),
+  {
+    isBundledDependency,
+    resolvedBundledIds,
+    rootDir,
+  }: {
+    isBundledDependency: PackagePredicate;
+    resolvedBundledIds: Map<string, string>;
+    rootDir: string;
+  }
+) {
+  const system = createFSBackedSystem(fsMap, cwd, ts);
+
+  const directoryExists = system.directoryExists;
+  system.directoryExists = path => {
+    if (path.includes("/_bundled/") && !path.includes("/node_modules/")) {
+      return true;
+    }
+    return directoryExists(path);
+  };
+
+  const fileExists = system.fileExists;
+  system.fileExists = path => {
+    if (path.includes("/_bundled/") && !path.includes("/node_modules/")) {
+      return true;
+    }
+    return fileExists(path);
+  };
+
+  const readFile = system.readFile;
+  system.readFile = (path, encoding) => {
+    const result = readFile(path, encoding);
+    if (!result && path.includes("/_bundled/")) {
+      const resolvedId = resolvedBundledIds.get(path);
+      if (!resolvedId) {
+        throw new Error(`Could not find resolved bundled id for ${path}`);
+      }
+      const bundledRootDir = `${rootDir}/_bundled`;
+      const code = transformImportSources(
+        fs.readFileSync(resolvedId, encoding as BufferEncoding | undefined) as string,
+        {
+          fileName: path,
+          bundledRootDir,
+          isBundledDependency,
+        }
+      );
+      fsMap.set(path, code);
+      return code;
+    }
+    return readFile(path, encoding);
+  };
+
+  return system;
 }
 
 async function getProgram(
@@ -141,9 +202,10 @@ function getDeclarations(
                 const specifier = getModuleSpecifier(ts, node);
                 if (specifier?.text.startsWith(".")) {
                   const resolvedModule = resolveModule(specifier.text, fileName);
-                  if (resolvedModule) {
-                    depQueue.add(resolvedModule.resolvedFileName);
+                  if (!resolvedModule) {
+                    throw new Error(`Could not resolve module "${specifier.text}"`);
                   }
+                  depQueue.add(resolvedModule.resolvedFileName);
                 }
                 return ts.visitEachChild(node, visitor, context);
               };
@@ -179,10 +241,16 @@ export function typescriptDeclarations(
     cwd,
     entrypoints,
     fsMap,
+    isBundledDependency,
+    resolvedBundledIds,
+    rootDir,
   }: {
     cwd: string;
     entrypoints: string[];
     fsMap: Map<string, string>;
+    isBundledDependency: PackagePredicate;
+    resolvedBundledIds: Map<string, string>;
+    rootDir: string;
   }
 ): Plugin {
   return {
@@ -190,7 +258,11 @@ export function typescriptDeclarations(
     options(opts) {},
     async generateBundle(opts, bundle) {
       const ts = await import("typescript");
-      const system = createFSBackedSystem(fsMap, cwd, ts);
+      const system = createSystem(fsMap, cwd, ts, {
+        isBundledDependency,
+        resolvedBundledIds,
+        rootDir,
+      });
       const { program, options } = await getProgram(ts, { cwd, system });
 
       let moduleResolutionCache = ts.createModuleResolutionCache(
