@@ -1,8 +1,6 @@
+import { logger } from "@replay-cli/shared/logger";
 import { writeFileSync, appendFileSync, mkdirSync } from "fs";
 import path from "path";
-import dbg from "debug";
-
-const debug = dbg("replay:cypress:fixture");
 
 function getFixtureFile() {
   return (
@@ -16,9 +14,11 @@ function getFixtureFile() {
 }
 
 export function initFixtureFile() {
-  debug("REPLAY_CYPRESS_UPDATE_FIXTURE: %s", process.env.REPLAY_CYPRESS_UPDATE_FIXTURE);
+  logger.info("InitFixtureFile:Started", {
+    updateFixture: process.env.REPLAY_CYPRESS_UPDATE_FIXTURE,
+  });
   if (process.env.REPLAY_CYPRESS_UPDATE_FIXTURE) {
-    debug("Initializing fixture file %s", getFixtureFile());
+    logger.info("InitFixtureFile:FixtureFile", { fixtureFile: getFixtureFile() });
     try {
       mkdirSync(path.dirname(getFixtureFile()), { recursive: true });
       writeFileSync(getFixtureFile(), "");

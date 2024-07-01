@@ -418,6 +418,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }
 
   addError(err: Error | ReporterError) {
+    logger.error("AddError", { error: err });
     if (err.name === "ReporterError") {
       this._errors.push(err as ReporterError);
     } else {

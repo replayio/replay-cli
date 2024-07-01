@@ -8,15 +8,14 @@ import {
   ReplayReporterConfig,
 } from "@replayio/test-utils";
 import * as pkgJson from "../package.json";
-import dbg from "debug";
 
 import { Errors } from "./error";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
+import { logger } from "@replay-cli/shared/logger";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
-import { initLogger } from "@replay-cli/shared/logger";
 
 type Test = TestMetadataV2.Test;
 
@@ -33,7 +32,6 @@ export interface PluginOptions
   upload?: boolean;
 }
 
-const debug = dbg("replay:cypress:reporter");
 const MAX_WAIT = 20_000;
 
 function isStepEvent(value: unknown): value is StepEvent {
@@ -63,7 +61,6 @@ class CypressReporter {
 
   constructor(config: Cypress.PluginConfigOptions, options: PluginOptions) {
     setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
-    initLogger(pkgJson.name, pkgJson.version);
     initFixtureFile();
 
     this.config = config;
@@ -80,7 +77,9 @@ class CypressReporter {
     );
 
     this.featureOptions = process.env.CYPRESS_REPLAY_PLUGIN_FEATURES;
-    debug("Features: %o", getFeatures(this.featureOptions));
+    logger.info("CypressReporter:InitializedWithFeatures", {
+      features: getFeatures(this.featureOptions),
+    });
   }
 
   isFeatureEnabled(feature: PluginFeature) {
@@ -90,7 +89,7 @@ class CypressReporter {
   async authenticate(apiKey: string) {
     this.reporter.setApiKey(apiKey);
     const { env } = await fetchWorkspaceConfig(apiKey);
-    debug("Set extra env: %o", env);
+    logger.info("Authenticate:ExtraEnv", env);
     this._extraEnv = env;
     this.reporter.setDiagnosticMetadata(env);
   }
@@ -118,13 +117,16 @@ class CypressReporter {
     let currentCount = this.getStepCount();
     const startTime = Date.now();
     while (Date.now() < startTime + MAX_WAIT) {
-      debug("Waiting for stable step count: %d", currentCount);
+      logger.info("WaitingForStableStepCount:Count", { currentCount });
       const previousCount = currentCount;
       await new Promise(resolve => setTimeout(resolve, 250));
       currentCount = this.getStepCount();
 
       if (previousCount === currentCount) {
-        debug("Step count stable at %d after %s ms", Date.now() - startTime);
+        logger.info("WaitingForStableStepCount:BreakCondition", {
+          currentCount,
+          duration: Date.now() - startTime,
+        });
         break;
       }
     }
@@ -199,7 +201,7 @@ class CypressReporter {
       result.tests.length === 0
     ) {
       const msg = "No test results found for spec " + spec.relative;
-      debug(msg);
+      logger.info("GetTestResults:NoTestResults", { spec: spec.relative });
       this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
       return [

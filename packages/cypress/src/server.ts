@@ -1,20 +1,18 @@
-import dbg from "debug";
+import { logger } from "@replay-cli/shared/logger";
 import http from "http";
 import { AddressInfo } from "net";
 import { WebSocketServer } from "ws";
 
-const debug = dbg("replay:cypress:server");
-
 export async function createServer() {
-  debug("Creating websocket server");
+  logger.info("CreateServer:Started");
 
   const server = http.createServer();
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", function upgrade(request, socket, head) {
-    debug("Upgrading request");
+    logger.info("CreateServer:UpgradeRequest");
     wss.handleUpgrade(request, socket, head, function done(ws) {
-      debug("Upgraded");
+      logger.info("CreateServer:Upgraded");
       wss.emit("connection", ws, request);
     });
   });
@@ -29,11 +27,11 @@ export async function createServer() {
       host: process.env.CYPRESS_REPLAY_SOCKET_HOST || "0.0.0.0",
     };
 
-    debug("Server config: %o", config);
+    logger.info("CreateServer:ServerConfig", { config });
 
     server.listen(config, () => {
       const { address, port } = server.address() as AddressInfo;
-      debug("Listening on %s on port %d", address, port);
+      logger.info("CreateServer:Listening", { address, port });
       resolve({ server: wss, port });
     });
   });

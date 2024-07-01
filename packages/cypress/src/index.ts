@@ -13,6 +13,8 @@ import { updateJUnitReports } from "./junit";
 import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import { createServer } from "./server";
 import type { StepEvent } from "./support";
+import { initLogger, logger } from "@replay-cli/shared/logger";
+import packageJson from "../package.json";
 
 export type { PluginOptions } from "./reporter";
 export {
@@ -25,10 +27,6 @@ export {
   plugin,
   cypressOnWrapper as wrapOn,
 };
-
-const debug = dbg("replay:cypress:plugin");
-const debugTask = debug.extend("task");
-const debugEvents = debug.extend("events");
 
 let cypressReporter: CypressReporter | undefined;
 let missingSteps = false;
@@ -74,7 +72,7 @@ function updateReporters(
   config: Cypress.PluginConfigOptions
 ) {
   const { reporter, reporterOptions } = config;
-  debug("updateReporter: %o", { reporter, reporterOptions });
+  logger.info("UpdateReporters:Started", { reporter, reporterOptions });
   if (reporter !== "junit") {
     return;
   }
@@ -99,26 +97,30 @@ function onBeforeBrowserLaunch(
   browser: Cypress.Browser,
   launchOptions: Cypress.BeforeBrowserLaunchOptions
 ) {
-  debugEvents("Handling before:browser:launch");
+  logger.info("OnBeforeBrowserLaunch:Started", { browser, launchOptions });
   assertReporter(cypressReporter);
   cypressReporter.onLaunchBrowser(browser.family);
 
-  debugEvents("Browser launching: %o", { family: browser.family });
+  logger.info("OnBeforeBrowserLaunch:BrowserLaunching", { family: browser.family });
 
   const config = cypressReporter.config;
   if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
     const noRecord = !!process.env.RECORD_REPLAY_NO_RECORD;
 
-    const env: NodeJS.ProcessEnv = {
-      ...launchOptions.env,
+    const replayEnv = {
       RECORD_REPLAY_DRIVER: noRecord && browser.family === "chromium" ? __filename : undefined,
       RECORD_ALL_CONTENT: noRecord ? undefined : "1",
       RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
       RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS,
+    };
+
+    const env: NodeJS.ProcessEnv = {
+      ...launchOptions.env,
+      ...replayEnv,
       ...cypressReporter.getExtraEnv(),
     };
 
-    debugEvents("Adding environment variables to browser: %o", env);
+    logger.info("OnBeforeBrowserLaunch:BrowserEnvironment", { replayEnv });
 
     launchOptions.env = env;
   }
@@ -155,6 +157,7 @@ async function onAfterRun() {
   });
 
   if (missingSteps) {
+    logger.error("OnAfterRun:AfterRunMissingSteps", { missingSteps });
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -163,22 +166,24 @@ async function onAfterRun() {
       )} in your support file?`
     );
   }
+
+  await logger.close().catch(() => {});
 }
 
 function onBeforeSpec(spec: Cypress.Spec) {
-  debugEvents("Handling before:spec %s", spec.relative);
+  logger.info("OnBeforeSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   cypressReporter.onBeforeSpec(spec);
 }
 
 function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
-  debugEvents("Handling after:spec %s", spec.relative);
+  logger.info("OnAfterSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   return cypressReporter.onAfterSpec(spec, result);
 }
 
 function onReplayTask(value: any) {
-  debugTask("Handling task: %o", value);
+  logger.info("OnReplayTask:Started", { value });
   assertReporter(cypressReporter);
   const reporter = cypressReporter;
 
@@ -186,10 +191,10 @@ function onReplayTask(value: any) {
 
   value.forEach(v => {
     if (isStepEvent(v)) {
-      debugTask("Forwarding event to reporter: %o", v);
+      logger.info("OnReplayTask:ReplayTaskEvent", { event: v });
       reporter.addStep(v);
     } else {
-      debugTask("Unexpected payload: %o", v);
+      logger.error("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
     }
   });
 
@@ -253,17 +258,19 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
+  initLogger(packageJson.name, packageJson.version);
   cypressReporter = new CypressReporter(config, options);
 
   const portPromise = createServer().then(({ server: wss, port }) => {
     wss.on("connection", function connection(ws) {
-      debug("Connection established");
+      logger.info("CypressPlugin:WebSocketConnected");
 
       ws.on("close", () => {
-        debug("WebSocket closed");
+        logger.info("CypressPlugin:WebSocketClosed");
       });
 
       ws.on("error", e => {
+        logger.error("CypressPlugin:WebSocketError", { error: e });
         warn("WebSocket error", e);
       });
 
@@ -273,6 +280,7 @@ const plugin = (
           const obj = JSON.parse(payload) as { events: StepEvent[] };
           onReplayTask(obj.events);
         } catch (e) {
+          logger.error("CypressPlugin:WebSocketMessageError", { error: e });
           warn("Error parsing message from test", e);
         }
       });
@@ -298,10 +306,9 @@ const plugin = (
   ) {
     on("task", {
       [CONNECT_TASK_NAME]: async value => {
-        debug("Test client connecting to websocket server");
         const port = await portPromise;
 
-        debug("Returning port %d", port);
+        logger.info("CypressPlugin:ConnectedToServer", { port });
         return { port };
       },
     });
@@ -321,12 +328,14 @@ const plugin = (
     if (config.isTextTerminal) {
       config.env.NO_COMMAND_LOG =
         process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
-      debug("Command log enabled? %s", config.env.NO_COMMAND_LOG);
+      logger.info("CypressPlugin:CommandLogEnabled", {
+        noCommandLog: config.env.NO_COMMAND_LOG,
+      });
     }
 
     const chromiumPath = getRuntimePath();
     if (chromiumPath) {
-      debug("Adding chromium to cypress at %s", chromiumPath);
+      logger.info("CypressPlugin:AddedChromium", { chromiumPath });
       config.browsers = config.browsers.concat({
         name: "replay-chromium",
         channel: "stable",
@@ -339,7 +348,10 @@ const plugin = (
         isHeadless: false,
       });
     } else {
-      debug("Replay Chromium not supported on this platform", chromiumPath);
+      logger.info("CypressPlugin:ReplayChromiumNotSupported", {
+        platform: process.platform,
+        chromiumPath,
+      });
     }
   }
 
