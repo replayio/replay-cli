@@ -3533,6 +3533,7 @@ __metadata:
     "@jest/test-result": "npm:^27.5.1"
     "@jest/types": "npm:^27.5.1"
     "@replay-cli/pkg-build": "workspace:^"
+    "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/test-utils": "workspace:^"
     "@types/node": "npm:^20.11.27"
