@@ -10,7 +10,8 @@ import ProtocolClient from "./client";
 import dbg, { logPath } from "./debug";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import { defer, getUserAgent, isValidUUID, maybeLog } from "./utils";
+import { defer, isValidUUID, maybeLog } from "./utils";
+import { getUserAgent } from "@replay-cli/shared/userAgent";
 
 const debug = dbg("replay:cli:upload");
 

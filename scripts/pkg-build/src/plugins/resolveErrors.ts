@@ -4,14 +4,13 @@ import normalizePath from "normalize-path";
 import { Plugin } from "rollup";
 import { PackagePredicate } from "../makePackagePredicate";
 
+// bundled dependencies complicated this a lot and currently this might not serve its original purpose
+// the rules inside this could use some improvement
+// ideally the rules that check if something starts with / would be rewritten
 export function resolveErrors({
-  bundledDependenciesDirs,
-  isBundledDependency,
   isExternal,
   pkg,
 }: {
-  bundledDependenciesDirs: string[];
-  isBundledDependency: PackagePredicate;
   isExternal: PackagePredicate;
   pkg: Package;
 }): Plugin {
@@ -19,17 +18,23 @@ export function resolveErrors({
     name: "resolve-errors",
     // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
     async resolveId(source, importer, options) {
-      if (source.startsWith("\0") || isBundledDependency(source)) {
+      if (
+        options.isEntry ||
+        source.startsWith("\0") ||
+        options.custom?.["bundled-dependencies"] ||
+        importer?.startsWith("/")
+      ) {
         return;
       }
       if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
         throw new Error(
           `"${source}" is imported ${
-            importer ? `by "${normalizePath(path.relative(pkg.relativeDir, importer))}" ` : ""
+            importer ? `by "${importer}" ` : ""
           }but the package is not specified in dependencies or peerDependencies`
         );
       }
       const resolved = await this.resolve(source, importer, options);
+
       if (resolved === null) {
         if (!source.startsWith(".")) {
           throw new Error(
@@ -44,14 +49,7 @@ export function resolveErrors({
         );
       }
 
-      if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
-        return resolved;
-      }
-
-      if (
-        resolved.id.startsWith(pkg.dir) ||
-        bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
-      ) {
+      if (resolved.id.startsWith("\0") || resolved.id.startsWith(pkg.dir)) {
         return resolved;
       }
 
