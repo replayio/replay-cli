@@ -18,7 +18,7 @@ export function resolveErrors({
       if (source.startsWith("\0") || options.custom?.bundled) {
         return;
       }
-      if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
+      if (!source.startsWith(".") && !isExternal(source)) {
         throw new Error(
           `"${source}" is imported ${
             importer ? `by "${importer}" ` : ""
@@ -41,11 +41,7 @@ export function resolveErrors({
         );
       }
 
-      if (source.startsWith("\0") || resolved.id.startsWith("\0")) {
-        return resolved;
-      }
-
-      if (resolved.id.startsWith(pkg.dir)) {
+      if (resolved.id.startsWith("\0") || resolved.id.startsWith(pkg.dir)) {
         return resolved;
       }
 
