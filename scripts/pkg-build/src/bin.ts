@@ -52,19 +52,14 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
       : [`${pkg.dir}/src/index.ts`]
   ).filter(input => !/\.(test|spec)\./i.test(input));
 
-  // TODO: recheck if this is needed and if its name can be improved
-  const bundledIdsCache = new Map<string, string>();
-  const bundledResolvedIdToLocalId = new Map<string, string>();
+  const bundledIdsToOriginalIds = new Map<string, string>();
 
   const bundle = await rollup({
     input,
     plugins: [
       resolveErrors({
-        bundledDependenciesDirs,
-        isBundledDependency,
         isExternal,
         pkg,
-        bundledIdsCache,
       }),
       json(),
       {
@@ -73,7 +68,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
           if (!/\.(mts|cts|ts|tsx)$/.test(id) || !bundledDependencies.length) {
             return null;
           }
-          let code = await fs.readFile(id, "utf8");
+          let code = await fs.readFile(bundledIdsToOriginalIds.get(id) ?? id, "utf8");
           // TODO: handle dynamic imports
           code = code.replace(
             /((?:import|export)\s+(?:{[\w\s,]*}\s+from\s+)?)["'](.+)["']/g,
@@ -90,11 +85,6 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
           );
 
           fsMap.set(id, code);
-
-          if (bundledIdsCache.has(id)) {
-            // pretend they actually exist within input directory
-            fsMap.set(bundledResolvedIdToLocalId.get(id)!, code);
-          }
 
           return code;
         },
@@ -127,17 +117,17 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
 
           const resolved = await this.resolve(sourceId, undefined, options);
 
-          if (resolved) {
-            bundledIdsCache.set(resolved.id, sourceId);
-            assert(importer, "a bundled dependency should always be imported by another file");
-            const localId = `${bundledRoot}/${bundledPkgId}${resolved.id.replace(
-              bundledSrcPath,
-              ""
-            )}`;
-            bundledResolvedIdToLocalId.set(resolved.id, localId);
+          if (!resolved) {
+            throw new Error(`Could not resolve ${sourceId}`);
           }
 
-          return resolved;
+          const bundledLocalId = `${bundledRoot}/${bundledPkgId}${resolved.id.replace(
+            bundledSrcPath,
+            ""
+          )}`;
+          bundledIdsToOriginalIds.set(bundledLocalId, resolved.id);
+
+          return bundledLocalId;
         },
       },
       nodeResolve({

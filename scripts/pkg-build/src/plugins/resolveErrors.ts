@@ -5,15 +5,9 @@ import { Plugin } from "rollup";
 import { PackagePredicate } from "../makePackagePredicate";
 
 export function resolveErrors({
-  bundledDependenciesDirs,
-  bundledIdsCache,
-  isBundledDependency,
   isExternal,
   pkg,
 }: {
-  bundledDependenciesDirs: string[];
-  bundledIdsCache: Map<string, string>;
-  isBundledDependency: PackagePredicate;
   isExternal: PackagePredicate;
   pkg: Package;
 }): Plugin {
@@ -21,7 +15,7 @@ export function resolveErrors({
     name: "resolve-errors",
     // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
     async resolveId(source, importer, options) {
-      if (source.startsWith("\0") || isBundledDependency(source)) {
+      if (source.startsWith("\0")) {
         return;
       }
       if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
@@ -30,10 +24,6 @@ export function resolveErrors({
             importer ? `by "${importer}" ` : ""
           }but the package is not specified in dependencies or peerDependencies`
         );
-      }
-      const bundledSourceId = importer && bundledIdsCache.get(importer);
-      if (bundledSourceId) {
-        importer = bundledSourceId;
       }
       const resolved = await this.resolve(source, importer, options);
       if (source.includes("_bundled")) {
@@ -57,10 +47,7 @@ export function resolveErrors({
         return resolved;
       }
 
-      if (
-        resolved.id.startsWith(pkg.dir) ||
-        bundledDependenciesDirs.some(dir => resolved.id.startsWith(dir))
-      ) {
+      if (resolved.id.startsWith(pkg.dir)) {
         return resolved;
       }
 
