@@ -15,7 +15,7 @@ export function resolveErrors({
     name: "resolve-errors",
     // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
     async resolveId(source, importer, options) {
-      if (source.startsWith("\0") || options.custom?.bundled) {
+      if (options.isEntry || source.startsWith("\0") || options.custom?.bundled) {
         return;
       }
       if (!source.startsWith(".") && !isExternal(source)) {
