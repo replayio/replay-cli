@@ -64,11 +64,6 @@ function isValidUUID(str: unknown) {
   return true;
 }
 
-function getUserAgent() {
-  // TODO: implement this correctly
-  return "";
-}
-
 function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   const serverURL = new URL(server);
   if (!agentOptions) {
@@ -84,4 +79,4 @@ function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
 }
 
-export { defer, getDirectory, getHttpAgent, getUserAgent, isValidUUID, maybeLog };
+export { defer, getDirectory, getHttpAgent, isValidUUID, maybeLog };
