@@ -1,4 +1,4 @@
-import { initLogger } from "@replay-cli/shared/logger";
+import { initLogger, logger } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import { name, version } from "../package.json";
@@ -27,6 +27,7 @@ finalizeCommander();
 // avoid ERR_UNHANDLED_REJECTION from being printed to the console
 process.on("uncaughtException", async error => {
   if (error.name !== "UnhandledPromiseRejection") {
+    logger.error("UncaughtException", { error });
     console.error(error);
   }
 
