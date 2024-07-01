@@ -5,7 +5,7 @@ export function esbuild(): Plugin {
   return {
     name: "esbuild",
     async transform(code, id) {
-      if (!/\.(mts|cts|ts|tsx)$/.test(id) && !id.includes("_bundled")) {
+      if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
         return null;
       }
       const result = await transform(code, {
