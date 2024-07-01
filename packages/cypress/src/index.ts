@@ -318,6 +318,7 @@ const plugin = (
     on("before:run", onBeforeRun);
     on("before:browser:launch", onBeforeBrowserLaunch);
     on("before:spec", onBeforeSpec);
+    on("after:run", onAfterRun);
 
     // make sure we have a config object with the keys we need to mutate
     config = config || {};
