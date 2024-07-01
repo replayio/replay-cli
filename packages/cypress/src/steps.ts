@@ -1,10 +1,10 @@
 /// <reference types="cypress" />
 
 import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
-import Debug from "debug";
 import { AFTER_EACH_HOOK } from "./constants";
 import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
 import type { StepEvent } from "./support";
+import { logger } from "@replay-cli/shared/logger";
 
 type Test = TestMetadataV2.Test;
 type UserActionEvent = TestMetadataV2.UserActionEvent;
@@ -13,8 +13,6 @@ interface StepStackItem {
   event: StepEvent;
   step: UserActionEvent;
 }
-
-const debug = Debug("replay:cypress:plugin:reporter:steps");
 
 export function mapStateToResult(state: CypressCommandLine.TestResult["state"]): Test["result"] {
   switch (state) {
@@ -33,7 +31,6 @@ function toEventOrder(event: StepEvent) {
 }
 
 function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
-  const skipDebug = debug.extend("skip");
   const lastArg = step.command?.args?.[step.command.args.length - 1];
 
   let reason: string | undefined;
@@ -46,7 +43,7 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
   }
 
   if (reason) {
-    skipDebug("Test step %s skipped: %s", step.command?.id || "", reason);
+    logger.info("CypressReporter:TestStepSkipped", { id: step.command?.id, reason });
     return true;
   }
 
@@ -121,11 +118,10 @@ function getTestsFromResults(
     });
   });
 
-  debug("Found %d tests", tests.length);
-  debug(
-    "%O",
-    tests.map(t => t.source.title)
-  );
+  logger.info("CypressReporter:TestsFound", {
+    count: tests.length,
+    titles: tests.map(t => t.source.title),
+  });
 
   return tests;
 }
@@ -162,7 +158,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
     currentTest = testForStep;
 
-    debug("Processing %s event: %o", step.event, step);
+    logger.info("CypressReporter:StepProcessing", { event: step.event, step });
 
     try {
       switch (step.event) {
@@ -234,7 +230,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
 
           // TODO [ryanjduffy]: Skipping handling after each events for now
           if (step.test[0] === AFTER_EACH_HOOK) {
-            debug("After each hooks are not currently supported");
+            logger.info("CypressReporter:AfterEachNotSupported");
             continue;
           }
 
