@@ -93,7 +93,7 @@ class ReplayPlaywrightReporter implements Reporter {
       {
         name: "playwright",
         version: undefined,
-        plugin: packageJson.version,
+        plugin: pkgJson.version,
       },
       "2.2.0",
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
