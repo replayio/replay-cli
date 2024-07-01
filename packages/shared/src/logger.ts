@@ -14,13 +14,13 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 type Tags = Record<string, unknown>;
 
 class Logger {
-  authInfo?: AuthInfo;
-  grafana: {
+  private authInfo?: AuthInfo;
+  private grafana: {
     logger: winston.Logger;
     close: () => Promise<void>;
   } | null = null;
-  initialized: boolean = false;
-  localDebugger: debug.Debugger;
+  private initialized: boolean = false;
+  private localDebugger: debug.Debugger;
 
   constructor() {
     this.localDebugger = dbg("replay");
@@ -36,7 +36,7 @@ class Logger {
     this.grafana = this.initGrafana(app, version);
   }
 
-  initGrafana(app: string, version: string | undefined) {
+  private initGrafana(app: string, version: string | undefined) {
     const lokiTransport = new LokiTransport({
       host: HOST,
       labels: { app, version },
@@ -67,7 +67,7 @@ class Logger {
     this.authInfo = authInfo;
   }
 
-  log(message: string, level: LogLevel, tags?: Tags) {
+  private log(message: string, level: LogLevel, tags?: Tags) {
     this.localDebugger(message, JSON.stringify(tags));
 
     if (process.env.REPLAY_TELEMETRY_DISABLED) {

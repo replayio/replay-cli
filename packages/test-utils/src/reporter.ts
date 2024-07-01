@@ -23,7 +23,6 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import { RecordingEntry } from "./types";
-import { Logger } from "winston";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -264,9 +263,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
   private _cacheAuthIdsPromise: Promise<void> | null = null;
   private _uploadedRecordings = new Set<string>();
-
-  // TODO: remove, this is for testing purposes only
-  public logger = logger;
 
   constructor(
     runner: TestRunner,
