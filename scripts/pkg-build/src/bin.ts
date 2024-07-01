@@ -74,6 +74,8 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
         cwd: pkg.dir,
         entrypoints: input,
         fsMap,
+        isBundledDependency,
+        packagesByName,
         resolvedBundledIds,
         rootDir,
       }),

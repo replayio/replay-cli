@@ -1,13 +1,12 @@
 import { Package } from "@manypkg/get-packages";
 import { createFSBackedSystem, createVirtualCompilerHost } from "@typescript/vfs";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import { EOL } from "node:os";
 import path from "path";
 import { Plugin } from "rollup";
 import type { FormatDiagnosticsHost, Node, Program, ResolvedModuleFull, System } from "typescript";
 import { PackagePredicate } from "../makePackagePredicate";
-import { transformImportSources } from "./bundledDependencies";
+import { getPotentialBundledSourceId, transformImportSources } from "./bundledDependencies";
 
 type EmittedFile = {
   fileName: string;
@@ -60,10 +59,12 @@ function createSystem(
   ts: typeof import("typescript"),
   {
     isBundledDependency,
+    packagesByName,
     resolvedBundledIds,
     rootDir,
   }: {
     isBundledDependency: PackagePredicate;
+    packagesByName: Map<string, Package>;
     resolvedBundledIds: Map<string, string>;
     rootDir: string;
   }
@@ -80,8 +81,17 @@ function createSystem(
 
   const fileExists = system.fileExists;
   system.fileExists = path => {
-    if (path.includes("/_bundled/") && !path.includes("/node_modules/")) {
-      return true;
+    if (
+      path.includes("/_bundled/") &&
+      !path.includes("/node_modules/") &&
+      !path.endsWith("/package.json")
+    ) {
+      const { sourceId } = getPotentialBundledSourceId(path, { packagesByName });
+      const result = fileExists(sourceId);
+      if (result) {
+        resolvedBundledIds.set(path, sourceId);
+      }
+      return result;
     }
     return fileExists(path);
   };
@@ -94,15 +104,16 @@ function createSystem(
       if (!resolvedId) {
         throw new Error(`Could not find resolved bundled id for ${path}`);
       }
+      const content = readFile(resolvedId, encoding);
+      if (!content) {
+        throw new Error(`Could not read ${resolvedId}`);
+      }
       const bundledRootDir = `${rootDir}/_bundled`;
-      const code = transformImportSources(
-        fs.readFileSync(resolvedId, encoding as BufferEncoding | undefined) as string,
-        {
-          fileName: path,
-          bundledRootDir,
-          isBundledDependency,
-        }
-      );
+      const code = transformImportSources(content, {
+        fileName: path,
+        bundledRootDir,
+        isBundledDependency,
+      });
       fsMap.set(path, code);
       return code;
     }
@@ -242,6 +253,7 @@ export function typescriptDeclarations(
     entrypoints,
     fsMap,
     isBundledDependency,
+    packagesByName,
     resolvedBundledIds,
     rootDir,
   }: {
@@ -249,6 +261,7 @@ export function typescriptDeclarations(
     entrypoints: string[];
     fsMap: Map<string, string>;
     isBundledDependency: PackagePredicate;
+    packagesByName: Map<string, Package>;
     resolvedBundledIds: Map<string, string>;
     rootDir: string;
   }
@@ -260,6 +273,7 @@ export function typescriptDeclarations(
       const ts = await import("typescript");
       const system = createSystem(fsMap, cwd, ts, {
         isBundledDependency,
+        packagesByName,
         resolvedBundledIds,
         rootDir,
       });
