@@ -13,6 +13,7 @@ import {
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
+import { logger } from "@replay-cli/shared/logger";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
   return !!error && typeof error === "object" && "code" in error && error.code === code;
@@ -169,7 +170,7 @@ export async function replayFixture(
     }
   }
 
-  debug("Setting up replay fixture");
+  logger.info("ReplayFixture:SettingUp");
 
   const expectSteps = new Set<string>();
   const ignoredSteps = new Set<string>();
@@ -227,7 +228,7 @@ export async function replayFixture(
               // it's not worth it when a convenient API is available though
               // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
               // they can't be *logged* here because that interferes with the active reporter output
-              debug("Failed to add annotation: %o", e);
+              logger.error("ReplayFixture:FailedToAddAnnotation", { error: e });
             }
           });
         })
@@ -287,7 +288,7 @@ export async function replayFixture(
           })
         );
       } catch (wsError) {
-        debug("Failed to send error to reporter", wsError);
+        logger.error("ReplayFixture:FailedToSendErrorToReporter", { wsError });
       }
     }
   }
@@ -326,7 +327,7 @@ export async function replayFixture(
         },
       }).catch(err => {
         // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-        debug("Failed to add step:start for an expect: %o", err);
+        logger.error("ReplayFixture:FailedToAddExpectStep", { error: err });
       });
 
       return step;
@@ -350,7 +351,7 @@ export async function replayFixture(
         },
       }).catch(err => {
         // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-        debug("Failed to add step:end for an expect: %o", err);
+        logger.error("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
       });
     }
   };
@@ -439,7 +440,7 @@ export function addReplayFixture() {
   const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
   const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
   if (!fixtures) {
-    debug("Failed to inject replay fixture");
+    logger.error("ReplayFixture:FailedToInject");
     return;
   }
 
