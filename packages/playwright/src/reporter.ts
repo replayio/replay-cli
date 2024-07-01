@@ -23,7 +23,8 @@ import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixtu
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
 import { initLogger, logger } from "@replay-cli/shared/logger";
-import packageJson from "../package.json";
+import pkgJson from "../package.json";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
@@ -79,7 +80,8 @@ class ReplayPlaywrightReporter implements Reporter {
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
-    initLogger(packageJson.name, packageJson.version);
+    setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
+    initLogger(pkgJson.name, pkgJson.version);
     if (!config || typeof config !== "object") {
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`

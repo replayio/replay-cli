@@ -262,7 +262,6 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     schemaVersion: string,
     config?: ReplayReporterConfig<TRecordingMetadata>
   ) {
-    // setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
     this._runner = runner;
     this._schemaVersion = schemaVersion;
 
