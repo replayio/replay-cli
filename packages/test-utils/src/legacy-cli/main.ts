@@ -1,6 +1,5 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import fs from "fs";
-import dbg from "./debug";
 import { getHttpAgent } from "./utils";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
@@ -25,11 +24,11 @@ import {
   type UnstructuredMetadata,
 } from "./types";
 import { ReplayClient } from "./upload";
-import { getDirectory, maybeLog } from "./utils";
+import { getDirectory, maybeLog as maybeLogToConsole } from "./utils";
+import { logger } from "@replay-cli/shared/logger";
+import { getErrorMessage } from "./error";
 export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
-
-const debug = dbg("replay:cli");
 
 export function filterRecordings(
   recordings: RecordingEntry[],
@@ -37,18 +36,24 @@ export function filterRecordings(
   includeCrashes: FilterOptions["includeCrashes"]
 ) {
   let filteredRecordings = recordings;
-  debug("Recording log contains %d replays", recordings.length);
+  logger.info("FilterRecordings:Started", {
+    numRecordingLogReplays: recordings.length,
+    filterType: filter ? typeof filter : undefined,
+  });
   if (filter && typeof filter === "string") {
-    debug("Using filter: %s", filter);
     const exp = jsonata(`$filter($, ${filter})[]`);
     filteredRecordings = exp.evaluate(recordings) || [];
 
-    debug("Filtering resulted in %d replays", filteredRecordings.length);
+    logger.info("FilterRecordings:UsedString", {
+      filteredRecordingsLength: filteredRecordings.length,
+      filter,
+    });
   } else if (typeof filter === "function") {
-    debug("Using filter function");
     filteredRecordings = recordings.filter(filter);
 
-    debug("Filtering resulted in %d replays", filteredRecordings.length);
+    logger.info("FilterRecordings:UsedFunction", {
+      filteredRecordingsLength: filteredRecordings.length,
+    });
   }
 
   if (includeCrashes) {
@@ -56,6 +61,9 @@ export function filterRecordings(
       if (r.status === "crashed" && !filteredRecordings.includes(r)) {
         filteredRecordings.push(r);
       }
+    });
+    logger.info("FilterRecordings:IncludedCrashes", {
+      filteredRecordingsLength: filteredRecordings.length,
     });
   }
 
@@ -70,6 +78,7 @@ function listRecording(recording: RecordingEntry): ExternalRecordingEntry {
 }
 
 function listAllRecordings(opts: Options & ListOptions = {}) {
+  logger.info("ListAllRecordings:Started");
   const recordings = readRecordings(opts.directory);
 
   if (opts.all) {
@@ -114,9 +123,12 @@ async function doUploadCrash(
   agent?: Agent
 ) {
   const client = new ReplayClient();
-  maybeLog(verbose, `Starting crash data upload for ${recording.id}...`);
+  logger.info("DoUploadCrash:Started", { recordingId: recording.id });
+  maybeLogToConsole(verbose, `Starting crash data upload for ${recording.id}...`);
+
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(verbose, `Crash data upload failed: can't connect to server ${server}`);
+    logger.error("DoUploadCrash:CannotConnectToServer", { recordingId: recording.id, server });
+    maybeLogToConsole(verbose, `Crash data upload failed: can't connect to server ${server}`);
     return null;
   }
 
@@ -132,7 +144,8 @@ async function doUploadCrash(
     })
   );
   addRecordingEvent(dir, "crashUploaded", recording.id, { server });
-  maybeLog(verbose, `Crash data upload finished.`);
+  maybeLogToConsole(verbose, `Crash data upload finished.`);
+  logger.info("DoUploadCrash:Finished", { recordingId: recording.id, server });
   client.closeConnection();
 }
 
@@ -153,11 +166,7 @@ function handleUploadingError(
   verbose?: boolean,
   interiorError?: any
 ) {
-  maybeLog(verbose, `Upload failed: ${err}`);
-
-  if (interiorError) {
-    debug(interiorError);
-  }
+  maybeLogToConsole(verbose, `Upload failed: ${err}`);
 
   if (strict) {
     throw new RecordingUploadError(err, interiorError);
@@ -184,10 +193,18 @@ async function setMetadata(
       await retryWithExponentialBackoff(
         () => client.setRecordingMetadata(recordingId, metadata),
         e => {
-          debug("Failed to set recording metadata. Will be retried:  %j", e);
+          logger.error("SetMetadata:WillRetry", {
+            recordingId,
+            errorMessage: getErrorMessage(e),
+          });
         }
       );
     } catch (e) {
+      logger.error("SetMetadata:Failed", {
+        recordingId,
+        errorMessage: getErrorMessage(e),
+        strict,
+      });
       handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
     }
   }
@@ -253,11 +270,14 @@ async function directUploadRecording(
   await retryWithExponentialBackoff(
     () => client.uploadRecording(recording.path!, uploadLink, size),
     e => {
-      debug("Upload failed with error. Will be retried:  %j", e);
+      logger.error("DirectUploadRecording:WillRetry", {
+        recordingId,
+        errorMessage: getErrorMessage(e),
+      });
     }
   );
 
-  debug("%s: Uploaded %d bytes", recordingId, size);
+  logger.info("DoUploadRecording:Succeeded", { recordingId: recording.id, sizeInBytes: size });
 
   await client.connectionEndRecordingUpload(recording.id);
   return recordingId;
@@ -273,17 +293,26 @@ async function doUploadRecording(
   removeAssets: boolean = false,
   strict: boolean = false
 ) {
-  debug("Uploading %s from %s to %s", recording.id, dir, server);
-  maybeLog(verbose, `Starting upload for ${recording.id}...`);
+  logger.info("DoUploadRecording:Started", { recordingId: recording.id, server, dir });
+  maybeLogToConsole(verbose, `Starting upload for ${recording.id}...`);
 
   if (recording.status == "uploaded" && recording.recordingId) {
-    maybeLog(verbose, `Already uploaded: ${recording.recordingId}`);
+    logger.info("DoUploadRecording:AlreadyUploaded", { recordingId: recording.id });
+    maybeLogToConsole(verbose, `Already uploaded: ${recording.recordingId}`);
 
     return recording.recordingId;
   }
 
   const reason = uploadSkipReason(recording);
   if (reason) {
+    logger.error("DoUploadRecording:Failed", {
+      recordingId: recording.id,
+      server,
+      dir,
+      uploadSkipReason,
+      strict,
+    });
+
     handleUploadingError(reason, strict, verbose);
     return null;
   }
@@ -295,20 +324,39 @@ async function doUploadRecording(
   const agent = getHttpAgent(server, agentOptions);
 
   if (recording.status == "crashed") {
-    debug("Uploading crash %o", recording);
+    logger.info("DoUploadRecording:WillUploadCrashReport", {
+      recordingId: recording.id,
+      recordingStatus: recording.status,
+    });
     await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
-    maybeLog(verbose, `Crash report uploaded for ${recording.id}`);
+    logger.info("DoUploadRecording:CrashReportUploaded", {
+      recordingId: recording.id,
+    });
+    maybeLogToConsole(verbose, `Crash report uploaded for ${recording.id}`);
+
     if (removeAssets) {
       removeRecordingAssets(recording, { directory: dir });
+      logger.info("DoUploadRecording:RemovedRecordingAssets", {
+        recordingId: recording.id,
+        dir,
+      });
     }
     return recording.id;
   }
 
   const { size } = await fs.promises.stat(recording.path!);
 
-  debug("Uploading recording %o", recording);
+  logger.info("DoUploadRecording:WillUpload", {
+    recording,
+  });
+
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
+    logger.error("DoUploadRecording:ServerConnectionError", {
+      recording,
+      server,
+      strict,
+    });
     handleUploadingError(`Cannot connect to server ${server}`, strict, verbose);
     return null;
   }
@@ -317,8 +365,8 @@ async function doUploadRecording(
   const metadata = await validateMetadata(client, recording.metadata, verbose);
 
   let recordingId: string;
+  const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
   try {
-    const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
     if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
       recordingId = await multipartUploadRecording(
         server,
@@ -344,12 +392,15 @@ async function doUploadRecording(
       );
     }
   } catch (err) {
-    handleUploadingError(
-      err instanceof ProtocolError ? err.protocolMessage : String(err),
+    const errorMessage = err instanceof ProtocolError ? err.protocolMessage : String(err);
+    logger.error("DoUploadRecording:ProtocolError", {
+      recording,
+      server,
       strict,
-      verbose,
-      err
-    );
+      errorMessage,
+      wasMultipartUpload: size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled,
+    });
+    handleUploadingError(errorMessage, strict, verbose, err);
     return null;
   }
 
@@ -357,7 +408,11 @@ async function doUploadRecording(
     recording.sourcemaps,
     async (sourcemap: SourceMapEntry) => {
       try {
-        debug("Uploading sourcemap %s for recording %s", sourcemap.path, recording.id);
+        logger.info("DoUploadRecording:WillUploadSourcemaps", {
+          recordingId: recording.id,
+          sourcemapPath: sourcemap.path,
+        });
+
         const contents = fs.readFileSync(sourcemap.path, "utf8");
         const sourcemapId = await client.connectionUploadSourcemap(
           recordingId,
@@ -367,12 +422,11 @@ async function doUploadRecording(
         await pMap(
           sourcemap.originalSources,
           originalSource => {
-            debug(
-              "Uploading original source %s for sourcemap %s for recording %s",
-              originalSource.path,
-              sourcemap.path,
-              recording.id
-            );
+            logger.info("DoUploadRecording:WillUploadOriginalSources", {
+              recordingId: recording.id,
+              sourcemapPath: sourcemap.path,
+            });
+
             const contents = fs.readFileSync(originalSource.path, "utf8");
             return client.connectionUploadOriginalSource(
               recordingId,
@@ -384,6 +438,12 @@ async function doUploadRecording(
           { concurrency: 5, stopOnError: false }
         );
       } catch (e) {
+        logger.error("DoUploadRecording:CannotUploadSourcemapFromDisk", {
+          recordingId: recording.id,
+          sourcemapPath: sourcemap.path,
+          errorMessage: getErrorMessage(e),
+        });
+
         handleUploadingError(
           `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
           strict,
@@ -400,10 +460,15 @@ async function doUploadRecording(
   }
 
   addRecordingEvent(dir, "uploadFinished", recording.id);
-  maybeLog(
-    verbose,
-    `Upload finished! View your Replay at: https://app.replay.io/recording/${recordingId}`
-  );
+  const replayUrl = ` https://app.replay.io/recording/${recordingId}`;
+
+  maybeLogToConsole(verbose, `Upload finished! View your Replay at: ${replayUrl}`);
+
+  logger.info("DoUploadRecording:Succeeded", {
+    recordingId: recording.id,
+    replayUrl,
+  });
+
   client.closeConnection();
   return recordingId;
 }
@@ -415,7 +480,11 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
   const recording = recordings.find(r => r.id == id);
 
   if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
+    maybeLogToConsole(opts.verbose, `Unknown recording ${id}`);
+    logger.error("UploadRecording:UnknownRecording", {
+      id,
+    });
+
     return null;
   }
 
@@ -431,13 +500,15 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
   );
 }
 
+// MBUDAYR - unused function, can remove.
 async function processUploadedRecording(recordingId: string, opts: Options) {
   const server = getServer(opts);
   const agent = getHttpAgent(server, opts.agentOptions);
   const { verbose } = opts;
   let apiKey = opts.apiKey;
 
-  maybeLog(verbose, `Processing recording ${recordingId}...`);
+  logger.info("ProcessUploadedRecording:Started", { recordingId });
+  maybeLogToConsole(verbose, `Processing recording ${recordingId}...`);
 
   if (!apiKey) {
     apiKey = await readToken(opts);
@@ -445,21 +516,32 @@ async function processUploadedRecording(recordingId: string, opts: Options) {
 
   const client = new ReplayClient();
   if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLog(verbose, `Processing failed: can't connect to server ${server}`);
+    maybeLogToConsole(verbose, `Processing failed: can't connect to server ${server}`);
+    logger.error("ProcessUploadedRecording:CannotConnectToServer", {
+      recordingId,
+      server,
+    });
+
     return false;
   }
 
   try {
     const error = await client.connectionWaitForProcessed(recordingId);
     if (error) {
-      maybeLog(verbose, `Processing failed: ${error}`);
+      logger.error("ProcessUploadedRecording:Failed", {
+        recordingId,
+        server,
+        errorMessage: getErrorMessage(error),
+      });
+      maybeLogToConsole(verbose, `Processing failed: ${error}`);
       return false;
     }
   } finally {
     client.closeConnection();
   }
 
-  maybeLog(verbose, "Finished processing.");
+  logger.info("ProcessUploadedRecording:Succeeded", { recordingId });
+  maybeLogToConsole(verbose, "Finished processing.");
   return true;
 }
 
@@ -467,11 +549,11 @@ function maybeRemoveAssetFile(asset?: string) {
   if (asset) {
     try {
       if (fs.existsSync(asset)) {
-        debug("Removing asset file %s", asset);
+        logger.info("MaybeRemoveAssetFile:Removing", { asset });
         fs.unlinkSync(asset);
       }
     } catch (e) {
-      debug("Failed to remove asset file: %s", e);
+      logger.error("MaybeRemoveAssetFile:Failed", { asset, errorMessage: getErrorMessage(e) });
     }
   }
 }
@@ -481,7 +563,10 @@ function removeRecording(id: string, opts: Options = {}) {
   const recordings = readRecordings(dir);
   const recording = recordings.find(r => r.id == id);
   if (!recording) {
-    maybeLog(opts.verbose, `Unknown recording ${id}`);
+    logger.error("RemoveRecording:UnknownRecording", {
+      id,
+    });
+    maybeLogToConsole(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
   removeRecordingAssets(recording, opts);

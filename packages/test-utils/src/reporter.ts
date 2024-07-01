@@ -18,6 +18,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
+import { getErrorMessage } from "./legacy-cli/error";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -108,10 +109,6 @@ export type PendingWork =
   | TestRunTestsPendingWork
   | UploadPendingWork
   | PostTestPendingWork;
-
-function getErrorMessage(e: unknown) {
-  return e && typeof e === "object" && "message" in e ? (e.message as string) : "Unknown Error";
-}
 
 function logPendingWorkErrors(errors: PendingWorkError<any>[]) {
   return errors.map(e => `   - ${e.error.message}`);
