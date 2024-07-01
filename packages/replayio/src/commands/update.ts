@@ -5,6 +5,7 @@ import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
 import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";
 import { installLatestRelease } from "../utils/installation/installLatestRelease";
+import { logger } from "@replay-cli/shared/logger";
 
 registerCommand("update", {
   checkForRuntimeUpdate: false,
@@ -41,6 +42,7 @@ async function update() {
 
     await exitProcess(0);
   } catch (error) {
+    logger.error("Update:Failed", { error });
     console.error(error);
 
     await exitProcess(1);
