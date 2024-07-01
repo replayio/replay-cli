@@ -157,6 +157,7 @@ async function onAfterRun() {
   });
 
   if (missingSteps) {
+    logger.error("CypressPlugin:AfterRunMissingSteps", { missingSteps });
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -165,6 +166,8 @@ async function onAfterRun() {
       )} in your support file?`
     );
   }
+
+  await logger.close().catch(() => {});
 }
 
 function onBeforeSpec(spec: Cypress.Spec) {
@@ -350,8 +353,6 @@ const plugin = (
       });
     }
   }
-
-  logger.close().catch(() => {});
 
   return config;
 };
