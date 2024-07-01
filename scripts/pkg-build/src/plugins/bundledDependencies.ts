@@ -32,6 +32,38 @@ export function transformImportSources(
   );
 }
 
+// TODO: unify this with getPotentialBundledSourceId
+function getBundledDependencyDescriptor(
+  path: string,
+  { packagesByName }: { packagesByName: Map<string, Package> }
+) {
+  let bundledId = path.replace(/^(.)+\/_bundled\//, "");
+  let entrypointStart = bundledId.indexOf("/");
+  if (entrypointStart !== -1 && bundledId.startsWith("@")) {
+    entrypointStart = bundledId.indexOf("/", entrypointStart + 1);
+  }
+  if (entrypointStart !== -1) {
+    const pkgName = bundledId.slice(0, entrypointStart);
+    if (!packagesByName.has(pkgName)) {
+      // TS can "probe" various locations that don't exist
+      return;
+    }
+    return {
+      pkgName,
+      entrypoint: bundledId.slice(entrypointStart),
+    };
+  } else {
+    if (!packagesByName.has(bundledId)) {
+      // TS can "probe" various locations that don't exist
+      return;
+    }
+    return {
+      pkgName: bundledId,
+      entrypoint: null,
+    };
+  }
+}
+
 // TODO: rename/refactor this
 export function getPotentialBundledSourceId(
   id: string,
@@ -49,11 +81,21 @@ export function getPotentialBundledSourceId(
   if (entrypointStart !== -1) {
     const entrypoint = bundledId.slice(entrypointStart);
     bundledPkgId = bundledId.slice(0, entrypointStart);
-    bundledSrcPath = `${packagesByName.get(bundledPkgId)!.dir}/src`;
+    const pkg = packagesByName.get(bundledPkgId);
+    if (!pkg) {
+      // TS can "probe" various locations that don't exist
+      return;
+    }
+    bundledSrcPath = `${pkg.dir}/src`;
     sourceId = `${bundledSrcPath}${entrypoint}`;
   } else {
     bundledPkgId = bundledId;
-    bundledSrcPath = `${packagesByName.get(bundledId)!.dir}/src`;
+    const pkg = packagesByName.get(bundledId);
+    if (!pkg) {
+      // TS can "probe" various locations that don't exist
+      return;
+    }
+    bundledSrcPath = `${pkg.dir}/src`;
     sourceId = `${bundledSrcPath}/index`;
   }
 
@@ -95,9 +137,22 @@ export function bundledDependencies({
       return code;
     },
     async resolveId(id, importer, options) {
-      if (!id.includes("_bundled")) {
-        if (id.startsWith(".") && importer?.includes("_bundled")) {
-          const importerSourceId = resolvedBundledIds.get(importer);
+      const isRelativeImportInBundled = id.startsWith(".") && importer?.includes("_bundled");
+      if (isRelativeImportInBundled) {
+        const absoluteId = path.join(path.dirname(importer!), id);
+        const importerPkgName = getBundledDependencyDescriptor(importer!, {
+          packagesByName,
+        })?.pkgName;
+        const importeePkgName = getBundledDependencyDescriptor(absoluteId, {
+          packagesByName,
+        })?.pkgName;
+        if (!importerPkgName || !importeePkgName) {
+          throw new Error(
+            `Could not find importer's or importee's package name. This should not happen in this part of the build process`
+          );
+        }
+        if (importerPkgName === importeePkgName) {
+          const importerSourceId = resolvedBundledIds.get(importer!);
           if (!importerSourceId) {
             throw new Error(`Could not find original source id for ${importer}`);
           }
@@ -114,18 +169,28 @@ export function bundledDependencies({
           }
 
           const relativeInSource = path.relative(path.dirname(importerSourceId), resolved.id);
-          const bundledLocalId = path.join(path.dirname(importer), relativeInSource);
+          const bundledLocalId = path.join(path.dirname(importer!), relativeInSource);
 
           resolvedBundledIds.set(bundledLocalId, resolved.id);
 
           return bundledLocalId;
         }
+        id = absoluteId;
+      }
+
+      if (!id.includes("_bundled")) {
         return null;
       }
 
-      const { bundledPkgId, bundledSrcPath, sourceId } = getPotentialBundledSourceId(id, {
+      const potentialBundledSourceIdResult = getPotentialBundledSourceId(id, {
         packagesByName,
       });
+
+      if (!potentialBundledSourceIdResult) {
+        throw new Error("This should never happen.");
+      }
+
+      const { bundledPkgId, bundledSrcPath, sourceId } = potentialBundledSourceIdResult;
       const resolved = await this.resolve(sourceId, undefined, {
         ...options,
         custom: {

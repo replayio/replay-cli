@@ -86,12 +86,14 @@ function createSystem(
       !path.includes("/node_modules/") &&
       !path.endsWith("/package.json")
     ) {
-      const { sourceId } = getPotentialBundledSourceId(path, { packagesByName });
-      const result = fileExists(sourceId);
-      if (result) {
-        resolvedBundledIds.set(path, sourceId);
+      const sourceId = getPotentialBundledSourceId(path, { packagesByName })?.sourceId;
+      if (sourceId) {
+        const result = fileExists(sourceId);
+        if (result) {
+          resolvedBundledIds.set(path, sourceId);
+        }
+        return result;
       }
-      return result;
     }
     return fileExists(path);
   };
