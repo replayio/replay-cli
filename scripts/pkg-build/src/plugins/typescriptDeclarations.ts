@@ -148,8 +148,8 @@ async function getProgram(
     configFileName
   );
 
-  // parsed.options.outDir = "dist";
-  // parsed.options.declarationDir = "dist";
+  parsed.options.outDir = undefined;
+  parsed.options.declarationDir = "dist";
   parsed.options.declaration = true;
   // supporting declarationMap for bundled dependencies is tricky
   // a published package doesn't have the relevant source files
