@@ -115,7 +115,13 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
             sourceId = `${bundledSrcPath}/index`;
           }
 
-          const resolved = await this.resolve(sourceId, undefined, options);
+          const resolved = await this.resolve(sourceId, undefined, {
+            ...options,
+            custom: {
+              ...options.custom,
+              bundled: true,
+            },
+          });
 
           if (!resolved) {
             throw new Error(`Could not resolve ${sourceId}`);
