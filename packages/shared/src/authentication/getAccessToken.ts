@@ -6,29 +6,45 @@ import { cachedAuthPath } from "./config";
 import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 import { CachedAuthDetails } from "./types";
 
-export async function getAccessToken(): Promise<string | undefined> {
+export type AccessTokenInfo = {
+  accessToken: string | undefined;
+  apiKeySource: "REPLAY_API_KEY" | "RECORD_REPLAY_API_KEY" | undefined;
+};
+
+const NO_ACCESS_TOKEN: AccessTokenInfo = {
+  accessToken: undefined,
+  apiKeySource: undefined,
+};
+
+export async function getAccessToken(): Promise<AccessTokenInfo> {
   if (process.env.REPLAY_API_KEY) {
     logger.debug("Using token from env (REPLAY_API_KEY)");
-    return process.env.REPLAY_API_KEY;
+    return {
+      accessToken: process.env.REPLAY_API_KEY,
+      apiKeySource: "REPLAY_API_KEY",
+    };
   } else if (process.env.RECORD_REPLAY_API_KEY) {
     logger.debug("Using token from env (RECORD_REPLAY_API_KEY)");
-    return process.env.RECORD_REPLAY_API_KEY;
+    return {
+      accessToken: process.env.RECORD_REPLAY_API_KEY,
+      apiKeySource: "RECORD_REPLAY_API_KEY",
+    };
   }
 
   let { accessToken, refreshToken } = readFromCache<CachedAuthDetails>(cachedAuthPath) ?? {};
   if (typeof accessToken !== "string") {
     logger.debug("Unexpected accessToken value", { accessToken });
-    return;
+    return NO_ACCESS_TOKEN;
   }
   if (typeof refreshToken !== "string") {
     logger.debug("Unexpected refreshToken", { refreshToken });
-    return;
+    return NO_ACCESS_TOKEN;
   }
 
   const [_, encodedToken, __] = accessToken.split(".", 3);
   if (typeof encodedToken !== "string") {
     logger.debug("Token did not contain a valid payload", { accessToken: maskString(accessToken) });
-    return;
+    return NO_ACCESS_TOKEN;
   }
 
   let payload: any;
@@ -36,12 +52,12 @@ export async function getAccessToken(): Promise<string | undefined> {
     payload = JSON.parse(Buffer.from(encodedToken, "base64").toString());
   } catch (error) {
     logger.debug("Failed to decode token", { accessToken: maskString(accessToken), error });
-    return;
+    return NO_ACCESS_TOKEN;
   }
 
   if (typeof payload !== "object") {
     logger.debug("Token payload was not an object");
-    return;
+    return NO_ACCESS_TOKEN;
   }
 
   const expiration = (payload?.exp ?? 0) * 1000;
@@ -57,11 +73,11 @@ export async function getAccessToken(): Promise<string | undefined> {
     } catch (error) {
       writeToCache(cachedAuthPath, undefined);
       updateCachedAuthInfo(accessToken, undefined);
-      return;
+      return NO_ACCESS_TOKEN;
     }
   } else {
     logger.debug(`Access token valid until ${expirationDate.toLocaleDateString()}`);
   }
 
-  return accessToken;
+  return { accessToken, apiKeySource: undefined };
 }

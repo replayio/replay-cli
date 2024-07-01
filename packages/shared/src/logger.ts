@@ -2,6 +2,8 @@ import dbg from "debug";
 import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
+import { getDeviceId } from "./getDeviceId";
+import { randomUUID } from "crypto";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -14,6 +16,8 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 type Tags = Record<string, unknown>;
 
 class Logger {
+  private deviceId: string;
+  private sessionId: string;
   private authInfo?: AuthInfo;
   private grafana: {
     logger: winston.Logger;
@@ -24,6 +28,8 @@ class Logger {
 
   constructor() {
     this.localDebugger = dbg("replay");
+    this.deviceId = getDeviceId();
+    this.sessionId = randomUUID();
   }
 
   initialize(app: string, version: string | undefined) {
@@ -74,7 +80,13 @@ class Logger {
       return;
     }
 
-    const entry: LogEntry = { level, message, tags };
+    const entry: LogEntry = {
+      level,
+      message,
+      tags,
+      deviceId: this.deviceId,
+      sessionId: this.sessionId,
+    };
 
     if (this.authInfo) {
       switch (this.authInfo.type) {

@@ -53,9 +53,6 @@ export function readRecordings(dir?: string, includeHidden = false) {
       try {
         return JSON.parse(line) as RecordingLogEntry;
       } catch {
-        if (line) {
-          debug('Failed to parse recordings.log entry: "%s"', line);
-        }
         return null;
       }
     })
@@ -230,13 +227,6 @@ function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
   writeRecordingFile(dir, lines);
 }
 
-function removeRecordingsFile(dir: string) {
-  const file = getRecordingsFile(dir);
-  if (fs.existsSync(file)) {
-    fs.unlinkSync(file);
-  }
-}
-
 function removeRecordingFromLog(dir: string, id: string) {
   const lines = readRecordingFile(dir).filter(line => {
     try {
@@ -253,4 +243,4 @@ function removeRecordingFromLog(dir: string, id: string) {
   writeRecordingFile(dir, lines);
 }
 
-export { readRecordingFile, removeRecordingFromLog, removeRecordingsFile, addRecordingEvent };
+export { readRecordingFile, removeRecordingFromLog, addRecordingEvent };

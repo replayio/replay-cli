@@ -1,9 +1,9 @@
 import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { initLaunchDarklyFromAccessToken } from "@replay-cli/shared/launch-darkly/initLaunchDarklyFromAccessToken";
 import { initMixpanelForUserSession } from "@replay-cli/shared/mixpanel/initMixpanelForUserSession";
 import { name as packageName, version as packageVersion } from "../../../package.json";
 import { logPromise } from "../async/logPromise";
-import { checkAuthentication } from "./checkAuthentication";
 import { checkForNpmUpdate } from "./checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
 import { promptForAuthentication } from "./promptForAuthentication";
@@ -22,7 +22,7 @@ export async function initialize({
   // These initialization steps can run in parallel to improve startup time
   // None of them should log anything though; that would interfere with the initialization-in-progress message
   const promises = Promise.all([
-    checkAuthentication(),
+    getAccessToken().then(({ accessToken }) => accessToken),
     shouldCheckForRuntimeUpdate
       ? raceWithTimeout(checkForRuntimeUpdate(), 5_000)
       : Promise.resolve(),

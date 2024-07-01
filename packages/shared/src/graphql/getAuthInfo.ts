@@ -9,8 +9,8 @@ export type Cached = {
 
 export async function getAuthInfo(accessToken: string): Promise<AuthInfo> {
   const cached = readFromCache<Cached>(cachePath) ?? {};
-  let authInfo = cached[accessToken];
 
+  let authInfo = cached[accessToken];
   if (!authInfo) {
     authInfo = await fetchAuthInfoFromGraphQL(accessToken);
 
