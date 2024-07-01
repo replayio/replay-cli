@@ -4,15 +4,15 @@ import { AddressInfo } from "net";
 import { WebSocketServer } from "ws";
 
 export async function createServer() {
-  logger.info("CypressPlugin:CreatingServer");
+  logger.info("CreateServer:Started");
 
   const server = http.createServer();
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", function upgrade(request, socket, head) {
-    logger.info("CypressPlugin:UpgradeRequest");
+    logger.info("CreateServer:UpgradeRequest");
     wss.handleUpgrade(request, socket, head, function done(ws) {
-      logger.info("CypressPlugin:Upgraded");
+      logger.info("CreateServer:Upgraded");
       wss.emit("connection", ws, request);
     });
   });
@@ -27,11 +27,11 @@ export async function createServer() {
       host: process.env.CYPRESS_REPLAY_SOCKET_HOST || "0.0.0.0",
     };
 
-    logger.info("CypressPlugin:ServerConfig", { config });
+    logger.info("CreateServer:ServerConfig", { config });
 
     server.listen(config, () => {
       const { address, port } = server.address() as AddressInfo;
-      logger.info("CypressPlugin:Listening", { address, port });
+      logger.info("CreateServer:Listening", { address, port });
       resolve({ server: wss, port });
     });
   });

@@ -89,7 +89,7 @@ class CypressReporter {
   async authenticate(apiKey: string) {
     this.reporter.setApiKey(apiKey);
     const { env } = await fetchWorkspaceConfig(apiKey);
-    logger.info("CypressReporter:ExtraEnv", env);
+    logger.info("Authenticate:ExtraEnv", env);
     this._extraEnv = env;
     this.reporter.setDiagnosticMetadata(env);
   }
@@ -117,13 +117,13 @@ class CypressReporter {
     let currentCount = this.getStepCount();
     const startTime = Date.now();
     while (Date.now() < startTime + MAX_WAIT) {
-      logger.info("CypressReporter:WaitingForStableStepCount", { currentCount });
+      logger.info("WaitingForStableStepCount:Count", { currentCount });
       const previousCount = currentCount;
       await new Promise(resolve => setTimeout(resolve, 250));
       currentCount = this.getStepCount();
 
       if (previousCount === currentCount) {
-        logger.info("CypressReporter:StableStepCount", {
+        logger.info("WaitingForStableStepCount:BreakCondition", {
           currentCount,
           duration: Date.now() - startTime,
         });
@@ -201,7 +201,7 @@ class CypressReporter {
       result.tests.length === 0
     ) {
       const msg = "No test results found for spec " + spec.relative;
-      logger.info("CypressReporter:NoTestResults", { spec: spec.relative });
+      logger.info("GetTestResults:NoTestResults", { spec: spec.relative });
       this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
       return [

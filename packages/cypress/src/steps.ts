@@ -43,7 +43,7 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
   }
 
   if (reason) {
-    logger.info("CypressReporter:TestStepSkipped", { id: step.command?.id, reason });
+    logger.info("ShouldSkipStep:TestStepSkipped", { id: step.command?.id, reason });
     return true;
   }
 
@@ -118,7 +118,7 @@ function getTestsFromResults(
     });
   });
 
-  logger.info("CypressReporter:TestsFound", {
+  logger.info("GetTestsFromResults:TestsFound", {
     count: tests.length,
     titles: tests.map(t => t.source.title),
   });
@@ -158,7 +158,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
     currentTest = testForStep;
 
-    logger.info("CypressReporter:StepProcessing", { event: step.event, step });
+    logger.info("GroupStepsByTest:StepProcessing", { event: step.event, step });
 
     try {
       switch (step.event) {
@@ -230,7 +230,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
 
           // TODO [ryanjduffy]: Skipping handling after each events for now
           if (step.test[0] === AFTER_EACH_HOOK) {
-            logger.info("CypressReporter:AfterEachNotSupported");
+            logger.info("ShouldSkipStep:AfterEachNotSupported");
             continue;
           }
 

@@ -14,14 +14,15 @@ function readXmlFile(path: string) {
   }
 
   try {
-    logger.debug("CypressJUnitReporter:ReadXmlFile", { path });
+    logger.debug("ReadXmlFile:Started", { path });
     const contents = readFileSync(path, "utf-8");
-    logger.info("CypressJUnitReporter:ReadXmlFile", { bytes: contents.length, path });
+    logger.info("ReadXmlFile:FileInfo", { bytes: contents.length, path });
     const dom = xml(contents, { setPos: false, noChildNodes: ["?xml"] });
     gFileCache.set(path, dom);
 
     return dom;
   } catch (e) {
+    logger.error("ReadXmlFile:Failed", { path, error: e });
     warn("[junit] Failed to read and parse reporter file", e);
   }
 }
@@ -42,6 +43,7 @@ function writeOutputFile(dom: (string | INode)[], outputFile: string) {
       .join("\n");
     writeFileSync(outputFile, updatedContents, "utf-8");
   } catch (e) {
+    logger.error("WriteOutputFile:Failed", { outputFile, error: e });
     warn("[junit] Failed to update reporter file", e);
   }
 }
@@ -103,7 +105,7 @@ function addReplayLinkProperty(node: INode, replayUrls: string[]) {
       )
     );
   } catch (e) {
-    logger.error("CypressJUnitReporter:AddReplayLinkProperty", { error: e });
+    logger.error("AddReplayLinkProperty:Failed", { error: e });
   }
 }
 
@@ -114,13 +116,13 @@ function escapeForXml(content: string) {
 function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
   try {
     const failures = findDescendentsByTagName(node, "failure");
-    logger.info("CypressJUnitReporter:AppendReplayUrlsToFailures", {
+    logger.info("AppendReplayUrlsToFailures:Started", {
       failures: failures.length,
       replayUrls,
     });
     failures.forEach(failure => {
       if (typeof failure.children[0] !== "string") {
-        logger.info("CypressJUnitReporter:FailureNodeNotString", { failure });
+        logger.info("AppendReplayUrlsToFailures:FailureNodeNotString", { failure });
         return;
       }
 
@@ -131,7 +133,7 @@ function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
       failure.children[0] = escapeForXml(output);
     });
   } catch (e) {
-    logger.error("CypressJUnitReporter:AppendReplayUrlsToFailures", { error: e });
+    logger.error("AppendReplayUrlsToFailures:Failed", { error: e });
   }
 }
 
@@ -148,7 +150,7 @@ function findOutputFileForSpec(specRelativePath: string, xmlFiles: string[]) {
     const rootSuite = getRootSuite(dom);
 
     if (!rootSuite || !testSuites) {
-      logger.error("CypressJUnitReporter:FailedToFindRootSuite", { dom });
+      logger.error("FindOutputFileForSpec:FailedToFindRootSuite", { dom });
       continue;
     }
 
@@ -179,7 +181,7 @@ export function updateJUnitReports(
   mochaFile?: string
 ) {
   try {
-    logger.info("CypressJUnitReporter:Update", {
+    logger.info("UpdateJUnitReports:Started", {
       specRelativePath,
       recordings: recordings.map(r => r.id),
       projectBase,
@@ -187,6 +189,7 @@ export function updateJUnitReports(
     });
 
     if (mochaFile && typeof mochaFile !== "string") {
+      logger.error("UpdateJUnitReports:InvalidMochaFile", { mochaFile });
       warn(
         "Unsupported reporterOptions configuration",
         new Error("Expected string for mocha file but received " + typeof mochaFile)
@@ -202,7 +205,7 @@ export function updateJUnitReports(
       throw new Error(`Failed to find JUnit reporter output file`);
     }
 
-    logger.info("CypressJUnitReporter:FoundRootSuite", { specRelativePath });
+    logger.info("UpdateJUnitReports:FoundRootSuite", { specRelativePath });
 
     const testSuites = getTestSuitesNode(dom);
     const rootSuite = getRootSuite(dom);
@@ -219,6 +222,7 @@ export function updateJUnitReports(
 
     writeOutputFile(dom, xmlFile);
   } catch (e) {
+    logger.error("UpdateJUnitReports:Failed", { specRelativePath, error: e });
     warn(`[junit] Unexpected reporter error  for ${specRelativePath}`, e);
   }
 }

@@ -72,7 +72,7 @@ function updateReporters(
   config: Cypress.PluginConfigOptions
 ) {
   const { reporter, reporterOptions } = config;
-  logger.info("CypressPlugin:UpdateReporter", { reporter, reporterOptions });
+  logger.info("UpdateReporters:Started", { reporter, reporterOptions });
   if (reporter !== "junit") {
     return;
   }
@@ -97,11 +97,11 @@ function onBeforeBrowserLaunch(
   browser: Cypress.Browser,
   launchOptions: Cypress.BeforeBrowserLaunchOptions
 ) {
-  logger.info("CypressPlugin:BeforeBrowserLaunch", { browser, launchOptions });
+  logger.info("OnBeforeBrowserLaunch:Started", { browser, launchOptions });
   assertReporter(cypressReporter);
   cypressReporter.onLaunchBrowser(browser.family);
 
-  logger.info("CypressPlugin:BrowserLaunching", { family: browser.family });
+  logger.info("OnBeforeBrowserLaunch:BrowserLaunching", { family: browser.family });
 
   const config = cypressReporter.config;
   if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
@@ -120,7 +120,7 @@ function onBeforeBrowserLaunch(
       ...cypressReporter.getExtraEnv(),
     };
 
-    logger.info("CypressPlugin:BrowserEnvironment", { replayEnv });
+    logger.info("OnBeforeBrowserLaunch:BrowserEnvironment", { replayEnv });
 
     launchOptions.env = env;
   }
@@ -157,7 +157,7 @@ async function onAfterRun() {
   });
 
   if (missingSteps) {
-    logger.error("CypressPlugin:AfterRunMissingSteps", { missingSteps });
+    logger.error("OnAfterRun:AfterRunMissingSteps", { missingSteps });
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -171,19 +171,19 @@ async function onAfterRun() {
 }
 
 function onBeforeSpec(spec: Cypress.Spec) {
-  logger.info("CypressPlugin:BeforeSpec", { spec: spec.relative });
+  logger.info("OnBeforeSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   cypressReporter.onBeforeSpec(spec);
 }
 
 function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
-  logger.info("CypressPlugin:AfterSpec", { spec: spec.relative });
+  logger.info("OnAfterSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   return cypressReporter.onAfterSpec(spec, result);
 }
 
 function onReplayTask(value: any) {
-  logger.info("CypressPlugin:ReplayTask", { value });
+  logger.info("OnReplayTask:Started", { value });
   assertReporter(cypressReporter);
   const reporter = cypressReporter;
 
@@ -191,10 +191,10 @@ function onReplayTask(value: any) {
 
   value.forEach(v => {
     if (isStepEvent(v)) {
-      logger.info("CypressPlugin:ReplayTaskEvent", { event: v });
+      logger.info("OnReplayTask:ReplayTaskEvent", { event: v });
       reporter.addStep(v);
     } else {
-      logger.error("CypressPlugin:ReplayTaskUnexpectedPayload", { payload: v });
+      logger.error("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
     }
   });
 

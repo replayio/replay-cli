@@ -14,11 +14,11 @@ function getFixtureFile() {
 }
 
 export function initFixtureFile() {
-  logger.info("CypressReporter:InitFixtureFile", {
+  logger.info("InitFixtureFile:Started", {
     updateFixture: process.env.REPLAY_CYPRESS_UPDATE_FIXTURE,
   });
   if (process.env.REPLAY_CYPRESS_UPDATE_FIXTURE) {
-    logger.info("CypressReporter:InitFixtureFile", { fixtureFile: getFixtureFile() });
+    logger.info("InitFixtureFile:FixtureFile", { fixtureFile: getFixtureFile() });
     try {
       mkdirSync(path.dirname(getFixtureFile()), { recursive: true });
       writeFileSync(getFixtureFile(), "");
