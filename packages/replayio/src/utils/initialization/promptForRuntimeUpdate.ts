@@ -1,4 +1,4 @@
-import { trackEvent } from "@replay-cli/shared/mixpanel/trackEvent";
+import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { emphasize } from "@replay-cli/shared/theme";
 import { name as packageName } from "../../../package.json";
 import { installLatestRelease } from "../installation/installLatestRelease";
@@ -50,7 +50,7 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
       // A failed install will be handled later
     }
   } else {
-    trackEvent("update.runtime.skipped", { newRuntimeVersion: toVersion });
+    mixpanelAPI.trackEvent("update.runtime.skipped", { newRuntimeVersion: toVersion });
   }
 
   console.log("");

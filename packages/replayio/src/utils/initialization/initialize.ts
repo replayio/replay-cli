@@ -1,7 +1,7 @@
 import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { initLaunchDarklyFromAccessToken } from "@replay-cli/shared/launch-darkly/initLaunchDarklyFromAccessToken";
-import { initMixpanelForUserSession } from "@replay-cli/shared/mixpanel/initMixpanelForUserSession";
+import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { name as packageName, version as packageVersion } from "../../../package.json";
 import { logPromise } from "../async/logPromise";
 import { checkForNpmUpdate } from "./checkForNpmUpdate";
@@ -60,10 +60,7 @@ export async function initialize({
     : Promise.resolve();
 
   const mixpanelPromise = raceWithTimeout(
-    initMixpanelForUserSession(accessToken, {
-      packageName,
-      packageVersion,
-    }),
+    mixpanelAPI.initialize({ accessToken, packageName, packageVersion }),
     2_500,
     abortController
   );

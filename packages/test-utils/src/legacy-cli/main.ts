@@ -26,7 +26,7 @@ import {
 } from "./types";
 import { ReplayClient } from "./upload";
 import { getDirectory, maybeLog } from "./utils";
-export type { BrowserName, RecordingEntry } from "./types";
+export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
 const debug = dbg("replay:cli");

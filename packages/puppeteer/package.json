@@ -43,6 +43,7 @@
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
     "launchdarkly-node-client-sdk": "^3.2.1",
+    "mixpanel": "^0.18.0",
     "node-fetch": "^2.6.7",
     "p-map": "^4.0.0",
     "sha-1": "^1.0.0",
