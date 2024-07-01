@@ -8,7 +8,6 @@ import dbg from "debug";
 import { AgentOptions, Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 import path from "path";
-import { name as packageName, version as packageVersion } from "../../package.json";
 
 import { Options } from "./types";
 
@@ -65,14 +64,6 @@ function isValidUUID(str: unknown) {
   return true;
 }
 
-function getNameAndVersion() {
-  return `${packageName}/${packageVersion}`;
-}
-
-function getUserAgent() {
-  return getNameAndVersion();
-}
-
 function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   const serverURL = new URL(server);
   if (!agentOptions) {
@@ -88,4 +79,4 @@ function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
 }
 
-export { defer, getDirectory, getHttpAgent, getUserAgent, isValidUUID, maybeLog };
+export { defer, getDirectory, getHttpAgent, isValidUUID, maybeLog };

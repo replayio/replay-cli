@@ -9,6 +9,9 @@ import {
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
+import * as pkgJson from "../package.json";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
+import { initLogger } from "@replay-cli/shared/logger";
 
 const runner = require("jest-circus/runner");
 const pluginVersion = require("@replayio/jest/package.json").version;
@@ -35,6 +38,8 @@ const ReplayRunner = async (
   testPath: string,
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
+  setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
+  initLogger(pkgJson.name, pkgJson.version);
   if (!version) {
     try {
       version = require(require.resolve("jest/package.json", {

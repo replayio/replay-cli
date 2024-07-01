@@ -37,6 +37,7 @@
     "@jest/test-result": "^27.5.1",
     "@jest/types": "^27.5.1",
     "@replay-cli/pkg-build": "workspace:^",
+    "@replay-cli/shared": "workspace:^",
     "@replay-cli/tsconfig": "workspace:^",
     "@replayio/test-utils": "workspace:^",
     "@types/node": "^20.11.27",
