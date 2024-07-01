@@ -500,51 +500,6 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
   );
 }
 
-// MBUDAYR - unused function, can remove.
-async function processUploadedRecording(recordingId: string, opts: Options) {
-  const server = getServer(opts);
-  const agent = getHttpAgent(server, opts.agentOptions);
-  const { verbose } = opts;
-  let apiKey = opts.apiKey;
-
-  logger.info("ProcessUploadedRecording:Started", { recordingId });
-  maybeLogToConsole(verbose, `Processing recording ${recordingId}...`);
-
-  if (!apiKey) {
-    apiKey = await readToken(opts);
-  }
-
-  const client = new ReplayClient();
-  if (!(await client.initConnection(server, apiKey, verbose, agent))) {
-    maybeLogToConsole(verbose, `Processing failed: can't connect to server ${server}`);
-    logger.error("ProcessUploadedRecording:CannotConnectToServer", {
-      recordingId,
-      server,
-    });
-
-    return false;
-  }
-
-  try {
-    const error = await client.connectionWaitForProcessed(recordingId);
-    if (error) {
-      logger.error("ProcessUploadedRecording:Failed", {
-        recordingId,
-        server,
-        errorMessage: getErrorMessage(error),
-      });
-      maybeLogToConsole(verbose, `Processing failed: ${error}`);
-      return false;
-    }
-  } finally {
-    client.closeConnection();
-  }
-
-  logger.info("ProcessUploadedRecording:Succeeded", { recordingId });
-  maybeLogToConsole(verbose, "Finished processing.");
-  return true;
-}
-
 function maybeRemoveAssetFile(asset?: string) {
   if (asset) {
     try {
