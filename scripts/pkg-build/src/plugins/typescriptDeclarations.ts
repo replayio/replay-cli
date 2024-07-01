@@ -204,7 +204,7 @@ export function typescriptDeclarations(
           moduleName,
           containingFile,
           options,
-          ts.sys,
+          system,
           moduleResolutionCache
         ).resolvedModule;
       };
