@@ -26,7 +26,7 @@ import {
 import { ReplayClient } from "./upload";
 import { getDirectory, maybeLog as maybeLogToConsole } from "./utils";
 import { logger } from "@replay-cli/shared/logger";
-import { getErrorMessage } from "./error";
+import { getErrorTags } from "./error";
 export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
@@ -195,15 +195,15 @@ async function setMetadata(
         e => {
           logger.error("SetMetadata:WillRetry", {
             recordingId,
-            errorMessage: getErrorMessage(e),
+            ...getErrorTags(e),
           });
         }
       );
     } catch (e) {
       logger.error("SetMetadata:Failed", {
         recordingId,
-        errorMessage: getErrorMessage(e),
         strict,
+        ...getErrorTags(e),
       });
       handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
     }
@@ -272,7 +272,7 @@ async function directUploadRecording(
     e => {
       logger.error("DirectUploadRecording:WillRetry", {
         recordingId,
-        errorMessage: getErrorMessage(e),
+        ...getErrorTags(e),
       });
     }
   );
@@ -441,7 +441,7 @@ async function doUploadRecording(
         logger.error("DoUploadRecording:CannotUploadSourcemapFromDisk", {
           recordingId: recording.id,
           sourcemapPath: sourcemap.path,
-          errorMessage: getErrorMessage(e),
+          ...getErrorTags(e),
         });
 
         handleUploadingError(
@@ -508,7 +508,7 @@ function maybeRemoveAssetFile(asset?: string) {
         fs.unlinkSync(asset);
       }
     } catch (e) {
-      logger.error("MaybeRemoveAssetFile:Failed", { asset, errorMessage: getErrorMessage(e) });
+      logger.error("MaybeRemoveAssetFile:Failed", { asset, ...getErrorTags(e) });
     }
   }
 }
