@@ -24,12 +24,6 @@ jobs:
             echo "User is not authorized to release"
             exit 1
           fi
-          then
-            echo "User is authorized to release"
-          else
-            echo "User is not authorized to release"
-            exit 1
-          fi
         env:
           AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
     outputs:
