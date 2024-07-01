@@ -17,7 +17,13 @@ jobs:
 
       - id: check_authorization
         run: |
-          if [[ $AUTHOR_ASSOCIATION == 'MEMBER' || $AUTHOR_ASSOCIATION == 'OWNER' ]]
+          if [[ $AUTHOR_ASSOCIATION == 'MEMBER' || $AUTHOR_ASSOCIATION == 'OWNER' || $AUTHOR_ASSOCIATION == 'COLLABORATOR' ]]
+          then
+            echo "User is authorized to release"
+          else
+            echo "User is not authorized to release"
+            exit 1
+          fi
           then
             echo "User is authorized to release"
           else
