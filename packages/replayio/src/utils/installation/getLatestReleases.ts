@@ -8,7 +8,7 @@ import { Release } from "./types";
 const { architecture, platform, runtime } = runtimeMetadata;
 
 export async function getLatestRelease() {
-  logger.debug("Fetching release metadata");
+  logger.debug("GetLatestRelease:Start");
 
   const response = await fetch(`${replayAppHost}/api/releases`);
   const json = (await response.json()) as Release[];
@@ -19,7 +19,7 @@ export async function getLatestRelease() {
       (release.architecture === architecture || release.architecture === "unknown")
   );
 
-  logger.debug("Latest release", latestRelease);
+  logger.debug("GetLatestRelease:LatestRelease", { latestRelease });
   assert(latestRelease, `No release found for ${platform}:${runtime}`);
 
   return latestRelease;

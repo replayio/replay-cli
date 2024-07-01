@@ -62,7 +62,7 @@ export async function reportBrowserCrash(stderr: string) {
       };
     }
   } catch (error) {
-    logger.debug("Crash data failed to be uploaded", { error });
+    logger.error("ReportBrowserCrash:FailedToUpload", { error });
   }
 
   return {

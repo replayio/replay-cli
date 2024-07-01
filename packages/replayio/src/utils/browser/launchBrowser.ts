@@ -39,11 +39,11 @@ export async function launchBrowser(
   };
 
   if (!existsSync(browserExecutablePath)) {
-    logger.debug(`Replay browser not found at: ${browserExecutablePath}`);
+    logger.error("LaunchBrowser:BrowserNotFound", { browserExecutablePath });
     throw new Error(`Replay browser not found at: ${browserExecutablePath}`);
   }
 
-  logger.debug("Launching browser", { args, browserExecutablePath, processOptions });
+  logger.info("LaunchBrowser:Launching", { args, browserExecutablePath, processOptions });
 
   // Wait until the user quits the browser process OR
   // until the user presses a key to continue (in which case, we will kill the process)
@@ -75,10 +75,10 @@ export async function launchBrowser(
       }
     },
     printStderr: (text: string) => {
-      logger.debug(`${stderrPrefix("stderr")} ${text}`);
+      logger.error("LaunchBrowser:Stderr", { text });
     },
     printStdout: (text: string) => {
-      logger.debug(`${stdoutPrefix("stdout")} ${text}`);
+      logger.debug("LaunchBrowser:Stdout", { text });
     },
   });
 

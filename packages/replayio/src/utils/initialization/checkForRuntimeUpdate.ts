@@ -23,14 +23,14 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
       latestRelease = await getLatestRelease();
       latestBuildId = latestRelease?.buildId ?? null;
       if (latestBuildId == null) {
-        logger.debug("No release found; skipping update check");
+        logger.info("CheckForRuntimeUpdate:NoReleaseFound");
 
         return {
           hasUpdate: undefined,
         };
       }
     } catch (error) {
-      logger.debug("Release check failed", { error });
+      logger.error("CheckForRuntimeUpdate:Failed", { error });
 
       return {
         hasUpdate: undefined,
@@ -47,11 +47,7 @@ export const checkForRuntimeUpdate = withTrackAsyncEvent(
     }
 
     const { buildId: currentBuildId } = getCurrentRuntimeMetadata("chromium") ?? {};
-    if (currentBuildId) {
-      logger.debug(`Current build id: ${currentBuildId}`);
-    } else {
-      logger.debug("Installed version metadata not found");
-    }
+    logger.debug("CheckForRuntimeUpdate:CurrentBuild", { currentBuildId, latestBuildId });
 
     return {
       hasUpdate: currentBuildId !== latestBuildId,
