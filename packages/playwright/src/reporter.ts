@@ -68,6 +68,9 @@ interface FixtureStep extends FixtureStepStart {
   error?: ParsedErrorFrame | undefined;
 }
 
+// Playwright uses an empty string for anonymous root projects
+const ROOT_PROJECT_NAME = "";
+
 class ReplayPlaywrightReporter implements Reporter {
   reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile: boolean;
@@ -77,7 +80,7 @@ class ReplayPlaywrightReporter implements Reporter {
     string,
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
-  private _foundReplayBrowser = false;
+  private _projects: Record<string, { executed: boolean; usingReplay: boolean }> = {};
 
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
@@ -164,14 +167,24 @@ class ReplayPlaywrightReporter implements Reporter {
 
   onBegin({ version, projects }: FullConfig) {
     const replayBrowserPath = getRuntimePath();
-    this._foundReplayBrowser = !!projects.find(
-      p => p.use.launchOptions?.executablePath === replayBrowserPath
-    );
+    for (const project of projects) {
+      this._projects[project.name] = {
+        executed: false,
+        usingReplay: project.use.launchOptions?.executablePath === replayBrowserPath,
+      };
+    }
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
+    const projectName = test.parent.project()?.name;
+
+    // it's important to handle the root project's name here and that's an empty string
+    if (typeof projectName === "string") {
+      this._projects[projectName].executed = true;
+    }
+
     const testExecutionId = this._getTestExecutionId({
       filePath: test.location.file,
       projectName: test.parent.project()?.name,
@@ -327,9 +340,21 @@ class ReplayPlaywrightReporter implements Reporter {
   async onEnd() {
     try {
       await this.reporter.onEnd();
-      if (!this._foundReplayBrowser) {
+
+      const projectsWithoutReplay = Object.keys(this._projects).filter(projectName => {
+        const { executed, usingReplay } = this._projects[projectName];
+        return executed && !usingReplay;
+      });
+      if (projectsWithoutReplay.length) {
+        const projectText =
+          projectsWithoutReplay[0] === ROOT_PROJECT_NAME
+            ? "Your project"
+            : `${projectsWithoutReplay.join(", ")} project${
+                projectsWithoutReplay.length > 1 ? "s" : ""
+              }`;
+
         console.warn(
-          "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
+          `[replay.io]: ${projectText} ran without Replay Chromium. If this wasn't intentional, please recheck your configuration.`
         );
       }
     } finally {
