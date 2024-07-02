@@ -2,6 +2,7 @@ import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFai
 import fs from "fs";
 import dbg from "./debug";
 import { getHttpAgent } from "./utils";
+import assert from "node:assert/strict";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -225,6 +226,8 @@ async function multipartUploadRecording(
     chunkSize,
     agentOptions
   );
+
+  assert(eTags.length === partLinks.length, "Mismatched eTags and partLinks");
 
   await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
   return recordingId;
