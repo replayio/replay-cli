@@ -74,7 +74,9 @@ class Logger {
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
-    this.localDebugger(message, JSON.stringify(tags));
+    const formattedTags = this.formatTags(tags);
+
+    this.localDebugger(message, formattedTags);
 
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
@@ -83,7 +85,7 @@ class Logger {
     const entry: LogEntry = {
       level,
       message,
-      tags,
+      ...formattedTags,
       deviceId: this.deviceId,
       sessionId: this.sessionId,
     };
@@ -104,6 +106,30 @@ class Logger {
     if (this.grafana) {
       this.grafana.logger.log(entry);
     }
+  }
+
+  private formatTags(tags?: Record<string, unknown>) {
+    if (!tags) {
+      return;
+    }
+
+    let result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(tags)) {
+      if (value instanceof Error) {
+        result = {
+          ...result,
+          errorName: value.name,
+          errorMessage: value.message,
+          errorStack: value.stack,
+        };
+        continue;
+      }
+
+      result = { ...result, [key]: value };
+    }
+
+    return result;
   }
 
   async close() {

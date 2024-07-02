@@ -26,7 +26,6 @@ import {
 import { ReplayClient } from "./upload";
 import { getDirectory, maybeLog as maybeLogToConsole } from "./utils";
 import { logger } from "@replay-cli/shared/logger";
-import { getErrorTags } from "./error";
 export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
@@ -192,20 +191,20 @@ async function setMetadata(
     try {
       await retryWithExponentialBackoff(
         () => client.setRecordingMetadata(recordingId, metadata),
-        e => {
+        error => {
           logger.error("SetMetadata:WillRetry", {
             recordingId,
-            ...getErrorTags(e),
+            error,
           });
         }
       );
-    } catch (e) {
+    } catch (error) {
       logger.error("SetMetadata:Failed", {
         recordingId,
         strict,
-        ...getErrorTags(e),
+        error,
       });
-      handleUploadingError(`Failed to set recording metadata ${e}`, strict, verbose, e);
+      handleUploadingError(`Failed to set recording metadata ${error}`, strict, verbose, error);
     }
   }
 }
@@ -269,10 +268,10 @@ async function directUploadRecording(
   });
   await retryWithExponentialBackoff(
     () => client.uploadRecording(recording.path!, uploadLink, size),
-    e => {
+    error => {
       logger.error("DirectUploadRecording:WillRetry", {
         recordingId,
-        ...getErrorTags(e),
+        error,
       });
     }
   );
@@ -437,18 +436,18 @@ async function doUploadRecording(
           },
           { concurrency: 5, stopOnError: false }
         );
-      } catch (e) {
+      } catch (error) {
         logger.error("DoUploadRecording:CannotUploadSourcemapFromDisk", {
           recordingId: recording.id,
           sourcemapPath: sourcemap.path,
-          ...getErrorTags(e),
+          error,
         });
 
         handleUploadingError(
-          `Cannot upload sourcemap ${sourcemap.path} from disk: ${e}`,
+          `Cannot upload sourcemap ${sourcemap.path} from disk: ${error}`,
           strict,
           verbose,
-          e
+          error
         );
       }
     },
@@ -507,8 +506,8 @@ function maybeRemoveAssetFile(asset?: string) {
         logger.info("MaybeRemoveAssetFile:Removing", { asset });
         fs.unlinkSync(asset);
       }
-    } catch (e) {
-      logger.error("MaybeRemoveAssetFile:Failed", { asset, ...getErrorTags(e) });
+    } catch (error) {
+      logger.error("MaybeRemoveAssetFile:Failed", { asset, error });
     }
   }
 }

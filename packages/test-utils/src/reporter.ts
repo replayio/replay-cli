@@ -251,9 +251,9 @@ export default class ReplayReporter<
           logger.identify(authInfo);
           logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
-        .catch(e =>
+        .catch(error =>
           logger.info("ReplayReporter:LoggerIdentificationFailed", {
-            errorMessage: getErrorMessage(e),
+            error,
           })
         );
     }
@@ -457,9 +457,9 @@ export default class ReplayReporter<
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
-    } catch (e) {
+    } catch (error) {
       logger.error("StartTestRunShard:InitMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
 
@@ -534,14 +534,14 @@ export default class ReplayReporter<
           phase: "start",
         };
       });
-    } catch (e) {
+    } catch (error) {
       logger.error("StartTestRunShardFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
 
       return {
         type: "test-run",
-        error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -598,11 +598,11 @@ export default class ReplayReporter<
       return {
         type: "test-run-tests",
       };
-    } catch (e) {
-      logger.error("AddTestsToShard:Failed", { errorMessage: getErrorMessage(e) });
+    } catch (error) {
+      logger.error("AddTestsToShard:Failed", { error });
       return {
         type: "test-run-tests",
-        error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -655,14 +655,14 @@ export default class ReplayReporter<
         id: testRunShardId,
         phase: "complete",
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("CompleteTestRunShard:Failed", {
-        errorMessage: getErrorMessage(e),
+        error,
         testRunShardId,
       });
       return {
         type: "test-run",
-        error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -683,9 +683,9 @@ export default class ReplayReporter<
     try {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
-    } catch (e) {
+    } catch (error) {
       logger.error("OnTestBegin:InitReplayMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
   }
@@ -754,16 +754,16 @@ export default class ReplayReporter<
         type: "upload",
         recording: recordings[0],
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("UploadRecording:Failed", {
-        errorMessage: getErrorMessage(e),
+        error,
         recordingId: recording.id,
         buildId: recording.buildId,
       });
       return {
         type: "upload",
         recording,
-        error: new Error(getErrorMessage(e)),
+        error: new Error(getErrorMessage(error)),
       };
     }
   }
@@ -857,9 +857,9 @@ export default class ReplayReporter<
         ...mergedMetadata,
         ...validatedSourceMetadata,
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
 
@@ -956,11 +956,11 @@ export default class ReplayReporter<
         recordings,
         testRun,
       };
-    } catch (e) {
-      logger.error("EnqueuePostTestWork:Failed");
+    } catch (error) {
+      logger.error("EnqueuePostTestWork:Failed", { error });
       return {
         type: "post-test",
-        error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
+        error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -1135,9 +1135,9 @@ export default class ReplayReporter<
       uploadStatusThreshold: this._uploadStatusThreshold,
     });
 
-    await this._cacheAuthIdsPromise?.catch(e => {
+    await this._cacheAuthIdsPromise?.catch(error => {
       logger.error("OnEnd:AddingLoggerAuthFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     });
 
