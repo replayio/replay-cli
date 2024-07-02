@@ -344,22 +344,13 @@ class ReplayPlaywrightReporter implements Reporter {
 
       const output: string[] = [];
 
-      const projectsWithoutReplay = Object.keys(this._projects).filter(projectName => {
+      const executedProjectWithReplay = !Object.keys(this._projects).some(projectName => {
         const { executed, usingReplay } = this._projects[projectName];
-        return executed && !usingReplay;
+        return executed && usingReplay;
       });
 
-      if (projectsWithoutReplay.length) {
-        const projectText =
-          projectsWithoutReplay[0] === ROOT_PROJECT_NAME
-            ? "Your project"
-            : `${projectsWithoutReplay.join(", ")} project${
-                projectsWithoutReplay.length > 1 ? "s" : ""
-              }`;
-
-        output.push(
-          `${projectText} ran without Replay Chromium. If this wasn't intentional, please recheck your configuration.`
-        );
+      if (!executedProjectWithReplay) {
+        output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
       if (!existsSync(getRuntimePath())) {
