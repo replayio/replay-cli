@@ -5,6 +5,7 @@ import { uploadSourceMaps as uploadSourceMapsExternal } from "@replayio/sourcema
 import { replayApiServer } from "../config";
 import { logPromise } from "../utils/async/logPromise";
 import { registerCommand } from "../utils/commander/registerCommand";
+import { logger } from "@replay-cli/shared/logger";
 
 registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
   .description("Upload source-maps for a Workspace")
@@ -56,7 +57,10 @@ async function uploadSourceMaps(
     messages: {
       pending: "Uploading source maps...",
       success: "Source maps uploaded",
-      failed: error => `Source maps upload failed:\n${error}`,
+      failed: error => {
+        logger.error("UploadSourceMaps:Failed", { error });
+        return `Source maps upload failed:\n${error}`;
+      },
     },
   });
 

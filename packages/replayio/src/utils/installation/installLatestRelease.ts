@@ -23,6 +23,7 @@ type Result = {
 
 export const installLatestRelease = createAsyncFunctionWithTracking(
   async function installLatestRelease(): Promise<Result | undefined> {
+    logger.info("InstallLatestRelease:Start");
     const runtimeBaseDir = getReplayPath("runtimes");
     const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
     const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
@@ -38,17 +39,17 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
 
       progress.setPending("Processing downloaded browser archive");
 
-      logger.debug(`Removing previous installation at ${runtimePath}`);
+      logger.info("InstallLatestRelease:RemovingPreviousInstallation", { runtimePath });
       rmSync(runtimePath, { force: true, recursive: true });
 
       ensureDirSync(runtimeBaseDir);
 
-      logger.debug(`Writing downloaded file data to ${downloadFilePath}`);
+      logger.info("InstallLatestRelease:WritingDownloadFile", { downloadFilePath });
       writeFileSync(downloadFilePath, buffers);
 
       extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-      logger.debug(`Deleting downloaded file ${downloadFilePath}`);
+      logger.info("InstallLatestRelease:DeletingDownloadedFile", { downloadFilePath });
       unlinkSync(downloadFilePath);
 
       // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
@@ -66,7 +67,7 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
       const latestVersion = latestRelease.version;
 
       // Write version metadata to disk so we can compare against the latest release and prompt to update
-      logger.debug(`Saving release metadata to ${metadataPath}`);
+      logger.info("InstallLatestRelease:SavingMetadata", { metadataPath });
       writeToCache<MetadataJSON>(metadataPath, {
         chromium: {
           buildId: latestBuildId,
@@ -82,7 +83,7 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
         forkedVersion: latestVersion,
       };
     } catch (error) {
-      logger.debug("Browser installation failed", { error });
+      logger.error("InstallLatestRelease:Failed", { error });
 
       progress.setFailed(
         "Something went wrong installing the Replay browser. Please try again later."
@@ -124,7 +125,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
       const request = get(options, response => {
         if (response.statusCode != 200) {
-          logger.debug(`Download received status code ${response.statusCode}, retrying...`);
+          logger.debug("DownloadReplayFile:UnexpectedStatus", { statusCode: response.statusCode });
           request.destroy();
           resolve(null);
           return;
@@ -135,7 +136,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        logger.debug(`Download error ${error}, retrying...`);
+        logger.debug("DownloadReplayFile:Error", { error });
         request.destroy();
         resolve(null);
       });
@@ -150,14 +151,16 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
 }
 
 async function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string) {
-  logger.debug(`Extracting archived file at ${downloadFilePath}`);
+  logger.info(`ExtractBrowserArchive:Extracting`, { downloadFilePath });
 
   const tarResult = spawnSync("tar", ["xf", runtimeMetadata.downloadFileName], {
     cwd: runtimeBaseDir,
   });
   if (tarResult.status !== 0) {
-    logger.debug(`Failed to extract ${downloadFilePath}`);
-    logger.debug(String(tarResult.stderr));
+    logger.error("ExtractBrowserArchive:Failed", {
+      downloadFilePath,
+      stderr: String(tarResult.stderr),
+    });
 
     throw new Error("Unable to extract browser archive");
   }

@@ -9,7 +9,7 @@ export type AuthInfo = {
 };
 
 export async function fetchViewerFromGraphQL(accessToken: string): Promise<AuthInfo> {
-  logger.debug("Fetching viewer info from GraphQL");
+  logger.info("FetchViewerFromGraphQL:Start");
 
   const { data, errors } = await queryGraphQL(
     "ViewerInfo",
