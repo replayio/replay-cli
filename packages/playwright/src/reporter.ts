@@ -79,7 +79,8 @@ export default class ReplayPlaywrightReporter implements Reporter {
     string,
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
-  private _projects: Record<string, { executed: boolean; usingReplay: boolean }> = {};
+
+  private _executedProjects: Record<string, { usesReplayBrowser: boolean }> = {};
 
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${packageName}/${packageVersion}`);
@@ -152,7 +153,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     return this.fixtureData[id];
   }
 
-  // Playwright alrady provides a unique test id:
+  // Playwright already provides a unique test id:
   // https://github.com/microsoft/playwright/blob/6fb214de2378a9d874b46df6ea99d04da5765cba/packages/playwright/src/common/suiteUtils.ts#L56-L57
   // this is different because it includes `repeatEachIndex` and `attempt`
   // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
@@ -175,25 +176,31 @@ export default class ReplayPlaywrightReporter implements Reporter {
     };
   }
 
-  onBegin({ version, projects }: FullConfig) {
-    const replayBrowserPath = getRuntimePath();
-    for (const project of projects) {
-      this._projects[project.name] = {
-        executed: false,
-        usingReplay: project.use.launchOptions?.executablePath === replayBrowserPath,
-      };
-    }
+  onBegin({ version }: FullConfig) {
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }
 
-  onTestBegin(test: TestCase, testResult: TestResult) {
-    const projectName = test.parent.project()?.name;
-
-    // it's important to handle the root project's name here and that's an empty string
-    if (typeof projectName === "string") {
-      this._projects[projectName].executed = true;
+  private _registerExecutedProject(test: TestCase) {
+    const project = test.parent.project();
+    if (project) {
+      let projectMetadata = this._executedProjects[project.name];
+      if (!projectMetadata) {
+        projectMetadata = this._executedProjects[project.name] = {
+          usesReplayBrowser: project.use.launchOptions?.executablePath === getRuntimePath(),
+        };
+      }
+      return projectMetadata;
     }
+
+    return null;
+  }
+
+  onTestBegin(test: TestCase, testResult: TestResult) {
+    const projectMetadata = this._registerExecutedProject(test);
+
+    // Don't save metadata for non-Replay projects
+    if (projectMetadata?.usesReplayBrowser === false) return;
 
     const testExecutionId = this._getTestExecutionId({
       filePath: test.location.file,
@@ -202,6 +209,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
       attempt: testResult.retry + 1,
       source: this.getSource(test),
     });
+
     this.reporter.onTestBegin(testExecutionId, getMetadataFilePath(testResult.workerIndex));
   }
 
@@ -266,8 +274,14 @@ export default class ReplayPlaywrightReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult) {
     const status = result.status;
-    // skipped tests won't have a reply so nothing to do here
+
+    // Skipped tests won't have a reply so nothing to do here
     if (status === "skipped") return;
+
+    const projectMetadata = this._registerExecutedProject(test);
+
+    // Don't save metadata for non-Replay projects
+    if (projectMetadata?.usesReplayBrowser === false) return;
 
     const testExecutionIdData = {
       filePath: test.location.file,
@@ -351,25 +365,23 @@ export default class ReplayPlaywrightReporter implements Reporter {
     try {
       await this.reporter.onEnd();
 
+      const didUseReplayBrowser = Object.values(this._executedProjects).some(
+        ({ usesReplayBrowser }) => usesReplayBrowser
+      );
+      const isReplayBrowserInstalled = existsSync(getRuntimePath());
+
       const output: string[] = [];
 
-      const executedProjectWithReplay = !Object.keys(this._projects).some(projectName => {
-        const { executed, usingReplay } = this._projects[projectName];
-        return executed && usingReplay;
-      });
-
-      if (!executedProjectWithReplay) {
+      if (!didUseReplayBrowser) {
         mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-replay-project");
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
-      if (!existsSync(getRuntimePath())) {
-        if (executedProjectWithReplay) {
+      if (!isReplayBrowserInstalled) {
+        if (didUseReplayBrowser) {
           mixpanelAPI.trackEvent("playwright.warning.replay-browser-not-installed");
         }
-        if (output.length) {
-          output.push("");
-        }
+
         output.push(
           `To record tests with Replay, you need to install the Replay browser: ${highlight(
             "npx replayio install"
@@ -378,13 +390,16 @@ export default class ReplayPlaywrightReporter implements Reporter {
       }
 
       if (output.length) {
-        output.push("");
         output.push(
           `Learn more at ${link(
             "https://docs.replay.io/reference/test-runners/playwright/overview"
           )}`
         );
-        output.forEach(line => {
+
+        output.forEach((line, index) => {
+          if (index > 0) {
+            console.log("[replay.io]:");
+          }
           console.warn(`[replay.io]: ${line}`);
         });
       }
