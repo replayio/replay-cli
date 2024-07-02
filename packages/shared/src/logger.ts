@@ -119,9 +119,7 @@ class Logger {
       if (value instanceof Error) {
         result = {
           ...result,
-          errorName: value.name,
-          errorMessage: value.message,
-          errorStack: value.stack,
+          [key]: { name: value.name, message: value.message, stack: value.stack },
         };
         continue;
       }

@@ -144,7 +144,7 @@ async function doUploadCrash(
   );
   addRecordingEvent(dir, "crashUploaded", recording.id, { server });
   maybeLogToConsole(verbose, `Crash data upload finished.`);
-  logger.info("DoUploadCrash:Finished", { recordingId: recording.id, server });
+  logger.info("DoUploadCrash:Successful", { recordingId: recording.id, server });
   client.closeConnection();
 }
 
