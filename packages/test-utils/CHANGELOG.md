@@ -1,5 +1,11 @@
 # @replayio/test-utils
 
+## 3.0.6
+
+### Patch Changes
+
+- [#573](https://github.com/replayio/replay-cli/pull/573) [`9494138`](https://github.com/replayio/replay-cli/commit/9494138fe6235fd365ce952be384524d30415f21) Thanks [@hbenl](https://github.com/hbenl)! - Log broken entries when reading the recordings.log file
+
 ## 3.0.5
 
 ### Patch Changes
