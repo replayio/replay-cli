@@ -363,7 +363,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
-      if (executedProjectWithReplay && !existsSync(getRuntimePath())) {
+      if (!existsSync(getRuntimePath())) {
         mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-replay-browser");
         if (output.length) {
           output.push("");
