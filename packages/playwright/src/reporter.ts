@@ -364,7 +364,9 @@ export default class ReplayPlaywrightReporter implements Reporter {
       }
 
       if (!existsSync(getRuntimePath())) {
-        mixpanelAPI.trackEvent("playwright.warning.replay-browser-not-installed");
+        if (executedProjectWithReplay) {
+          mixpanelAPI.trackEvent("playwright.warning.replay-browser-not-installed");
+        }
         if (output.length) {
           output.push("");
         }
