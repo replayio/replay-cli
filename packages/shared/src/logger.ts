@@ -5,11 +5,32 @@ import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
 
+// Does not work with import. Only works with require().
+const StackUtils = require("stack-utils");
+
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
   "glc_eyJvIjoiOTEyOTQzIiwibiI6IndyaXRlLW90ZWwtcmVwbGF5LWNsaSIsImsiOiJ0UnFsOXV1a2QyQUI2NzIybDEzSkRuNDkiLCJtIjp7InIiOiJwcm9kLXVzLWVhc3QtMCJ9fQ=="; // write-only permissions.
 const GRAFANA_BASIC_AUTH = `${GRAFANA_USER}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
+
+const stackUtils = new StackUtils({ cwd: process.cwd(), internals: StackUtils.nodeInternals() });
+
+function anonymizeStackTrace(stack: string): string {
+  return stack
+    .split("\n")
+    .map(line => {
+      const frame = stackUtils.parseLine(line);
+      if (frame && frame.file) {
+        const relativePath = frame.file.includes("node_modules")
+          ? frame.file.substring(frame.file.indexOf("node_modules"))
+          : frame.file;
+        return line.replace(frame.file, relativePath);
+      }
+      return line;
+    })
+    .join("\n");
+}
 
 type LogLevel = "error" | "warn" | "info" | "debug";
 
@@ -120,7 +141,7 @@ class Logger {
           ...(value as any),
           errorName: value.name,
           errorMessage: value.message,
-          errorStack: value.stack,
+          errorStack: anonymizeStackTrace(value.stack ?? ""),
         };
       } else {
         result[key] = value;
