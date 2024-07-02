@@ -3440,6 +3440,7 @@ __metadata:
   dependencies:
     "@replay-cli/pkg-build": "workspace:^"
     "@types/jest": "npm:^28.1.5"
+    "@types/stack-utils": "npm:^2.0.3"
     bvaughn-enquirer: "npm:2.4.2"
     chalk: "npm:^4.1.2"
     cli-spinners: "npm:^2.9.2"
@@ -3453,6 +3454,7 @@ __metadata:
     mixpanel: "npm:^0.18.0"
     open: "npm:^8.4.2"
     pretty-ms: "npm:^7.0.1"
+    stack-utils: "npm:^2.0.6"
     strip-ansi: "npm:^6.0.1"
     superstruct: "npm:^1.0.4"
     table: "npm:^6.8.2"
