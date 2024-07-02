@@ -3,7 +3,7 @@
 import { writeToCache } from "@replay-cli/shared/cache";
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { logger } from "@replay-cli/shared/logger";
-import { withTrackAsyncEvent } from "@replay-cli/shared/mixpanel/withTrackAsyncEvent";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanel/createAsyncFunctionWithTracking";
 import { dim, link } from "@replay-cli/shared/theme";
 import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
@@ -21,7 +21,7 @@ type Result = {
   forkedVersion: string | null;
 };
 
-export const installLatestRelease = withTrackAsyncEvent(
+export const installLatestRelease = createAsyncFunctionWithTracking(
   async function installLatestRelease(): Promise<Result | undefined> {
     logger.info("InstallLatestRelease:Start");
     const runtimeBaseDir = getReplayPath("runtimes");
