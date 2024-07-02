@@ -8,6 +8,7 @@ import type {
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { emphasize, highlight, link } from "@replay-cli/shared/theme";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   ReplayReporter,
@@ -17,7 +18,7 @@ import {
   getMetadataFilePath as getMetadataFilePathBase,
   removeAnsiCodes,
 } from "@replayio/test-utils";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
 import { name as packageName, version as packageVersion } from "../package.json";
@@ -341,9 +342,20 @@ export default class ReplayPlaywrightReporter implements Reporter {
       await this.reporter.onEnd();
       if (!this._foundReplayBrowser) {
         mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-browser");
-        console.warn(
-          "[replay.io]: None of the configured projects ran using Replay Chromium. Please recheck your Playwright config and make sure that Replay Chromium is installed. You can install it using `npx replayio install`"
+
+        const output: string[] = [];
+        output.push(emphasize("None of the configured projects ran using Replay Chromium."));
+        if (!existsSync(getRuntimePath())) {
+          output.push("");
+          output.push(`Install Replay Chromium by running ${highlight("npx replayio install")}`);
+        }
+        output.push("");
+        output.push(
+          `Learn more at ${link(
+            "https://docs.replay.io/reference/test-runners/playwright/overview"
+          )}`
         );
+        output.map(line => console.warn(`[replay.io]: ${line}`));
       }
     } finally {
       await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
