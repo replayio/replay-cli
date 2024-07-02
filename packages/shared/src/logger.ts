@@ -113,21 +113,20 @@ class Logger {
       return;
     }
 
-    let result: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(tags)) {
+    return Object.entries(tags).reduce((result, [key, value]) => {
       if (value instanceof Error) {
-        result = {
-          ...result,
-          [key]: { name: value.name, message: value.message, stack: value.stack },
+        result[key] = {
+          // Intentionally keeping this for any extra properties attached in `Error`
+          ...(value as any),
+          errorName: value.name,
+          errorMessage: value.message,
+          errorStack: value.stack,
         };
-        continue;
+      } else {
+        result[key] = value;
       }
-
-      result = { ...result, [key]: value };
-    }
-
-    return result;
+      return result;
+    }, {} as Record<string, unknown>);
   }
 
   async close() {
