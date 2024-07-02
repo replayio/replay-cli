@@ -93,7 +93,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     });
 
     if (!config || typeof config !== "object") {
-      mixpanelAPI.trackEvent("playwright.error.invalid-reporter-config", { config });
+      mixpanelAPI.trackEvent("error.invalid-reporter-config", { config });
 
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -373,13 +373,13 @@ export default class ReplayPlaywrightReporter implements Reporter {
       const output: string[] = [];
 
       if (!didUseReplayBrowser) {
-        mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-replay-project");
+        mixpanelAPI.trackEvent("warning.reporter-used-without-replay-project");
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
       if (!isReplayBrowserInstalled) {
         if (didUseReplayBrowser) {
-          mixpanelAPI.trackEvent("playwright.warning.replay-browser-not-installed");
+          mixpanelAPI.trackEvent("warning.replay-browser-not-installed");
         }
 
         output.push(
