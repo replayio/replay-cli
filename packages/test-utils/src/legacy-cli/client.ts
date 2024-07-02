@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { defer } from "./utils";
+import { defer, maybeLogToConsole } from "./utils";
 import { Agent } from "http";
 import { logger } from "@replay-cli/shared/logger";
 
@@ -83,7 +83,7 @@ class ProtocolClient {
     callback?: (err?: Error) => void
   ) {
     const id = this.nextMessageId++;
-    logger.info("SendCommand:Start", { id, params, sessionId });
+    logger.info("SendCommand:Started", { id, params, sessionId });
 
     this.socket.send(
       JSON.stringify({
@@ -136,7 +136,6 @@ class ProtocolClient {
       this.eventListeners.get(msg.method)(msg.params);
     } else {
       logger.info("OnMessage:ReceivedEventWithoutListener", { msg });
-      console.log(`Received event without listener: ${msg.method}`);
     }
   }
 }
