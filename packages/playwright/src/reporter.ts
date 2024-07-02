@@ -5,26 +5,27 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
+import { emphasize, highlight, link } from "@replay-cli/shared/theme";
 import {
-  getMetadataFilePath as getMetadataFilePathBase,
-  removeAnsiCodes,
   ReplayReporter,
   ReplayReporterConfig,
   TestMetadataV2,
+  getMetadataFilePath as getMetadataFilePathBase,
+  removeAnsiCodes,
 } from "@replayio/test-utils";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
 
+import { initLogger, logger } from "@replay-cli/shared/logger";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
+import pkgJson from "../package.json";
 import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
-import { initLogger, logger } from "@replay-cli/shared/logger";
-import pkgJson from "../package.json";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
@@ -341,10 +342,13 @@ class ReplayPlaywrightReporter implements Reporter {
     try {
       await this.reporter.onEnd();
 
+      const output: string[] = [];
+
       const projectsWithoutReplay = Object.keys(this._projects).filter(projectName => {
         const { executed, usingReplay } = this._projects[projectName];
         return executed && !usingReplay;
       });
+
       if (projectsWithoutReplay.length) {
         const projectText =
           projectsWithoutReplay[0] === ROOT_PROJECT_NAME
@@ -353,9 +357,28 @@ class ReplayPlaywrightReporter implements Reporter {
                 projectsWithoutReplay.length > 1 ? "s" : ""
               }`;
 
-        console.warn(
-          `[replay.io]: ${projectText} ran without Replay Chromium. If this wasn't intentional, please recheck your configuration.`
+        output.push(
+          `${projectText} ran without Replay Chromium. If this wasn't intentional, please recheck your configuration.`
         );
+      }
+
+      if (!existsSync(getRuntimePath())) {
+        if (output.length) {
+          output.push("");
+        }
+        output.push(`Install Replay Chromium by running ${highlight("npx replayio install")}`);
+      }
+
+      if (output.length) {
+        output.push("");
+        output.push(
+          `Learn more at ${link(
+            "https://docs.replay.io/reference/test-runners/playwright/overview"
+          )}`
+        );
+        output.forEach(line => {
+          console.warn(`[replay.io]: ${line}`);
+        });
       }
     } finally {
       await logger.close().catch(() => {});
