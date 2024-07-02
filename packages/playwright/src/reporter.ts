@@ -5,27 +5,28 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
+import { initLogger, logger } from "@replay-cli/shared/logger";
+import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   ReplayReporter,
   ReplayReporterConfig,
   TestMetadataV2,
+  getAccessToken,
   getMetadataFilePath as getMetadataFilePathBase,
   removeAnsiCodes,
 } from "@replayio/test-utils";
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { WebSocketServer } from "ws";
-
-type UserActionEvent = TestMetadataV2.UserActionEvent;
-
-import { initLogger, logger } from "@replay-cli/shared/logger";
-import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
-import pkgJson from "../package.json";
+import { name as packageName, version as packageVersion } from "../package.json";
 import { FixtureStepStart, ParsedErrorFrame, TestExecutionIdData } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { getServerPort, startServer } from "./server";
+
+type UserActionEvent = TestMetadataV2.UserActionEvent;
 
 export function getMetadataFilePath(workerIndex = 0) {
   return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
@@ -69,7 +70,7 @@ interface FixtureStep extends FixtureStepStart {
   error?: ParsedErrorFrame | undefined;
 }
 
-class ReplayPlaywrightReporter implements Reporter {
+export default class ReplayPlaywrightReporter implements Reporter {
   reporter: ReplayReporter<ReplayPlaywrightRecordingMetadata>;
   captureTestFile: boolean;
   config: ReplayPlaywrightConfig;
@@ -81,9 +82,18 @@ class ReplayPlaywrightReporter implements Reporter {
   private _foundReplayBrowser = false;
 
   constructor(config: ReplayPlaywrightConfig) {
-    setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
-    initLogger(pkgJson.name, pkgJson.version);
+    setUserAgent(`${packageName}/${packageVersion}`);
+
+    initLogger(packageName, packageVersion);
+    mixpanelAPI.initialize({
+      accessToken: getAccessToken(config),
+      packageName,
+      packageVersion,
+    });
+
     if (!config || typeof config !== "object") {
+      mixpanelAPI.trackEvent("playwright.error.invalid-reporter-config", { config });
+
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
       );
@@ -94,9 +104,9 @@ class ReplayPlaywrightReporter implements Reporter {
       {
         name: "playwright",
         version: undefined,
-        plugin: pkgJson.version,
+        plugin: packageVersion,
       },
-      "2.2.0",
+      "2.2.0", // Schema version
       { ...this.config, metadataKey: "PLAYWRIGHT_REPLAY_METADATA" }
     );
     this.captureTestFile =
@@ -123,8 +133,10 @@ class ReplayPlaywrightReporter implements Reporter {
           s.error = step.error;
         }
       },
-      onError: (_test, error) => {
-        this.reporter?.addError(error);
+      onError: (test, error) => {
+        this.reporter?.addError(error, {
+          ...test,
+        });
       },
     });
   }
@@ -329,6 +341,8 @@ class ReplayPlaywrightReporter implements Reporter {
     try {
       await this.reporter.onEnd();
       if (!this._foundReplayBrowser) {
+        mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-browser");
+
         const output: string[] = [];
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
         if (!existsSync(getRuntimePath())) {
@@ -344,7 +358,7 @@ class ReplayPlaywrightReporter implements Reporter {
         output.map(line => console.warn(`[replay.io]: ${line}`));
       }
     } finally {
-      await logger.close().catch(() => {});
+      await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
     }
   }
 
@@ -385,4 +399,4 @@ class ReplayPlaywrightReporter implements Reporter {
   }
 }
 
-export default ReplayPlaywrightReporter;
+function noop() {}
