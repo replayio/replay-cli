@@ -79,7 +79,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     string,
     { steps: FixtureStep[]; stacks: Record<string, StackFrame[]>; filenames: Set<string> }
   > = {};
-  private _foundReplayBrowser = false;
+  private _projects: Record<string, { executed: boolean; usingReplay: boolean }> = {};
 
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${packageName}/${packageVersion}`);
@@ -177,14 +177,24 @@ export default class ReplayPlaywrightReporter implements Reporter {
 
   onBegin({ version, projects }: FullConfig) {
     const replayBrowserPath = getRuntimePath();
-    this._foundReplayBrowser = !!projects.find(
-      p => p.use.launchOptions?.executablePath === replayBrowserPath
-    );
+    for (const project of projects) {
+      this._projects[project.name] = {
+        executed: false,
+        usingReplay: project.use.launchOptions?.executablePath === replayBrowserPath,
+      };
+    }
     this.reporter.setTestRunnerVersion(version);
     this.reporter.onTestSuiteBegin();
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
+    const projectName = test.parent.project()?.name;
+
+    // it's important to handle the root project's name here and that's an empty string
+    if (typeof projectName === "string") {
+      this._projects[projectName].executed = true;
+    }
+
     const testExecutionId = this._getTestExecutionId({
       filePath: test.location.file,
       projectName: test.parent.project()?.name,
@@ -340,22 +350,43 @@ export default class ReplayPlaywrightReporter implements Reporter {
   async onEnd() {
     try {
       await this.reporter.onEnd();
-      if (!this._foundReplayBrowser) {
-        mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-browser");
 
-        const output: string[] = [];
+      const output: string[] = [];
+
+      const executedProjectWithReplay = !Object.keys(this._projects).some(projectName => {
+        const { executed, usingReplay } = this._projects[projectName];
+        return executed && usingReplay;
+      });
+
+      if (!executedProjectWithReplay) {
+        mixpanelAPI.trackEvent("playwright.warning.reporter-used-without-replay-project");
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
-        if (!existsSync(getRuntimePath())) {
-          output.push("");
-          output.push(`Install Replay Chromium by running ${highlight("npx replayio install")}`);
+      }
+
+      if (!existsSync(getRuntimePath())) {
+        if (executedProjectWithReplay) {
+          mixpanelAPI.trackEvent("playwright.warning.replay-browser-not-installed");
         }
+        if (output.length) {
+          output.push("");
+        }
+        output.push(
+          `To record tests with Replay, you need to install the Replay browser: ${highlight(
+            "npx replayio install"
+          )}`
+        );
+      }
+
+      if (output.length) {
         output.push("");
         output.push(
           `Learn more at ${link(
             "https://docs.replay.io/reference/test-runners/playwright/overview"
           )}`
         );
-        output.map(line => console.warn(`[replay.io]: ${line}`));
+        output.forEach(line => {
+          console.warn(`[replay.io]: ${line}`);
+        });
       }
     } finally {
       await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
