@@ -2,20 +2,22 @@ import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFai
 import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { logger } from "@replay-cli/shared/logger";
+import { Properties, mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { spawnSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
+import { getAccessToken } from "./getAccessToken";
 import { listAllRecordings, removeRecording, uploadRecording } from "./legacy-cli";
 import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
-import type { TestMetadataV1, TestMetadataV2 } from "./legacy-cli/metadata/test";
+import type { TestMetadataV2 } from "./legacy-cli/metadata/test";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { RecordingEntry } from "./types";
+import { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -35,21 +37,7 @@ interface TestRunTestInputModel {
   recordingIds: string[];
 }
 
-export type UploadStatusThreshold = "all" | "failed-and-flaky" | "failed";
-
 type UploadStatusThresholdInternal = UploadStatusThreshold | "none";
-
-export type UploadOption =
-  | boolean
-  | {
-      /**
-       * Minimize the number of recordings uploaded for a test attempt (within a shard).
-       * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
-       * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
-       */
-      minimizeUploads?: boolean;
-      statusThreshold?: UploadStatusThreshold;
-    };
 
 interface UploadableTestExecutionResult<TRecordingMetadata extends UnstructuredMetadata> {
   executionGroupId: string;
@@ -69,29 +57,17 @@ interface UploadableTestResult<TRecordingMetadata extends UnstructuredMetadata> 
   executions: Record<string, UploadableTestExecutionResult<TRecordingMetadata>[]>;
 }
 
-export interface ReplayReporterConfig<
-  TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
-> {
-  runTitle?: string;
-  metadata?: Record<string, any> | string;
-  metadataKey?: string;
-  upload?: UploadOption;
-  apiKey?: string;
-  /** @deprecated Use `upload.minimizeUploads` and `upload.statusThreshold` instead */
-  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
-}
-
 export interface TestRunner {
   name: string;
   version: string | undefined;
   plugin: string;
 }
 
-type UserActionEvent = TestMetadataV2.UserActionEvent;
-type Test = TestMetadataV2.Test;
-type TestResult = TestMetadataV2.TestResult;
-type TestError = TestMetadataV2.TestError;
-type TestRun = TestMetadataV2.TestRun;
+export type UserActionEvent = TestMetadataV2.UserActionEvent;
+export type Test = TestMetadataV2.Test;
+export type TestResult = TestMetadataV2.TestResult;
+export type TestError = TestMetadataV2.TestError;
+export type TestRun = TestMetadataV2.TestRun;
 
 type PendingWorkType = "test-run" | "test-run-tests" | "post-test" | "upload";
 export type PendingWorkError<K extends PendingWorkType, TErrorData = {}> = TErrorData & {
@@ -238,7 +214,9 @@ function getFallbackRunTitle() {
   return `(local) ${gitChild.stdout.toString().trim()} branch`;
 }
 
-class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata> {
+export default class ReplayReporter<
+  TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
+> {
   private _baseId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid();
   private _testRunShardId: string | null = null;
   private _baseMetadata: Record<string, any> | null = null;
@@ -355,7 +333,7 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     config: ReplayReporterConfig<TRecordingMetadata> = {},
     metadataKey?: string
   ) {
-    this._apiKey = config.apiKey || process.env.REPLAY_API_KEY || process.env.RECORD_REPLAY_API_KEY;
+    this._apiKey = getAccessToken(config);
     this._upload = "upload" in config ? !!config.upload : !!process.env.REPLAY_UPLOAD;
     if (this._upload && !this._apiKey) {
       throw new Error(
@@ -417,12 +395,15 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     }
   }
 
-  addError(err: Error | ReporterError) {
-    logger.error("AddError", { error: err });
-    if (err.name === "ReporterError") {
-      this._errors.push(err as ReporterError);
+  addError(error: Error | ReporterError, context?: Properties) {
+    logger.error("AddError", { error });
+
+    mixpanelAPI.trackEvent(`test-suite.error.${error.name}`, { context, error });
+
+    if (error.name === "ReporterError") {
+      this._errors.push(error as ReporterError);
     } else {
-      this._errors.push(new ReporterError(-1, "Unexpected error", err));
+      this._errors.push(new ReporterError(-1, "Unexpected error", error));
     }
   }
 
@@ -431,6 +412,8 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       ...this._baseMetadata,
       "x-replay-diagnostics": metadata,
     };
+
+    mixpanelAPI.appendAdditionalProperties({ baseMetadata: this._baseMetadata });
   }
 
   onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
@@ -448,8 +431,18 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       hasFilter: !!this._filter,
     });
 
+    mixpanelAPI.trackEvent("test-suite.begin", {
+      baseId: this._baseId,
+      runTitle: this._runTitle,
+      upload: this._upload,
+      hasFilter: !!this._filter,
+    });
+
     if (!this._apiKey) {
       logger.info("OnTestSuiteBegin:NoApiKey");
+
+      mixpanelAPI.trackEvent("test-suite.no-api-key");
+
       return;
     }
 
@@ -715,6 +708,11 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   }) {
     logger.info("OnTestEnd:Started", { specFile });
 
+    mixpanelAPI.trackEvent("test-suite.test-end", {
+      replayTitle,
+      specFile,
+    });
+
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
@@ -834,6 +832,13 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
     logger.info("SetRecordingMetadata:Started", {
       recordingIds: recordings.map(r => r.id),
       errorLength: this._errors.length,
+    });
+
+    mixpanelAPI.trackEvent("test-suite.metadata", {
+      numErrors: this._errors.length,
+      numRecordings: recordings.length,
+      replayTitle,
+      extraMetadata,
     });
 
     const validatedTestMetadata = testMetadata.init({
@@ -1127,6 +1132,12 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
   async onEnd(): Promise<PendingWork[]> {
     logger.info("OnEnd:Started");
 
+    mixpanelAPI.trackEvent("test-suite.ending", {
+      minimizeUploads: this._minimizeUploads,
+      numPendingWork: this._pendingWork.length,
+      uploadStatusThreshold: this._uploadStatusThreshold,
+    });
+
     await this._cacheAuthIdsPromise?.catch(e => {
       logger.error("OnEnd:AddingLoggerAuthFailed", {
         errorMessage: getErrorMessage(e),
@@ -1203,6 +1214,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       });
     }
 
+    let numCrashed = 0;
+    let numUploaded = 0;
+
     if (uploads.length > 0) {
       const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
       for (const recordingId of recordingIds) {
@@ -1211,6 +1225,9 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
 
       const uploaded = uploads.filter(u => u.status === "uploaded");
       const crashed = uploads.filter(u => u.status === "crashUploaded");
+
+      numCrashed = crashed.length;
+      numUploaded = uploaded.length;
 
       if (uploaded.length > 0) {
         output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
@@ -1233,11 +1250,14 @@ class ReplayReporter<TRecordingMetadata extends UnstructuredMetadata = Unstructu
       }
     }
 
+    mixpanelAPI.trackEvent("test-suite.results", {
+      errors,
+      numCrashed,
+      numUploaded,
+    });
+
     log(output.join("\n"));
 
     return results;
   }
 }
-
-export default ReplayReporter;
-export type { Test, TestError, TestMetadataV1, TestMetadataV2, TestResult, UserActionEvent };

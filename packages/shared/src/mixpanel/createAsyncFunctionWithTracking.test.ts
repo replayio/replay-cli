@@ -1,9 +1,10 @@
 import { Deferred, createDeferred } from "../async/createDeferred";
-import { MixpanelAPI } from "./types";
+import type { mixpanelAPI as MixpanelAPIType, MixpanelImplementation } from "./mixpanelAPI";
 
-describe("withTrackAsyncEvent", () => {
-  let mockMixpanelAPI: MixpanelAPI;
-  let withTrackAsyncEvent: typeof import("./withTrackAsyncEvent").withTrackAsyncEvent;
+describe("createAsyncFunctionWithTracking", () => {
+  let createAsyncFunctionWithTracking: typeof import("./createAsyncFunctionWithTracking").createAsyncFunctionWithTracking;
+  let mockMixpanelAPI: MixpanelImplementation;
+  let mixpanelAPI: typeof MixpanelAPIType;
 
   beforeEach(() => {
     mockMixpanelAPI = {
@@ -11,14 +12,22 @@ describe("withTrackAsyncEvent", () => {
       track: jest.fn(),
     };
 
-    // jest.resetModules does not work with import; only works with require()
-    withTrackAsyncEvent = require("./withTrackAsyncEvent").withTrackAsyncEvent;
+    jest.mock("../graphql/getAuthInfo", () => ({
+      getAuthInfo: async () => ({
+        id: "fake-session-id",
+      }),
+    }));
 
-    require("./session").configureSession("fake-user-id", {
-      packageName: "fake-name",
+    // jest.resetModules does not work with import; only works with require()
+    createAsyncFunctionWithTracking =
+      require("./createAsyncFunctionWithTracking").createAsyncFunctionWithTracking;
+    mixpanelAPI = require("./mixpanelAPI").mixpanelAPI;
+    mixpanelAPI.mockForTests(mockMixpanelAPI);
+    mixpanelAPI.initialize({
+      accessToken: "fake-access-token",
+      packageName: "fake-package",
       packageVersion: "0.0.0",
     });
-    require("./getMixpanelAPI").setMixpanelAPIForTests(mockMixpanelAPI);
   });
 
   afterEach(() => {
@@ -34,7 +43,7 @@ describe("withTrackAsyncEvent", () => {
       anotherProperty: "another",
     }));
 
-    const callbackWithTracking = withTrackAsyncEvent(
+    const callbackWithTracking = createAsyncFunctionWithTracking(
       () => deferred.promise,
       "test-event",
       mockGetProperties
@@ -54,7 +63,7 @@ describe("withTrackAsyncEvent", () => {
     const properties = (mockMixpanelAPI.track as jest.Mock).mock.calls[0][1];
     expect(properties).toMatchObject({
       anotherProperty: "another",
-      distinct_id: "fake-user-id",
+      distinct_id: "fake-session-id",
       error: undefined,
       result: "result",
     });
@@ -66,7 +75,7 @@ describe("withTrackAsyncEvent", () => {
       result,
     }));
 
-    const callbackWithTracking = withTrackAsyncEvent(
+    const callbackWithTracking = createAsyncFunctionWithTracking(
       (foo, bar) => Promise.resolve({ foo, bar }),
       "test-event",
       mockGetProperties
@@ -80,7 +89,7 @@ describe("withTrackAsyncEvent", () => {
 
     const properties = (mockMixpanelAPI.track as jest.Mock).mock.calls[0][1];
     expect(properties).toMatchObject({
-      distinct_id: "fake-user-id",
+      distinct_id: "fake-session-id",
       error: undefined,
       result: { foo: "abc", bar: 123 },
     });
@@ -93,7 +102,7 @@ describe("withTrackAsyncEvent", () => {
       result,
     }));
 
-    const callbackWithTracking = withTrackAsyncEvent(
+    const callbackWithTracking = createAsyncFunctionWithTracking(
       () => {
         const deferred = createDeferred<string>();
         deferredArray.push(deferred);

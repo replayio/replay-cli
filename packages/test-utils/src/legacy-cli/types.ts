@@ -80,9 +80,6 @@ export interface UploadAllOptions extends FilterOptions, UploadOptions {
 /**
  * Supported replay browsers
  */
-export type BrowserName = "chromium" | "firefox";
-
-export type Runner = "playwright" | "puppeteer";
 
 export interface RecordingMetadata {
   recordingData: {

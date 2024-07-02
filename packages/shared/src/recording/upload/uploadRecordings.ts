@@ -1,6 +1,6 @@
 import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
 import { logger } from "../../logger";
-import { withTrackAsyncEvent } from "../../mixpanel/withTrackAsyncEvent";
+import { createAsyncFunctionWithTracking } from "../../mixpanel/createAsyncFunctionWithTracking";
 import { exitProcess } from "../../process/exitProcess";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
@@ -15,7 +15,7 @@ import { ProcessingBehavior } from "./types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 
-export const uploadRecordings = withTrackAsyncEvent(
+export const uploadRecordings = createAsyncFunctionWithTracking(
   async function uploadRecordings(
     recordings: LocalRecording[],
     options: {

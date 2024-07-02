@@ -1,12 +1,13 @@
-import ReplayReporter from "./reporter";
-
-export type { TestMetadataV1, TestMetadataV2, ReplayReporterConfig, PendingWork } from "./reporter";
-export { buildTestId } from "./testId";
-export { ReporterError } from "./reporter";
-export { pingTestMetrics } from "./metrics";
-export { removeAnsiCodes } from "./terminal";
+export type { TestMetadataV1, TestMetadataV2 } from "./legacy-cli/metadata/test";
 export { fetchWorkspaceConfig } from "./config";
+export { getAccessToken } from "./getAccessToken";
 export * from "./logging";
-export { ReplayReporter };
 export { getMetadataFilePath, initMetadataFile } from "./metadata";
-export type { RecordingEntry } from "./types";
+export { pingTestMetrics } from "./metrics";
+export { ReporterError } from "./reporter";
+export type { PendingWork } from "./reporter";
+export { removeAnsiCodes } from "./terminal";
+export { buildTestId } from "./testId";
+export type { RecordingEntry, ReplayReporterConfig } from "./types";
+export { ReplayReporter };
+import ReplayReporter from "./reporter";

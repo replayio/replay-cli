@@ -1,4 +1,4 @@
-import { trackEvent } from "@replay-cli/shared/mixpanel/trackEvent";
+import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { program } from "commander";
 import { initialize } from "../initialization/initialize";
 
@@ -17,7 +17,7 @@ export function registerCommand(
   } = config;
 
   return program.command(commandName).hook("preAction", async () => {
-    trackEvent("command", { commandName });
+    mixpanelAPI.trackEvent("command", { commandName });
 
     await initialize({
       checkForNpmUpdate,
