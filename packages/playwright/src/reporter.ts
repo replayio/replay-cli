@@ -368,7 +368,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
         if (output.length) {
           output.push("");
         }
-        output.push(`Install Replay Chromium by running ${highlight("npx replayio install")}`);
+        output.push(`To record tests with Replay, you need to install the Replay browser: ${highlight("npx replayio install")}`);
       }
 
       if (output.length) {
