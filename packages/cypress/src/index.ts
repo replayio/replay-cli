@@ -1,21 +1,20 @@
 /// <reference types="cypress" />
 
+import { initLogger, logger } from "@replay-cli/shared/logger";
+import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 import { RecordingEntry, initMetadataFile, warn } from "@replayio/test-utils";
 import chalk from "chalk";
-import dbg from "debug";
 import path from "path";
 import semver from "semver";
-
+import { name as packageName, version as packageVersion } from "../package.json";
 import { CONNECT_TASK_NAME } from "./constants";
 import { PluginFeature } from "./features";
 import { updateJUnitReports } from "./junit";
 import CypressReporter, { PluginOptions, getMetadataFilePath, isStepEvent } from "./reporter";
 import { createServer } from "./server";
 import type { StepEvent } from "./support";
-import { initLogger, logger } from "@replay-cli/shared/logger";
-import packageJson from "../package.json";
-
 export type { PluginOptions } from "./reporter";
 export {
   getMetadataFilePath,
@@ -158,6 +157,7 @@ async function onAfterRun() {
 
   if (missingSteps) {
     logger.error("OnAfterRun:AfterRunMissingSteps", { missingSteps });
+    mixpanelAPI.trackEvent("warning.missing-steps");
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -195,6 +195,7 @@ function onReplayTask(value: any) {
       reporter.addStep(v);
     } else {
       logger.error("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
+      mixpanelAPI.trackEvent("error.replay-task-unexpected-payload", { payload: v });
     }
   });
 
@@ -258,7 +259,15 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
-  initLogger(packageJson.name, packageJson.version);
+  setUserAgent(`${packageName}/${packageVersion}`);
+
+  initLogger(packageName, packageVersion);
+  mixpanelAPI.initialize({
+    accessToken: getAuthKey(config),
+    packageName,
+    packageVersion,
+  });
+
   cypressReporter = new CypressReporter(config, options);
 
   const portPromise = createServer().then(({ server: wss, port }) => {
@@ -269,9 +278,10 @@ const plugin = (
         logger.info("CypressPlugin:WebSocketClosed");
       });
 
-      ws.on("error", e => {
-        logger.error("CypressPlugin:WebSocketError", { error: e });
-        warn("WebSocket error", e);
+      ws.on("error", error => {
+        logger.error("CypressPlugin:WebSocketError", { error });
+        mixpanelAPI.trackEvent("error.websocket-error", { error });
+        warn("WebSocket error", error);
       });
 
       ws.on("message", function message(data) {
@@ -279,9 +289,10 @@ const plugin = (
           const payload = data.toString("utf-8");
           const obj = JSON.parse(payload) as { events: StepEvent[] };
           onReplayTask(obj.events);
-        } catch (e) {
-          logger.error("CypressPlugin:WebSocketMessageError", { error: e });
-          warn("Error parsing message from test", e);
+        } catch (error) {
+          logger.error("CypressPlugin:WebSocketMessageError", { error });
+          mixpanelAPI.trackEvent("error.websocket-message-error", { error });
+          warn("Error parsing message from test", error);
         }
       });
     });

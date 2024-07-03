@@ -1,21 +1,19 @@
 /// <reference types="cypress" />
 import {
-  getMetadataFilePath as getMetadataFilePathBase,
   ReplayReporter,
-  TestMetadataV2,
-  ReporterError,
-  fetchWorkspaceConfig,
   ReplayReporterConfig,
+  ReporterError,
+  TestMetadataV2,
+  fetchWorkspaceConfig,
+  getMetadataFilePath as getMetadataFilePathBase,
 } from "@replayio/test-utils";
-import * as pkgJson from "../package.json";
 
+import { logger } from "@replay-cli/shared/logger";
 import { Errors } from "./error";
+import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
 import { getTestsFromResults, groupStepsByTest, sortSteps } from "./steps";
 import type { StepEvent } from "./support";
-import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
-import { logger } from "@replay-cli/shared/logger";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
 
 type Test = TestMetadataV2.Test;
 
@@ -60,7 +58,6 @@ class CypressReporter {
   private _extraEnv: NodeJS.ProcessEnv = {};
 
   constructor(config: Cypress.PluginConfigOptions, options: PluginOptions) {
-    setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
     initFixtureFile();
 
     this.config = config;
