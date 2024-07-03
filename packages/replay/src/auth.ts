@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { spawn } from "child_process";
 import { createHash } from "crypto";
 import dbg from "./debug";
