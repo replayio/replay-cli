@@ -1,5 +1,11 @@
 # @replayio/jest
 
+## 0.3.9
+
+### Patch Changes
+
+- [#594](https://github.com/replayio/replay-cli/pull/594) [`78f5c72`](https://github.com/replayio/replay-cli/commit/78f5c72a62a38772cad90cccf1283b80eea49b61) Thanks [@miriambudayr](https://github.com/miriambudayr)! - Add missing stack-utils dependencies
+
 ## 0.3.8
 
 ### Patch Changes
