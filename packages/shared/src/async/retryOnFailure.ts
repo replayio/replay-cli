@@ -3,7 +3,7 @@ import { timeoutAfter } from "./timeoutAfter";
 async function retry<T>(
   asyncFunction: () => Promise<T>,
   backOffStrategy: (iteration: number) => number,
-  onFail?: (error: unknown, attemptNumber: number) => void,
+  onFail?: (error: unknown, attemptNumber: number, maxAttempts: number) => void,
   maxAttempts: number = 5
 ): Promise<T> {
   let currentAttempt = 0;
@@ -14,7 +14,7 @@ async function retry<T>(
       return await asyncFunction();
     } catch (error) {
       if (onFail) {
-        onFail(error, currentAttempt);
+        onFail(error, currentAttempt, maxAttempts);
       }
 
       if (currentAttempt == maxAttempts) {
@@ -30,7 +30,7 @@ async function retry<T>(
 
 export async function retryWithExponentialBackoff<T>(
   asyncFunction: () => Promise<T>,
-  onFail?: (error: unknown, attemptNumber: number) => void,
+  onFail?: (error: unknown, attemptNumber: number, maxAttempts: number) => void,
   maxTries?: number
 ): Promise<T> {
   const backoff = (iteration: number) => 2 ** iteration * 100 + jitter();
@@ -40,7 +40,7 @@ export async function retryWithExponentialBackoff<T>(
 
 export async function retryWithLinearBackoff<T>(
   asyncFunction: () => Promise<T>,
-  onFail?: (error: unknown, attemptNumber: number) => void,
+  onFail?: (error: unknown, attemptNumber: number, maxAttempts: number) => void,
   maxTries?: number
 ): Promise<T> {
   const backoff = () => 100 + jitter();
