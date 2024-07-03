@@ -11,8 +11,10 @@ import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
 import { listAllRecordings, removeRecording, uploadRecording } from "./legacy-cli";
-import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
-import type { TestMetadataV2 } from "./legacy-cli/metadata/test";
+import { addMetadata } from "@replay-cli/shared/recording/metadata/add";
+import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
+import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
+import type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
@@ -865,7 +867,7 @@ export default class ReplayReporter<
       });
     }
 
-    recordings.forEach(rec => add(rec.id, mergedMetadata));
+    recordings.forEach(rec => addMetadata(rec.id, mergedMetadata));
 
     // Re-fetch recordings so we have the most recent metadata
     const allRecordings = listAllRecordings({ all: true }) as RecordingEntry<TRecordingMetadata>[];

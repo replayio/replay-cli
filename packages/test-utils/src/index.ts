@@ -1,4 +1,5 @@
-export type { TestMetadataV1, TestMetadataV2 } from "./legacy-cli/metadata/test";
+export type { TestMetadataV1 } from "@replay-cli/shared/recording/metadata/legacy/test/v1";
+export type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 export { fetchWorkspaceConfig } from "./config";
 export { getAccessToken } from "./getAccessToken";
 export * from "./logging";

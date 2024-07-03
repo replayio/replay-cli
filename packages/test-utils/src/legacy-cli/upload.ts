@@ -8,7 +8,7 @@ import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
 import dbg, { logPath } from "./debug";
-import { sanitize as sanitizeMetadata } from "./metadata";
+import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, isValidUUID, maybeLog } from "./utils";
 import { getUserAgent } from "@replay-cli/shared/userAgent";

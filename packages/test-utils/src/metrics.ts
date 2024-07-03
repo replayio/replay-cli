@@ -1,7 +1,7 @@
 import dbg from "debug";
 import fetch from "node-fetch";
 import os from "os";
-import { TestMetadataV2 } from "./legacy-cli/metadata/test/v2";
+import { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 
 const debug = dbg("replay:test-utils:metrics");
 
