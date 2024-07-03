@@ -93,19 +93,19 @@ class ProtocolClient {
         binary: data ? true : undefined,
         sessionId,
       }),
-      err => {
-        if (!err && data) {
+      error => {
+        if (!error && data) {
           this.socket.send(data, callback);
         } else {
-          if (err) {
+          if (error) {
             logger.error("SendCommand:ReceivedSocketError", {
               id,
               params,
               sessionId,
-              error: err,
+              error,
             });
           }
-          callback?.(err);
+          callback?.(error);
         }
       }
     );
