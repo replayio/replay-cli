@@ -21,19 +21,18 @@ const failedResponse = new Response(500, "error");
 const successResponse = new Response(200, "ok");
 
 describe("cachedFetch", () => {
-  let globalFetch: typeof fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    globalFetch = global.fetch;
-    mockFetch = global.fetch = jest.fn(async (url: string) => {
+    mockFetch = jest.fn(async (url: string) => {
       return successResponse;
-    }) as jest.Mock;
+    });
+    jest.mock("undici", () => ({
+      fetch: mockFetch,
+    }));
   });
 
   afterEach(() => {
-    global.fetch = globalFetch;
-
     resetCache();
   });
 
