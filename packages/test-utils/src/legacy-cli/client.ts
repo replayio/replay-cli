@@ -83,7 +83,7 @@ class ProtocolClient {
     callback?: (err?: Error) => void
   ) {
     const id = this.nextMessageId++;
-    logger.info("SendCommand:Started", { id, params, sessionId });
+    logger.info("SendCommand:Started", { id, sessionId, method });
 
     this.socket.send(
       JSON.stringify({
