@@ -200,7 +200,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     const projectMetadata = this._registerExecutedProject(test);
 
     // Don't save metadata for non-Replay projects
-    if (projectMetadata?.usesReplayBrowser === false) return;
+    if (!projectMetadata?.usesReplayBrowser) return;
 
     const testExecutionId = this._getTestExecutionId({
       filePath: test.location.file,
@@ -281,7 +281,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     const projectMetadata = this._registerExecutedProject(test);
 
     // Don't save metadata for non-Replay projects
-    if (projectMetadata?.usesReplayBrowser === false) return;
+    if (!projectMetadata?.usesReplayBrowser) return;
 
     const testExecutionIdData = {
       filePath: test.location.file,
