@@ -174,7 +174,7 @@ class ReplayClient {
       body: file,
     });
 
-    if (resp.status !== 200) {
+    if (!resp.ok) {
       debug(await resp.text());
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }

@@ -12,12 +12,10 @@ const VERSION = 1;
 
 class GitHubHttpError extends Error {
   status: number;
-  statusText: string;
 
-  constructor(status: number, statusText: string) {
-    super();
+  constructor(message: string, status: number) {
+    super(message);
     this.status = status;
-    this.statusText = statusText;
   }
 }
 
@@ -93,10 +91,44 @@ function readGithubEvent(env: NodeJS.ProcessEnv) {
   }
 }
 
-function getGitHubMergeId(env: NodeJS.ProcessEnv) {
-  const event = readGithubEvent(env);
-  if (event?.pull_request?.number) {
-    return String(event.pull_request.number);
+function expandGitHubEvent() {
+  const event = readGithubEvent(process.env);
+
+  if (event?.pull_request) {
+    if (event.pull_request.number) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_ID ||= String(event.pull_request.number);
+    }
+
+    if (event.pull_request.title) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE ||= event.pull_request.title;
+    }
+
+    if (event.pull_request.html_url) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL ||= event.pull_request.html_url;
+    }
+
+    if (event.pull_request.user?.login) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_USER ||= event.pull_request.user.login;
+    }
+
+    if (event.pull_request.head?.ref) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_BRANCH ||= event.pull_request.head.ref;
+    }
+  }
+
+  if (event?.head_commit) {
+    if (event.head_commit.message) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE ||= event.head_commit.message;
+    }
+
+    if (event.head_commit.url) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL ||= event.head_commit.url;
+    }
+
+    if (event.head_commit.committer.username) {
+      process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER ||=
+        event.head_commit.committer.username;
+    }
   }
 }
 
@@ -107,50 +139,104 @@ function getGitHubMergeSHA(env: NodeJS.ProcessEnv): string | undefined {
   }
 }
 
+function isSecondaryRateLimitError(json: unknown) {
+  return (
+    !!json &&
+    typeof json === "object" &&
+    "message" in json &&
+    typeof json.message === "string" &&
+    // https://github.com/octokit/plugin-throttling.js/blob/2970c6fbc2e2ad4e749804b0708c1a863800a7e4/src/index.ts#L134
+    /\bsecondary rate\b/i.test(json.message)
+  );
+}
+
+async function fetchGitHubUrl(url: string, options?: RequestInit) {
+  const { GITHUB_TOKEN } = process.env;
+
+  debug("Fetching GitHub information from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
+
+  const resp = await cachedFetch(
+    url,
+    {
+      headers: GITHUB_TOKEN
+        ? {
+            Authorization: `token ${GITHUB_TOKEN}`,
+          }
+        : undefined,
+    },
+    {
+      shouldRetry: async (response, json, retryAfter) => {
+        // secondary rate limit can be returned with 403 so we hve to check this before checking status codes
+        // https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api?apiVersion=2022-11-28#rate-limit-errors
+        if (isSecondaryRateLimitError(json)) {
+          // https://github.com/octokit/plugin-throttling.js/blob/32c82b80a29a7a48c1cdf100fe0a3fb01b24fb23/src/index.ts#L138-L142
+          return {
+            after: Number(response.headers.get("retry-after")) || 60 * 1000,
+          };
+        }
+        if (response.headers.get("x-ratelimit-remaining") === "0") {
+          // https://github.com/octokit/plugin-throttling.js/blob/32c82b80a29a7a48c1cdf100fe0a3fb01b24fb23/src/index.ts#L163-171
+          const rateLimitReset = new Date(
+            ~~(response.headers.get("x-ratelimit-reset") as string) * 1000
+          ).getTime();
+          return {
+            after: Math.max(Math.ceil((rateLimitReset - Date.now()) / 1000) + 1, 0),
+          };
+        }
+        // https://github.com/octokit/plugin-retry.js/blob/d3577fcc8e6f602af3a959dbd1d8e7479971d0d5/src/error-request.ts#L9-L10
+        // https://github.com/octokit/plugin-retry.js/blob/d3577fcc8e6f602af3a959dbd1d8e7479971d0d5/src/index.ts#L14
+        if ([400, 401, 403, 404, 422, 451].includes(response.status)) {
+          return false;
+        }
+        return { after: retryAfter };
+      },
+    }
+  );
+  return resp;
+}
+
 async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
   const {
-    GITHUB_TOKEN,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER,
   } = process.env;
 
+  if (
+    [
+      RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE,
+      RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
+      RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER,
+    ].every(Boolean)
+  ) {
+    return;
+  }
+
   if (!repo || !sha) return;
 
-  const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
-
-  debug("Fetching commit metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
-
-  const resp = await cachedFetch(url, {
-    headers: GITHUB_TOKEN
-      ? {
-          Authorization: `token ${GITHUB_TOKEN}`,
-        }
-      : undefined,
-  });
+  const resp = await fetchGitHubUrl(`https://api.github.com/repos/${repo}/commits/${sha}`);
 
   // override the SHA if passed because it might be the SHA from the github
   // event rather than GITHUB_SHA. we update this regardless of our ability to
   // fetch the details because that can fail due to a missing token.
   process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_ID = sha;
-  if (resp.status === 200) {
+  if (resp.ok) {
     const json = resp.json;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE =
-      RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE ||
-      json.commit.message.split("\n").shift().substring(0, 80);
-    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL =
-      RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL || json.html_url;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER =
-      RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER || json.author?.login;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE ||= json.commit.message
+      .split("\n")
+      .shift()
+      .substring(0, 80);
+    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL ||= json.html_url;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER ||= json.author?.login;
   } else {
-    debug("Failed to fetch GitHub commit metadata: %s", resp.statusText);
-    throw new GitHubHttpError(resp.status, resp.statusText);
+    const message = resp.json?.message ?? resp.statusText;
+    debug("Failed to fetch GitHub commit metadata: %s", message);
+    throw new GitHubHttpError(message, resp.status);
   }
 }
 
 async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
   const {
-    GITHUB_TOKEN,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_ID,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
@@ -158,38 +244,35 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
     RECORD_REPLAY_METADATA_SOURCE_BRANCH,
   } = process.env;
 
+  if (
+    [
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_ID,
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE,
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
+      RECORD_REPLAY_METADATA_SOURCE_MERGE_USER,
+      RECORD_REPLAY_METADATA_SOURCE_BRANCH,
+    ].every(Boolean)
+  ) {
+    return;
+  }
+
   if (!repo || !pr) {
     debug("Unable to retrieve merge metadata: Repo and PR number missing");
     return;
   }
 
-  const url = `https://api.github.com/repos/${repo}/pulls/${pr}`;
+  const resp = await fetchGitHubUrl(`https://api.github.com/repos/${repo}/pulls/${pr}`);
 
-  debug("Fetching merge metadata from %s with %d char token", url, GITHUB_TOKEN?.length || 0);
-
-  const resp = await cachedFetch(url, {
-    headers: GITHUB_TOKEN
-      ? {
-          Authorization: `token ${GITHUB_TOKEN}`,
-        }
-      : undefined,
-  });
-
-  if (resp.status === 200) {
+  if (resp.ok) {
     const json = await resp.json;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_BRANCH =
-      RECORD_REPLAY_METADATA_SOURCE_BRANCH || json.head?.ref;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_ID =
-      RECORD_REPLAY_METADATA_SOURCE_MERGE_ID || pr;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE =
-      RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE || json.title;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL =
-      RECORD_REPLAY_METADATA_SOURCE_MERGE_URL || json.html_url;
-    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_USER =
-      RECORD_REPLAY_METADATA_SOURCE_MERGE_USER || json.user?.login;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_BRANCH ||= json.head?.ref;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_ID ||= pr;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE ||= json.title;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL ||= json.html_url;
+    process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_USER ||= json.user?.login;
   } else {
     debug("Failed to fetch GitHub commit metadata: %o", resp);
-    throw new GitHubHttpError(resp.status, resp.statusText);
+    throw new GitHubHttpError(resp.json?.message ?? resp.statusText, resp.status);
   }
 }
 
@@ -328,8 +411,9 @@ async function expandEnvironment() {
 
   try {
     if (GITHUB_SHA && GITHUB_REPOSITORY) {
+      expandGitHubEvent();
       const sha = getGitHubMergeSHA(process.env) ?? GITHUB_SHA;
-      const mergeId = getGitHubMergeId(process.env);
+      const mergeId = process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_ID;
       debug("GitHub context $0", { mergeId, sha });
 
       await expandCommitMetadataFromGitHub(GITHUB_REPOSITORY, sha);
@@ -348,12 +432,13 @@ async function expandEnvironment() {
     }
   } catch (e) {
     if (e instanceof GitHubHttpError) {
-      console.warn(`Unable to fetch pull request from GitHub: ${e.statusText}`);
+      console.warn(`Unable to fetch pull request from GitHub: ${e.message}`);
       if (!process.env.GITHUB_TOKEN && e.status === 404) {
         console.warn(
           "If this is a private repo, you can set the GITHUB_TOKEN environment variable\nwith a personal access token to allow the Replay CLI to fetch this metadata."
         );
       }
+      return;
     }
 
     console.warn("Failed to expand environment details", e);

@@ -133,7 +133,7 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
   // event rather than GITHUB_SHA. we update this regardless of our ability to
   // fetch the details because that can fail due to a missing token.
   process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_ID = sha;
-  if (resp.status === 200) {
+  if (resp.ok) {
     const json = resp.json;
     process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE =
       RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE ||
@@ -175,7 +175,7 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
       : undefined,
   });
 
-  if (resp.status === 200) {
+  if (resp.ok) {
     const json = await resp.json;
     process.env.RECORD_REPLAY_METADATA_SOURCE_BRANCH =
       RECORD_REPLAY_METADATA_SOURCE_BRANCH || json.head?.ref;
