@@ -6,7 +6,7 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { initLogger, logger } from "@replay-cli/shared/logger";
-import { captureException, closeSentry, initSentry } from "@replay-cli/shared/sentry";
+import { initSentry, sentry } from "@replay-cli/shared/sentry";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
@@ -87,9 +87,9 @@ export default class ReplayPlaywrightReporter implements Reporter {
     setUserAgent(`${packageName}/${packageVersion}`);
 
     initLogger(packageName, packageVersion);
-    initSentry();
+    initSentry(packageName, packageVersion);
 
-    captureException(new Error("TestError"));
+    sentry.captureException(new Error("TestError2"));
 
     mixpanelAPI.initialize({
       accessToken: getAccessToken(config),
@@ -412,7 +412,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
       await Promise.all([
         mixpanelAPI.close().catch(noop),
         logger.close().catch(noop),
-        closeSentry().catch(noop),
+        sentry.close().catch(noop),
       ]);
     }
   }

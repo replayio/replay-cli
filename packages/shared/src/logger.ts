@@ -16,7 +16,7 @@ const HOST = "https://logs-prod-006.grafana.net";
 
 const stackUtils = new StackUtils({ cwd: process.cwd(), internals: StackUtils.nodeInternals() });
 
-function anonymizeStackTrace(stack: string): string {
+export function anonymizeStackTrace(stack: string): string {
   return stack
     .split("\n")
     .map(line => {
@@ -32,9 +32,8 @@ function anonymizeStackTrace(stack: string): string {
     .join("\n");
 }
 
-type LogLevel = "error" | "warn" | "info" | "debug";
-
-type Tags = Record<string, unknown>;
+export type LogLevel = "error" | "warn" | "info" | "debug";
+export type Tags = Record<string, unknown>;
 
 class Logger {
   private deviceId: string;
