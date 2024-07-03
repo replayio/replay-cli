@@ -25,7 +25,7 @@ import {
   type UnstructuredMetadata,
 } from "./types";
 import { ReplayClient } from "./upload";
-import { getDirectory, maybeLog as maybeLogToConsole } from "./utils";
+import { getDirectory, maybeLogToConsole } from "./utils";
 import { logger } from "@replay-cli/shared/logger";
 export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";

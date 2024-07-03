@@ -1,9 +1,7 @@
-import dbg from "debug";
 import fetch from "node-fetch";
 import os from "os";
 import { TestMetadataV2 } from "./legacy-cli/metadata/test/v2";
-
-const debug = dbg("replay:test-utils:metrics");
+import { logger } from "@replay-cli/shared/logger";
 
 function shouldReportTestMetrics() {
   const optOut = process.env.RECORD_REPLAY_TEST_METRICS?.toLowerCase();
@@ -25,6 +23,8 @@ async function pingTestMetrics(
   },
   apiKey?: string
 ) {
+  logger.info("PingTestMetrics:Started");
+
   if (!shouldReportTestMetrics()) return;
 
   const webhookUrl = process.env.RECORD_REPLAY_WEBHOOK_URL || "https://webhooks.replay.io";
@@ -44,7 +44,7 @@ async function pingTestMetrics(
     },
   });
 
-  debug(body);
+  logger.info("PingTestMetrics", { body });
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
 
@@ -56,7 +56,9 @@ async function pingTestMetrics(
     method: "POST",
     headers,
     body,
-  }).catch(e => debug("Failed to send test metrics", e));
+  })
+    .then(() => logger.info("PingTestMetrics:Succeeded"))
+    .catch(error => logger.error("PingTestMetrics:Failed", { body, error }));
 }
 
 export { pingTestMetrics };

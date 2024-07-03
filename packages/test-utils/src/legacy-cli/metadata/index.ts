@@ -2,10 +2,11 @@ import { appendFileSync } from "fs";
 import path from "path";
 
 import { Options, UnstructuredMetadata } from "../types";
-import { getDirectory, maybeLog } from "../utils";
+import { getDirectory, maybeLogToConsole } from "../utils";
 
 import * as test from "./test";
 import * as source from "./source";
+import { logger } from "@replay-cli/shared/logger";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
@@ -29,10 +30,12 @@ async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
     const value = metadata[key];
 
     if (typeof value !== "object") {
-      maybeLog(
+      maybeLogToConsole(
         opts.verbose,
         `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
       );
+
+      logger.info("SanitizeMetadata:UnexpectedKeyType", { key, keyType: typeof value });
 
       continue;
     }
@@ -46,10 +49,12 @@ async function sanitize(metadata: UnstructuredMetadata, opts: Options = {}) {
       Object.assign(updated, validated);
     } else {
       // and warn when dropping all other types
-      maybeLog(
+      maybeLogToConsole(
         opts.verbose,
         `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
       );
+
+      logger.info("SanitizeMetadata:IgnoringKey", { key });
     }
   }
 

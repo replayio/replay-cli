@@ -1,29 +1,34 @@
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
-import dbg from "./debug";
-
 import { Options } from "./types";
 import { getDirectory } from "./utils";
+import { logger } from "@replay-cli/shared/logger";
 
-const debug = dbg("replay:cli:auth");
+function parseTokenInfo(token: string) {
+  logger.info("ParseTokenInfo:Started");
 
-function tokenInfo(token: string) {
   const [_header, encPayload, _cypher] = token.split(".", 3);
   if (typeof encPayload !== "string") {
-    debug("Token did not contain a valid payload: %s", maskToken(token));
+    logger.error("ParseTokenInfo:InvalidPayload", { maskedToken: maskToken(token) });
     return null;
   }
 
   let payload;
   try {
     payload = JSON.parse(Buffer.from(encPayload, "base64").toString());
-  } catch (err) {
-    debug("Failed to decode token: %s %e", maskToken(token), err);
+  } catch (error) {
+    logger.error("ParseTokenInfo:DecodeFailed", {
+      maskedToken: maskToken(token),
+      error,
+    });
     return null;
   }
 
   if (typeof payload !== "object") {
-    debug("Token payload was not an object");
+    logger.error("ParseTokenInfo:PayloadWasNotObject", {
+      maskedToken: maskToken(token),
+      payloadType: typeof payload,
+    });
     return null;
   }
 
@@ -31,9 +36,11 @@ function tokenInfo(token: string) {
 }
 
 function hasTokenExpired(token: string) {
-  const userInfo = tokenInfo(token);
+  logger.info("HasTokenExpired:Started");
+
+  const userInfo = parseTokenInfo(token);
   const exp: number | undefined = userInfo?.payload?.exp;
-  debug("token expiration time: %d", exp ? exp * 1000 : 0);
+  logger.info("HasTokenExpired:GotExpirationTime", { expirationTime: exp ? exp * 1000 : 0 });
 
   return exp != null && Date.now() - exp * 1000 > 0;
 }
@@ -48,23 +55,27 @@ function getTokenPath(options: Options = {}) {
 }
 
 export async function readToken(options: Options = {}) {
+  logger.info("ReadToken:Started");
+
   try {
     const tokenPath = getTokenPath(options);
     const tokenJson = await readFile(tokenPath, { encoding: "utf-8" });
     const { token } = JSON.parse(tokenJson);
 
     if (hasTokenExpired(token)) {
+      logger.info("ReadToken:TokenExpired", { tokenPath });
       await writeFile(tokenPath, "{}");
       return;
     }
 
     if (typeof token !== "string") {
+      logger.error("ReadToken:UnexpectedTokenValue", { tokenPath, token });
       throw new Error("Unexpect token value: " + token);
     }
 
     return token;
-  } catch (e) {
-    debug("Failed to read/write token file: %o", e);
+  } catch (error) {
+    logger.error("ReadToken:Failed", { error });
     return;
   }
 }
