@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+### Minor Changes
+
+- [#572](https://github.com/replayio/replay-cli/pull/572) [`db3f422`](https://github.com/replayio/replay-cli/commit/db3f422416d9385db543e9d4876752a159adfa79) Thanks [@bvaughn](https://github.com/bvaughn)! - Add "whoami" command to print information about the current user and API key
+
 ## 1.4.3
 
 ### Patch Changes

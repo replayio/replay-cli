@@ -1,5 +1,15 @@
 # @replayio/playwright
 
+## 3.1.6
+
+### Patch Changes
+
+- [#586](https://github.com/replayio/replay-cli/pull/586) [`2d78191`](https://github.com/replayio/replay-cli/commit/2d781914e81e8d19a31af3d3abdab40d2dbc0f29) Thanks [@bvaughn](https://github.com/bvaughn)! - Only save test data for tests run with Replay browser
+
+- [#573](https://github.com/replayio/replay-cli/pull/573) [`9494138`](https://github.com/replayio/replay-cli/commit/9494138fe6235fd365ce952be384524d30415f21) Thanks [@hbenl](https://github.com/hbenl)! - Log broken entries when reading the recordings.log file
+
+- [#585](https://github.com/replayio/replay-cli/pull/585) [`543dfc9`](https://github.com/replayio/replay-cli/commit/543dfc99e42dbb206c051e98f666f5d35653e0e6) Thanks [@Andarist](https://github.com/Andarist)! - Improve the warning about Replay-less executions
+
 ## 3.1.5
 
 ### Patch Changes
