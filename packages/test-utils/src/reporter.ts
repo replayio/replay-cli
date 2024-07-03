@@ -443,12 +443,7 @@ export default class ReplayReporter<
       return;
     }
 
-    if (this._testRunShardIdPromise) {
-      return;
-    }
-
-    this._testRunShardIdPromise = this._startTestRunShard();
-    this._pendingWork.push(this._testRunShardIdPromise);
+    // Don't even record test metadata yet unless/until a test is run with the Replay browser (see onTestBegin)
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {
@@ -669,6 +664,13 @@ export default class ReplayReporter<
 
   onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
     logger.info("OnTestBegin:Started", { testExecutionId });
+
+    if (this._apiKey && !this._testRunShardIdPromise) {
+      // This method won't be called until a test is run with the Replay browser
+      // We shouldn't save any test metadata until that happens
+      this._testRunShardIdPromise = this._startTestRunShard();
+      this._pendingWork.push(this._testRunShardIdPromise);
+    }
 
     this._errors = [];
     const metadata = {
@@ -1145,7 +1147,7 @@ export default class ReplayReporter<
     let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
 
     if (this._pendingWork.length) {
-      log("🕑 Completing some outstanding work ...");
+      log("Finishing up. This should only take a moment ...");
     }
 
     while (this._pendingWork.length) {
@@ -1227,14 +1229,14 @@ export default class ReplayReporter<
       numUploaded = uploaded.length;
 
       if (uploaded.length > 0) {
-        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:`);
         const sortedUploads = sortRecordingsByResult(uploads);
         sortedUploads.forEach(r => {
           output.push(
-            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+            `\n   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
           );
           output.push(
-            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}`
           );
         });
       }
@@ -1253,7 +1255,9 @@ export default class ReplayReporter<
       numUploaded,
     });
 
-    log(output.join("\n"));
+    if (output.length > 0) {
+      log(output.join("\n"));
+    }
 
     return results;
   }
