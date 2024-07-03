@@ -29,7 +29,7 @@ export const checkForNpmUpdate = createAsyncFunctionWithTracking(
         toVersion: latestVersion,
       };
     } catch (error) {
-      logger.debug("Failed to check for npm update", { error });
+      logger.error("CheckForNpmUpdate:Failed", { error });
     }
 
     return {

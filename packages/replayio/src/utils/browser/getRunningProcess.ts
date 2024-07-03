@@ -10,7 +10,7 @@ export async function getRunningProcess() {
   if (processes.length > 0) {
     const match = processes[0];
 
-    logger.debug(`Browser process already running at ${highlight(match.pid)}`);
+    logger.debug("GetRunningProcess:AlreadyRunning", { pid: match.pid });
 
     return match;
   }

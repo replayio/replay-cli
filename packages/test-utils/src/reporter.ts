@@ -18,6 +18,7 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
+import { getErrorMessage } from "./legacy-cli/error";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -108,10 +109,6 @@ export type PendingWork =
   | TestRunTestsPendingWork
   | UploadPendingWork
   | PostTestPendingWork;
-
-function getErrorMessage(e: unknown) {
-  return e && typeof e === "object" && "message" in e ? (e.message as string) : "Unknown Error";
-}
 
 function logPendingWorkErrors(errors: PendingWorkError<any>[]) {
   return errors.map(e => `   - ${e.error.message}`);
@@ -254,9 +251,9 @@ export default class ReplayReporter<
           logger.identify(authInfo);
           logger.info("ReplayReporter:LoggerIdentificationAdded");
         })
-        .catch(e =>
+        .catch(error =>
           logger.info("ReplayReporter:LoggerIdentificationFailed", {
-            errorMessage: getErrorMessage(e),
+            error,
           })
         );
     }
@@ -446,12 +443,7 @@ export default class ReplayReporter<
       return;
     }
 
-    if (this._testRunShardIdPromise) {
-      return;
-    }
-
-    this._testRunShardIdPromise = this._startTestRunShard();
-    this._pendingWork.push(this._testRunShardIdPromise);
+    // Don't even record test metadata yet unless/until a test is run with the Replay browser (see onTestBegin)
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {
@@ -460,9 +452,9 @@ export default class ReplayReporter<
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
-    } catch (e) {
+    } catch (error) {
       logger.error("StartTestRunShard:InitMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
 
@@ -537,14 +529,14 @@ export default class ReplayReporter<
           phase: "start",
         };
       });
-    } catch (e) {
+    } catch (error) {
       logger.error("StartTestRunShardFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
 
       return {
         type: "test-run",
-        error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error starting test run shard: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -601,11 +593,11 @@ export default class ReplayReporter<
       return {
         type: "test-run-tests",
       };
-    } catch (e) {
-      logger.error("AddTestsToShard:Failed", { errorMessage: getErrorMessage(e) });
+    } catch (error) {
+      logger.error("AddTestsToShard:Failed", { error });
       return {
         type: "test-run-tests",
-        error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -658,20 +650,27 @@ export default class ReplayReporter<
         id: testRunShardId,
         phase: "complete",
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("CompleteTestRunShard:Failed", {
-        errorMessage: getErrorMessage(e),
+        error,
         testRunShardId,
       });
       return {
         type: "test-run",
-        error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(e)}`),
+        error: new Error(`Unexpected error completing test run shard: ${getErrorMessage(error)}`),
       };
     }
   }
 
   onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
     logger.info("OnTestBegin:Started", { testExecutionId });
+
+    if (this._apiKey && !this._testRunShardIdPromise) {
+      // This method won't be called until a test is run with the Replay browser
+      // We shouldn't save any test metadata until that happens
+      this._testRunShardIdPromise = this._startTestRunShard();
+      this._pendingWork.push(this._testRunShardIdPromise);
+    }
 
     this._errors = [];
     const metadata = {
@@ -686,9 +685,9 @@ export default class ReplayReporter<
     try {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
-    } catch (e) {
+    } catch (error) {
       logger.error("OnTestBegin:InitReplayMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
   }
@@ -757,16 +756,16 @@ export default class ReplayReporter<
         type: "upload",
         recording: recordings[0],
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("UploadRecording:Failed", {
-        errorMessage: getErrorMessage(e),
+        error,
         recordingId: recording.id,
         buildId: recording.buildId,
       });
       return {
         type: "upload",
         recording,
-        error: new Error(getErrorMessage(e)),
+        error: new Error(getErrorMessage(error)),
       };
     }
   }
@@ -860,9 +859,9 @@ export default class ReplayReporter<
         ...mergedMetadata,
         ...validatedSourceMetadata,
       };
-    } catch (e) {
+    } catch (error) {
       logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     }
 
@@ -959,11 +958,11 @@ export default class ReplayReporter<
         recordings,
         testRun,
       };
-    } catch (e) {
-      logger.error("EnqueuePostTestWork:Failed");
+    } catch (error) {
+      logger.error("EnqueuePostTestWork:Failed", { error });
       return {
         type: "post-test",
-        error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(e)}`),
+        error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(error)}`),
       };
     }
   }
@@ -1138,9 +1137,9 @@ export default class ReplayReporter<
       uploadStatusThreshold: this._uploadStatusThreshold,
     });
 
-    await this._cacheAuthIdsPromise?.catch(e => {
+    await this._cacheAuthIdsPromise?.catch(error => {
       logger.error("OnEnd:AddingLoggerAuthFailed", {
-        errorMessage: getErrorMessage(e),
+        error,
       });
     });
 
@@ -1148,7 +1147,7 @@ export default class ReplayReporter<
     let completedWork: PromiseSettledResult<PendingWork | undefined>[] = [];
 
     if (this._pendingWork.length) {
-      log("🕑 Completing some outstanding work ...");
+      log("Finishing up. This should only take a moment ...");
     }
 
     while (this._pendingWork.length) {
@@ -1230,14 +1229,14 @@ export default class ReplayReporter<
       numUploaded = uploaded.length;
 
       if (uploaded.length > 0) {
-        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:\n`);
+        output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:`);
         const sortedUploads = sortRecordingsByResult(uploads);
         sortedUploads.forEach(r => {
           output.push(
-            `   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+            `\n   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
           );
           output.push(
-            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}\n`
+            `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}`
           );
         });
       }
@@ -1256,7 +1255,9 @@ export default class ReplayReporter<
       numUploaded,
     });
 
-    log(output.join("\n"));
+    if (output.length > 0) {
+      log(output.join("\n"));
+    }
 
     return results;
   }

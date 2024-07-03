@@ -233,8 +233,13 @@ async function uploadRecordingFileInParts({
               abortController.signal
             );
           },
-          (error: any) => {
-            logger.debug(`Failed to upload part ${index + 1}; will be retried`, error);
+          (error: any, attemptNumber: number, maxAttempts: number) => {
+            let message = `Failed to upload part ${index + 1}`;
+            if (attemptNumber < maxAttempts && error.code !== "ENOENT") {
+              message += `; will be retried`;
+            }
+            logger.error(message, { error });
+
             if (error.code === "ENOENT") {
               throw error;
             }

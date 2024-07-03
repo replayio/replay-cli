@@ -16,6 +16,7 @@ import { launchBrowser } from "../utils/browser/launchBrowser";
 import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
+import { logger } from "@replay-cli/shared/logger";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
@@ -38,6 +39,7 @@ async function record(url: string = "about:blank") {
     await launchBrowser(url, { processGroupId });
   } catch (error) {
     if (error instanceof ProcessError) {
+      logger.error("Record:BrowserCrash", { error: error.stderr });
       const { errorLogPath, uploaded } = await reportBrowserCrash(error.stderr);
 
       console.log("\nSomething went wrong while recording. Try again.");

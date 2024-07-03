@@ -22,6 +22,7 @@
     "mixpanel": "^0.18.0",
     "open": "^8.4.2",
     "pretty-ms": "^7.0.1",
+    "stack-utils": "^2.0.6",
     "strip-ansi": "^6.0.1",
     "superstruct": "^1.0.4",
     "table": "^6.8.2",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@replay-cli/pkg-build": "workspace:^",
     "@types/jest": "^28.1.5",
+    "@types/stack-utils": "^2.0.3",
     "jest": "^28.1.3",
     "typescript": "^5.5.2"
   },
