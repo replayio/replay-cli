@@ -1,5 +1,8 @@
 import assert from "assert";
-import { cachedFetch, resetCache } from "./cachedFetch";
+import type {
+  cachedFetch as cachedFetchStatic,
+  resetCache as resetCacheStatic,
+} from "./cachedFetch";
 
 class Response {
   public status: number;
@@ -21,20 +24,22 @@ const failedResponse = new Response(500, "error");
 const successResponse = new Response(200, "ok");
 
 describe("cachedFetch", () => {
-  let globalFetch: typeof fetch;
+  let cachedFetch: typeof cachedFetchStatic;
+  let resetCache: typeof resetCacheStatic;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    globalFetch = global.fetch;
-    mockFetch = global.fetch = jest.fn(async (url: string) => {
-      return successResponse;
-    }) as jest.Mock;
+    jest.mock("undici");
+
+    mockFetch = require("undici").fetch;
+    mockFetch.mockReturnValue(successResponse);
+
+    ({ cachedFetch, resetCache } = require("./cachedFetch"));
   });
 
   afterEach(() => {
-    global.fetch = globalFetch;
-
     resetCache();
+    mockFetch.mockClear();
   });
 
   it("should return a successful response", async () => {

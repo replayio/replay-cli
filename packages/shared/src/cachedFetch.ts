@@ -1,3 +1,5 @@
+import { fetch } from "undici";
+
 type CacheEntry = { json: any | null; status: number; statusText: string };
 
 export const cache: Map<string, CacheEntry> = new Map();
