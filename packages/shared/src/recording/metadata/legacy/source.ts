@@ -1,9 +1,9 @@
-import { cachedFetch } from "../../../cachedFetch";
 import fs from "fs";
 import { create, defaulted, number, object, optional } from "superstruct";
+import { cachedFetch } from "../../../cachedFetch";
+import { logger } from "../../../logger";
 import { UnstructuredMetadata } from "../../types";
 import { envString } from "./env";
-import { logger } from "../../../logger";
 
 const defaultObject = (value: any) => optional(defaulted(object(value), {}));
 
@@ -151,7 +151,7 @@ function isSecondaryRateLimitError(json: unknown) {
   );
 }
 
-async function fetchGitHubUrl(url: string, options?: RequestInit) {
+async function fetchGitHubUrl(url: string) {
   const { GITHUB_TOKEN } = process.env;
 
   const resp = await cachedFetch(
