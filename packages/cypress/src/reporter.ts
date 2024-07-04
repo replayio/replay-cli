@@ -6,7 +6,7 @@ import {
   TestMetadataV2,
   fetchWorkspaceConfig,
   getMetadataFilePath as getMetadataFilePathBase,
-  type UploadAdvancedOptions,
+  type UploadOptions,
 } from "@replayio/test-utils";
 
 import { logger } from "@replay-cli/shared/logger";
@@ -29,7 +29,7 @@ export interface PluginOptions
     | boolean
     // minimizeUploads option doesn't make sense in the context of Cypress
     // its tests are retried on the same recording anyway
-    | Omit<UploadAdvancedOptions, "minimizeUploads">;
+    | Omit<UploadOptions, "minimizeUploads">;
 }
 
 const MAX_WAIT = 20_000;

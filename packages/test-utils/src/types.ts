@@ -26,7 +26,7 @@ export type RecordingEntry<TMetadata extends UnstructuredMetadata = Unstructured
 
 export type UploadStatusThreshold = "all" | "failed-and-flaky" | "failed";
 
-export type UploadAdvancedOptions = {
+export type UploadOptions = {
   /**
    * Minimize the number of recordings uploaded for a test attempt (within a shard).
    * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
@@ -36,15 +36,13 @@ export type UploadAdvancedOptions = {
   statusThreshold?: UploadStatusThreshold;
 };
 
-export type UploadOption = boolean | UploadAdvancedOptions;
-
 export interface ReplayReporterConfig<
   TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
 > {
   runTitle?: string;
   metadata?: Record<string, any> | string;
   metadataKey?: string;
-  upload?: UploadOption;
+  upload?: UploadOptions | boolean;
   apiKey?: string;
   /** @deprecated Use `upload.minimizeUploads` and `upload.statusThreshold` instead */
   filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;

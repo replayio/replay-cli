@@ -8,6 +8,6 @@ export { ReporterError } from "./reporter";
 export type { PendingWork } from "./reporter";
 export { removeAnsiCodes } from "./terminal";
 export { buildTestId } from "./testId";
-export type { RecordingEntry, ReplayReporterConfig, UploadAdvancedOptions } from "./types";
+export type { RecordingEntry, ReplayReporterConfig, UploadOptions } from "./types";
 export { ReplayReporter };
 import ReplayReporter from "./reporter";
