@@ -103,12 +103,14 @@ export function getPotentialBundledSourceId(
 }
 
 export function bundledDependencies({
+  bundledIds,
   fsMap,
   isBundledDependency,
   packagesByName,
   resolvedBundledIds,
   rootDir,
 }: {
+  bundledIds: Set<string>;
   fsMap: Map<string, string>;
   isBundledDependency: PackagePredicate;
   packagesByName: Map<string, Package>;
@@ -171,6 +173,7 @@ export function bundledDependencies({
           const relativeInSource = path.relative(path.dirname(importerSourceId), resolved.id);
           const bundledLocalId = path.join(path.dirname(importer!), relativeInSource);
 
+          bundledIds.add(resolved.id);
           resolvedBundledIds.set(bundledLocalId, resolved.id);
 
           return bundledLocalId;
@@ -208,6 +211,7 @@ export function bundledDependencies({
         ""
       )}`;
 
+      bundledIds.add(resolved.id);
       resolvedBundledIds.set(bundledLocalId, resolved.id);
 
       return bundledLocalId;

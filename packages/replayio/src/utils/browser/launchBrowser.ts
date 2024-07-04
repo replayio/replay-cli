@@ -1,9 +1,9 @@
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { logger } from "@replay-cli/shared/logger";
-import { dim, stderrPrefix, stdoutPrefix } from "@replay-cli/shared/theme";
+import { spawnProcess } from "@replay-cli/shared/spawnProcess";
+import { dim } from "@replay-cli/shared/theme";
 import { ensureDirSync, existsSync } from "fs-extra";
 import { join } from "path";
-import { spawnProcess } from "../../../../shared/src/spawnProcess";
 import { runtimeMetadata, runtimePath } from "../installation/config";
 import { prompt } from "../prompt/prompt";
 import { getBrowserPath } from "./getBrowserPath";
