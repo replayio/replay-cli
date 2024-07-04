@@ -1,9 +1,7 @@
-import dbg from "./debug";
 import WebSocket from "ws";
-import { defer } from "./utils";
+import { defer, maybeLogToConsole } from "./utils";
 import { Agent } from "http";
-
-const debug = dbg("replay:protocol");
+import { logger } from "@replay-cli/shared/logger";
 
 // Simple protocol client for use in writing standalone applications.
 
@@ -46,7 +44,7 @@ class ProtocolClient {
   nextMessageId = 1;
 
   constructor(address: string, callbacks: Callbacks, agent?: Agent) {
-    debug("Creating WebSocket for %s with %o", address, { agent });
+    logger.info("ProtocolClient:WillInitialize", { websocketAddress: address, agent });
     this.socket = new WebSocket(address, {
       agent: agent,
     });
@@ -56,6 +54,7 @@ class ProtocolClient {
     this.socket.on("close", callbacks.onClose);
     this.socket.on("error", callbacks.onError);
     this.socket.on("message", message => this.onMessage(message));
+    logger.info("ProtocolClient:DidInitialize", { websocketAddress: address, agent });
   }
 
   close() {
@@ -84,7 +83,8 @@ class ProtocolClient {
     callback?: (err?: Error) => void
   ) {
     const id = this.nextMessageId++;
-    debug("Sending command %s: %o", method, { id, params, sessionId });
+    logger.info("SendCommand:Started", { id, sessionId, method });
+
     this.socket.send(
       JSON.stringify({
         id,
@@ -93,14 +93,19 @@ class ProtocolClient {
         binary: data ? true : undefined,
         sessionId,
       }),
-      err => {
-        if (!err && data) {
+      error => {
+        if (!error && data) {
           this.socket.send(data, callback);
         } else {
-          if (err) {
-            debug("Received socket error: %s", err);
+          if (error) {
+            logger.error("SendCommand:ReceivedSocketError", {
+              id,
+              params,
+              sessionId,
+              error,
+            });
           }
-          callback?.(err);
+          callback?.(error);
         }
       }
     );
@@ -115,7 +120,8 @@ class ProtocolClient {
 
   onMessage(contents: WebSocket.RawData) {
     const msg = JSON.parse(String(contents));
-    debug("Received message %o", msg);
+    logger.info("OnMessage:ReceivedMessage", { msg });
+
     if (msg.id) {
       const { resolve, reject } = this.pendingMessages.get(msg.id);
       this.pendingMessages.delete(msg.id);
@@ -129,7 +135,7 @@ class ProtocolClient {
     } else if (this.eventListeners.has(msg.method)) {
       this.eventListeners.get(msg.method)(msg.params);
     } else {
-      console.log(`Received event without listener: ${msg.method}`);
+      logger.info("OnMessage:ReceivedEventWithoutListener", { msg });
     }
   }
 }

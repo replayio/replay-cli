@@ -45,8 +45,9 @@ function getCircleCIRepository(env: NodeJS.ProcessEnv) {
 }
 
 function getCircleCIMergeId(env: NodeJS.ProcessEnv) {
+  logger.info("GetCircleCIMergeId:Started");
   if (env.CIRCLE_PULL_REQUEST) {
-    logger.debug(`Extracting merge id from ${env.CIRCLE_PULL_REQUEST}`);
+    logger.info("GetCircleCIMergeId:WillExtract", { circlePullRequest: env.CIRCLE_PULL_REQUEST });
     return env.CIRCLE_PULL_REQUEST.split("/").pop();
   }
 }
@@ -64,29 +65,30 @@ function getBuildkiteRepository(env: NodeJS.ProcessEnv) {
 let gGitHubEvent: Record<string, any> | null = null;
 
 function readGithubEvent(env: NodeJS.ProcessEnv) {
+  logger.info("ReadGithubEvent:Started");
   const { GITHUB_EVENT_PATH } = env;
   if (!GITHUB_EVENT_PATH) {
-    logger.debug("No github event file specified.");
+    logger.info("ReadGithubEvent:NoEventFileSpecified");
     return;
   }
 
   if (!fs.existsSync(GITHUB_EVENT_PATH)) {
-    logger.debug(`Github event file does not exist at ${GITHUB_EVENT_PATH}`);
+    logger.info("ReadGithubEvent:EventFileNotFound", { githubEventPath: GITHUB_EVENT_PATH });
     return;
   }
 
   try {
     if (!gGitHubEvent) {
-      logger.debug(`Reading Github event file from ${GITHUB_EVENT_PATH}`);
+      logger.info("ReadGithubEvent:WillReadFromFile", { githubEventPath: GITHUB_EVENT_PATH });
       const contents = fs.readFileSync(GITHUB_EVENT_PATH, "utf8");
       gGitHubEvent = JSON.parse(contents);
     } else {
-      logger.debug("Using previously read Github event file");
+      logger.info("ReadGithubEvent:WillUseExistingFile");
     }
 
     return gGitHubEvent;
   } catch (error) {
-    logger.debug("Failed to read pull request number from event", { error });
+    logger.error("ReadGithubEvent:Failed", { error });
   }
 }
 
@@ -152,10 +154,6 @@ function isSecondaryRateLimitError(json: unknown) {
 async function fetchGitHubUrl(url: string, options?: RequestInit) {
   const { GITHUB_TOKEN } = process.env;
 
-  logger.debug(
-    `Fetching GitHub information from ${url} with ${GITHUB_TOKEN?.length || 0} char token`
-  );
-
   const resp = await cachedFetch(
     url,
     {
@@ -198,6 +196,7 @@ async function fetchGitHubUrl(url: string, options?: RequestInit) {
 
 async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
   const {
+    GITHUB_TOKEN,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_TITLE,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_URL,
     RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER,
@@ -213,9 +212,19 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
     return;
   }
 
-  if (!repo || !sha) return;
+  if (!repo || !sha) {
+    logger.error("ExpandCommitMetadataFromGitHub:MissingInfo", { hasRepo: !!repo, hasSha: !!sha });
+    return;
+  }
 
-  const resp = await fetchGitHubUrl(`https://api.github.com/repos/${repo}/commits/${sha}`);
+  const url = `https://api.github.com/repos/${repo}/commits/${sha}`;
+
+  logger.info("ExpandCommitMetadataFromGitHub:Started", {
+    url,
+    tokenLength: GITHUB_TOKEN?.length || 0,
+  });
+
+  const resp = await fetchGitHubUrl(url);
 
   // override the SHA if passed because it might be the SHA from the github
   // event rather than GITHUB_SHA. we update this regardless of our ability to
@@ -231,13 +240,18 @@ async function expandCommitMetadataFromGitHub(repo: string, sha?: string) {
     process.env.RECORD_REPLAY_METADATA_SOURCE_COMMIT_USER ||= json.author?.login;
   } else {
     const message = resp.json?.message ?? resp.statusText;
-    logger.debug("Failed to fetch GitHub commit metadata", { response: resp });
+    logger.error("ExpandCommitMetadataFromGitHub:Failed", {
+      message,
+      responseStatusText: resp.statusText,
+      responseStatus: resp.status,
+    });
     throw new GitHubHttpError(message, resp.status);
   }
 }
 
 async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
   const {
+    GITHUB_TOKEN,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_ID,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_TITLE,
     RECORD_REPLAY_METADATA_SOURCE_MERGE_URL,
@@ -258,11 +272,18 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
   }
 
   if (!repo || !pr) {
-    logger.debug("Unable to retrieve merge metadata: Repo and PR number missing");
+    logger.error("ExpandMergeMetadataFromGitHub:MissingInfo", { hasRepo: !!repo, hasPr: !!pr });
     return;
   }
 
-  const resp = await fetchGitHubUrl(`https://api.github.com/repos/${repo}/pulls/${pr}`);
+  const url = `https://api.github.com/repos/${repo}/pulls/${pr}`;
+
+  logger.info("ExpandMergeMetadataFromGitHub:WillFetch", {
+    url,
+    tokenLength: GITHUB_TOKEN?.length || 0,
+  });
+
+  const resp = await fetchGitHubUrl(url);
 
   if (resp.ok) {
     const json = await resp.json;
@@ -272,8 +293,13 @@ async function expandMergeMetadataFromGitHub(repo: string, pr?: string) {
     process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_URL ||= json.html_url;
     process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_USER ||= json.user?.login;
   } else {
-    logger.debug("Failed to fetch GitHub commit metadata", { response: resp });
-    throw new GitHubHttpError(resp.json?.message ?? resp.statusText, resp.status);
+    const message = resp.json?.message ?? resp.statusText;
+    logger.error("ExpandMergeMetadataFromGitHub:Failed", {
+      message,
+      responseStatus: resp.status,
+      responseStatusText: resp.statusText,
+    });
+    throw new GitHubHttpError(message, resp.status);
   }
 }
 
@@ -415,7 +441,7 @@ async function expandEnvironment() {
       expandGitHubEvent();
       const sha = getGitHubMergeSHA(process.env) ?? GITHUB_SHA;
       const mergeId = process.env.RECORD_REPLAY_METADATA_SOURCE_MERGE_ID;
-      logger.debug("GitHub context $0", { mergeId, sha });
+      logger.info("ExpandEnvironment:GithubContext", { mergeId, sha });
 
       await expandCommitMetadataFromGitHub(GITHUB_REPOSITORY, sha);
       await expandMergeMetadataFromGitHub(GITHUB_REPOSITORY, mergeId);
@@ -424,7 +450,9 @@ async function expandEnvironment() {
       const provider = getCircleCISourceControlProvider(process.env);
 
       if (provider !== "github") {
-        logger.debug(`Unsupported source control provider: ${process.env.CIRCLE_PULL_REQUEST}`);
+        logger.error("ExpandEnvironment:UnsupportedSourceControlProvider", {
+          circlePullRequest: process.env.CIRCLE_PULL_REQUEST,
+        });
         return;
       }
 

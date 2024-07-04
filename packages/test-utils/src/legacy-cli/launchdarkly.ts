@@ -1,7 +1,5 @@
-import dbg from "./debug";
+import { logger } from "@replay-cli/shared/logger";
 import { initialize, LDClient, LDLogger } from "launchdarkly-node-client-sdk";
-
-const debug = dbg("replay:launchdarkly");
 
 type UserFeatureProfile = {
   type: "user";
@@ -48,8 +46,8 @@ class LaunchDarkly {
     }
     try {
       await this.client.waitForInitialization();
-    } catch (e) {
-      debug("Failed to wait for LaunchDarkly initialization %j", e);
+    } catch (error) {
+      logger.error("LaunchDarklyIdentify:InitializationFailed", { error });
       return;
     }
 
@@ -73,8 +71,8 @@ class LaunchDarkly {
     }
     try {
       await this.client.waitForInitialization();
-    } catch (e) {
-      debug("Failed to wait for LaunchDarkly initialization %j", e);
+    } catch (error) {
+      logger.error("LaunchDarklyVariant:WaitForInitializationFailed", { error });
       return defaultValue;
     }
 
@@ -88,8 +86,8 @@ class LaunchDarkly {
     }
     try {
       await this.client.close();
-    } catch (e) {
-      debug("Failed to close LaunchDarkly client %j", e);
+    } catch (error) {
+      logger.error("LaunchDarklyClose:Failed", { error });
     }
   }
 }

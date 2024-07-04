@@ -1,12 +1,10 @@
-import dbg from "./debug";
 import fs from "fs";
 import path from "path";
 import { RecordingEntry } from "./types";
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import { updateStatus } from "./updateStatus";
 import { getDirectory } from "./utils";
-
-const debug = dbg("replay:cli:recording-log");
+import { logger } from "@replay-cli/shared/logger";
 
 function getRecordingsFile(dir: string) {
   return path.join(dir, "recordings.log");
@@ -221,7 +219,7 @@ function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
     timestamp: Date.now(),
     ...tags,
   };
-  debug("Writing event to recording log %o", event);
+  logger.info("AddRecordingEvent:Started", { event, kind });
   const lines = readRecordingFile(dir);
   lines.push(JSON.stringify(event));
   writeRecordingFile(dir, lines);

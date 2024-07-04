@@ -3,13 +3,20 @@ import { UnstructuredMetadata } from "../types";
 import { validate as validateSource } from "./legacy/source";
 import { validate as validateTest } from "./legacy/test";
 
-export async function sanitizeMetadata(metadata: UnstructuredMetadata) {
+type Options = {
+  verbose?: boolean;
+};
+
+export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Options = {}) {
   const updated: UnstructuredMetadata = {};
   for (const [key, value] of Object.entries(metadata)) {
     if (typeof value !== "object") {
-      logger.debug(
-        `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
-      );
+      if (opts.verbose) {
+        console.log(
+          `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
+        );
+      }
+      logger.info("SanitizeMetadata:UnexpectedKeyType", { key, keyType: typeof value });
       continue;
     }
 
@@ -36,9 +43,12 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata) {
           break;
         }
         default: {
-          logger.debug(
-            `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
-          );
+          if (opts.verbose) {
+            console.log(
+              `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
+            );
+          }
+          logger.info("SanitizeMetadata:IgnoringKey", { key });
         }
       }
     }

@@ -7,13 +7,12 @@ import pMap from "p-map";
 import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
-import dbg, { logPath } from "./debug";
+import { logPath } from "./debug";
 import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
-import { defer, isValidUUID, maybeLog } from "./utils";
+import { defer, isValidUUID, maybeLogToConsole } from "./utils";
 import { getUserAgent } from "@replay-cli/shared/userAgent";
-
-const debug = dbg("replay:cli:upload");
+import { logger } from "@replay-cli/shared/logger";
 
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
@@ -34,7 +33,9 @@ class ReplayClient {
               await this.client!.setAccessToken(accessToken);
               resolve(true);
             } catch (err) {
-              maybeLog(verbose, `Error authenticating with server: ${err}`);
+              logger.error("ProtocolClient:ServerAuthFailed", { error: err });
+
+              maybeLogToConsole(verbose, `Error authenticating with server: ${err}`);
               resolve(false);
             }
           },
@@ -42,8 +43,9 @@ class ReplayClient {
             resolve(false);
           },
           onError(e) {
-            maybeLog(verbose, `Error connecting to server: ${e}`);
+            maybeLogToConsole(verbose, `Error connecting to server: ${e}`);
             resolve(false);
+            logger.error("ProtocolClient:Error", { error: e });
           },
         },
         agent
@@ -175,7 +177,11 @@ class ReplayClient {
     });
 
     if (!resp.ok) {
-      debug(await resp.text());
+      logger.error("ReplayClientUploadRecording:Failed", {
+        responseText: await resp.text(),
+        responseStatus: resp.status,
+        responseStatusText: resp.statusText,
+      });
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }
   }
@@ -218,17 +224,21 @@ class ReplayClient {
             const start = index * partSize;
             const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
 
-            debug("Uploading part %o", {
+            logger.info("UploadRecordingInParts:UploadingPart", {
               partNumber,
               start,
               end,
               totalSize,
               partSize,
             });
+
             return this.uploadPart(url, { filePath, start, end }, end - start + 1, agentOptions);
           },
-          e => {
-            debug(`Failed to upload part ${index + 1}. Will be retried: %o`, e);
+          error => {
+            logger.error("UploadRecordingInParts:WillRetryPart", {
+              partNumber: index + 1,
+              error,
+            });
           },
           10
         );

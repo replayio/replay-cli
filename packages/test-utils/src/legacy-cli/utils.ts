@@ -4,14 +4,11 @@
 // some imports like path and http are OK because they are aliased~ by their webpack config:
 // https://github.com/cypress-io/cypress/blob/fb87950d6337ba99d13cb5fa3ce129e5f5cac02b/npm/webpack-batteries-included-preprocessor/index.js#L151
 // TODO: decouple this more so we never run into problems with this - we shouldn't rely on implementation details of Cypress bundling
-import dbg from "debug";
 import { AgentOptions, Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 import path from "path";
 
 import { Options } from "./types";
-
-const debug = dbg("replay:cli");
 
 // Get the executable name to use when opening a URL.
 // It would be nice to use an existing npm package for this,
@@ -38,8 +35,7 @@ function defer<T = unknown>() {
   return { promise, resolve, reject };
 }
 
-function maybeLog(verbose: boolean | undefined, str: string) {
-  debug(str);
+function maybeLogToConsole(verbose: boolean | undefined, str: string) {
   if (verbose) {
     console.log(str);
   }
@@ -79,4 +75,4 @@ function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
 }
 
-export { defer, getDirectory, getHttpAgent, isValidUUID, maybeLog };
+export { defer, getDirectory, getHttpAgent, isValidUUID, maybeLogToConsole };

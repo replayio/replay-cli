@@ -19,7 +19,7 @@ import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
-import { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
+import type { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
 import { getErrorMessage } from "./legacy-cli/error";
 
 function last<T>(arr: T[]): T | undefined {
