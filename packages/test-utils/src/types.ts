@@ -33,6 +33,12 @@ export type UploadOptions = {
    * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
    */
   minimizeUploads?: boolean;
+  /**
+   * Only upload recordings that meet the specified status threshold.
+   * e.g. "all" (default) will upload all recordings
+   * e.g. "failed-and-flaky" will only upload recordings for failed or flaky tests
+   * e.g. "failed" will only upload recordings for failed tests
+   */
   statusThreshold?: UploadStatusThreshold;
 };
 
