@@ -21,7 +21,7 @@ import { getLaunchDarkly } from "./launchdarkly";
 export { sanitizeMetadata as sanitize } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
 import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
-import { addMetadata } from "@replay-cli/shared/recording/metadata/add";
+import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
 import {
   addRecordingEvent,
   readRecordings,
