@@ -4,9 +4,7 @@ import LokiTransport from "winston-loki";
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
-
-// Does not work with import. Only works with require().
-const StackUtils = require("stack-utils");
+import StackUtils from "stack-utils";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
