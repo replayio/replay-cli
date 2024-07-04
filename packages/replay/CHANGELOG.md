@@ -1,5 +1,17 @@
 # @replayio/replay
 
+## 0.22.12
+
+### Patch Changes
+
+- [#594](https://github.com/replayio/replay-cli/pull/594) [`78f5c72`](https://github.com/replayio/replay-cli/commit/78f5c72a62a38772cad90cccf1283b80eea49b61) Thanks [@miriambudayr](https://github.com/miriambudayr)! - Add missing stack-utils dependencies
+
+## 0.22.11
+
+### Patch Changes
+
+- [#573](https://github.com/replayio/replay-cli/pull/573) [`9494138`](https://github.com/replayio/replay-cli/commit/9494138fe6235fd365ce952be384524d30415f21) Thanks [@hbenl](https://github.com/hbenl)! - Log broken entries when reading the recordings.log file
+
 ## 0.22.10
 
 ### Patch Changes

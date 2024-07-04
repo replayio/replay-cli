@@ -1,6 +1,6 @@
 {
   "name": "@replayio/test-utils",
-  "version": "3.0.5",
+  "version": "3.0.7",
   "description": "Utilities for recording tests with replay.io",
   "main": "./dist/index.js",
   "exports": {
@@ -38,6 +38,7 @@
     "query-registry": "^2.6.0",
     "semver": "^7.5.4",
     "sha-1": "^1.0.0",
+    "stack-utils": "^2.0.6",
     "superstruct": "^1.0.4",
     "undici": "^5.28.4",
     "uuid": "^8.3.2",
@@ -51,6 +52,7 @@
     "@replay-cli/tsconfig": "workspace:^",
     "@types/debug": "^4.1.7",
     "@types/node-fetch": "^2.6.2",
+    "@types/stack-utils": "^2.0.3",
     "typescript": "^5.5.2"
   },
   "@replay-cli/pkg-build": {

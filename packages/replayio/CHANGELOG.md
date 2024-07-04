@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.1
+
+### Patch Changes
+
+- [#594](https://github.com/replayio/replay-cli/pull/594) [`78f5c72`](https://github.com/replayio/replay-cli/commit/78f5c72a62a38772cad90cccf1283b80eea49b61) Thanks [@miriambudayr](https://github.com/miriambudayr)! - Add missing stack-utils dependencies
+
+## 1.5.0
+
+### Minor Changes
+
+- [#572](https://github.com/replayio/replay-cli/pull/572) [`db3f422`](https://github.com/replayio/replay-cli/commit/db3f422416d9385db543e9d4876752a159adfa79) Thanks [@bvaughn](https://github.com/bvaughn)! - Add "whoami" command to print information about the current user and API key
+
 ## 1.4.3
 
 ### Patch Changes
