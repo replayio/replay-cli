@@ -26,17 +26,17 @@ export type RecordingEntry<TMetadata extends UnstructuredMetadata = Unstructured
 
 export type UploadStatusThreshold = "all" | "failed-and-flaky" | "failed";
 
-export type UploadOption =
-  | boolean
-  | {
-      /**
-       * Minimize the number of recordings uploaded for a test attempt (within a shard).
-       * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
-       * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
-       */
-      minimizeUploads?: boolean;
-      statusThreshold?: UploadStatusThreshold;
-    };
+export type UploadAdvancedOptions = {
+  /**
+   * Minimize the number of recordings uploaded for a test attempt (within a shard).
+   * e.g. Only one recording would be uploaded for a failing test attempt, regardless of retries.
+   * e.g. Two recordings would be uploaded for a flaky test attempt (the passing test and one of the failures).
+   */
+  minimizeUploads?: boolean;
+  statusThreshold?: UploadStatusThreshold;
+};
+
+export type UploadOption = boolean | UploadAdvancedOptions;
 
 export interface ReplayReporterConfig<
   TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata

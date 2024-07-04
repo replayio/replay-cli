@@ -6,6 +6,7 @@ import {
   TestMetadataV2,
   fetchWorkspaceConfig,
   getMetadataFilePath as getMetadataFilePathBase,
+  type UploadAdvancedOptions,
 } from "@replayio/test-utils";
 
 import { logger } from "@replay-cli/shared/logger";
@@ -22,12 +23,13 @@ type ReplayCypressRecordingMetadata = {
   test: TestMetadataV2.TestRun;
 };
 
-// `filter` is re-applied here so its deprecated comment gets lost here
-// `upload` gets simplified to a boolean (until the advanced options are tested with Cypress)
 export interface PluginOptions
-  extends Omit<ReplayReporterConfig<ReplayCypressRecordingMetadata>, "filter" | "upload"> {
-  filter?: ReplayReporterConfig<ReplayCypressRecordingMetadata>["filter"];
-  upload?: boolean;
+  extends Omit<ReplayReporterConfig<ReplayCypressRecordingMetadata>, "upload"> {
+  upload?:
+    | boolean
+    // minimizeUploads option doesn't make sense in the context of Cypress
+    // its tests are retried on the same recording anyway
+    | Omit<UploadAdvancedOptions, "minimizeUploads">;
 }
 
 const MAX_WAIT = 20_000;
