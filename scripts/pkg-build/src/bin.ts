@@ -96,6 +96,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
   await bundle.write({
     dir: `${pkg.dir}/dist`,
     format: "cjs",
+    interop: "auto",
     exports: "named",
     preserveModules: true,
     preserveModulesRoot: `${pkg.dir}/src`,

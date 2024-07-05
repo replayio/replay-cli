@@ -111,6 +111,8 @@ function onBeforeBrowserLaunch(
       RECORD_ALL_CONTENT: noRecord ? undefined : "1",
       RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
       RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS,
+      // it doesn't log anything eagerly but it makes it possible to enable verbose logs with DEBUG=cypress:launcher:browsers
+      RECORD_REPLAY_VERBOSE: "1",
     };
 
     const env: NodeJS.ProcessEnv = {
