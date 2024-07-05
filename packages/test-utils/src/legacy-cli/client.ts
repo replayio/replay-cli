@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { defer, maybeLogToConsole } from "./utils";
+import { defer } from "./utils";
 import { Agent } from "http";
 import { logger } from "@replay-cli/shared/logger";
 

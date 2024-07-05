@@ -1,7 +1,6 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import fs from "fs";
 import { getHttpAgent } from "./utils";
-import assert from "node:assert/strict";
 
 // requiring v4 explicitly because it's the last version with commonjs support.
 // Should be upgraded to the latest when converting this code to es modules.
@@ -10,7 +9,6 @@ import pMap from "p-map";
 import { Agent, AgentOptions } from "http";
 import jsonata from "jsonata";
 import { ProtocolError } from "./client";
-import { getLaunchDarkly } from "./launchdarkly";
 import { addRecordingEvent, readRecordings, removeRecordingFromLog } from "./recordingLog";
 import {
   FilterOptions,
@@ -207,44 +205,6 @@ async function setMetadata(
   }
 }
 
-const MIN_MULTIPART_UPLOAD_SIZE = 5 * 1024 * 1024;
-async function multipartUploadRecording(
-  server: string,
-  client: ReplayClient,
-  recording: RecordingEntry,
-  metadata: RecordingMetadata | null,
-  size: number,
-  strict: boolean,
-  verbose: boolean,
-  agentOptions?: AgentOptions
-) {
-  const requestPartChunkSize =
-    parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK || "", 10) || undefined;
-  const { recordingId, uploadId, partLinks, chunkSize } =
-    await client.connectionBeginRecordingMultipartUpload(
-      recording.id,
-      recording.buildId!,
-      size,
-      requestPartChunkSize
-    );
-  await setMetadata(client, recordingId, metadata, strict, verbose);
-  addRecordingEvent("uploadStarted", recording.id, {
-    server,
-    recordingId,
-  });
-  const eTags = await client.uploadRecordingInParts(
-    recording.path!,
-    partLinks,
-    chunkSize,
-    agentOptions
-  );
-
-  assert(eTags.length === partLinks.length, "Mismatched eTags and partLinks");
-
-  await client.connectionEndRecordingMultipartUpload(recording.id, uploadId, eTags);
-  return recordingId;
-}
-
 async function directUploadRecording(
   server: string,
   client: ReplayClient,
@@ -355,30 +315,16 @@ async function doUploadRecording(
   const metadata = await validateMetadata(client, recording.metadata, verbose);
 
   let recordingId: string;
-  const isMultipartEnabled = await getLaunchDarkly().isEnabled("cli-multipart-upload", false);
   try {
-    if (size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled) {
-      recordingId = await multipartUploadRecording(
-        server,
-        client,
-        recording,
-        metadata,
-        size,
-        strict,
-        verbose,
-        agentOptions
-      );
-    } else {
-      recordingId = await directUploadRecording(
-        server,
-        client,
-        recording,
-        metadata,
-        size,
-        strict,
-        verbose
-      );
-    }
+    recordingId = await directUploadRecording(
+      server,
+      client,
+      recording,
+      metadata,
+      size,
+      strict,
+      verbose
+    );
   } catch (err) {
     const errorMessage = err instanceof ProtocolError ? err.protocolMessage : String(err);
     logger.error("DoUploadRecording:ProtocolError", {
@@ -386,7 +332,7 @@ async function doUploadRecording(
       server,
       strict,
       errorMessage,
-      wasMultipartUpload: size > MIN_MULTIPART_UPLOAD_SIZE && isMultipartEnabled,
+      wasMultipartUpload: false,
     });
     handleUploadingError(errorMessage, strict, verbose, err);
     return null;

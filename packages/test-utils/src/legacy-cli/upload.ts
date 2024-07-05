@@ -1,11 +1,7 @@
-import { retryWithLinearBackoff } from "@replay-cli/shared/async/retryOnFailure";
 import crypto from "crypto";
 import fs from "fs";
-import type { Agent, AgentOptions } from "http";
+import type { Agent } from "http";
 import fetch from "node-fetch";
-import pMap from "p-map";
-import path from "path";
-import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
@@ -69,31 +65,6 @@ class ReplayClient {
       recordingSize: size,
     });
     return { recordingId, uploadLink };
-  }
-
-  async connectionBeginRecordingMultipartUpload(
-    id: string,
-    buildId: string,
-    size: number,
-    multiPartChunkSize?: number
-  ) {
-    if (!this.client) throw new Error("Protocol client is not initialized");
-
-    const { recordingId, uploadId, chunkSize, partLinks } = await this.client.sendCommand<{
-      recordingId: string;
-      uploadId: string;
-      partLinks: string[];
-      chunkSize: number;
-    }>("Internal.beginRecordingMultipartUpload", {
-      buildId,
-      // 3/22/2022: Older builds use integers instead of UUIDs for the recording
-      // IDs written to disk. These are not valid to use as recording IDs when
-      // uploading recordings to the backend.
-      recordingId: isValidUUID(id) ? id : undefined,
-      recordingSize: size,
-      chunkSize: multiPartChunkSize,
-    });
-    return { recordingId, uploadId, chunkSize, partLinks };
   }
 
   async buildRecordingMetadata(
@@ -183,69 +154,6 @@ class ReplayClient {
       });
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }
-  }
-
-  async uploadPart(
-    link: string,
-    partMeta: { filePath: string; start: number; end: number },
-    size: number,
-    agentOptions?: AgentOptions
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(path.join(__dirname, "./uploadWorker.js"));
-
-      worker.on("message", resolve);
-      worker.on("error", reject);
-      worker.on("exit", code => {
-        if (code !== 0) {
-          reject(new Error(`Worker stopped with exit code ${code}`));
-        }
-      });
-
-      worker.postMessage({ link, partMeta, size, agentOptions });
-    });
-  }
-
-  async uploadRecordingInParts(
-    filePath: string,
-    partUploadLinks: string[],
-    partSize: number,
-    agentOptions?: AgentOptions
-  ) {
-    const stats = fs.statSync(filePath);
-    const totalSize = stats.size;
-    const results = await pMap(
-      partUploadLinks,
-      async (url, index) => {
-        return retryWithLinearBackoff(
-          async () => {
-            const partNumber = index + 1;
-            const start = index * partSize;
-            const end = Math.min(start + partSize, totalSize) - 1; // -1 because end is inclusive
-
-            logger.info("UploadRecordingInParts:UploadingPart", {
-              partNumber,
-              start,
-              end,
-              totalSize,
-              partSize,
-            });
-
-            return this.uploadPart(url, { filePath, start, end }, end - start + 1, agentOptions);
-          },
-          error => {
-            logger.error("UploadRecordingInParts:WillRetryPart", {
-              partNumber: index + 1,
-              error,
-            });
-          },
-          10
-        );
-      },
-      { concurrency: 10 }
-    );
-
-    return results;
   }
 
   async connectionEndRecordingUpload(recordingId: string) {

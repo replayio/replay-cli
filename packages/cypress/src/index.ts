@@ -263,6 +263,7 @@ const plugin = (
 ) => {
   setUserAgent(`${packageName}/${packageVersion}`);
 
+  // TODO: enable launchDarkly
   initLogger(packageName, packageVersion);
   mixpanelAPI.initialize({
     accessToken: getAuthKey(config),

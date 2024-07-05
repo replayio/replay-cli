@@ -85,6 +85,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${packageName}/${packageVersion}`);
 
+    // TODO: enable launchDarkly
     initLogger(packageName, packageVersion);
     mixpanelAPI.initialize({
       accessToken: getAccessToken(config),
