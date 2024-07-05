@@ -149,8 +149,6 @@ class Logger {
     }
   }
 
-  private formatTags(tags?: Record<string, unknown>) {}
-
   async close() {
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
