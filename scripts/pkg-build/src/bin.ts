@@ -32,6 +32,7 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
     )
   );
 
+  const bundledIds = new Set<string>();
   const fsMap = new Map<string, string>();
   const resolvedBundledIds = new Map<string, string>();
 
@@ -55,11 +56,14 @@ async function buildPkg(pkg: Package, packagesByName: Map<string, Package>) {
     input,
     plugins: [
       resolveErrors({
+        bundledIds,
         isExternal,
+        packagesByName,
         pkg,
       }),
       json(),
       bundledDependencies({
+        bundledIds,
         fsMap,
         isBundledDependency,
         packagesByName,

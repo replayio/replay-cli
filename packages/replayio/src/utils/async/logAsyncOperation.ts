@@ -6,8 +6,8 @@ import {
 } from "@replay-cli/shared/async/createDeferred";
 import { statusFailed, statusPending, statusSuccess } from "@replay-cli/shared/theme";
 import { dots } from "cli-spinners";
-import { logUpdate } from "../../../../shared/src/logUpdate";
 import { disableAnimatedLog } from "../../config";
+import { logUpdate } from "@replay-cli/shared/logUpdate";
 
 export type LogProgressOptions = { delayBeforeLoggingMs?: number };
 
