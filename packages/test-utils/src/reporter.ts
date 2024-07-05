@@ -257,6 +257,17 @@ export default class ReplayReporter<
           })
         );
     }
+
+    // Logging this here instead of in _parseConfig is intentional; the logger has been associated with the user's API key
+    if (config) {
+      if (config.filter) {
+        logger.info("ReplayReporter:Config:HasFilter", {
+          filter: config.filter.toString(),
+        });
+      } else {
+        logger.info("ReplayReporter:Config:NoFilter");
+      }
+    }
   }
 
   setTestRunnerVersion(version: TestRunner["version"]) {
