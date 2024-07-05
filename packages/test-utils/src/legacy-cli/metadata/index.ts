@@ -1,12 +1,12 @@
 import { appendFileSync } from "fs";
-import path from "path";
 
 import { Options, UnstructuredMetadata } from "../types";
-import { getDirectory, maybeLogToConsole } from "../utils";
+import { maybeLogToConsole } from "../utils";
 
 import * as test from "./test";
 import * as source from "./source";
 import { logger } from "@replay-cli/shared/logger";
+import { recordingLogPath } from "@replay-cli/shared/recording/config";
 
 // Each known metadata block should have a sanitizer that will check the contents before the upload
 const handlers = {
@@ -81,7 +81,7 @@ function add(recordingId: string, metadata: UnstructuredMetadata) {
     timestamp: Date.now(),
   };
 
-  appendFileSync(path.join(getDirectory(), "recordings.log"), `\n${JSON.stringify(entry)}\n`);
+  appendFileSync(recordingLogPath, `\n${JSON.stringify(entry)}\n`);
 }
 
 export { add, sanitize, source, test };

@@ -7,7 +7,6 @@ import pMap from "p-map";
 import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
-import { logPath } from "./debug";
 import { sanitize as sanitizeMetadata } from "./metadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, isValidUUID, maybeLogToConsole } from "./utils";
@@ -203,7 +202,7 @@ class ReplayClient {
         }
       });
 
-      worker.postMessage({ link, partMeta, size, logPath, agentOptions });
+      worker.postMessage({ link, partMeta, size, agentOptions });
     });
   }
 

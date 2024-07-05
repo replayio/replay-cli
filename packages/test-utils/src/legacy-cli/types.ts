@@ -4,11 +4,6 @@ export type UnstructuredMetadata = Record<string, unknown>;
 
 export interface Options {
   /**
-   * Alternate recording directory
-   */
-  directory?: string;
-
-  /**
    * Alternate server to upload recordings to
    */
   server?: string;
@@ -26,25 +21,6 @@ export interface Options {
   agentOptions?: AgentOptions;
 }
 
-export interface SourcemapUploadOptions {
-  group: string;
-  dryRun?: boolean;
-  extensions?: Array<string>;
-  ignore?: Array<string>;
-  quiet?: boolean;
-  verbose?: boolean;
-  root?: string;
-  batchSize?: number;
-}
-
-export interface MetadataOptions {
-  init?: string;
-  keys?: string[];
-  warn?: boolean;
-  verbose?: boolean;
-  directory?: string;
-}
-
 export interface FilterOptions {
   filter?:
     | string
@@ -52,16 +28,12 @@ export interface FilterOptions {
   includeCrashes?: boolean;
 }
 
-export interface LaunchOptions {
-  browser?: string;
-  attach?: boolean;
-}
-
 export interface ListOptions extends FilterOptions {
   all?: boolean;
 }
 
 export interface UploadOptions extends Options {
+  apiKey: string;
   /**
    * Fail the recording upload if any part of the upload fails.
    */
@@ -70,11 +42,6 @@ export interface UploadOptions extends Options {
    * Remove assets associated with the recording after successful upload
    */
   removeAssets?: boolean;
-}
-
-export interface UploadAllOptions extends FilterOptions, UploadOptions {
-  batchSize?: number;
-  warn?: boolean;
 }
 
 /**

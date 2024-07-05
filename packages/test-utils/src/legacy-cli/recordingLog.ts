@@ -1,25 +1,20 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
 import { RecordingEntry } from "./types";
 import { generateDefaultTitle } from "./generateDefaultTitle";
 import { updateStatus } from "./updateStatus";
-import { getDirectory } from "./utils";
 import { logger } from "@replay-cli/shared/logger";
+import { recordingLogPath } from "@replay-cli/shared/recording/config";
 
-function getRecordingsFile(dir: string) {
-  return path.join(dir, "recordings.log");
-}
-function readRecordingFile(dir: string) {
-  const file = getRecordingsFile(dir);
-  if (!fs.existsSync(file)) {
+function readRecordingFile() {
+  if (!fs.existsSync(recordingLogPath)) {
     return [];
   }
 
-  return fs.readFileSync(file, "utf8").split("\n");
+  return fs.readFileSync(recordingLogPath, "utf8").split("\n");
 }
-function writeRecordingFile(dir: string, lines: string[]) {
+function writeRecordingFile(lines: string[]) {
   // Add a trailing newline so the driver can safely append logs
-  fs.writeFileSync(getRecordingsFile(dir), lines.join("\n") + "\n");
+  fs.writeFileSync(recordingLogPath, lines.join("\n") + "\n");
 }
 function getBuildRuntime(buildId: string) {
   const match = /.*?-(.*?)-/.exec(buildId);
@@ -43,10 +38,9 @@ interface RecordingLogEntry {
   [key: string]: any;
   kind: (typeof RECORDING_LOG_KIND)[number];
 }
-export function readRecordings(dir?: string, includeHidden = false) {
-  dir = getDirectory({ directory: dir });
+export function readRecordings(includeHidden = false) {
   const recordings: RecordingEntry[] = [];
-  const lines = readRecordingFile(dir)
+  const lines = readRecordingFile()
     .map(line => {
       try {
         return JSON.parse(line) as RecordingLogEntry;
@@ -212,7 +206,7 @@ export function readRecordings(dir?: string, includeHidden = false) {
   return recordings.filter(r => !(r.unusableReason || "").includes("No interesting content"));
 }
 
-function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
+function addRecordingEvent(kind: string, id: string, tags = {}) {
   const event = {
     kind,
     id,
@@ -220,13 +214,13 @@ function addRecordingEvent(dir: string, kind: string, id: string, tags = {}) {
     ...tags,
   };
   logger.info("AddRecordingEvent:Started", { event, kind });
-  const lines = readRecordingFile(dir);
+  const lines = readRecordingFile();
   lines.push(JSON.stringify(event));
-  writeRecordingFile(dir, lines);
+  writeRecordingFile(lines);
 }
 
-function removeRecordingFromLog(dir: string, id: string) {
-  const lines = readRecordingFile(dir).filter(line => {
+function removeRecordingFromLog(id: string) {
+  const lines = readRecordingFile().filter(line => {
     try {
       const obj = JSON.parse(line);
       if (obj.id == id) {
@@ -238,7 +232,7 @@ function removeRecordingFromLog(dir: string, id: string) {
     return true;
   });
 
-  writeRecordingFile(dir, lines);
+  writeRecordingFile(lines);
 }
 
 export { readRecordingFile, removeRecordingFromLog, addRecordingEvent };
