@@ -10,13 +10,10 @@
     "sourceMap": false,
     "isolatedModules": true,
     "strict": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
     "rootDir": "${configDir}/src",
-    "outDir": "${configDir}/dist",
-    // TS reports TS5074 without this explicit setting
-    "tsBuildInfoFile": "${configDir}/tsconfig.tsbuildinfo"
+    "outDir": "${configDir}/dist"
   }
 }
