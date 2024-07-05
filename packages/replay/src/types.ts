@@ -1,6 +1,5 @@
+import { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import type { AgentOptions } from "http";
-
-export type UnstructuredMetadata = Record<string, unknown>;
 
 export interface Options {
   /**

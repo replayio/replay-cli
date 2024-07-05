@@ -41,8 +41,8 @@ import {
   UploadAllOptions,
   UploadOptions,
   type ExternalRecordingEntry,
-  type UnstructuredMetadata,
 } from "./types";
+export type { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { ReplayClient } from "./upload";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
 import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
@@ -833,7 +833,6 @@ async function version() {
 
 export {
   ExternalRecordingEntry,
-  UnstructuredMetadata,
   addLocalRecordingMetadata,
   getDirectory,
   launchBrowser,

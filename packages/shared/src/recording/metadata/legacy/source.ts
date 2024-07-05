@@ -425,8 +425,8 @@ const versions = () => ({
   }),
 });
 
-export function validate(source: UnstructuredMetadata) {
-  if (source) {
+export function validate(source?: UnstructuredMetadata) {
+  if (!source) {
     throw new Error("Source metadata does not exist");
   }
 
