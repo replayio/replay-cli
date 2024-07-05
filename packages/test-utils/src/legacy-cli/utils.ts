@@ -6,24 +6,6 @@
 // TODO: decouple this more so we never run into problems with this - we shouldn't rely on implementation details of Cypress bundling
 import { AgentOptions, Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
-import path from "path";
-
-import { Options } from "./types";
-
-// Get the executable name to use when opening a URL.
-// It would be nice to use an existing npm package for this,
-// but the obvious choice of "open" didn't actually work on linux
-// when testing...
-export function openExecutable() {
-  switch (process.platform) {
-    case "darwin":
-      return "open";
-    case "linux":
-      return "xdg-open";
-    default:
-      throw new Error("Unsupported platform");
-  }
-}
 
 function defer<T = unknown>() {
   let resolve: (value: T) => void = () => {};
@@ -39,13 +21,6 @@ function maybeLogToConsole(verbose: boolean | undefined, str: string) {
   if (verbose) {
     console.log(str);
   }
-}
-
-function getDirectory(opts?: Pick<Options, "directory">) {
-  const home = process.env.HOME || process.env.USERPROFILE;
-  return (
-    (opts && opts.directory) || process.env.RECORD_REPLAY_DIRECTORY || path.join(home!, ".replay")
-  );
 }
 
 function isValidUUID(str: unknown) {
@@ -75,4 +50,4 @@ function getHttpAgent(server: string, agentOptions?: AgentOptions) {
   throw new Error(`Unsupported protocol: ${serverURL.protocol} for URL ${serverURL}`);
 }
 
-export { defer, getDirectory, getHttpAgent, isValidUUID, maybeLogToConsole };
+export { defer, getHttpAgent, isValidUUID, maybeLogToConsole };

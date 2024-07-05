@@ -9,7 +9,6 @@ import pMap from "p-map";
 
 import { Agent, AgentOptions } from "http";
 import jsonata from "jsonata";
-import { readToken } from "./auth";
 import { ProtocolError } from "./client";
 import { getLaunchDarkly } from "./launchdarkly";
 import { addRecordingEvent, readRecordings, removeRecordingFromLog } from "./recordingLog";
@@ -22,15 +21,14 @@ import {
   SourceMapEntry,
   UploadOptions,
   type ExternalRecordingEntry,
-  type UnstructuredMetadata,
 } from "./types";
 import { ReplayClient } from "./upload";
-import { getDirectory, maybeLogToConsole } from "./utils";
+import { maybeLogToConsole } from "./utils";
 import { logger } from "@replay-cli/shared/logger";
 export type { RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
-export function filterRecordings(
+function filterRecordings(
   recordings: RecordingEntry[],
   filter: FilterOptions["filter"],
   includeCrashes: FilterOptions["includeCrashes"]
@@ -79,7 +77,7 @@ function listRecording(recording: RecordingEntry): ExternalRecordingEntry {
 
 function listAllRecordings(opts: Options & ListOptions = {}) {
   logger.info("ListAllRecordings:Started");
-  const recordings = readRecordings(opts.directory);
+  const recordings = readRecordings();
 
   if (opts.all) {
     return filterRecordings(recordings, opts.filter, opts.includeCrashes).map(listRecording);
@@ -115,7 +113,6 @@ function getServer(opts: Options) {
 }
 
 async function doUploadCrash(
-  dir: string,
   server: string,
   recording: RecordingEntry,
   verbose?: boolean,
@@ -143,7 +140,7 @@ async function doUploadCrash(
       await client.connectionReportCrash(data);
     })
   );
-  addRecordingEvent(dir, "crashUploaded", recording.id, { server });
+  addRecordingEvent("crashUploaded", recording.id, { server });
   maybeLogToConsole(verbose, `Crash data upload finished.`);
   logger.info("DoUploadCrash:Successful", { recordingId: recording.id, server });
   client.closeConnection();
@@ -214,7 +211,6 @@ const MIN_MULTIPART_UPLOAD_SIZE = 5 * 1024 * 1024;
 async function multipartUploadRecording(
   server: string,
   client: ReplayClient,
-  dir: string,
   recording: RecordingEntry,
   metadata: RecordingMetadata | null,
   size: number,
@@ -232,7 +228,7 @@ async function multipartUploadRecording(
       requestPartChunkSize
     );
   await setMetadata(client, recordingId, metadata, strict, verbose);
-  addRecordingEvent(dir, "uploadStarted", recording.id, {
+  addRecordingEvent("uploadStarted", recording.id, {
     server,
     recordingId,
   });
@@ -252,7 +248,6 @@ async function multipartUploadRecording(
 async function directUploadRecording(
   server: string,
   client: ReplayClient,
-  dir: string,
   recording: RecordingEntry,
   metadata: RecordingMetadata | null,
   size: number,
@@ -265,7 +260,7 @@ async function directUploadRecording(
     size
   );
   await setMetadata(client, recordingId, metadata, strict, verbose);
-  addRecordingEvent(dir, "uploadStarted", recording.id, {
+  addRecordingEvent("uploadStarted", recording.id, {
     server,
     recordingId,
   });
@@ -286,16 +281,15 @@ async function directUploadRecording(
 }
 
 async function doUploadRecording(
-  dir: string,
   server: string,
   recording: RecordingEntry,
   verbose: boolean = false,
-  apiKey?: string,
+  apiKey: string,
   agentOptions?: AgentOptions,
   removeAssets: boolean = false,
   strict: boolean = false
 ) {
-  logger.info("DoUploadRecording:Started", { recordingId: recording.id, server, dir });
+  logger.info("DoUploadRecording:Started", { recordingId: recording.id, server });
   maybeLogToConsole(verbose, `Starting upload for ${recording.id}...`);
 
   if (recording.status == "uploaded" && recording.recordingId) {
@@ -310,17 +304,12 @@ async function doUploadRecording(
     logger.error("DoUploadRecording:Failed", {
       recordingId: recording.id,
       server,
-      dir,
       uploadSkipReason,
       strict,
     });
 
     handleUploadingError(reason, strict, verbose);
     return null;
-  }
-
-  if (!apiKey) {
-    apiKey = await readToken({ directory: dir });
   }
 
   const agent = getHttpAgent(server, agentOptions);
@@ -330,17 +319,16 @@ async function doUploadRecording(
       recordingId: recording.id,
       recordingStatus: recording.status,
     });
-    await doUploadCrash(dir, server, recording, verbose, apiKey, agent);
+    await doUploadCrash(server, recording, verbose, apiKey, agent);
     logger.info("DoUploadRecording:CrashReportUploaded", {
       recordingId: recording.id,
     });
     maybeLogToConsole(verbose, `Crash report uploaded for ${recording.id}`);
 
     if (removeAssets) {
-      removeRecordingAssets(recording, { directory: dir });
+      removeRecordingAssets(recording);
       logger.info("DoUploadRecording:RemovedRecordingAssets", {
         recordingId: recording.id,
-        dir,
       });
     }
     return recording.id;
@@ -373,7 +361,6 @@ async function doUploadRecording(
       recordingId = await multipartUploadRecording(
         server,
         client,
-        dir,
         recording,
         metadata,
         size,
@@ -385,7 +372,6 @@ async function doUploadRecording(
       recordingId = await directUploadRecording(
         server,
         client,
-        dir,
         recording,
         metadata,
         size,
@@ -458,10 +444,10 @@ async function doUploadRecording(
   );
 
   if (removeAssets) {
-    removeRecordingAssets(recording, { directory: dir });
+    removeRecordingAssets(recording);
   }
 
-  addRecordingEvent(dir, "uploadFinished", recording.id);
+  addRecordingEvent("uploadFinished", recording.id);
   const replayUrl = ` https://app.replay.io/recording/${recordingId}`;
 
   maybeLogToConsole(verbose, `Upload finished! View your Replay at: ${replayUrl}`);
@@ -475,10 +461,9 @@ async function doUploadRecording(
   return recordingId;
 }
 
-async function uploadRecording(id: string, opts: UploadOptions = {}) {
+async function uploadRecording(id: string, opts: UploadOptions) {
   const server = getServer(opts);
-  const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
+  const recordings = readRecordings();
   const recording = recordings.find(r => r.id == id);
 
   if (!recording) {
@@ -491,7 +476,6 @@ async function uploadRecording(id: string, opts: UploadOptions = {}) {
   }
 
   return doUploadRecording(
-    dir,
     server,
     recording,
     opts.verbose,
@@ -516,8 +500,7 @@ function maybeRemoveAssetFile(asset?: string) {
 }
 
 function removeRecording(id: string, opts: Options = {}) {
-  const dir = getDirectory(opts);
-  const recordings = readRecordings(dir);
+  const recordings = readRecordings();
   const recording = recordings.find(r => r.id == id);
   if (!recording) {
     logger.error("RemoveRecording:UnknownRecording", {
@@ -526,8 +509,8 @@ function removeRecording(id: string, opts: Options = {}) {
     maybeLogToConsole(opts.verbose, `Unknown recording ${id}`);
     return false;
   }
-  removeRecordingAssets(recording, opts);
-  removeRecordingFromLog(dir, id);
+  removeRecordingAssets(recording);
+  removeRecordingFromLog(id);
   return true;
 }
 
@@ -546,9 +529,8 @@ function getRecordingAssetFiles(recording: RecordingEntry) {
   return assetFiles;
 }
 
-function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "directory">) {
+function removeRecordingAssets(recording: RecordingEntry) {
   const localRecordings = listAllRecordings({
-    ...opts,
     filter: r => r.status !== "uploaded" && r.status !== "crashUploaded" && r.id !== recording.id,
   });
 
@@ -561,11 +543,4 @@ function removeRecordingAssets(recording: RecordingEntry, opts?: Pick<Options, "
   });
 }
 
-export {
-  ExternalRecordingEntry,
-  UnstructuredMetadata,
-  getDirectory,
-  listAllRecordings,
-  removeRecording,
-  uploadRecording,
-};
+export { listAllRecordings, removeRecording, uploadRecording };
