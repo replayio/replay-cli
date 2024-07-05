@@ -16,7 +16,7 @@ const HOST = "https://logs-prod-006.grafana.net";
 
 const stackUtils = new StackUtils({ cwd: process.cwd(), internals: StackUtils.nodeInternals() });
 
-export function anonymizeStackTrace(stack: string): string {
+function anonymizeStackTrace(stack: string): string {
   return stack
     .split("\n")
     .map(line => {
@@ -30,6 +30,27 @@ export function anonymizeStackTrace(stack: string): string {
       return line;
     })
     .join("\n");
+}
+
+export function formatTags(tags?: Tags) {
+  if (!tags) {
+    return;
+  }
+
+  return Object.entries(tags).reduce((result, [key, value]) => {
+    if (value instanceof Error) {
+      result[key] = {
+        // Intentionally keeping this for any extra properties attached in `Error`
+        ...(value as any),
+        errorName: value.name,
+        errorMessage: value.message,
+        errorStack: anonymizeStackTrace(value.stack ?? ""),
+      };
+    } else {
+      result[key] = value;
+    }
+    return result;
+  }, {} as Record<string, unknown>);
 }
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
@@ -94,7 +115,7 @@ class Logger {
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
-    const formattedTags = this.formatTags(tags);
+    const formattedTags = formatTags(tags);
 
     this.localDebugger(message, formattedTags);
 
@@ -128,26 +149,7 @@ class Logger {
     }
   }
 
-  private formatTags(tags?: Record<string, unknown>) {
-    if (!tags) {
-      return;
-    }
-
-    return Object.entries(tags).reduce((result, [key, value]) => {
-      if (value instanceof Error) {
-        result[key] = {
-          // Intentionally keeping this for any extra properties attached in `Error`
-          ...(value as any),
-          errorName: value.name,
-          errorMessage: value.message,
-          errorStack: anonymizeStackTrace(value.stack ?? ""),
-        };
-      } else {
-        result[key] = value;
-      }
-      return result;
-    }, {} as Record<string, unknown>);
-  }
+  private formatTags(tags?: Record<string, unknown>) {}
 
   async close() {
     if (process.env.REPLAY_TELEMETRY_DISABLED) {

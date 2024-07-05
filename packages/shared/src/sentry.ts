@@ -1,10 +1,9 @@
-// Import with `import * as Sentry from "@sentry/node"` if you are using ESM
-const Sentry = require("@sentry/node");
+import * as Sentry from "@sentry/node";
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
-import { anonymizeStackTrace, Tags } from "./logger";
+import { formatTags, Tags } from "./logger";
 
 const SENTRY_DSN =
   "https://5c145b72bb502832982243d6584f163d@o437061.ingest.us.sentry.io/4507534763819008"; // write-only permissions
@@ -45,27 +44,6 @@ class SentryAPI {
     this.authInfo = authInfo;
   }
 
-  private formatTags(tags?: Record<string, unknown>) {
-    if (!tags) {
-      return;
-    }
-
-    return Object.entries(tags).reduce((result, [key, value]) => {
-      if (value instanceof Error) {
-        result[key] = {
-          // Intentionally keeping this for any extra properties attached in `Error`
-          ...(value as any),
-          errorName: value.name,
-          errorMessage: value.message,
-          errorStack: anonymizeStackTrace(value.stack ?? ""),
-        };
-      } else {
-        result[key] = value;
-      }
-      return result;
-    }, {} as Record<string, unknown>);
-  }
-
   async close() {
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
@@ -79,7 +57,7 @@ class SentryAPI {
       return;
     }
 
-    const formattedTags = this.formatTags(tags);
+    const formattedTags = formatTags(tags);
 
     const entry: Record<string, any> = {
       ...formattedTags,
