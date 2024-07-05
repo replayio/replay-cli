@@ -4,24 +4,13 @@ import type {
   resetCache as resetCacheStatic,
 } from "./cachedFetch";
 
-class Response {
-  public status: number;
-  public statusText: string;
+const { Response }: typeof import("undici") = jest.requireActual("undici");
 
-  constructor(status: number, statusText: string) {
-    this.status = status;
-    this.statusText = statusText;
-  }
+const createMockedResponse = (status: number, text: string) =>
+  new Response(JSON.stringify({ text }), { status, statusText: text });
 
-  async json() {
-    return {
-      text: this.statusText,
-    };
-  }
-}
-
-const failedResponse = new Response(500, "error");
-const successResponse = new Response(200, "ok");
+const createFailedResponse = () => createMockedResponse(500, "error");
+const createSuccessResponse = () => createMockedResponse(200, "ok");
 
 describe("cachedFetch", () => {
   let cachedFetch: typeof cachedFetchStatic;
@@ -32,7 +21,7 @@ describe("cachedFetch", () => {
     jest.mock("undici");
 
     mockFetch = require("undici").fetch;
-    mockFetch.mockReturnValue(successResponse);
+    mockFetch.mockReturnValue(createSuccessResponse());
 
     ({ cachedFetch, resetCache } = require("./cachedFetch"));
   });
@@ -52,6 +41,7 @@ describe("cachedFetch", () => {
         "json": Object {
           "text": "ok",
         },
+        "ok": true,
         "status": 200,
         "statusText": "ok",
       }
@@ -59,7 +49,7 @@ describe("cachedFetch", () => {
   });
 
   it("should retry after a failed request", async () => {
-    mockFetch.mockReturnValueOnce(Promise.resolve(failedResponse));
+    mockFetch.mockReturnValueOnce(Promise.resolve(createFailedResponse()));
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
@@ -72,6 +62,7 @@ describe("cachedFetch", () => {
         "json": Object {
           "text": "ok",
         },
+        "ok": true,
         "status": 200,
         "statusText": "ok",
       }
@@ -79,7 +70,7 @@ describe("cachedFetch", () => {
   });
 
   it("should return a failed response after retries have been exhausted", async () => {
-    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+    mockFetch.mockReturnValue(Promise.resolve(createFailedResponse()));
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
@@ -91,6 +82,7 @@ describe("cachedFetch", () => {
     expect(response).toMatchInlineSnapshot(`
       Object {
         "json": null,
+        "ok": false,
         "status": 500,
         "statusText": "error",
       }
@@ -109,7 +101,7 @@ describe("cachedFetch", () => {
   });
 
   it("should cache a failed response", async () => {
-    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+    mockFetch.mockReturnValue(Promise.resolve(createFailedResponse()));
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       baseDelay: 10,
@@ -125,10 +117,10 @@ describe("cachedFetch", () => {
   });
 
   it("should allow a single cached value to be evicted", async () => {
-    mockFetch.mockReturnValue(new Response(200, "A"));
+    mockFetch.mockReturnValue(createMockedResponse(200, "A"));
     const responseA = await cachedFetch("https://www.test.com/A");
 
-    mockFetch.mockReturnValue(new Response(200, "B"));
+    mockFetch.mockReturnValue(createMockedResponse(200, "B"));
     const responseB = await cachedFetch("https://www.test.com/B");
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -146,7 +138,7 @@ describe("cachedFetch", () => {
   });
 
   it("should allow the caller to decide if a retry should be attempted", async () => {
-    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+    mockFetch.mockReturnValue(Promise.resolve(createFailedResponse()));
 
     let retryCount = 0;
 
@@ -164,6 +156,7 @@ describe("cachedFetch", () => {
     expect(response).toMatchInlineSnapshot(`
       Object {
         "json": null,
+        "ok": false,
         "status": 500,
         "statusText": "error",
       }
@@ -171,7 +164,7 @@ describe("cachedFetch", () => {
   });
 
   it("should still honor the maxAttempts setting even when shouldRetry is provided", async () => {
-    mockFetch.mockReturnValue(Promise.resolve(failedResponse));
+    mockFetch.mockReturnValue(Promise.resolve(createFailedResponse()));
 
     const response = await cachedFetch("https://www.test.com", undefined, {
       maxAttempts: 2,
@@ -182,6 +175,7 @@ describe("cachedFetch", () => {
     expect(response).toMatchInlineSnapshot(`
       Object {
         "json": null,
+        "ok": false,
         "status": 500,
         "statusText": "error",
       }
