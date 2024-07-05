@@ -45,11 +45,9 @@ export type UploadOptions = {
 export interface ReplayReporterConfig<
   TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
 > {
-  runTitle?: string;
-  metadata?: Record<string, any> | string;
-  metadataKey?: string;
-  upload?: UploadOptions | boolean;
   apiKey?: string;
-  /** @deprecated Use `upload.minimizeUploads` and `upload.statusThreshold` instead */
-  filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
+  metadata?: TRecordingMetadata;
+  metadataKey?: string;
+  runTitle?: string;
+  upload?: UploadOptions | boolean;
 }
