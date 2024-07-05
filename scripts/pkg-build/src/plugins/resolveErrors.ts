@@ -4,26 +4,34 @@ import normalizePath from "normalize-path";
 import { Plugin } from "rollup";
 import { PackagePredicate } from "../makePackagePredicate";
 
-// bundled dependencies complicated this a lot and currently this might not serve its original purpose
-// the rules inside this could use some improvement
-// ideally the rules that check if something starts with / would be rewritten
+function getPackageDir(id: string, packageDirs: Set<string>) {
+  let dirname = path.dirname(id);
+  while (dirname !== "/") {
+    if (packageDirs.has(dirname)) {
+      return dirname;
+    }
+    dirname = path.dirname(dirname);
+  }
+  return null;
+}
+
 export function resolveErrors({
+  bundledIds,
   isExternal,
+  packagesByName,
   pkg,
 }: {
+  bundledIds: Set<string>;
   isExternal: PackagePredicate;
+  packagesByName: Map<string, Package>;
   pkg: Package;
 }): Plugin {
+  const packageDirs = new Set([...packagesByName.values()].map(p => p.dir));
   return {
     name: "resolve-errors",
     // based on https://github.com/preconstruct/preconstruct/blob/5113f84397990ff1381b644da9f6bb2410064cf8/packages/cli/src/rollup-plugins/resolve.ts
     async resolveId(source, importer, options) {
-      if (
-        options.isEntry ||
-        source.startsWith("\0") ||
-        options.custom?.["bundled-dependencies"] ||
-        importer?.startsWith("/")
-      ) {
+      if (options.isEntry || source.startsWith("\0") || options.custom?.["bundled-dependencies"]) {
         return;
       }
       if (!source.startsWith(".") && !source.startsWith("/") && !isExternal(source)) {
@@ -49,13 +57,19 @@ export function resolveErrors({
         );
       }
 
-      if (resolved.id.startsWith("\0") || resolved.id.startsWith(pkg.dir)) {
+      if (resolved.id.startsWith("\0") || bundledIds.has(source)) {
+        return resolved;
+      }
+
+      const importerPkgDir = importer ? getPackageDir(importer, packageDirs) : pkg.dir;
+
+      if (importerPkgDir && resolved.id.startsWith(importerPkgDir)) {
         return resolved;
       }
 
       throw new Error(
         `all relative imports in a package should only import modules inside of their package directory but ${
-          importer ? `"${normalizePath(path.relative(pkg.relativeDir, importer))}"` : "a module"
+          importer ?? "a module"
         } is importing "${source}"`
       );
     },
