@@ -7,7 +7,7 @@ import pMap from "p-map";
 import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
-import { sanitize as sanitizeMetadata } from "./metadata";
+import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, isValidUUID, maybeLogToConsole } from "./utils";
 import { getUserAgent } from "@replay-cli/shared/userAgent";
@@ -175,7 +175,7 @@ class ReplayClient {
       body: file,
     });
 
-    if (resp.status !== 200) {
+    if (!resp.ok) {
       logger.error("ReplayClientUploadRecording:Failed", {
         responseText: await resp.text(),
         responseStatus: resp.status,

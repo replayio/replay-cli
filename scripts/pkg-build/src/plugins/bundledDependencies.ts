@@ -16,10 +16,25 @@ export function transformImportSources(
     isBundledDependency: PackagePredicate;
   }
 ) {
-  // TODO: handle dynamic imports
   return code.replace(
-    /((?:import|export)\s+(?:{[\w\s,]*}\s+from\s+)?)["'](.+)["']/g,
-    (match, statementSlice, importedId) => {
+    // this regex matches:
+    //
+    // import "shared"
+    // import("shared")
+    // from "shared"
+    //
+    // it doesn't always check if the import is even at the valid position
+    // this should be good enough though, it's unlikely to match false positives
+    //
+    // note that it's important that we handle here cases like:
+    //
+    // import def from "shared"
+    // import * ns from "shared"
+    // import def, { named } from "shared"
+    // import { named } from "shared"
+    // export { named } from "shared"
+    /((?:import\s*\(\s*|import\s+|(?:\s|})from\s+))["'](.+)["']/g,
+    (match, preceedingSlice, importedId) => {
       if (!isBundledDependency(importedId)) {
         return match;
       }
@@ -27,7 +42,7 @@ export function transformImportSources(
       if (!bundledPath.startsWith(".")) {
         bundledPath = `./${bundledPath}`;
       }
-      return statementSlice + `"${bundledPath}"`;
+      return preceedingSlice + `"${bundledPath}"`;
     }
   );
 }
@@ -125,6 +140,7 @@ export function bundledDependencies({
       if (!/\.(mts|cts|ts|tsx)$/.test(id)) {
         return null;
       }
+
       const code = transformImportSources(
         await fs.readFile(resolvedBundledIds.get(id) ?? id, "utf8"),
         {

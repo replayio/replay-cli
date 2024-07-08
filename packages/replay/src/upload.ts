@@ -8,7 +8,7 @@ import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
 import dbg, { logPath } from "./debug";
-import { sanitize as sanitizeMetadata } from "./metadata";
+import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, getUserAgent, isValidUUID, maybeLog } from "./utils";
 
@@ -173,7 +173,7 @@ class ReplayClient {
       body: file,
     });
 
-    if (resp.status !== 200) {
+    if (!resp.ok) {
       debug(await resp.text());
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);
     }
