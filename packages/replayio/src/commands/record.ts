@@ -28,7 +28,7 @@ async function record(url: string = "about:blank") {
   // this flag is intentionally not listed in the command options
   const verbose = process.argv.includes("--verbose");
   if (verbose) {
-    debug.enable("replayio:*");
+    debug.enable("replay");
   }
 
   const processGroupId = uuid();
