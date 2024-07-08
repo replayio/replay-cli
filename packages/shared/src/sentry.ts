@@ -30,7 +30,7 @@ class SentryAPI {
 
   private initSentry(app: string, version: string | undefined) {
     Sentry.init({
-      dsn: SENTRY_DSN, // write-only
+      dsn: SENTRY_DSN,
       integrations: [nodeProfilingIntegration()],
     });
 
