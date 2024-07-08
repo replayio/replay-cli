@@ -22,8 +22,14 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
       server: replayWsServer,
     });
 
+    logger.info("UploadCrashedData:Succeeded", { recording: recording.id });
     recording.uploadStatus = "uploaded";
   } catch (error) {
+    logger.error("UploadCrashedData:Failed", {
+      error,
+      recordingId: recording.id,
+      buildId: recording.buildId,
+    });
     recording.uploadStatus = "failed";
     recording.uploadError = error as Error;
   }
