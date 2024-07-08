@@ -4,14 +4,14 @@ import { identifyUserProfile } from "./identifyUserProfile";
 
 export async function initLaunchDarklyFromAccessToken(
   accessToken: string,
-  abortSignal: AbortSignal
+  abortSignal?: AbortSignal
 ) {
   logger.debug("Initializing LaunchDarkly profile");
 
   try {
     const authInfo = await getAuthInfo(accessToken);
 
-    if (abortSignal.aborted) {
+    if (abortSignal?.aborted) {
       return;
     }
 
