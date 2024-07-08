@@ -13,7 +13,11 @@ export default defineConfig({
     timeout: 30 * 1000,
     reuseExistingServer: !process.env.CI,
   },
-  reporter: [["./customReporter.js"]],
+  reporter: [
+    // replicating Playwright's defaults
+    process.env.CI ? (["dot"] as const) : (["list"] as const),
+    replayReporter({}),
+  ],
   projects: [
     {
       name: "replay-chromium",
