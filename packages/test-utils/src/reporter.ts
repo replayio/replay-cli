@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
-import { listAllRecordings, removeRecording, uploadRecording } from "./legacy-cli";
+import { listAllRecordings } from "./legacy-cli/listAllRecordings";
 import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
 import type { TestMetadataV2 } from "./legacy-cli/metadata/test";
 import { log } from "./logging";

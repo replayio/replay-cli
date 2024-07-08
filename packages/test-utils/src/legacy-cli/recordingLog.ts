@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import { RecordingEntry } from "./types";
 import { generateDefaultTitle } from "./generateDefaultTitle";
-import { updateStatus } from "./updateStatus";
-import { logger } from "@replay-cli/shared/logger";
 import { recordingLogPath } from "@replay-cli/shared/recording/config";
 
 function readRecordingFile() {
@@ -12,14 +10,12 @@ function readRecordingFile() {
 
   return fs.readFileSync(recordingLogPath, "utf8").split("\n");
 }
-function writeRecordingFile(lines: string[]) {
-  // Add a trailing newline so the driver can safely append logs
-  fs.writeFileSync(recordingLogPath, lines.join("\n") + "\n");
-}
+
 function getBuildRuntime(buildId: string) {
   const match = /.*?-(.*?)-/.exec(buildId);
   return match ? match[1] : "unknown";
 }
+
 const RECORDING_LOG_KIND = [
   "createRecording",
   "addMetadata",
@@ -34,10 +30,25 @@ const RECORDING_LOG_KIND = [
   "crashData",
   "crashUploaded",
 ] as const;
+
 interface RecordingLogEntry {
   [key: string]: any;
   kind: (typeof RECORDING_LOG_KIND)[number];
 }
+
+function updateStatus(recording: RecordingEntry, status: RecordingEntry["status"]) {
+  // Once a recording enters an unusable or crashed status, don't change it
+  // except to mark crashes as uploaded.
+  if (
+    recording.status == "unusable" ||
+    recording.status == "crashUploaded" ||
+    (recording.status == "crashed" && status != "crashUploaded")
+  ) {
+    return;
+  }
+  recording.status = status;
+}
+
 export function readRecordings(includeHidden = false) {
   const recordings: RecordingEntry[] = [];
   const lines = readRecordingFile()
@@ -205,34 +216,3 @@ export function readRecordings(includeHidden = false) {
   // when a recording process starts if it will ever do anything interesting.
   return recordings.filter(r => !(r.unusableReason || "").includes("No interesting content"));
 }
-
-function addRecordingEvent(kind: string, id: string, tags = {}) {
-  const event = {
-    kind,
-    id,
-    timestamp: Date.now(),
-    ...tags,
-  };
-  logger.info("AddRecordingEvent:Started", { event, kind });
-  const lines = readRecordingFile();
-  lines.push(JSON.stringify(event));
-  writeRecordingFile(lines);
-}
-
-function removeRecordingFromLog(id: string) {
-  const lines = readRecordingFile().filter(line => {
-    try {
-      const obj = JSON.parse(line);
-      if (obj.id == id) {
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
-    return true;
-  });
-
-  writeRecordingFile(lines);
-}
-
-export { readRecordingFile, removeRecordingFromLog, addRecordingEvent };

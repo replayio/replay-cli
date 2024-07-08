@@ -1,10 +1,10 @@
 import { createDeferred } from "../async/createDeferred";
 import { logger } from "../logger";
 
-export function createSettledDeferred<Data>(data: Data, promise: Promise<void>) {
+export function createSettledDeferred<Data>(data: Data, task: () => Promise<void>) {
   const deferred = createDeferred<boolean, Data>(data);
 
-  promise.then(
+  task().then(
     () => {
       deferred.resolve(true);
     },

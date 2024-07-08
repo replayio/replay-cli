@@ -110,7 +110,7 @@ export default class ProtocolClient {
 
   private onSocketClose = () => {
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
-      this.deferredAuthenticated.resolve(false);
+      this.deferredAuthenticated.reject(new Error("Socket closed before authentication completed"));
     }
   };
 
