@@ -19,6 +19,7 @@ import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import type { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
 import { getErrorMessage } from "./legacy-cli/error";
+import { withSentrySync } from "@replay-cli/shared/sentry";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -414,36 +415,39 @@ export default class ReplayReporter<
   }
 
   onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
-    if (config || metadataKey) {
-      this._parseConfig(config, metadataKey);
-    }
+    return withSentrySync("OnTestSuiteBegin", () => {
+      throw new Error("TestUtils:OnTestSuiteBegin:MimiError1");
+      if (config || metadataKey) {
+        this._parseConfig(config, metadataKey);
+      }
 
-    logger.info("OnTestSuiteBegin:ReporterConfiguration", {
-      baseId: this._baseId,
-      runTitle: this._runTitle,
-      runner: this._runner,
-      baseMetadata: this._baseMetadata,
-      upload: this._upload,
-      hasApiKey: !!this._apiKey,
-      hasFilter: !!this._filter,
+      logger.info("OnTestSuiteBegin:ReporterConfiguration", {
+        baseId: this._baseId,
+        runTitle: this._runTitle,
+        runner: this._runner,
+        baseMetadata: this._baseMetadata,
+        upload: this._upload,
+        hasApiKey: !!this._apiKey,
+        hasFilter: !!this._filter,
+      });
+
+      mixpanelAPI.trackEvent("test-suite.begin", {
+        baseId: this._baseId,
+        runTitle: this._runTitle,
+        upload: this._upload,
+        hasFilter: !!this._filter,
+      });
+
+      if (!this._apiKey) {
+        logger.info("OnTestSuiteBegin:NoApiKey");
+
+        mixpanelAPI.trackEvent("test-suite.no-api-key");
+
+        return;
+      }
+
+      // Don't even record test metadata yet unless/until a test is run with the Replay browser (see onTestBegin)
     });
-
-    mixpanelAPI.trackEvent("test-suite.begin", {
-      baseId: this._baseId,
-      runTitle: this._runTitle,
-      upload: this._upload,
-      hasFilter: !!this._filter,
-    });
-
-    if (!this._apiKey) {
-      logger.info("OnTestSuiteBegin:NoApiKey");
-
-      mixpanelAPI.trackEvent("test-suite.no-api-key");
-
-      return;
-    }
-
-    // Don't even record test metadata yet unless/until a test is run with the Replay browser (see onTestBegin)
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {

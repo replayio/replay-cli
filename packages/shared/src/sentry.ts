@@ -3,7 +3,7 @@ const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
-import { formatTags, Tags } from "./logger";
+import { formatTags, logger, Tags } from "./logger";
 
 const SENTRY_DSN =
   "https://5c145b72bb502832982243d6584f163d@o437061.ingest.us.sentry.io/4507534763819008"; // write-only permissions
@@ -49,10 +49,21 @@ class SentryAPI {
       return;
     }
 
-    return Sentry.close();
+    await Sentry.close();
+    console.log("🌈 closed sentry"); // MBUDAYR
+  }
+
+  async flush() {
+    if (process.env.REPLAY_TELEMETRY_DISABLED) {
+      return;
+    }
+
+    await Sentry.flush();
+    console.log("🌈 flushed sentry"); // MBUDAYR
   }
 
   captureException(error: Error, tags?: Tags) {
+    console.log("🌈 captured exception", error.message); // MBUDAYR
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
     }
@@ -90,4 +101,29 @@ function initSentry(app: string, version: string | undefined) {
   sentry.initialize(app, version);
 }
 
-export { initSentry };
+async function withSentry<T>(
+  methodName: string,
+  fn: () => T | Promise<T>,
+  tags?: Tags
+): Promise<T> {
+  try {
+    const result = await fn();
+    return result;
+  } catch (error: any) {
+    logger.error(`${methodName}Failed`, tags);
+    sentry.captureException(error);
+    throw error;
+  }
+}
+
+function withSentrySync<T>(methodName: string, fn: () => T): T {
+  try {
+    return fn();
+  } catch (error: any) {
+    logger.error(`${methodName}:Failed`, error);
+    sentry.captureException(error);
+    throw error;
+  }
+}
+
+export { initSentry, withSentry, withSentrySync };

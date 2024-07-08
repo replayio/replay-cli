@@ -6,6 +6,7 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { initLogger, logger } from "@replay-cli/shared/logger";
+import { initSentry, sentry, withSentry, withSentrySync } from "@replay-cli/shared/sentry";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
@@ -86,6 +87,8 @@ export default class ReplayPlaywrightReporter implements Reporter {
     setUserAgent(`${packageName}/${packageVersion}`);
 
     initLogger(packageName, packageVersion);
+    initSentry(packageName, packageVersion);
+
     mixpanelAPI.initialize({
       accessToken: getAccessToken(config),
       packageName,
@@ -142,15 +145,18 @@ export default class ReplayPlaywrightReporter implements Reporter {
     });
   }
 
+  // MBUDAYR - without wrapping this in `withSentrySync`, the error never makes it to Sentry.
   getFixtureData(test: TestExecutionIdData) {
-    const id = this._getTestExecutionId(test);
-    this.fixtureData[id] ??= {
-      steps: [],
-      stacks: {},
-      filenames: new Set(),
-    };
+    return withSentrySync("GetFixtureData", () => {
+      const id = this._getTestExecutionId(test);
+      this.fixtureData[id] ??= {
+        steps: [],
+        stacks: {},
+        filenames: new Set(),
+      };
 
-    return this.fixtureData[id];
+      return this.fixtureData[id];
+    });
   }
 
   // Playwright already provides a unique test id:
@@ -159,289 +165,311 @@ export default class ReplayPlaywrightReporter implements Reporter {
   // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
   // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
   private _getTestExecutionId(test: TestExecutionIdData) {
-    return [
-      test.filePath,
-      test.projectName ?? "",
-      test.repeatEachIndex,
-      test.attempt,
-      ...test.source.scope,
-      test.source.title,
-    ].join("-");
+    return withSentrySync("GetTestExecutionId", () => {
+      return [
+        test.filePath,
+        test.projectName ?? "",
+        test.repeatEachIndex,
+        test.attempt,
+        ...test.source.scope,
+        test.source.title,
+      ].join("-");
+    });
   }
 
   getSource(test: TestCase) {
-    return {
-      title: test.title,
-      scope: test.titlePath().slice(3, -1),
-    };
+    return withSentrySync("GetSource", () => {
+      return {
+        title: test.title,
+        scope: test.titlePath().slice(3, -1),
+      };
+    });
   }
 
   onBegin({ version }: FullConfig) {
-    this.reporter.setTestRunnerVersion(version);
-    this.reporter.onTestSuiteBegin();
+    return withSentrySync("OnBegin", () => {
+      this.reporter.setTestRunnerVersion(version);
+      this.reporter.onTestSuiteBegin();
+    });
   }
 
   private _registerExecutedProject(test: TestCase) {
-    const project = test.parent.project();
-    if (project) {
-      let projectMetadata = this._executedProjects[project.name];
-      if (!projectMetadata) {
-        projectMetadata = this._executedProjects[project.name] = {
-          usesReplayBrowser: project.use.launchOptions?.executablePath === getRuntimePath(),
-        };
+    return withSentrySync("RegisterExecutedProject", () => {
+      const project = test.parent.project();
+      if (project) {
+        let projectMetadata = this._executedProjects[project.name];
+        if (!projectMetadata) {
+          projectMetadata = this._executedProjects[project.name] = {
+            usesReplayBrowser: project.use.launchOptions?.executablePath === getRuntimePath(),
+          };
+        }
+        return projectMetadata;
       }
-      return projectMetadata;
-    }
 
-    return null;
+      return null;
+    });
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    const projectMetadata = this._registerExecutedProject(test);
+    return withSentrySync("OnTestBegin", () => {
+      const projectMetadata = this._registerExecutedProject(test);
 
-    // Don't save metadata for non-Replay projects
-    if (!projectMetadata?.usesReplayBrowser) return;
+      // Don't save metadata for non-Replay projects
+      if (!projectMetadata?.usesReplayBrowser) return;
 
-    const testExecutionId = this._getTestExecutionId({
-      filePath: test.location.file,
-      projectName: test.parent.project()?.name,
-      repeatEachIndex: test.repeatEachIndex,
-      attempt: testResult.retry + 1,
-      source: this.getSource(test),
+      const testExecutionId = this._getTestExecutionId({
+        filePath: test.location.file,
+        projectName: test.parent.project()?.name,
+        repeatEachIndex: test.repeatEachIndex,
+        attempt: testResult.retry + 1,
+        source: this.getSource(test),
+      });
+
+      this.reporter.onTestBegin(testExecutionId, getMetadataFilePath(testResult.workerIndex));
     });
-
-    this.reporter.onTestBegin(testExecutionId, getMetadataFilePath(testResult.workerIndex));
   }
 
   getStepsFromFixture(test: TestExecutionIdData) {
-    const hookMap: Record<
-      "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
-      UserActionEvent[]
-    > = {
-      afterAll: [],
-      afterEach: [],
-      beforeAll: [],
-      beforeEach: [],
-    };
-    const steps: UserActionEvent[] = [];
-
-    const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
-    fixtureSteps?.forEach(fixtureStep => {
-      const step: UserActionEvent = {
-        data: {
-          id: fixtureStep.id,
-          parentId: null,
-          command: {
-            name: fixtureStep.apiName,
-            arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
-          },
-          scope: test.source.scope,
-          error: fixtureStep.error || null,
-          category: mapFixtureStepCategory(fixtureStep),
-        },
+    return withSentrySync("GetStepsFromFixture", () => {
+      const hookMap: Record<
+        "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
+        UserActionEvent[]
+      > = {
+        afterAll: [],
+        afterEach: [],
+        beforeAll: [],
+        beforeEach: [],
       };
+      const steps: UserActionEvent[] = [];
 
-      const stack = fixtureStep.frames.map(frame => ({
-        line: frame.line,
-        column: frame.column,
-        functionName: frame.function,
-        file: path.relative(process.cwd(), frame.file),
-      }));
+      const { steps: fixtureSteps, stacks, filenames } = this.getFixtureData(test);
+      fixtureSteps?.forEach(fixtureStep => {
+        const step: UserActionEvent = {
+          data: {
+            id: fixtureStep.id,
+            parentId: null,
+            command: {
+              name: fixtureStep.apiName,
+              arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
+            },
+            scope: test.source.scope,
+            error: fixtureStep.error || null,
+            category: mapFixtureStepCategory(fixtureStep),
+          },
+        };
 
-      if (stack) {
-        stacks[fixtureStep.id] = stack;
+        const stack = fixtureStep.frames.map(frame => ({
+          line: frame.line,
+          column: frame.column,
+          functionName: frame.function,
+          file: path.relative(process.cwd(), frame.file),
+        }));
 
-        for (const frame of stack) {
-          filenames.add(frame.file);
+        if (stack) {
+          stacks[fixtureStep.id] = stack;
+
+          for (const frame of stack) {
+            filenames.add(frame.file);
+          }
         }
-      }
 
-      if (fixtureStep.hook) {
-        hookMap[fixtureStep.hook].push(step);
-      } else {
-        steps.push(step);
-      }
+        if (fixtureStep.hook) {
+          hookMap[fixtureStep.hook].push(step);
+        } else {
+          steps.push(step);
+        }
+      });
+
+      return {
+        beforeEach: hookMap.beforeEach,
+        beforeAll: hookMap.beforeAll,
+        afterAll: hookMap.afterAll,
+        afterEach: hookMap.afterEach,
+        main: steps,
+      };
     });
-
-    return {
-      beforeEach: hookMap.beforeEach,
-      beforeAll: hookMap.beforeAll,
-      afterAll: hookMap.afterAll,
-      afterEach: hookMap.afterEach,
-      main: steps,
-    };
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    const status = result.status;
+    return withSentrySync("OnTestEnd", () => {
+      const status = result.status;
 
-    // Skipped tests won't have a reply so nothing to do here
-    if (status === "skipped") return;
+      // Skipped tests won't have a reply so nothing to do here
+      if (status === "skipped") return;
 
-    const projectMetadata = this._registerExecutedProject(test);
+      const projectMetadata = this._registerExecutedProject(test);
 
-    // Don't save metadata for non-Replay projects
-    if (!projectMetadata?.usesReplayBrowser) return;
+      // Don't save metadata for non-Replay projects
+      if (!projectMetadata?.usesReplayBrowser) return;
 
-    const testExecutionIdData = {
-      filePath: test.location.file,
-      projectName: test.parent.project()?.name,
-      repeatEachIndex: test.repeatEachIndex,
-      attempt: result.retry + 1,
-      source: this.getSource(test),
-    };
-
-    const events = this.getStepsFromFixture(testExecutionIdData);
-
-    const relativePath = test.titlePath()[2];
-    const { stacks, filenames } = this.getFixtureData(testExecutionIdData);
-    filenames.add(test.location.file);
-    let playwrightMetadata: Record<string, any> | undefined;
-
-    if (this.captureTestFile) {
-      playwrightMetadata = {
-        "x-replay-playwright": {
-          sources: Object.fromEntries(
-            [...filenames].map(filename => {
-              try {
-                return [filename, readFileSync(filename, "utf8")];
-              } catch (e) {
-                logger.error("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
-                  filename,
-                  error: e,
-                });
-                return [filename, undefined];
-              }
-            })
-          ),
-          stacks,
-        },
+      const testExecutionIdData = {
+        filePath: test.location.file,
+        projectName: test.parent.project()?.name,
+        repeatEachIndex: test.repeatEachIndex,
+        attempt: result.retry + 1,
+        source: this.getSource(test),
       };
-    }
 
-    const tests = [
-      {
-        id: 0,
-        attempt: testExecutionIdData.attempt,
-        source: testExecutionIdData.source,
-        executionGroupId: String(testExecutionIdData.repeatEachIndex),
-        executionId: this._getTestExecutionId(testExecutionIdData),
-        maxAttempts: test.retries + 1,
-        approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
-        result: status === "interrupted" ? ("unknown" as const) : status,
-        error: result.error
-          ? {
-              name: "Error",
-              message: extractErrorMessage(result.error),
-              line: result.error.location?.line ?? 0,
-              column: result.error.location?.column ?? 0,
-            }
-          : null,
-        events,
-      },
-    ];
+      const events = this.getStepsFromFixture(testExecutionIdData);
 
-    const recordings = this.reporter.getRecordingsForTest(tests);
+      const relativePath = test.titlePath()[2];
+      const { stacks, filenames } = this.getFixtureData(testExecutionIdData);
+      filenames.add(test.location.file);
+      let playwrightMetadata: Record<string, any> | undefined;
 
-    for (let i = 0; i < recordings.length; i++) {
-      const recording = recordings[i];
+      if (this.captureTestFile) {
+        playwrightMetadata = {
+          "x-replay-playwright": {
+            sources: Object.fromEntries(
+              [...filenames].map(filename => {
+                try {
+                  return [filename, readFileSync(filename, "utf8")];
+                } catch (e) {
+                  logger.error("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
+                    filename,
+                    error: e,
+                  });
+                  return [filename, undefined];
+                }
+              })
+            ),
+            stacks,
+          },
+        };
+      }
 
-      // our reporter has to come first in the list of configured reports for this to be useful to other reporters
-      test.annotations.push({
-        type: "Replay recording" + (i > 0 ? ` ${i + 1}` : ""),
-        description: `https://app.replay.io/recording/${recording.id}`,
+      const tests = [
+        {
+          id: 0,
+          attempt: testExecutionIdData.attempt,
+          source: testExecutionIdData.source,
+          executionGroupId: String(testExecutionIdData.repeatEachIndex),
+          executionId: this._getTestExecutionId(testExecutionIdData),
+          maxAttempts: test.retries + 1,
+          approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
+          result: status === "interrupted" ? ("unknown" as const) : status,
+          error: result.error
+            ? {
+                name: "Error",
+                message: extractErrorMessage(result.error),
+                line: result.error.location?.line ?? 0,
+                column: result.error.location?.column ?? 0,
+              }
+            : null,
+          events,
+        },
+      ];
+
+      const recordings = this.reporter.getRecordingsForTest(tests);
+
+      for (let i = 0; i < recordings.length; i++) {
+        const recording = recordings[i];
+
+        // our reporter has to come first in the list of configured reports for this to be useful to other reporters
+        test.annotations.push({
+          type: "Replay recording" + (i > 0 ? ` ${i + 1}` : ""),
+          description: `https://app.replay.io/recording/${recording.id}`,
+        });
+      }
+
+      this.reporter.onTestEnd({
+        tests,
+        specFile: relativePath,
+        replayTitle: test.title,
+        extraMetadata: playwrightMetadata,
       });
-    }
-
-    this.reporter.onTestEnd({
-      tests,
-      specFile: relativePath,
-      replayTitle: test.title,
-      extraMetadata: playwrightMetadata,
     });
   }
 
   async onEnd() {
-    try {
-      await this.reporter.onEnd();
+    return withSentry("OnEnd", async () => {
+      try {
+        await this.reporter.onEnd();
 
-      const didUseReplayBrowser = Object.values(this._executedProjects).some(
-        ({ usesReplayBrowser }) => usesReplayBrowser
-      );
-      const isReplayBrowserInstalled = existsSync(getRuntimePath());
+        const didUseReplayBrowser = Object.values(this._executedProjects).some(
+          ({ usesReplayBrowser }) => usesReplayBrowser
+        );
+        const isReplayBrowserInstalled = existsSync(getRuntimePath());
 
-      const output: string[] = [];
+        const output: string[] = [];
 
-      if (!didUseReplayBrowser) {
-        mixpanelAPI.trackEvent("warning.reporter-used-without-replay-project");
-        output.push(emphasize("None of the configured projects ran using Replay Chromium."));
-      }
-
-      if (!isReplayBrowserInstalled) {
-        if (didUseReplayBrowser) {
-          mixpanelAPI.trackEvent("warning.replay-browser-not-installed");
+        if (!didUseReplayBrowser) {
+          mixpanelAPI.trackEvent("warning.reporter-used-without-replay-project");
+          output.push(emphasize("None of the configured projects ran using Replay Chromium."));
         }
 
-        output.push(
-          `To record tests with Replay, you need to install the Replay browser: ${highlight(
-            "npx replayio install"
-          )}`
-        );
-      }
-
-      if (output.length) {
-        output.push(
-          `Learn more at ${link(
-            "https://docs.replay.io/reference/test-runners/playwright/overview"
-          )}`
-        );
-
-        output.forEach((line, index) => {
-          if (index > 0) {
-            console.log("[replay.io]:");
+        if (!isReplayBrowserInstalled) {
+          if (didUseReplayBrowser) {
+            mixpanelAPI.trackEvent("warning.replay-browser-not-installed");
           }
-          console.warn(`[replay.io]: ${line}`);
-        });
+
+          output.push(
+            `To record tests with Replay, you need to install the Replay browser: ${highlight(
+              "npx replayio install"
+            )}`
+          );
+        }
+
+        if (output.length) {
+          output.push(
+            `Learn more at ${link(
+              "https://docs.replay.io/reference/test-runners/playwright/overview"
+            )}`
+          );
+
+          output.forEach((line, index) => {
+            if (index > 0) {
+              console.log("[replay.io]:");
+            }
+            console.warn(`[replay.io]: ${line}`);
+          });
+        }
+      } finally {
+        await Promise.all([
+          mixpanelAPI.close().catch(noop),
+          logger.close().catch(noop),
+          sentry.close().catch(noop),
+        ]);
       }
-    } finally {
-      await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
-    }
+    });
   }
 
   parseArguments(apiName: string, params: any) {
-    logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
-    if (!params || typeof params !== "object") {
-      return [];
-    }
-
-    switch (apiName) {
-      case "page.goto":
-        return [params.url];
-      case "page.evaluate":
-        // TODO(ryanjduffy): This would be nice to improve but it can be nearly
-        // anything so it's not obvious how to simplify it well to an array of
-        // strings.
+    return withSentrySync("ParseArguments", () => {
+      logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
+      if (!params || typeof params !== "object") {
         return [];
-      case "locator.getAttribute":
-        return [params.selector, params.name];
-      case "mouse.move":
-        // params = {x: 0, y: 0}
-        return [JSON.stringify(params)];
-      case "locator.hover":
-        return [params.selector, String(params.force)];
-      case "expect.toBeVisible":
-        return [params.selector, params.expression, String(params.isNot)];
-      case "keyboard.type":
-        return [params.text];
-      case "keyboard.down":
-      case "keyboard.up":
-        return [params.key];
-      case "locator.evaluate":
-      case "locator.scrollIntoViewIfNeeded":
-        return [params.selector, params.state];
-      default:
-        return params.selector ? [params.selector] : [];
-    }
+      }
+
+      switch (apiName) {
+        case "page.goto":
+          return [params.url];
+        case "page.evaluate":
+          // TODO(ryanjduffy): This would be nice to improve but it can be nearly
+          // anything so it's not obvious how to simplify it well to an array of
+          // strings.
+          return [];
+        case "locator.getAttribute":
+          return [params.selector, params.name];
+        case "mouse.move":
+          // params = {x: 0, y: 0}
+          return [JSON.stringify(params)];
+        case "locator.hover":
+          return [params.selector, String(params.force)];
+        case "expect.toBeVisible":
+          return [params.selector, params.expression, String(params.isNot)];
+        case "keyboard.type":
+          return [params.text];
+        case "keyboard.down":
+        case "keyboard.up":
+          return [params.key];
+        case "locator.evaluate":
+        case "locator.scrollIntoViewIfNeeded":
+          return [params.selector, params.state];
+        default:
+          return params.selector ? [params.selector] : [];
+      }
+    });
   }
 }
 
