@@ -1,14 +1,5 @@
 import { getReplayPath } from "../getReplayPath";
 
-export const debugLogPath = getReplayPath(
-  "logs",
-  "cli-" +
-    new Date()
-      .toISOString()
-      .replace(/:/g, "-")
-      .replace(/\.(\d+)Z$/, "-$1.log")
-);
-
 export const multiPartChunkSize = process.env.REPLAY_MULTIPART_UPLOAD_CHUNK
   ? parseInt(process.env.REPLAY_MULTIPART_UPLOAD_CHUNK, 10)
   : undefined;

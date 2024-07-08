@@ -259,6 +259,17 @@ export default class ReplayReporter<
           })
         );
     }
+
+    // Logging this here instead of in _parseConfig is intentional; the logger has been associated with the user's API key
+    if (config) {
+      if (config.filter) {
+        logger.info("ReplayReporter:Config:HasFilter", {
+          filter: config.filter.toString(),
+        });
+      } else {
+        logger.info("ReplayReporter:Config:NoFilter");
+      }
+    }
   }
 
   setTestRunnerVersion(version: TestRunner["version"]) {
@@ -729,6 +740,9 @@ export default class ReplayReporter<
   private async _uploadRecording(
     recording: RecordingEntry<TRecordingMetadata>
   ): Promise<UploadPendingWork | undefined> {
+    if (this._uploadStatusThreshold === "none" || !this._apiKey) {
+      return;
+    }
     // Cypress retries are on the same recordings, we only want to upload a single recording once
     if (this._uploadedRecordings.has(recording.id)) {
       logger.info("UploadRecording:AlreadyScheduled", {
@@ -972,7 +986,7 @@ export default class ReplayReporter<
   private _storeUploadableTestResults(
     results: UploadableTestExecutionResult<TRecordingMetadata>[]
   ) {
-    if (this._uploadStatusThreshold === "none") {
+    if (this._uploadStatusThreshold === "none" || !this._apiKey) {
       return;
     }
 
@@ -1010,7 +1024,7 @@ export default class ReplayReporter<
     result: UploadableTestResult<TRecordingMetadata>,
     executionGroupId: string
   ) {
-    if (this._uploadStatusThreshold === "none") {
+    if (this._uploadStatusThreshold === "none" || !this._apiKey) {
       return;
     }
     const executions = result.executions[executionGroupId];
