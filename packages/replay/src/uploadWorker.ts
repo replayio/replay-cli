@@ -51,7 +51,7 @@ parentPort.on(
 
     debug(`Fetch response received. Status: ${resp.status}, Status Text: ${resp.statusText}`);
 
-    if (resp.status !== 200) {
+    if (!resp.ok) {
       const respText = await resp.text();
       debug(`Fetch response text: ${respText}`);
       throw new Error(`Failed to upload recording. Response was ${resp.status} ${resp.statusText}`);

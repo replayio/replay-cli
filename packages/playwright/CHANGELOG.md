@@ -1,5 +1,11 @@
 # @replayio/playwright
 
+## 3.1.7
+
+### Patch Changes
+
+- [#603](https://github.com/replayio/replay-cli/pull/603) [`f2b1c82`](https://github.com/replayio/replay-cli/commit/f2b1c82ef9df926d3cc94aae1e3e8a26fb82042a) Thanks [@bvaughn](https://github.com/bvaughn)! - Gather data about deprecated `filter` config usage (as preparation to remove it)
+
 ## 3.1.6
 
 ### Patch Changes

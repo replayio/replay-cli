@@ -395,7 +395,7 @@ async function uploadSourcemapToAPI(
     throw new Error("Unexpected error processing upload response");
   }
 
-  if (response.status !== 200) {
+  if (!response.ok) {
     debug("Failure uploading sourcemap for %s, got %O", map.absPath, obj);
     throw new Error(
       typeof obj.error === "string" ? obj.error : "Unknown upload error"

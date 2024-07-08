@@ -1,5 +1,17 @@
 # @replayio/cypress
 
+## 3.1.1
+
+### Patch Changes
+
+- [#603](https://github.com/replayio/replay-cli/pull/603) [`f2b1c82`](https://github.com/replayio/replay-cli/commit/f2b1c82ef9df926d3cc94aae1e3e8a26fb82042a) Thanks [@bvaughn](https://github.com/bvaughn)! - Gather data about deprecated `filter` config usage (as preparation to remove it)
+
+## 3.1.0
+
+### Minor Changes
+
+- [#598](https://github.com/replayio/replay-cli/pull/598) [`0f9764b`](https://github.com/replayio/replay-cli/commit/0f9764ba114471a5f39f76dc1dbcb3265ad02940) Thanks [@Andarist](https://github.com/Andarist)! - Added a new `upload.statusThreshold` option. It accepts one of `'all'`, `'failed-and-flaky'` or `'failed'` and it's used to skip uploading recordings for test runs that don't satisfy the desired threshold (eg. it allows to filter out recordings of passed tests).
+
 ## 3.0.7
 
 ### Patch Changes

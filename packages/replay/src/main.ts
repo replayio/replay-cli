@@ -18,7 +18,10 @@ import { readToken } from "./auth";
 import { ProtocolError } from "./client";
 import { ensureBrowsersInstalled, getExecutablePath, updateBrowsers } from "./install";
 import { getLaunchDarkly } from "./launchdarkly";
-import { add, sanitize, source as sourceMetadata, test as testMetadata } from "./metadata";
+export { sanitizeMetadata as sanitize } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
+import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
+import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
+import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
 import {
   addRecordingEvent,
   readRecordings,
@@ -38,10 +41,11 @@ import {
   UploadAllOptions,
   UploadOptions,
   type ExternalRecordingEntry,
-  type UnstructuredMetadata,
 } from "./types";
+export type { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { ReplayClient } from "./upload";
 import { getDirectory, maybeLog, openExecutable } from "./utils";
+import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 export type { BrowserName, RecordingEntry } from "./types";
 export { updateStatus } from "./updateStatus";
 
@@ -686,7 +690,7 @@ function removeAllRecordings(opts: Options = {}) {
 }
 
 function addLocalRecordingMetadata(recordingId: string, metadata: Record<string, unknown>) {
-  add(recordingId, metadata);
+  addMetadata(recordingId, metadata);
 }
 
 async function updateMetadata({
@@ -727,7 +731,7 @@ async function updateMetadata({
   });
 
   const data = Object.assign(md, ...keyedObjects);
-  const sanitized = await sanitize(data);
+  const sanitized = await sanitizeMetadata(data);
 
   debug("Sanitized metadata: %O", sanitized);
 
@@ -735,7 +739,7 @@ async function updateMetadata({
 
   recordings.forEach(r => {
     maybeLog(verbose, `Setting metadata for ${r.id}`);
-    add(r.id, sanitized);
+    addMetadata(r.id, sanitized);
   });
 }
 
@@ -829,7 +833,6 @@ async function version() {
 
 export {
   ExternalRecordingEntry,
-  UnstructuredMetadata,
   addLocalRecordingMetadata,
   getDirectory,
   launchBrowser,

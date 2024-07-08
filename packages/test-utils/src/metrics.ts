@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
-import os from "os";
-import { TestMetadataV2 } from "./legacy-cli/metadata/test/v2";
+import os from "node:os";
+import { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import { logger } from "@replay-cli/shared/logger";
 
 function shouldReportTestMetrics() {

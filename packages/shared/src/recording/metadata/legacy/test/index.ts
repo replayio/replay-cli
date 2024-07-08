@@ -17,7 +17,7 @@ const versions = {
   ...v2,
 };
 
-export function validate(test: UnstructuredMetadata) {
+export function validate(test?: UnstructuredMetadata) {
   if (!test) {
     throw new Error("Test metadata does not exist");
   }

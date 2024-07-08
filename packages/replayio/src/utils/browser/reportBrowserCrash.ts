@@ -55,7 +55,7 @@ export async function reportBrowserCrash(stderr: string) {
       },
       body: formData,
     });
-    if (response.status >= 200 && response.status < 300) {
+    if (response.ok) {
       return {
         errorLogPath,
         uploaded: true,

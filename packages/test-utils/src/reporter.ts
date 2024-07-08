@@ -4,6 +4,10 @@ import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI, Properties } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
+import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
+import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
+import type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import { LocalRecording, UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { createUploadWorker, UploadWorker } from "@replay-cli/shared/recording/upload/uploadWorker";
 import { spawnSync } from "child_process";
@@ -14,8 +18,6 @@ import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
 import { getErrorMessage } from "./legacy-cli/error";
 import { listAllRecordings } from "./legacy-cli/listAllRecordings";
-import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
-import type { TestMetadataV2 } from "./legacy-cli/metadata/test";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
@@ -280,6 +282,17 @@ export default class ReplayReporter<
             error,
           })
         );
+    }
+
+    // Logging this here instead of in _parseConfig is intentional; the logger has been associated with the user's API key
+    if (config) {
+      if (config.filter) {
+        logger.info("ReplayReporter:Config:HasFilter", {
+          filter: config.filter.toString(),
+        });
+      } else {
+        logger.info("ReplayReporter:Config:NoFilter");
+      }
     }
   }
 
@@ -872,7 +885,7 @@ export default class ReplayReporter<
 
     recordings.forEach(rec => {
       this._recordingMetadatas.set(rec.id, mergedMetadata);
-      add(rec.id, mergedMetadata);
+      addMetadata(rec.id, mergedMetadata);
     });
 
     // Re-fetch recordings so we have the most recent metadata

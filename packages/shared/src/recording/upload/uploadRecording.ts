@@ -319,7 +319,7 @@ async function uploadRecordingReadStream(
 
     logger.debug("Fetch response received", { response });
 
-    if (response.status !== 200) {
+    if (!response.ok) {
       const respText = await response.text();
       logger.debug(`Fetch response text: ${respText}`);
       throw new Error(
