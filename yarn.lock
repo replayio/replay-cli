@@ -4028,8 +4028,6 @@ __metadata:
     "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
     "@replayio/sourcemap-upload": "workspace:^"
-    "@sentry/node": "npm:^8.13.0"
-    "@sentry/profiling-node": "npm:^8.13.0"
     "@types/debug": "npm:^4.1.7"
     "@types/jest": "npm:^28.1.5"
     "@types/node-fetch": "npm:^2.6.3"
