@@ -30,9 +30,29 @@ function anonymizeStackTrace(stack: string): string {
     .join("\n");
 }
 
-type LogLevel = "error" | "warn" | "info" | "debug";
+export function formatTags(tags?: Tags) {
+  if (!tags) {
+    return;
+  }
 
-type Tags = Record<string, unknown>;
+  return Object.entries(tags).reduce((result, [key, value]) => {
+    if (value instanceof Error) {
+      result[key] = {
+        // Intentionally keeping this for any extra properties attached in `Error`
+        ...(value as any),
+        errorName: value.name,
+        errorMessage: value.message,
+        errorStack: anonymizeStackTrace(value.stack ?? ""),
+      };
+    } else {
+      result[key] = value;
+    }
+    return result;
+  }, {} as Record<string, unknown>);
+}
+
+type LogLevel = "error" | "warn" | "info" | "debug";
+export type Tags = Record<string, unknown>;
 
 class Logger {
   private deviceId: string;
@@ -93,7 +113,7 @@ class Logger {
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
-    const formattedTags = this.formatTags(tags);
+    const formattedTags = formatTags(tags);
 
     this.localDebugger(message, formattedTags);
 
@@ -125,27 +145,6 @@ class Logger {
     if (this.grafana) {
       this.grafana.logger.log(entry);
     }
-  }
-
-  private formatTags(tags?: Record<string, unknown>) {
-    if (!tags) {
-      return;
-    }
-
-    return Object.entries(tags).reduce((result, [key, value]) => {
-      if (value instanceof Error) {
-        result[key] = {
-          // Intentionally keeping this for any extra properties attached in `Error`
-          ...(value as any),
-          errorName: value.name,
-          errorMessage: value.message,
-          errorStack: anonymizeStackTrace(value.stack ?? ""),
-        };
-      } else {
-        result[key] = value;
-      }
-      return result;
-    }, {} as Record<string, unknown>);
   }
 
   async close() {
