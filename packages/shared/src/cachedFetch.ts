@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { createDeferred, Deferred } from "./async/createDeferred";
 import { timeoutAfter } from "./async/timeoutAfter";
@@ -59,7 +58,7 @@ export async function cachedFetch(
       const json = await resp.json().catch(() => null);
 
       if (resp.ok) {
-        return storeCachedEntry(url, {
+        return storeCachedEntry(url, deferred, {
           json,
           ok: true,
           status: resp.status,
@@ -67,34 +66,39 @@ export async function cachedFetch(
         });
       }
 
-      if (shouldRetryFn) {
-        const shouldRetry = await shouldRetryFn(resp, json, retryAfter);
+      let shouldRetry = attempt < maxAttempts;
+
+      if (shouldRetry && shouldRetryFn) {
+        const shouldRetryResult = await shouldRetryFn(resp, json, retryAfter);
+
+        shouldRetry = !!shouldRetryResult;
+
         if (!shouldRetry) {
-          return storeCachedEntry(url, {
+          return storeCachedEntry(url, deferred, {
             json,
             ok: false,
             status: resp.status,
             statusText: resp.statusText,
           });
         }
-        if (typeof shouldRetry === "object" && typeof shouldRetry.after === "number") {
-          retryAfter = shouldRetry.after;
+        if (typeof shouldRetryResult === "object" && typeof shouldRetryResult.after === "number") {
+          retryAfter = shouldRetryResult.after;
         }
       }
       // If we've run out of retries, store and return the error
-      if (attempt === maxAttempts) {
-        return storeCachedEntry(url, {
+      if (!shouldRetry) {
+        return storeCachedEntry(url, deferred, {
           json,
           ok: false,
           status: resp.status,
           statusText: resp.statusText,
         });
       }
-    } catch (err) {
+    } catch (error) {
       // most likely it's a network failure, there is no need to call shouldRetryFn
       // but we should only retry if we haven't reached the maxAttempts yet
       if (attempt === maxAttempts) {
-        throw err;
+        throw error;
       }
     }
 
@@ -111,9 +115,11 @@ export function resetCache(url?: string) {
   }
 }
 
-function storeCachedEntry(url: string, entry: CacheEntry) {
-  const deferred = cache.get(url)?.deferred;
-  assert(deferred, "Deferred should be defined");
+function storeCachedEntry(
+  url: string,
+  deferred: Deferred<CacheEntry, undefined>,
+  entry: CacheEntry
+) {
   deferred.resolve(entry);
   cache.set(url, { deferred: undefined, entry });
   return entry;

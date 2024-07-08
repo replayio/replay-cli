@@ -12,7 +12,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
   for (const [key, value] of Object.entries(metadata)) {
     if (typeof value !== "object") {
       if (opts.verbose) {
-        console.log(
+        logger.log(
           `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
         );
       }
@@ -26,7 +26,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
       switch (key) {
         case "source": {
           try {
-            const validated = await validateSource(value as UnstructuredMetadata);
+            const validated = await validateSource(value as UnstructuredMetadata | undefined);
             Object.assign(updated, validated);
           } catch (error) {
             logger.debug("Source validation failed", { error });
@@ -35,7 +35,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
         }
         case "test": {
           try {
-            const validated = await validateTest(value as UnstructuredMetadata);
+            const validated = await validateTest(value as UnstructuredMetadata | undefined);
             Object.assign(updated, validated);
           } catch (error) {
             logger.debug("Test validation failed", { error });
