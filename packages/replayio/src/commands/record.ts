@@ -1,4 +1,5 @@
 import { ProcessError } from "@replay-cli/shared/ProcessError";
+import { logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { canUpload } from "@replay-cli/shared/recording/canUpload";
@@ -6,7 +7,6 @@ import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
 import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
 import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
 import { LocalRecording } from "@replay-cli/shared/recording/types";
-import { uploadRecordings } from "@replay-cli/shared/recording/upload/uploadRecordings";
 import { dim, statusFailed } from "@replay-cli/shared/theme";
 import debug from "debug";
 import { v4 as uuid } from "uuid";
@@ -16,7 +16,7 @@ import { launchBrowser } from "../utils/browser/launchBrowser";
 import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
-import { logger } from "@replay-cli/shared/logger";
+import { uploadRecordings } from "../utils/recordings/uploadRecordings";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
