@@ -1,4 +1,5 @@
 import { Deferred, STATUS_RESOLVED } from "@replay-cli/shared/async/createDeferred";
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { disableAnimatedLog, replayAppHost } from "@replay-cli/shared/config";
 import { logger } from "@replay-cli/shared/logger";
 import { logUpdate } from "@replay-cli/shared/logUpdate";
@@ -23,6 +24,7 @@ import {
   statusSuccess,
 } from "@replay-cli/shared/theme";
 import { dots } from "cli-spinners";
+import assert from "node:assert/strict";
 import strip from "strip-ansi";
 
 async function printDeferredRecordingActions(
@@ -136,7 +138,9 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
       return [];
     }
 
-    const worker = createUploadWorker(options);
+    const { accessToken } = await getAccessToken();
+    assert(accessToken, "No access token found");
+    const worker = createUploadWorker({ accessToken, ...options });
     const deferredActions = recordings.map(recording => worker.upload(recording));
 
     if (!silent) {
@@ -174,7 +178,7 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
     }
 
     try {
-      recordings = await worker.onEnd();
+      recordings = await worker.end();
     } catch (error) {
       if (
         error instanceof ProtocolError &&

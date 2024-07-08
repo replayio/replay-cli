@@ -6,7 +6,7 @@ import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
 
 export async function uploadCrashedData(client: ProtocolClient, recording: LocalRecording) {
-  logger.debug("Uploading crash data for recording", { recording });
+  logger.info("UploadCrashedData:Started", { recordingId: recording.id });
 
   const crashData = recording.crashData?.slice() ?? [];
   crashData.push({
@@ -14,12 +14,17 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
     recordingId: recording.id,
   });
 
-  await Promise.all(crashData.map(async data => reportCrash(client, { data })));
+  try {
+    await Promise.all(crashData.map(async data => reportCrash(client, { data })));
 
-  updateRecordingLog(recording, {
-    kind: RECORDING_LOG_KIND.crashUploaded,
-    server: replayWsServer,
-  });
+    updateRecordingLog(recording, {
+      kind: RECORDING_LOG_KIND.crashUploaded,
+      server: replayWsServer,
+    });
 
-  recording.uploadStatus = "uploaded";
+    recording.uploadStatus = "uploaded";
+  } catch (error) {
+    recording.uploadStatus = "failed";
+    recording.uploadError = error as Error;
+  }
 }

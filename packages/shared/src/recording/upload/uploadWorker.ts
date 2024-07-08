@@ -9,13 +9,15 @@ import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 
 export function createUploadWorker({
+  accessToken,
   deleteOnSuccess,
   processingBehavior,
 }: {
+  accessToken: string;
   deleteOnSuccess?: boolean;
   processingBehavior: ProcessingBehavior;
 }) {
-  const client = new ProtocolClient();
+  const client = new ProtocolClient(accessToken);
   const deferredAuthenticated = createDeferred<boolean>();
   const deferredActions: Deferred<boolean, LocalRecording>[] = [];
 
@@ -45,7 +47,7 @@ export function createUploadWorker({
       deferredActions.push(deferred);
       return deferred;
     },
-    onEnd: async () => {
+    end: async () => {
       try {
         await deferredAuthenticated.promise;
       } catch (err) {
@@ -71,3 +73,5 @@ export function createUploadWorker({
     },
   };
 }
+
+export type UploadWorker = ReturnType<typeof createUploadWorker>;

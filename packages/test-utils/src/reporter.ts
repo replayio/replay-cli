@@ -2,14 +2,17 @@ import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFai
 import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { logger } from "@replay-cli/shared/logger";
-import { Properties, mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
-import { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
+import { mixpanelAPI, Properties } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import { LocalRecording, UnstructuredMetadata } from "@replay-cli/shared/recording/types";
+import { createUploadWorker, UploadWorker } from "@replay-cli/shared/recording/upload/uploadWorker";
 import { spawnSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
 import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
+import { getErrorMessage } from "./legacy-cli/error";
 import { listAllRecordings } from "./legacy-cli/listAllRecordings";
 import { add, source as sourceMetadata, test as testMetadata } from "./legacy-cli/metadata";
 import type { TestMetadataV2 } from "./legacy-cli/metadata/test";
@@ -18,7 +21,6 @@ import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import type { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
-import { getErrorMessage } from "./legacy-cli/error";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -70,12 +72,11 @@ export type TestResult = TestMetadataV2.TestResult;
 export type TestError = TestMetadataV2.TestError;
 export type TestRun = TestMetadataV2.TestRun;
 
-type PendingWorkType = "test-run" | "test-run-tests" | "post-test" | "upload";
+type PendingWorkType = "test-run" | "test-run-tests" | "post-test";
 export type PendingWorkError<K extends PendingWorkType, TErrorData = {}> = TErrorData & {
   type: K;
   error: Error;
 };
-export type PendingUploadError = Extract<UploadPendingWork, { error: {} }>;
 
 type PendingWorkEntry<TType extends PendingWorkType, TSuccessData = {}, TErrorData = {}> =
   | PendingWorkError<TType, TErrorData>
@@ -88,15 +89,6 @@ type TestRunPendingWork = PendingWorkEntry<
   }
 >;
 type TestRunTestsPendingWork = PendingWorkEntry<"test-run-tests">;
-type UploadPendingWork = PendingWorkEntry<
-  "upload",
-  {
-    recording: RecordingEntry;
-  },
-  {
-    recording: RecordingEntry;
-  }
->;
 type PostTestPendingWork = PendingWorkEntry<
   "post-test",
   {
@@ -104,23 +96,37 @@ type PostTestPendingWork = PendingWorkEntry<
     testRun: TestRun;
   }
 >;
-export type PendingWork =
-  | TestRunPendingWork
-  | TestRunTestsPendingWork
-  | UploadPendingWork
-  | PostTestPendingWork;
+export type PendingWork = TestRunPendingWork | TestRunTestsPendingWork | PostTestPendingWork;
 
 function logPendingWorkErrors(errors: PendingWorkError<any>[]) {
   return errors.map(e => `   - ${e.error.message}`);
 }
 
-function getTestResult(recording: RecordingEntry): TestRun["result"] {
-  const test = recording.metadata.test as TestRun | undefined;
+function getTestResult(
+  recording: LocalRecording,
+  metadatas: Map<
+    string,
+    {
+      test: TestMetadataV2.TestRun;
+      title: string;
+    }
+  >
+): TestRun["result"] {
+  const test = metadatas.get(recording.id)?.test;
   return !test ? "unknown" : test.result;
 }
 
-function getTestResultEmoji(recording: RecordingEntry) {
-  const result = getTestResult(recording);
+function getTestResultEmoji(
+  recording: LocalRecording,
+  metadatas: Map<
+    string,
+    {
+      test: TestMetadataV2.TestRun;
+      title: string;
+    }
+  >
+) {
+  const result = getTestResult(recording, metadatas);
   switch (result) {
     case "unknown":
       return "﹖";
@@ -136,10 +142,20 @@ function getTestResultEmoji(recording: RecordingEntry) {
 
 const resultOrder = ["failed", "timedOut", "passed", "skipped", "unknown"];
 
-function sortRecordingsByResult(recordings: RecordingEntry[]) {
+function sortRecordingsByResult(
+  recordings: LocalRecording[],
+  metadatas: Map<
+    string,
+    {
+      test: TestMetadataV2.TestRun;
+      title: string;
+    }
+  >
+) {
   return [...recordings].sort((a, b) => {
     return (
-      resultOrder.indexOf(getTestResult(a)) - resultOrder.indexOf(getTestResult(b)) ||
+      resultOrder.indexOf(getTestResult(a, metadatas)) -
+        resultOrder.indexOf(getTestResult(b, metadatas)) ||
       ((a.metadata.title as string) || "").localeCompare((b.metadata.title as string) || "")
     );
   });
@@ -229,8 +245,16 @@ export default class ReplayReporter<
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
+  private _uploadWorker: UploadWorker | undefined;
   private _cacheAuthIdsPromise: Promise<void> | null = null;
   private _uploadedRecordings = new Set<string>();
+  private _recordingMetadatas = new Map<
+    string,
+    {
+      test: TestMetadataV2.TestRun;
+      title: string;
+    }
+  >();
 
   constructor(
     runner: TestRunner,
@@ -332,18 +356,23 @@ export default class ReplayReporter<
   ) {
     this._apiKey = getAccessToken(config);
     this._upload = "upload" in config ? !!config.upload : !!process.env.REPLAY_UPLOAD;
-    if (this._upload && !this._apiKey) {
-      throw new Error(
-        `\`@replayio/${this._runner.name}/reporter\` requires an API key to upload recordings. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable`
-      );
-    }
     if (this._upload) {
+      if (!this._apiKey) {
+        throw new Error(
+          `\`@replayio/${this._runner.name}/reporter\` requires an API key to upload recordings. Either pass a value to the apiKey plugin configuration or set the REPLAY_API_KEY environment variable`
+        );
+      }
       if (typeof config.upload === "object") {
         this._minimizeUploads = !!config.upload.minimizeUploads;
         this._uploadStatusThreshold = config.upload.statusThreshold ?? "all";
       } else {
         this._uploadStatusThreshold = "all";
       }
+      this._uploadWorker = createUploadWorker({
+        accessToken: this._apiKey,
+        deleteOnSuccess: true,
+        processingBehavior: "do-not-process",
+      });
     }
 
     // always favor environment variables over config so the config can be
@@ -724,10 +753,8 @@ export default class ReplayReporter<
     );
   }
 
-  private async _uploadRecording(
-    recording: RecordingEntry<TRecordingMetadata>
-  ): Promise<UploadPendingWork | undefined> {
-    if (this._uploadStatusThreshold === "none" || !this._apiKey) {
+  private async _uploadRecording(recording: RecordingEntry<TRecordingMetadata>) {
+    if (this._uploadStatusThreshold === "none" || !this._apiKey || !this._uploadWorker) {
       return;
     }
     // Cypress retries are on the same recordings, we only want to upload a single recording once
@@ -737,40 +764,15 @@ export default class ReplayReporter<
       });
       return;
     }
-    this._uploadedRecordings.add(recording.id);
-    logger.info("UploadRecording:Started", { recordingId: recording.id });
-
-    try {
-      await uploadRecording(recording.id, {
-        apiKey: this._apiKey,
-        // Per TT-941, we want to throw on any error so it can be caught below
-        // and reported back to the user rather than just returning null
-        strict: true,
-        // uploads are enqueued in this reporter asap
-        // but the extra assets should be removed after all of them are uploaded
-        removeAssets: false,
-      });
-
-      logger.info("UploadRecording:Succeeded", { recording: recording.id });
-
-      const recordings = listAllRecordings({ filter: r => r.id === recording.id, all: true });
-
-      return {
-        type: "upload",
-        recording: recordings[0],
-      };
-    } catch (error) {
-      logger.error("UploadRecording:Failed", {
-        error,
+    const uploadableRecording = getRecordings().find(r => r.id === recording.id);
+    if (!uploadableRecording) {
+      logger.info("UploadRecording:NoUploadableRecording", {
         recordingId: recording.id,
-        buildId: recording.buildId,
       });
-      return {
-        type: "upload",
-        recording,
-        error: new Error(getErrorMessage(error)),
-      };
+      return;
     }
+    this._uploadedRecordings.add(uploadableRecording.id);
+    this._uploadWorker.upload(uploadableRecording);
   }
 
   getRecordingsForTest(tests: { executionId: string }[]) {
@@ -868,7 +870,10 @@ export default class ReplayReporter<
       });
     }
 
-    recordings.forEach(rec => add(rec.id, mergedMetadata));
+    recordings.forEach(rec => {
+      this._recordingMetadatas.set(rec.id, mergedMetadata);
+      add(rec.id, mergedMetadata);
+    });
 
     // Re-fetch recordings so we have the most recent metadata
     const allRecordings = listAllRecordings({ all: true }) as RecordingEntry<TRecordingMetadata>[];
@@ -916,12 +921,12 @@ export default class ReplayReporter<
         logger.info("EnqueuePostTestWork:WillSkipAddTests");
       }
 
-      const testRun = this._buildTestMetadata(tests, specFile);
+      const testMetadata = this._buildTestMetadata(tests, specFile);
 
       if (recordings.length > 0) {
         const recordingsWithMetadata = await this._setRecordingMetadata(
           recordings,
-          testRun,
+          testMetadata,
           replayTitle,
           extraMetadata
         );
@@ -945,13 +950,13 @@ export default class ReplayReporter<
         firstRecording?.id,
         this._baseId,
         {
-          id: testRun.source.path + "#" + testRun.source.title,
-          source: testRun.source,
-          approximateDuration: testRun.approximateDuration,
+          id: testMetadata.source.path + "#" + testMetadata.source.title,
+          source: testMetadata.source,
+          approximateDuration: testMetadata.approximateDuration,
           recorded: firstRecording !== undefined,
           runtime: parseRuntime(firstRecording?.runtime),
           runner: this._runner.name,
-          result: testRun.result,
+          result: testMetadata.result,
         },
         this._apiKey
       );
@@ -959,7 +964,7 @@ export default class ReplayReporter<
       return {
         type: "post-test",
         recordings,
-        testRun,
+        testRun: testMetadata,
       };
     } catch (error) {
       logger.error("EnqueuePostTestWork:Failed", { error });
@@ -1091,12 +1096,13 @@ export default class ReplayReporter<
       }
     }
 
-    this._pendingWork.push(
-      ...toUpload
-        .flatMap(result => result.recordings)
-        .filter(r => (this._filter ? this._filter(r) : true))
-        .map(r => this._uploadRecording(r))
-    );
+    const filteredRecordings = toUpload
+      .flatMap(result => result.recordings)
+      .filter(r => (this._filter ? this._filter(r) : true));
+
+    for (const recording of filteredRecordings) {
+      this._uploadRecording(recording);
+    }
   }
 
   private _assignAggregateStatus(
@@ -1180,16 +1186,11 @@ export default class ReplayReporter<
       "post-test": [] as Extract<PostTestPendingWork, { error: {} }>[],
       "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
       "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
-      upload: [] as Extract<UploadPendingWork, { error: {} }>[],
     };
-    let uploads: RecordingEntry[] = [];
+    const uploads = await this._uploadWorker?.end();
     for (const r of results) {
       if ("error" in r) {
         errors[r.type].push(r as any);
-      } else {
-        if (r.type === "upload") {
-          uploads.push(r.recording);
-        }
       }
     }
 
@@ -1204,39 +1205,37 @@ export default class ReplayReporter<
       output.push(...logPendingWorkErrors(errors["test-run"]));
     }
 
-    if (errors["upload"].length > 0) {
-      output.push(`\n❌ Failed to upload ${errors["upload"].length} recordings:\n`);
-
-      errors["upload"].forEach(err => {
-        if ("recording" in err) {
-          const r = err.recording;
-          output.push(`   ${(r.metadata.title as string | undefined) || "Unknown"}`);
-          output.push(`      ${getErrorMessage(err.error)}\n`);
-        }
-      });
-    }
-
     let numCrashed = 0;
     let numUploaded = 0;
 
-    if (uploads.length > 0) {
-      const recordingIds = uploads.map(u => u.recordingId).filter(isNonNullable);
-      for (const recordingId of recordingIds) {
-        removeRecording(recordingId);
-      }
+    if (uploads?.length) {
+      const failedUploads = uploads.filter(u => u.uploadStatus === "failed");
+      const uploaded = uploads.filter(
+        u => u.recordingStatus !== "crashed" && u.uploadStatus === "uploaded"
+      );
+      const crashed = uploads.filter(
+        u => u.recordingStatus === "crashed" && u.uploadStatus === "uploaded"
+      );
 
-      const uploaded = uploads.filter(u => u.status === "uploaded");
-      const crashed = uploads.filter(u => u.status === "crashUploaded");
+      if (failedUploads.length > 0) {
+        output.push(`\n❌ Failed to upload ${failedUploads.length} recordings:\n`);
+        failedUploads.forEach(recording => {
+          output.push(`   ${(recording.metadata.title as string | undefined) || "Unknown"}`);
+          output.push(`      ${getErrorMessage(recording.uploadError)}\n`);
+        });
+      }
 
       numCrashed = crashed.length;
       numUploaded = uploaded.length;
 
       if (uploaded.length > 0) {
         output.push(`\n🚀 Successfully uploaded ${uploads.length} recordings:`);
-        const sortedUploads = sortRecordingsByResult(uploads);
+        const sortedUploads = sortRecordingsByResult(uploads, this._recordingMetadatas);
         sortedUploads.forEach(r => {
           output.push(
-            `\n   ${getTestResultEmoji(r)} ${(r.metadata.title as string | undefined) || "Unknown"}`
+            `\n   ${getTestResultEmoji(r, this._recordingMetadatas)} ${
+              (r.metadata.title as string | undefined) || "Unknown"
+            }`
           );
           output.push(
             `      ${process.env.REPLAY_VIEW_HOST || "https://app.replay.io"}/recording/${r.id}`

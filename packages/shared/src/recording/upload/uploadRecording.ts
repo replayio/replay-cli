@@ -31,6 +31,7 @@ export async function uploadRecording(
     processingBehavior: ProcessingBehavior;
   }
 ) {
+  logger.info("UploadRecording:Started", { recordingId: recording.id });
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
@@ -116,7 +117,13 @@ export async function uploadRecording(
       kind: RECORDING_LOG_KIND.uploadFailed,
     });
 
+    logger.error("UploadRecording:Failed", {
+      error,
+      recordingId: recording.id,
+      buildId: recording.buildId,
+    });
     recording.uploadStatus = "failed";
+    recording.uploadError = error as Error;
 
     throw error;
   }
@@ -133,6 +140,7 @@ export async function uploadRecording(
     server: replayWsServer,
   });
 
+  logger.info("UploadRecording:Succeeded", { recording: recording.id });
   recording.uploadStatus = "uploaded";
 
   switch (processingBehavior) {
