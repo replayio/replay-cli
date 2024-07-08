@@ -16,9 +16,7 @@ export default defineConfig({
   reporter: [
     // replicating Playwright's defaults
     process.env.CI ? (["dot"] as const) : (["list"] as const),
-    replayReporter({
-      upload: true,
-    }),
+    replayReporter({}),
   ],
   projects: [
     {
