@@ -116,7 +116,7 @@ export default class ProtocolClient {
   };
 
   private onSocketError = (error: any) => {
-    logger.debug("Socket error", { error });
+    logger.error("ProtocolClient:Error", { error });
 
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
       this.deferredAuthenticated.reject(error);
@@ -157,8 +157,7 @@ export default class ProtocolClient {
       await setAccessToken(this, { accessToken: this.accessToken });
       this.deferredAuthenticated.resolve(true);
     } catch (error) {
-      logger.debug("Error authenticating", { error });
-
+      logger.error("ProtocolClient:ServerAuthFailed", { error });
       this.socket.close();
       this.deferredAuthenticated.reject(error as Error);
     }
