@@ -798,7 +798,7 @@ export default class ReplayReporter<
     });
 
     logger.info("GetRecordingsForTest:FoundRecordings", {
-      recoridngsLength: recordings.length,
+      recordingsLength: recordings.length,
       filter,
     });
 
