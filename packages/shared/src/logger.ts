@@ -94,9 +94,6 @@ class Logger {
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
-    if (!this.initialized) {
-      throw new Error("Logger not initialized. Call `logger.initialize` first.");
-    }
     const formattedTags = this.formatTags(tags);
 
     this.localDebugger(message, formattedTags);
