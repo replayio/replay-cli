@@ -131,4 +131,14 @@ describe("getRecordings", () => {
       ])
     );
   });
+
+  it("should gracefully handle missing recording log entries", () => {
+    mockReadFileSync.mockReturnValue(`
+      {"id":"fake","kind":"addMetadata","metadata":{"processGroupId":"fake"}}
+      {"id":"fake","kind":"writeFinished"}
+    `);
+
+    const recordings = getRecordings();
+    expect(recordings).toHaveLength(0);
+  });
 });
