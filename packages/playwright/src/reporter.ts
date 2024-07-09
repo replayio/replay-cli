@@ -415,7 +415,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
       // that can lead to removing *our* last log line
       //
       // the issue is tracked here: https://github.com/microsoft/playwright/issues/23875
-      console.log("[replay.io]:");
+      console.log("");
     } finally {
       await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
     }
