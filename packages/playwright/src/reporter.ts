@@ -86,6 +86,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     setUserAgent(`${packageName}/${packageVersion}`);
 
     logger.initialize(packageName, packageVersion);
+    logger.identify(getAccessToken(config));
     mixpanelAPI.initialize({
       accessToken: getAccessToken(config),
       packageName,
