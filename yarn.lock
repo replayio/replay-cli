@@ -3660,6 +3660,35 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@replayio/replay@npm:latest":
+  version: 0.22.12
+  resolution: "@replayio/replay@npm:0.22.12"
+  dependencies:
+    "@replayio/sourcemap-upload": "npm:^2.0.6"
+    "@types/semver": "npm:^7.5.6"
+    commander: "npm:^12.0.0"
+    debug: "npm:^4.3.4"
+    fs-extra: "npm:^11.2.0"
+    is-uuid: "npm:^1.0.2"
+    jsonata: "npm:^1.8.6"
+    launchdarkly-node-client-sdk: "npm:^3.2.1"
+    node-fetch: "npm:^2.6.8"
+    p-map: "npm:^4.0.0"
+    query-registry: "npm:^2.6.0"
+    semver: "npm:^7.5.4"
+    stack-utils: "npm:^2.0.6"
+    superstruct: "npm:^1.0.4"
+    text-table: "npm:^0.2.0"
+    undici: "npm:^5.28.4"
+    winston: "npm:^3.13.0"
+    winston-loki: "npm:^6.1.2"
+    ws: "npm:^7.5.0"
+  bin:
+    replay: ./bin.js
+  checksum: 10c0/de665d4829dc511cfdfe7564fedea7ccd2c4b60a27dd4f6effa9d2ee939fe9653571cdc11eaeea0adaa09bc83bced287e83020ce72835f88e6de5f7d54b0b4e6
+  languageName: node
+  linkType: hard
+
 "@replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin":
   version: 0.0.0-use.local
   resolution: "@replayio/sourcemap-upload-webpack-plugin@workspace:packages/sourcemap-upload-webpack-plugin"
@@ -3684,7 +3713,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@replayio/sourcemap-upload@workspace:^, @replayio/sourcemap-upload@workspace:packages/sourcemap-upload":
+"@replayio/sourcemap-upload@npm:^2.0.6, @replayio/sourcemap-upload@workspace:^, @replayio/sourcemap-upload@workspace:packages/sourcemap-upload":
   version: 0.0.0-use.local
   resolution: "@replayio/sourcemap-upload@workspace:packages/sourcemap-upload"
   dependencies:
@@ -7059,6 +7088,7 @@ __metadata:
   dependencies:
     "@playwright/test": "npm:^1.40.1"
     "@replayio/playwright": "workspace:^"
+    "@replayio/replay": "npm:latest"
     "@testing-library/jest-dom": "npm:^5.16.2"
     "@testing-library/react": "npm:^12.1.4"
     "@testing-library/user-event": "npm:^13.5.0"
@@ -13268,7 +13298,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-fetch@npm:^2.5.0, node-fetch@npm:^2.6.1, node-fetch@npm:^2.6.7":
+"node-fetch@npm:^2.5.0, node-fetch@npm:^2.6.1, node-fetch@npm:^2.6.7, node-fetch@npm:^2.6.8":
   version: 2.7.0
   resolution: "node-fetch@npm:2.7.0"
   dependencies:

@@ -4,6 +4,7 @@
   "dependencies": {
     "@playwright/test": "^1.40.1",
     "@replayio/playwright": "workspace:^",
+    "@replayio/replay": "latest",
     "@testing-library/jest-dom": "^5.16.2",
     "@testing-library/react": "^12.1.4",
     "@testing-library/user-event": "^13.5.0",
