@@ -84,10 +84,10 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
       };
     } catch (error) {
       logger.error("InstallLatestRelease:Failed", { error });
-
       progress.setFailed(
         "Something went wrong installing the Replay browser. Please try again later."
       );
+      throw error;
     }
   },
   "update.runtime.installed",
