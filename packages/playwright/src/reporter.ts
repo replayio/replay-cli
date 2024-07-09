@@ -403,6 +403,8 @@ export default class ReplayPlaywrightReporter implements Reporter {
           console.warn(`[replay.io]: ${line}`);
         });
       }
+
+      console.log("[replay.io]:");
     } finally {
       await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
     }
