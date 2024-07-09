@@ -48,6 +48,8 @@
     "@jest/environment": "^27.5.1",
     "@jest/test-result": "^27.5.1",
     "@jest/types": "^27.5.1",
+    "@sentry/node": "^8.15.0",
+    "@sentry/profiling-node": "^8.15.0",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
     "is-uuid": "^1.0.2",

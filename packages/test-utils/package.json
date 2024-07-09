@@ -29,6 +29,8 @@
   },
   "homepage": "https://github.com/replayio/replay-cli#readme",
   "dependencies": {
+    "@sentry/node": "^8.13.0",
+    "@sentry/profiling-node": "^8.13.0",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
     "jsonata": "^1.8.6",
