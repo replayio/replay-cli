@@ -24,11 +24,6 @@ class SentryAPI {
       console.warn(`Logger already initialized.`);
     }
 
-    this.initSentry(app, version);
-    this.initialized = true;
-  }
-
-  private initSentry(app: string, version: string | undefined) {
     Sentry.init({
       dsn: SENTRY_DSN,
       integrations: [nodeProfilingIntegration()],
@@ -38,6 +33,8 @@ class SentryAPI {
       app,
       version,
     });
+
+    this.initialized = true;
   }
 
   identify(authInfo: AuthInfo) {
@@ -50,14 +47,6 @@ class SentryAPI {
     }
 
     await Sentry.close();
-  }
-
-  async flush() {
-    if (process.env.REPLAY_TELEMETRY_DISABLED) {
-      return;
-    }
-
-    await Sentry.flush();
   }
 
   captureException(error: Error, tags?: Tags) {
@@ -94,11 +83,11 @@ export const sentry = new SentryAPI();
 
 // This should be called with the name once at the entry point.
 // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-function initSentry(app: string, version: string | undefined) {
+export function initSentry(app: string, version: string | undefined) {
   sentry.initialize(app, version);
 }
 
-async function withSentry<T>(
+export async function withSentry<T>(
   methodName: string,
   fn: () => T | Promise<T>,
   tags?: Tags
@@ -113,7 +102,7 @@ async function withSentry<T>(
   }
 }
 
-function withSentrySync<T>(methodName: string, fn: () => T): T {
+export function withSentrySync<T>(methodName: string, fn: () => T): T {
   try {
     return fn();
   } catch (error: any) {
@@ -122,5 +111,3 @@ function withSentrySync<T>(methodName: string, fn: () => T): T {
     throw error;
   }
 }
-
-export { initSentry, withSentry, withSentrySync };
