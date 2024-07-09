@@ -3,7 +3,8 @@ const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
-import { formatTags, logger, Tags } from "./logger";
+import { logger } from "./logger";
+import { formatTags, Tags } from "./formatTags";
 
 const SENTRY_DSN =
   "https://5c145b72bb502832982243d6584f163d@o437061.ingest.us.sentry.io/4507534763819008"; // write-only permissions
