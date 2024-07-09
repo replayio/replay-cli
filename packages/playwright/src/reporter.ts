@@ -404,6 +404,17 @@ export default class ReplayPlaywrightReporter implements Reporter {
         });
       }
 
+      // we need to output an extra line that is safe to be deleted
+      // Playwright's line reporter removes the last line here:
+      // https://github.com/microsoft/playwright/blob/0c11d6ed803db582a5508c70f89e55dc9a36c751/packages/playwright/src/reporters/line.ts#L91
+      //
+      // so if the user configured their reporters like this:
+      //
+      // reporters: [replayReporter({ upload: true }), ['line']]
+      //
+      // that can lead to removing *our* last log line
+      //
+      // the issue is tracked here: https://github.com/microsoft/playwright/issues/23875
       console.log("[replay.io]:");
     } finally {
       await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
