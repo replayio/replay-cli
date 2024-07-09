@@ -51,13 +51,14 @@ class Logger {
     this.sessionId = randomUUID();
   }
 
+  // This should be called with the name once at the entry point.
+  // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
   initialize(app: string, version: string | undefined) {
     if (this.initialized) {
       console.warn(`Logger already initialized.`);
     }
 
     this.initialized = true;
-    this.localDebugger = dbg(app);
     this.grafana = this.initGrafana(app, version);
   }
 
@@ -176,9 +177,3 @@ class Logger {
 }
 
 export const logger = new Logger();
-
-// This should be called with the name once at the entry point.
-// For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-export function initLogger(app: string, version: string | undefined) {
-  logger.initialize(app, version);
-}

@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { initLogger, logger } from "@replay-cli/shared/logger";
+import { logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { setUserAgent } from "@replay-cli/shared/userAgent";
@@ -263,7 +263,7 @@ const plugin = (
 ) => {
   setUserAgent(`${packageName}/${packageVersion}`);
 
-  initLogger(packageName, packageVersion);
+  logger.initialize(packageName, packageVersion);
   mixpanelAPI.initialize({
     accessToken: getAuthKey(config),
     packageName,

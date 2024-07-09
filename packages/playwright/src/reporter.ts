@@ -5,7 +5,7 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
-import { initLogger, logger } from "@replay-cli/shared/logger";
+import { logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
@@ -85,7 +85,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${packageName}/${packageVersion}`);
 
-    initLogger(packageName, packageVersion);
+    logger.initialize(packageName, packageVersion);
     mixpanelAPI.initialize({
       accessToken: getAccessToken(config),
       packageName,
