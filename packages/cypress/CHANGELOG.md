@@ -1,5 +1,11 @@
 # @replayio/cypress
 
+## 3.1.2
+
+### Patch Changes
+
+- [#592](https://github.com/replayio/replay-cli/pull/592) [`134591c`](https://github.com/replayio/replay-cli/commit/134591ccd4ead6098aa855f2b751b505f43c7b80) Thanks [@Andarist](https://github.com/Andarist)! - Improved resiliency to GitHub API errors when auto-populating PR-related information metadata
+
 ## 3.1.1
 
 ### Patch Changes
