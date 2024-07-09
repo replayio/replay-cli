@@ -6,7 +6,7 @@ To use Replay with a Desktop Browser, visit [replay.io](https://www.replay.io/) 
 
 ## Packages
 
-- [`/replay`](./packages/replay/README.md) CLI for viewing + uploading recordings
+- [`/replayio`](./packages/replayio/README.md) CLI for viewing and uploading recordings
 - [`/cypress`](./packages/cypress/README.md) Beta Plugin for recording and capturing metadata for Cypress tests.
 - [`/playwright`](./packages/playwright/README.md) Beta Plugin for recording and capturing metadata for Playwright tests.
 - [`/puppeteer`](./packages/puppeteer/README.md) Experimental Plugin for recording Puppeteer tests.
