@@ -43,8 +43,6 @@ export async function initialize({
     npmUpdateCheck = { hasUpdate: undefined },
   ] = await promises;
 
-  await logger.identify(accessToken);
-
   if (requireAuthentication && !accessToken) {
     accessToken = await promptForAuthentication();
   }
