@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-import { initLaunchDarklyFromAccessToken } from "@replay-cli/shared/launch-darkly/initLaunchDarklyFromAccessToken";
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
@@ -272,9 +271,6 @@ const plugin = (
     packageName,
     packageVersion,
   });
-  if (accessToken) {
-    initLaunchDarklyFromAccessToken(accessToken);
-  }
 
   cypressReporter = new CypressReporter(config, options);
 

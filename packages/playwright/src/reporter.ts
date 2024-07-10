@@ -5,7 +5,6 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
-import { initLaunchDarklyFromAccessToken } from "@replay-cli/shared/launch-darkly/initLaunchDarklyFromAccessToken";
 import { initLogger, logger } from "@replay-cli/shared/logger";
 import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
@@ -94,9 +93,6 @@ export default class ReplayPlaywrightReporter implements Reporter {
       packageName,
       packageVersion,
     });
-    if (accessToken) {
-      initLaunchDarklyFromAccessToken(accessToken);
-    }
     if (!config || typeof config !== "object") {
       mixpanelAPI.trackEvent("error.invalid-reporter-config", { config });
 
