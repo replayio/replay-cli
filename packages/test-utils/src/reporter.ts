@@ -226,7 +226,6 @@ export default class ReplayReporter<
   private _apiKey?: string;
   private _pendingWork: Promise<PendingWork | undefined>[] = [];
   private _upload = false;
-  private _filter?: (r: RecordingEntry<TRecordingMetadata>) => boolean;
   private _minimizeUploads = false;
   private _uploadableResults: Map<string, UploadableTestResult<TRecordingMetadata>> = new Map();
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
@@ -354,8 +353,6 @@ export default class ReplayReporter<
       config.runTitle ||
       getFallbackRunTitle();
 
-    this._filter = config.filter;
-
     // RECORD_REPLAY_METADATA is our "standard" metadata environment variable.
     // We suppress it for the browser process so we can use
     // RECORD_REPLAY_METADATA_FILE but can still use the metadata here which
@@ -424,14 +421,12 @@ export default class ReplayReporter<
       baseMetadata: this._baseMetadata,
       upload: this._upload,
       hasApiKey: !!this._apiKey,
-      hasFilter: !!this._filter,
     });
 
     mixpanelAPI.trackEvent("test-suite.begin", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       upload: this._upload,
-      hasFilter: !!this._filter,
     });
 
     if (!this._apiKey) {
@@ -1091,10 +1086,7 @@ export default class ReplayReporter<
     }
 
     this._pendingWork.push(
-      ...toUpload
-        .flatMap(result => result.recordings)
-        .filter(r => (this._filter ? this._filter(r) : true))
-        .map(r => this._uploadRecording(r))
+      ...toUpload.flatMap(result => result.recordings).map(r => this._uploadRecording(r))
     );
   }
 
