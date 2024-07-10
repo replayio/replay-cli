@@ -8,7 +8,8 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "src/**", "tsconfig.json"]
+      "inputs": ["$TURBO_DEFAULT$", "src/**", "tsconfig.json"],
+      "outputs": [".tsbuildinfo"]
     }
   },
   "globalDependencies": ["tsconfig.json"]
