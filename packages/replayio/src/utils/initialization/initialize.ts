@@ -9,6 +9,7 @@ import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
 import { promptForAuthentication } from "./promptForAuthentication";
 import { promptForNpmUpdate } from "./promptForNpmUpdate";
 import { promptForRuntimeUpdate } from "./promptForRuntimeUpdate";
+import { logger } from "@replay-cli/shared/logger";
 
 export async function initialize({
   checkForNpmUpdate: shouldCheckForNpmUpdate,
@@ -51,6 +52,8 @@ export async function initialize({
   // They also shouldn't block on failure, so we should only wait a couple of seconds before giving up
   const abortController = new AbortController();
 
+  const loggerPromise = raceWithTimeout(logger.identify(accessToken), 2_500, abortController);
+
   const launchDarklyPromise = accessToken
     ? raceWithTimeout(
         initLaunchDarklyFromAccessToken(accessToken, abortController.signal),
@@ -73,5 +76,5 @@ export async function initialize({
     await promptForRuntimeUpdate(runtimeUpdateCheck);
   }
 
-  await Promise.all([launchDarklyPromise, mixpanelPromise]);
+  await Promise.all([loggerPromise, launchDarklyPromise, mixpanelPromise]);
 }

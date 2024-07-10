@@ -5,6 +5,7 @@ import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
 import StackUtils from "stack-utils";
+import { getAuthInfo } from "./graphql/getAuthInfo";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -89,8 +90,14 @@ class Logger {
     };
   }
 
-  identify(authInfo: AuthInfo) {
-    this.authInfo = authInfo;
+  async identify(accessToken: string | undefined) {
+    try {
+      if (accessToken) {
+        this.authInfo = await getAuthInfo(accessToken);
+      }
+    } catch (error) {
+      logger.error("Logger:InitializationFailed", { error });
+    }
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
