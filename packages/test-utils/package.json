@@ -54,6 +54,7 @@
     "@types/debug": "^4.1.7",
     "@types/node-fetch": "^2.6.2",
     "@types/stack-utils": "^2.0.3",
+    "turbo": "^2.0.5",
     "typescript": "^5.5.2"
   },
   "@replay-cli/pkg-build": {
