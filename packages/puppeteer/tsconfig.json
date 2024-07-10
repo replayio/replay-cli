@@ -7,9 +7,6 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../replay"
-    },
-    {
       "path": "../test-utils"
     }
   ]
