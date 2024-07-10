@@ -1,14 +1,16 @@
 import { fetch } from "undici";
 import { replayApiServer } from "../config";
 import { logger } from "../logger";
-import { getUserAgent } from "../userAgent";
+import { getUserAgent } from "../session/getUserAgent";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
+  const userAgent = await getUserAgent();
+
   const options = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "User-Agent": getUserAgent(),
+      "User-Agent": userAgent,
     } as Record<string, string>,
     body: JSON.stringify({
       query,

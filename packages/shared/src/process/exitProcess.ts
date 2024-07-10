@@ -1,7 +1,7 @@
-import { exitTasks } from "./exitTask";
+import { waitForExitTasks } from "./waitForExitTasks";
 
 export async function exitProcess(code?: number): Promise<never> {
-  await Promise.all(exitTasks.map(task => task()));
+  await waitForExitTasks;
 
   process.exit(code);
 }

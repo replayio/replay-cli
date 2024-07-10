@@ -6,10 +6,11 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { waitForExitTasks } from "@replay-cli/shared/process/waitForExitTasks";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   ReplayReporter,
   ReplayReporterConfig,
@@ -83,18 +84,14 @@ export default class ReplayPlaywrightReporter implements Reporter {
   private _executedProjects: Record<string, { usesReplayBrowser: boolean }> = {};
 
   constructor(config: ReplayPlaywrightConfig) {
-    setUserAgent(`${packageName}/${packageVersion}`);
-
-    logger.initialize(packageName, packageVersion);
-    logger.identify(getAccessToken(config));
-    mixpanelAPI.initialize({
+    initializeSession({
       accessToken: getAccessToken(config),
       packageName,
       packageVersion,
     });
 
     if (!config || typeof config !== "object") {
-      mixpanelAPI.trackEvent("error.invalid-reporter-config", { config });
+      mixpanelClient.trackEvent("error.invalid-reporter-config", { config });
 
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -374,13 +371,13 @@ export default class ReplayPlaywrightReporter implements Reporter {
       const output: string[] = [];
 
       if (!didUseReplayBrowser) {
-        mixpanelAPI.trackEvent("warning.reporter-used-without-replay-project");
+        mixpanelClient.trackEvent("warning.reporter-used-without-replay-project");
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
       if (!isReplayBrowserInstalled) {
         if (didUseReplayBrowser) {
-          mixpanelAPI.trackEvent("warning.replay-browser-not-installed");
+          mixpanelClient.trackEvent("warning.replay-browser-not-installed");
         }
 
         output.push(
@@ -418,7 +415,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
       // the issue is tracked here: https://github.com/microsoft/playwright/issues/23875
       console.log("");
     } finally {
-      await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
+      await waitForExitTasks();
     }
   }
 

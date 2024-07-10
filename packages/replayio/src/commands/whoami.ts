@@ -1,5 +1,5 @@
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
-import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
+import { getAuthInfo } from "@replay-cli/shared/authentication/getAuthInfo";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { dim, emphasize, highlight, link } from "@replay-cli/shared/theme";
 import { name as packageName } from "../../package.json";

@@ -1,5 +1,5 @@
 import { ProcessError } from "@replay-cli/shared/ProcessError";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { canUpload } from "@replay-cli/shared/recording/canUpload";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
@@ -103,7 +103,7 @@ async function record(url: string = "about:blank") {
     console.log(""); // Spacing for readability
   }
 
-  mixpanelAPI.trackEvent("record.results", {
+  mixpanelClient.trackEvent("record.results", {
     crashedCount: crashedRecordings.length,
     successCountsByType: finishedRecordings.reduce(
       (map, recording) => {

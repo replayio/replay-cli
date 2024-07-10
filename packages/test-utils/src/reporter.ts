@@ -1,8 +1,11 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
-import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
 import { logger } from "@replay-cli/shared/logger";
-import { Properties, mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { Properties, mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
+import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
+import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
+import type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import { UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { spawnSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
@@ -11,16 +14,12 @@ import { dirname } from "path";
 import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
 import { listAllRecordings, removeRecording, uploadRecording } from "./legacy-cli";
-import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
-import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
-import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test/index";
-import type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
+import { getErrorMessage } from "./legacy-cli/error";
 import { log } from "./logging";
 import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import type { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
-import { getErrorMessage } from "./legacy-cli/error";
 
 function last<T>(arr: T[]): T | undefined {
   return arr[arr.length - 1];
@@ -394,7 +393,7 @@ export default class ReplayReporter<
   addError(error: Error | ReporterError, context?: Properties) {
     logger.error("AddError", { error });
 
-    mixpanelAPI.trackEvent(`test-suite.error.${error.name}`, { context, error });
+    mixpanelClient.trackEvent(`test-suite.error.${error.name}`, { context, error });
 
     if (error.name === "ReporterError") {
       this._errors.push(error as ReporterError);
@@ -409,7 +408,7 @@ export default class ReplayReporter<
       "x-replay-diagnostics": metadata,
     };
 
-    mixpanelAPI.appendAdditionalProperties({ baseMetadata: this._baseMetadata });
+    mixpanelClient.appendAdditionalProperties({ baseMetadata: this._baseMetadata });
   }
 
   onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
@@ -427,7 +426,7 @@ export default class ReplayReporter<
       hasFilter: !!this._filter,
     });
 
-    mixpanelAPI.trackEvent("test-suite.begin", {
+    mixpanelClient.trackEvent("test-suite.begin", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       upload: this._upload,
@@ -437,7 +436,7 @@ export default class ReplayReporter<
     if (!this._apiKey) {
       logger.info("OnTestSuiteBegin:NoApiKey");
 
-      mixpanelAPI.trackEvent("test-suite.no-api-key");
+      mixpanelClient.trackEvent("test-suite.no-api-key");
 
       return;
     }
@@ -706,7 +705,7 @@ export default class ReplayReporter<
   }) {
     logger.info("OnTestEnd:Started", { specFile });
 
-    mixpanelAPI.trackEvent("test-suite.test-end", {
+    mixpanelClient.trackEvent("test-suite.test-end", {
       replayTitle,
       specFile,
     });
@@ -835,7 +834,7 @@ export default class ReplayReporter<
       errorLength: this._errors.length,
     });
 
-    mixpanelAPI.trackEvent("test-suite.metadata", {
+    mixpanelClient.trackEvent("test-suite.metadata", {
       numErrors: this._errors.length,
       numRecordings: recordings.length,
       replayTitle,
@@ -1133,7 +1132,7 @@ export default class ReplayReporter<
   async onEnd(): Promise<PendingWork[]> {
     logger.info("OnEnd:Started");
 
-    mixpanelAPI.trackEvent("test-suite.ending", {
+    mixpanelClient.trackEvent("test-suite.ending", {
       minimizeUploads: this._minimizeUploads,
       numPendingWork: this._pendingWork.length,
       uploadStatusThreshold: this._uploadStatusThreshold,
@@ -1245,7 +1244,7 @@ export default class ReplayReporter<
       }
     }
 
-    mixpanelAPI.trackEvent("test-suite.results", {
+    mixpanelClient.trackEvent("test-suite.results", {
       errors,
       numCrashed,
       numUploaded,

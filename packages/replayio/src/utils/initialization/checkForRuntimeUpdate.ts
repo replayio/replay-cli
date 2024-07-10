@@ -1,5 +1,5 @@
 import { logger } from "@replay-cli/shared/logger";
-import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanel/createAsyncFunctionWithTracking";
+import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
 import { existsSync } from "fs-extra";
 import { getBrowserPath } from "../browser/getBrowserPath";
 import { getLatestRelease } from "../installation/getLatestReleases";
@@ -15,7 +15,7 @@ export type Version = {
   version: Release["version"];
 };
 
-export const checkForRuntimeUpdate = createAsyncFunctionWithTracking(
+export const checkForRuntimeUpdate = mixpanelClient.createAsyncFunctionWithTracking(
   async function checkForRuntimeUpdate(): Promise<UpdateCheck<Version>> {
     let latestRelease: Release;
     let latestBuildId: string;

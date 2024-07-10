@@ -1,11 +1,11 @@
+import { randomUUID } from "crypto";
 import dbg from "debug";
+import StackUtils from "stack-utils";
 import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
-import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
-import { randomUUID } from "crypto";
-import StackUtils from "stack-utils";
-import { getAuthInfo } from "./graphql/getAuthInfo";
+import { AuthenticatedTaskQueue } from "./session/AuthenticatedTaskQueue";
+import { PackageInfo } from "./session/types";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -35,38 +35,41 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 
 type Tags = Record<string, unknown>;
 
-class Logger {
+class Logger extends AuthenticatedTaskQueue {
   private deviceId: string;
-  private sessionId: string;
-  private authInfo?: AuthInfo;
   private grafana: {
     logger: winston.Logger;
     close: () => Promise<void>;
   } | null = null;
-  private initialized: boolean = false;
   private localDebugger: debug.Debugger;
+  private sessionId: string;
 
   constructor() {
+    super();
+
     this.localDebugger = dbg("replay");
     this.deviceId = getDeviceId();
     this.sessionId = randomUUID();
   }
 
-  // This should be called with the name once at the entry point.
-  // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-  initialize(app: string, version: string | undefined) {
-    if (this.initialized) {
-      console.warn(`Logger already initialized.`);
-    }
-
-    this.initialized = true;
-    this.grafana = this.initGrafana(app, version);
+  onAuthenticate() {
+    // No-op
   }
 
-  private initGrafana(app: string, version: string | undefined) {
+  async onFinalize() {
+    if (process.env.REPLAY_TELEMETRY_DISABLED) {
+      return;
+    }
+
+    if (this.grafana) {
+      await this.grafana.close();
+    }
+  }
+
+  onInitialize({ packageName, packageVersion }: PackageInfo) {
     const lokiTransport = new LokiTransport({
       host: HOST,
-      labels: { app, version },
+      labels: { app: packageName, version: packageVersion },
       json: true,
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
@@ -76,7 +79,7 @@ class Logger {
       gracefulShutdown: true,
     });
 
-    return {
+    this.grafana = {
       logger: winston.createLogger({
         // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
         // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
@@ -90,49 +93,41 @@ class Logger {
     };
   }
 
-  async identify(accessToken: string | undefined) {
-    try {
-      if (accessToken) {
-        this.authInfo = await getAuthInfo(accessToken);
-      }
-    } catch (error) {
-      logger.error("Logger:InitializationFailed", { error });
-    }
-  }
-
   private log(message: string, level: LogLevel, tags?: Tags) {
-    const formattedTags = this.formatTags(tags);
+    super.addToQueue(authInfo => {
+      const formattedTags = this.formatTags(tags);
 
-    this.localDebugger(message, formattedTags);
+      this.localDebugger(message, formattedTags);
 
-    if (process.env.REPLAY_TELEMETRY_DISABLED) {
-      return;
-    }
+      if (process.env.REPLAY_TELEMETRY_DISABLED) {
+        return;
+      }
 
-    const entry: LogEntry = {
-      level,
-      message,
-      ...formattedTags,
-      deviceId: this.deviceId,
-      sessionId: this.sessionId,
-    };
+      const entry: LogEntry = {
+        level,
+        message,
+        ...formattedTags,
+        deviceId: this.deviceId,
+        sessionId: this.sessionId,
+      };
 
-    if (this.authInfo) {
-      switch (this.authInfo.type) {
-        case "user": {
-          entry.userId = this.authInfo.id;
-          break;
-        }
-        case "workspace": {
-          entry.workspaceId = this.authInfo.id;
-          break;
+      if (authInfo) {
+        switch (authInfo.type) {
+          case "user": {
+            entry.userId = authInfo.id;
+            break;
+          }
+          case "workspace": {
+            entry.workspaceId = authInfo.id;
+            break;
+          }
         }
       }
-    }
 
-    if (this.grafana) {
-      this.grafana.logger.log(entry);
-    }
+      if (this.grafana) {
+        this.grafana.logger.log(entry);
+      }
+    });
   }
 
   private formatTags(tags?: Record<string, unknown>) {
@@ -154,16 +149,6 @@ class Logger {
       }
       return result;
     }, {} as Record<string, unknown>);
-  }
-
-  async close() {
-    if (process.env.REPLAY_TELEMETRY_DISABLED) {
-      return;
-    }
-
-    if (this.grafana) {
-      return this.grafana.close();
-    }
   }
 
   debug(message: string, tags?: Record<string, any>) {

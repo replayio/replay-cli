@@ -1,12 +1,12 @@
-import { close as finalizeLaunchDarkly } from "../launch-darkly/close";
-import { mixpanelAPI } from "../mixpanel/mixpanelAPI";
+import { launchDarklyClient } from "../launchDarklylient";
 import { logger } from "../logger";
+import { mixpanelClient } from "../mixpanelClient";
 
 export type ExitTask = () => Promise<void>;
 
 export const exitTasks: ExitTask[] = [
-  finalizeLaunchDarkly,
-  () => mixpanelAPI.close(),
+  () => launchDarklyClient.close(),
+  () => mixpanelClient.close(),
   () => logger.close(),
 ];
 

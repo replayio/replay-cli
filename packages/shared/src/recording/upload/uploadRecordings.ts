@@ -1,6 +1,6 @@
-import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
+import { launchDarklyClient } from "../../launchDarklylient";
 import { logger } from "../../logger";
-import { createAsyncFunctionWithTracking } from "../../mixpanel/createAsyncFunctionWithTracking";
+import { mixpanelClient } from "../../mixpanelClient";
 import { exitProcess } from "../../process/exitProcess";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { AUTHENTICATION_REQUIRED_ERROR_CODE, ProtocolError } from "../../protocol/ProtocolError";
@@ -15,7 +15,7 @@ import { ProcessingBehavior } from "./types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 
-export const uploadRecordings = createAsyncFunctionWithTracking(
+export const uploadRecordings = mixpanelClient.createAsyncFunctionWithTracking(
   async function uploadRecordings(
     recordings: LocalRecording[],
     options: {
@@ -39,7 +39,10 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
       return [];
     }
 
-    const multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
+    const multiPartUpload = await launchDarklyClient.getFeatureFlagValue<boolean>(
+      "cli-multipart-upload",
+      false
+    );
     const client = new ProtocolClient();
     try {
       await client.waitUntilAuthenticated();

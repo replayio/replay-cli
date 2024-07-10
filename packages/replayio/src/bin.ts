@@ -1,10 +1,11 @@
 import { logger } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
-import { name, version } from "../package.json";
+import { name as packageName, version as packageVersion } from "../package.json";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
 
 // Commands self-register with "commander"
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import "./commands/info";
 import "./commands/list";
 import "./commands/login";
@@ -17,9 +18,13 @@ import "./commands/upload";
 import "./commands/upload-source-maps";
 import "./commands/whoami";
 
-logger.initialize(name, version);
-
-setUserAgent(`${name}/${version}`);
+getAccessToken().then(({ accessToken }) => {
+  initializeSession({
+    accessToken,
+    packageName,
+    packageVersion,
+  });
+});
 
 finalizeCommander();
 

@@ -1,4 +1,7 @@
 import { retryWithLinearBackoff } from "@replay-cli/shared/async/retryOnFailure";
+import { logger } from "@replay-cli/shared/logger";
+import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
+import { getUserAgent } from "@replay-cli/shared/session/getUserAgent";
 import crypto from "crypto";
 import fs from "fs";
 import type { Agent, AgentOptions } from "http";
@@ -7,11 +10,8 @@ import pMap from "p-map";
 import path from "path";
 import { Worker } from "worker_threads";
 import ProtocolClient from "./client";
-import { sanitizeMetadata } from "@replay-cli/shared/recording/metadata/sanitizeMetadata";
 import { Options, OriginalSourceEntry, RecordingMetadata, SourceMapEntry } from "./types";
 import { defer, isValidUUID, maybeLogToConsole } from "./utils";
-import { getUserAgent } from "@replay-cli/shared/userAgent";
-import { logger } from "@replay-cli/shared/logger";
 
 function sha256(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
@@ -169,9 +169,11 @@ class ReplayClient {
 
   async uploadRecording(path: string, uploadLink: string, size: number) {
     const file = fs.createReadStream(path);
+    const userAgent = await getUserAgent();
+
     const resp = await fetch(uploadLink, {
       method: "PUT",
-      headers: { "Content-Length": size.toString(), "User-Agent": getUserAgent() },
+      headers: { "Content-Length": size.toString(), "User-Agent": userAgent },
       body: file,
     });
 

@@ -1,9 +1,9 @@
 /// <reference types="cypress" />
 
 import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { RecordingEntry, initMetadataFile, warn } from "@replayio/test-utils";
 import chalk from "chalk";
 import path from "path";
@@ -159,7 +159,7 @@ async function onAfterRun() {
 
   if (missingSteps) {
     logger.error("OnAfterRun:AfterRunMissingSteps", { missingSteps });
-    mixpanelAPI.trackEvent("warning.missing-steps");
+    mixpanelClient.trackEvent("warning.missing-steps");
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -197,7 +197,7 @@ function onReplayTask(value: any) {
       reporter.addStep(v);
     } else {
       logger.error("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
-      mixpanelAPI.trackEvent("error.replay-task-unexpected-payload", { payload: v });
+      mixpanelClient.trackEvent("error.replay-task-unexpected-payload", { payload: v });
     }
   });
 
@@ -261,11 +261,7 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
-  setUserAgent(`${packageName}/${packageVersion}`);
-
-  logger.initialize(packageName, packageVersion);
-  logger.identify(getAuthKey(config));
-  mixpanelAPI.initialize({
+  initializeSession({
     accessToken: getAuthKey(config),
     packageName,
     packageVersion,
@@ -283,7 +279,7 @@ const plugin = (
 
       ws.on("error", error => {
         logger.error("CypressPlugin:WebSocketError", { error });
-        mixpanelAPI.trackEvent("error.websocket-error", { error });
+        mixpanelClient.trackEvent("error.websocket-error", { error });
         warn("WebSocket error", error);
       });
 
@@ -294,7 +290,7 @@ const plugin = (
           onReplayTask(obj.events);
         } catch (error) {
           logger.error("CypressPlugin:WebSocketMessageError", { error });
-          mixpanelAPI.trackEvent("error.websocket-message-error", { error });
+          mixpanelClient.trackEvent("error.websocket-message-error", { error });
           warn("Error parsing message from test", error);
         }
       });

@@ -1,13 +1,16 @@
 import { logger } from "@replay-cli/shared/logger";
 import { installLatestRuntimeRelease } from "@replay-cli/shared/runtime/installLatestRuntimeRelease";
-import { name, version } from "../package.json";
-import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
+import { getAccessToken } from "@replayio/test-utils";
+import { name as packageName, version as packageVersion } from "../package.json";
 
 export default async function install() {
   try {
-    logger.initialize(name, version);
-    const accessToken = await getAccessToken();
-    await logger.identify(accessToken.accessToken);
+    initializeSession({
+      accessToken: getAccessToken(),
+      packageName,
+      packageVersion,
+    });
   } catch (error) {
     logger.error("Failed to identify for logger", { error });
   }

@@ -1,7 +1,7 @@
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { logger } from "@replay-cli/shared/logger";
-import { getUserAgent } from "@replay-cli/shared/userAgent";
+import { getUserAgent } from "@replay-cli/shared/session/getUserAgent";
 import { readFile, writeFileSync } from "fs-extra";
 import { File, FormData, fetch } from "undici";
 import { replayApiServer } from "../../config";
@@ -21,7 +21,7 @@ export async function reportBrowserCrash(stderr: string) {
     };
   }
 
-  const userAgent = getUserAgent();
+  const userAgent = await getUserAgent();
 
   const formData = new FormData();
 

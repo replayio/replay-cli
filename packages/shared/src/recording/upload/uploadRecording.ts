@@ -13,7 +13,7 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { getUserAgent } from "../../userAgent";
+import { getUserAgent } from "../../session/getUserAgent";
 import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
@@ -293,12 +293,14 @@ async function uploadRecordingReadStream(
   const closeStream = () => stream.close();
   stream.on("error", streamError.reject);
 
+  const userAgent = await getUserAgent();
+
   try {
     const response = await Promise.race([
       fetch(url, {
         headers: {
           "Content-Length": size.toString(),
-          "User-Agent": getUserAgent(),
+          "User-Agent": userAgent,
           Connection: "keep-alive",
         },
         method: "PUT",
