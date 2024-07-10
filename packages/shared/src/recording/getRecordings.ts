@@ -23,7 +23,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id, metadata = {} } = entry;
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -62,7 +62,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -78,7 +78,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -129,7 +129,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[recordingId];
           if (!recording) {
-            logNotFoundWarning(recordingId, entries, entry);
+            logNotFoundWarning(recordingId, entry);
             continue;
           }
 
@@ -149,7 +149,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -161,7 +161,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -173,7 +173,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -185,7 +185,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const recording = idToRecording[id];
 
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -210,7 +210,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[recordingId];
           if (!recording) {
-            logNotFoundWarning(recordingId, entries, entry);
+            logNotFoundWarning(recordingId, entry);
             continue;
           }
 
@@ -230,7 +230,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -242,7 +242,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -254,7 +254,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -266,7 +266,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -283,7 +283,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
           const recording = idToRecording[id];
           if (!recording) {
-            logNotFoundWarning(id, entries, entry);
+            logNotFoundWarning(id, entry);
             continue;
           }
 
@@ -327,12 +327,9 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   );
 }
 
-function logNotFoundWarning(recordingId: string, entries: LogEntry[], entry: LogEntry) {
-  logger.error(`Recording with ID "${recordingId}" not found`, {
+function logNotFoundWarning(recordingId: string, entry: LogEntry) {
+  logger.error("RecordingLog:RecordingNotFound", {
     recordingId,
     entry,
-    entries: JSON.stringify(
-      entries.filter(entry => entry.id === recordingId || entry.recordingId === recordingId)
-    ),
   });
 }
