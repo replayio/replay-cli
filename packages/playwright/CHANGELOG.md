@@ -1,5 +1,15 @@
 # @replayio/playwright
 
+## 3.1.8
+
+### Patch Changes
+
+- [#592](https://github.com/replayio/replay-cli/pull/592) [`134591c`](https://github.com/replayio/replay-cli/commit/134591ccd4ead6098aa855f2b751b505f43c7b80) Thanks [@Andarist](https://github.com/Andarist)! - Improved resiliency to GitHub API errors when auto-populating PR-related information metadata
+
+- [#613](https://github.com/replayio/replay-cli/pull/613) [`8cd22ea`](https://github.com/replayio/replay-cli/commit/8cd22ea858e0b123551384e87ce4c7e38027f849) Thanks [@hbenl](https://github.com/hbenl)! - Add a trailing log line in case another playwright reporter removes our last line
+
+- [#614](https://github.com/replayio/replay-cli/pull/614) [`0ee7425`](https://github.com/replayio/replay-cli/commit/0ee74258c968fe44f437c9c52e9c724f03ba286b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that could cause the reporter to miss test body steps when `beforeAll` hook was used
+
 ## 3.1.7
 
 ### Patch Changes

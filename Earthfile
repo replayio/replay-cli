@@ -7,6 +7,10 @@ build:
   COPY . .
   RUN yarn --immutable && yarn run build
 
+typecheck:
+  FROM +build
+  RUN yarn run typecheck
+
 lint:
   FROM +build
   RUN yarn run lint
@@ -62,6 +66,7 @@ e2e:
   BUILD +flake
 
 ci:
+  BUILD +typecheck
   BUILD +lint
   BUILD +test
   BUILD +e2e

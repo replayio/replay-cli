@@ -5,7 +5,6 @@
     { "path": "./packages/jest" },
     { "path": "./packages/playwright" },
     { "path": "./packages/puppeteer" },
-    { "path": "./packages/replay" },
     { "path": "./packages/replayio" },
     { "path": "./packages/shared" },
     { "path": "./packages/sourcemap-upload-webpack-plugin" },

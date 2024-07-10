@@ -6,8 +6,7 @@
     "replay-node": "bin/replay-node"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\"",
-    "typecheck": "echo \"Error: no typecheck specified\""
+    "test": "echo \"Error: no test specified\""
   },
   "repository": {
     "type": "git",

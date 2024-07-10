@@ -85,9 +85,8 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
     } catch (error) {
       logger.error("InstallLatestRelease:Failed", { error });
 
-      progress.setFailed(
-        "Something went wrong installing the Replay browser. Please try again later."
-      );
+      progress.setFailed("Something went wrong installing the Replay browser.");
+      throw error;
     }
   },
   "update.runtime.installed",
@@ -150,18 +149,27 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
   throw new Error("Download failed, giving up");
 }
 
-async function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string) {
+function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string) {
   logger.info(`ExtractBrowserArchive:Extracting`, { downloadFilePath });
 
   const tarResult = spawnSync("tar", ["xf", runtimeMetadata.downloadFileName], {
     cwd: runtimeBaseDir,
   });
   if (tarResult.status !== 0) {
+    const hasXz = spawnSync("which", ["xz"]).status === 0;
+
     logger.error("ExtractBrowserArchive:Failed", {
       downloadFilePath,
+      hasXz,
       stderr: String(tarResult.stderr),
     });
 
-    throw new Error("Unable to extract browser archive");
+    let message = "Unable to extract browser archive";
+
+    if (!hasXz) {
+      message += `. xz is required to decompress it. Please install xz and try again.`;
+    }
+
+    throw new Error(message);
   }
 }

@@ -47,6 +47,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
     "prettier": "^2.2.1",
+    "turbo": "^2.0.5",
     "typescript": "^5.5.2",
     "webpack": "^5.90.3"
   },

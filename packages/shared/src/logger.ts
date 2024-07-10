@@ -5,6 +5,7 @@ import { AuthInfo } from "./graphql/fetchAuthInfoFromGraphQL";
 import { getDeviceId } from "./getDeviceId";
 import { randomUUID } from "crypto";
 import StackUtils from "stack-utils";
+import { getAuthInfo } from "./graphql/getAuthInfo";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -51,13 +52,14 @@ class Logger {
     this.sessionId = randomUUID();
   }
 
+  // This should be called with the name once at the entry point.
+  // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
   initialize(app: string, version: string | undefined) {
     if (this.initialized) {
       console.warn(`Logger already initialized.`);
     }
 
     this.initialized = true;
-    this.localDebugger = dbg(app);
     this.grafana = this.initGrafana(app, version);
   }
 
@@ -88,8 +90,14 @@ class Logger {
     };
   }
 
-  identify(authInfo: AuthInfo) {
-    this.authInfo = authInfo;
+  async identify(accessToken: string | undefined) {
+    try {
+      if (accessToken) {
+        this.authInfo = await getAuthInfo(accessToken);
+      }
+    } catch (error) {
+      logger.error("Logger:InitializationFailed", { error });
+    }
   }
 
   private log(message: string, level: LogLevel, tags?: Tags) {
@@ -176,9 +184,3 @@ class Logger {
 }
 
 export const logger = new Logger();
-
-// This should be called with the name once at the entry point.
-// For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-export function initLogger(app: string, version: string | undefined) {
-  logger.initialize(app, version);
-}

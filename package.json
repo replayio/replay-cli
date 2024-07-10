@@ -16,7 +16,7 @@
     "watch": "turbo watch build --filter=\"./packages/*\"",
     "test": "yarn run test:unit",
     "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",
-    "typecheck": "yarn workspaces foreach --all run typecheck",
+    "typecheck": "turbo run typecheck --filter=\"./packages/*\"",
     "lint": "prettier --check .",
     "changeset": "changeset",
     "release": "yarn workspaces foreach --no-private --all --topological npm publish --tolerate-republish --access public && changeset tag",

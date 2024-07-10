@@ -4,7 +4,7 @@ import { basename } from "path";
 import { logger } from "../logger";
 import { recordingLogPath } from "./config";
 import { readRecordingLog } from "./readRecordingLog";
-import { LocalRecording, RECORDING_LOG_KIND } from "./types";
+import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
 export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   const recordings: LocalRecording[] = [];
@@ -22,7 +22,10 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
         case RECORDING_LOG_KIND.addMetadata: {
           const { id, metadata = {} } = entry;
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
 
           Object.assign(recording.metadata, metadata);
 
@@ -58,7 +61,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { data, id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           if (recording.crashData) {
             recording.crashData.push(data);
           } else {
@@ -70,7 +77,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.recordingStatus = "crashed";
           break;
         }
@@ -118,7 +129,10 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           );
 
           const recording = idToRecording[recordingId];
-          assert(recording, `Recording with ID "${recordingId}" not found`);
+          if (!recording) {
+            logNotFoundWarning(recordingId, entry);
+            continue;
+          }
 
           const sourceMap = recording.metadata.sourceMaps.find(
             sourceMap => sourceMap.id === parentId
@@ -135,7 +149,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.processingStatus = "failed";
           break;
         }
@@ -143,7 +161,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.processingStatus = "processed";
           break;
         }
@@ -151,7 +173,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.processingStatus = "processing";
           break;
         }
@@ -159,7 +185,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id, reason } = entry;
           const recording = idToRecording[id];
 
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.recordingStatus = "unusable";
           recording.unusableReason = reason;
           break;
@@ -180,7 +210,10 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           assert(targetMapURLHash, '"sourcemapAdded" entry must have a "targetMapURLHash"');
 
           const recording = idToRecording[recordingId];
-          assert(recording, `Recording with ID "${recordingId}" not found`);
+          if (!recording) {
+            logNotFoundWarning(recordingId, entry);
+            continue;
+          }
 
           recording.metadata.sourceMaps.push({
             id,
@@ -197,7 +230,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.uploadStatus = "failed";
           break;
         }
@@ -205,7 +242,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.uploadStatus = "uploaded";
           break;
         }
@@ -213,7 +254,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.uploadStatus = "uploading";
           break;
         }
@@ -221,7 +266,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id, timestamp } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.recordingStatus = "finished";
 
           const startTimestamp = idToStartTimestamp[id];
@@ -234,7 +283,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           const { id, path, timestamp } = entry;
 
           const recording = idToRecording[id];
-          assert(recording, `Recording with ID "${id}" not found`);
+          if (!recording) {
+            logNotFoundWarning(id, entry);
+            continue;
+          }
+
           recording.path = path;
           idToStartTimestamp[id] = timestamp;
           break;
@@ -273,4 +326,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
       // Sort recordings in reverse chronological order
       .sort((a, b) => b.date.getTime() - a.date.getTime())
   );
+}
+
+function logNotFoundWarning(recordingId: string, entry: LogEntry) {
+  logger.error("RecordingLog:RecordingNotFound", {
+    recordingId,
+    entry,
+  });
 }

@@ -14,6 +14,7 @@ import {
 import { getServerPort } from "./server";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
 import { logger } from "@replay-cli/shared/logger";
+import { createDeferred, Deferred } from "@replay-cli/shared/async/createDeferred";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
   return !!error && typeof error === "object" && "code" in error && error.code === code;
@@ -132,6 +133,61 @@ type Playwright = {
   _instrumentation: ClientInstrumentation;
 };
 
+let wsDeferred: Deferred<WebSocket> | undefined;
+
+async function waitUntilConnected() {
+  if (wsDeferred) {
+    return wsDeferred.promise;
+  }
+  const deferred = (wsDeferred = createDeferred());
+
+  const port = getServerPort();
+  const ws = new WebSocket(`ws://localhost:${port}`);
+
+  ws.on("open", () => deferred.resolve(ws));
+  ws.on("error", error => deferred.reject(error));
+  // TODO: close WS connections on test end
+  // to avoid relying on TestInfo's internals for this the reporter could notify the connection when the test ends
+
+  return wsDeferred.promise;
+}
+
+const fixtureStates = new WeakMap<
+  TestInfoInternal,
+  {
+    expectSteps: Set<string>;
+    ignoredSteps: Set<string>;
+    testIdData: TestExecutionIdData;
+  }
+>();
+
+function getFixtureState(testInfo: TestInfoInternal) {
+  let state = fixtureStates.get(testInfo);
+  if (!state) {
+    const testIdData: TestExecutionIdData = {
+      filePath: testInfo.file,
+      projectName: testInfo.project.name,
+      repeatEachIndex: testInfo.repeatEachIndex,
+      attempt: testInfo.retry + 1,
+      source: {
+        title: testInfo.title,
+        // this one only drops the filename (first segment) and the test title (last segment)
+        // it's different from the one in the reporter, since the "root" suites are just the file suites created here:
+        // https://github.com/microsoft/playwright/blob/a6488c4a2879a22e8da0f6708114ef7b9f4d253f/packages/playwright/src/common/testLoader.ts#L36
+        // in this context they are not attached to the root and project suites
+        scope: testInfo.titlePath.slice(1, -1),
+      },
+    };
+    state = {
+      expectSteps: new Set(),
+      ignoredSteps: new Set(),
+      testIdData,
+    };
+    fixtureStates.set(testInfo, state);
+  }
+  return state;
+}
+
 const patchedTestInfos = new WeakSet<TestInfoInternal>();
 
 export async function replayFixture(
@@ -139,14 +195,78 @@ export async function replayFixture(
   use: () => Promise<void>,
   testInfo: TestInfoInternal
 ) {
+  const { expectSteps, ignoredSteps, testIdData } = getFixtureState(testInfo);
+
   // fixtures are created repeatedly for the same test
-  // since they are often created for hooks too
-  // it's important to avoid setting up the fixture multiple times
+  // since they are created for beforeAll and afterAll hooks too
+  // it's important to avoid patching the test info multiple times
   // otherwise the reporter would get notified multiple times about the same steps
-  if (patchedTestInfos.has(testInfo)) {
-    return use();
+  if (!patchedTestInfos.has(testInfo)) {
+    patchedTestInfos.add(testInfo);
+
+    const addStep = testInfo._addStep;
+    testInfo._addStep = function (data, ...rest) {
+      // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
+      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
+      // they call `_addStep` directly
+      // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
+      // so we need to handle them here
+      if (data.category === "expect") {
+        let frames = data.location ? [data.location] : undefined;
+        if (!frames) {
+          // based on those lines we replicate how Playwright computes the location and precompute it here for it so it uses ours
+          // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L266-L272
+          const filteredStack = filteredStackTrace(captureRawStack());
+          data.location = filteredStack[0];
+          frames = filteredStack;
+        }
+
+        const step = addStep.call(this, data, ...rest);
+        expectSteps.add(step.stepId);
+
+        handlePlaywrightEvent({
+          event: "step:start",
+          id: step.stepId,
+          params: step.params,
+          detail: {
+            apiName: "expect",
+            category: step.category,
+            title: step.title,
+            params: step.params || {},
+            frames,
+            hook: getCurrentHookType(),
+          },
+        }).catch(err => {
+          // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
+          logger.error("ReplayFixture:FailedToAddExpectStep", { error: err });
+        });
+
+        return step;
+      }
+
+      return addStep.call(this, data, ...rest);
+    };
+
+    const onStepEnd = testInfo._onStepEnd;
+    testInfo._onStepEnd = function (...args) {
+      onStepEnd.call(this, ...args);
+
+      const [payload] = args;
+      if (expectSteps.has(payload.stepId)) {
+        handlePlaywrightEvent({
+          event: "step:end",
+          id: payload.stepId,
+          params: undefined,
+          detail: {
+            error: payload.error ? parseError(payload.error) : null,
+          },
+        }).catch(err => {
+          // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
+          logger.error("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
+        });
+      }
+    };
   }
-  patchedTestInfos.add(testInfo);
 
   // start of before hooks can't be intercepted by the fixture in `_addStep`
   // `_addStep` gets monkey-patched in the this fixture but fixtures are registered in the `_runAsStage`'s callbacks like here:
@@ -172,19 +292,10 @@ export async function replayFixture(
 
   logger.info("ReplayFixture:SettingUp");
 
-  const expectSteps = new Set<string>();
-  const ignoredSteps = new Set<string>();
-
-  const port = getServerPort();
-  const ws = new WebSocket(`ws://localhost:${port}`);
+  let ws: WebSocket;
 
   try {
-    await new Promise<void>((resolve, reject) => {
-      ws.on("open", () => resolve());
-      ws.on("error", error => reject(error));
-      // TODO: close WS connections on test end
-      // to avoid relying on TestInfo's internals for this the reporter could notify the connection when the test ends
-    });
+    ws = await waitUntilConnected();
   } catch (error) {
     if (isErrorWithCode(error, "ECONNREFUSED")) {
       // the reporter didn't end up being used and thus the server is not running
@@ -194,47 +305,33 @@ export async function replayFixture(
     throw error;
   }
 
-  const testIdData: TestExecutionIdData = {
-    filePath: testInfo.file,
-    projectName: testInfo.project.name,
-    repeatEachIndex: testInfo.repeatEachIndex,
-    attempt: testInfo.retry + 1,
-    source: {
-      title: testInfo.title,
-      // this one only drops the filename (first segment) and the test title (last segment)
-      // it's different from the one in the reporter, since the "root" suites are just the file suites created here:
-      // https://github.com/microsoft/playwright/blob/a6488c4a2879a22e8da0f6708114ef7b9f4d253f/packages/playwright/src/common/testLoader.ts#L36
-      // in this context they are not attached to the root and project suites
-      scope: testInfo.titlePath.slice(1, -1),
-    },
-  };
-
   async function addAnnotation(event: string, id?: string, detail?: Record<string, any>) {
-    if (id) {
-      return Promise.allSettled(
-        browser.contexts().flatMap(context => {
-          return context.pages().flatMap(async page => {
-            try {
-              // this leads to adding a regular step in the test
-              // it would be best if this could be avoided somehow
-              await page.evaluate(ReplayAddAnnotation, [
-                event,
-                id,
-                JSON.stringify({ ...detail, test: testIdData }),
-              ] as const);
-            } catch (e) {
-              // `onApiCallBegin`/`onApiCallEnd` are not awaited, see: https://github.com/microsoft/playwright/pull/30795
-              // not much can be done about it, an *attempt* could be done to override builtin fixtures like `page` and `browser` to install our hooks there,
-              // it's not worth it when a convenient API is available though
-              // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
-              // they can't be *logged* here because that interferes with the active reporter output
-              logger.error("ReplayFixture:FailedToAddAnnotation", { error: e });
-            }
-          });
-        })
-      );
+    if (!id) {
+      return;
     }
-    return [];
+
+    return Promise.allSettled(
+      browser.contexts().flatMap(context => {
+        return context.pages().flatMap(async page => {
+          try {
+            // this leads to adding a regular step in the test
+            // it would be best if this could be avoided somehow
+            await page.evaluate(ReplayAddAnnotation, [
+              event,
+              id,
+              JSON.stringify({ ...detail, test: testIdData }),
+            ] as const);
+          } catch (error) {
+            // `onApiCallBegin`/`onApiCallEnd` are not awaited, see: https://github.com/microsoft/playwright/pull/30795
+            // not much can be done about it, an *attempt* could be done to override builtin fixtures like `page` and `browser` to install our hooks there,
+            // it's not worth it when a convenient API is available though
+            // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
+            // they can't be *logged* here because that interferes with the active reporter output
+            logger.error("ReplayFixture:FailedToAddAnnotation", { error });
+          }
+        });
+      })
+    );
   }
 
   async function handlePlaywrightEvent({
@@ -268,15 +365,17 @@ export async function replayFixture(
       );
 
       return addAnnotation(data.event, data.id, detail);
-    } catch (e) {
+    } catch (error) {
       let reporterError: ReporterError;
 
-      if (e instanceof ReporterError) {
-        reporterError = e;
-      } else if (e instanceof Error) {
-        reporterError = new ReporterError(Errors.UnexpectedError, e.message, { stack: e.stack });
+      if (error instanceof ReporterError) {
+        reporterError = error;
+      } else if (error instanceof Error) {
+        reporterError = new ReporterError(Errors.UnexpectedError, error.message, {
+          stack: error.stack,
+        });
       } else {
-        reporterError = new ReporterError(Errors.UnexpectedError, "Unknown", { error: e });
+        reporterError = new ReporterError(Errors.UnexpectedError, "Unknown", { error: error });
       }
 
       try {
@@ -292,69 +391,6 @@ export async function replayFixture(
       }
     }
   }
-
-  const addStep = testInfo._addStep;
-  testInfo._addStep = function (data, ...rest) {
-    // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
-    // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
-    // they call `_addStep` directly
-    // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
-    // so we need to handle them here
-    if (data.category === "expect") {
-      let frames = data.location ? [data.location] : undefined;
-      if (!frames) {
-        // based on those lines we replicate how Playwright computes the location and precompute it here for it so it uses ours
-        // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L266-L272
-        const filteredStack = filteredStackTrace(captureRawStack());
-        data.location = filteredStack[0];
-        frames = filteredStack;
-      }
-
-      const step = addStep.call(this, data, ...rest);
-      expectSteps.add(step.stepId);
-
-      handlePlaywrightEvent({
-        event: "step:start",
-        id: step.stepId,
-        params: step.params,
-        detail: {
-          apiName: "expect",
-          category: step.category,
-          title: step.title,
-          params: step.params || {},
-          frames,
-          hook: getCurrentHookType(),
-        },
-      }).catch(err => {
-        // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-        logger.error("ReplayFixture:FailedToAddExpectStep", { error: err });
-      });
-
-      return step;
-    }
-
-    return addStep.call(this, data, ...rest);
-  };
-
-  const onStepEnd = testInfo._onStepEnd;
-  testInfo._onStepEnd = function (...args) {
-    onStepEnd.call(this, ...args);
-
-    const [payload] = args;
-    if (expectSteps.has(payload.stepId)) {
-      handlePlaywrightEvent({
-        event: "step:end",
-        id: payload.stepId,
-        params: undefined,
-        detail: {
-          error: payload.error ? parseError(payload.error) : null,
-        },
-      }).catch(err => {
-        // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-        logger.error("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
-      });
-    }
-  };
 
   const csiListener: ClientInstrumentationListener = {
     onApiCallBegin: (apiName, params, stackTraceOrFrames, wallTimeOrUserData, userDataOrOut) => {

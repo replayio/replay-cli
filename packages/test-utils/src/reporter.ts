@@ -248,7 +248,6 @@ export default class ReplayReporter<
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
   private _uploadWorker: UploadWorker | undefined;
-  private _cacheAuthIdsPromise: Promise<void> | null = null;
   private _uploadedRecordings = new Set<string>();
   private _recordingMetadatas = new Map<
     string,
@@ -269,19 +268,6 @@ export default class ReplayReporter<
     if (config) {
       const { metadataKey, ...rest } = config;
       this._parseConfig(rest, metadataKey);
-    }
-
-    if (this._apiKey) {
-      this._cacheAuthIdsPromise = getAuthInfo(this._apiKey)
-        .then(authInfo => {
-          logger.identify(authInfo);
-          logger.info("ReplayReporter:LoggerIdentificationAdded");
-        })
-        .catch(error =>
-          logger.info("ReplayReporter:LoggerIdentificationFailed", {
-            error,
-          })
-        );
     }
 
     // Logging this here instead of in _parseConfig is intentional; the logger has been associated with the user's API key
@@ -800,7 +786,7 @@ export default class ReplayReporter<
     });
 
     logger.info("GetRecordingsForTest:FoundRecordings", {
-      recoridngsLength: recordings.length,
+      recordingsLength: recordings.length,
       filter,
     });
 
@@ -1157,12 +1143,6 @@ export default class ReplayReporter<
       minimizeUploads: this._minimizeUploads,
       numPendingWork: this._pendingWork.length,
       uploadStatusThreshold: this._uploadStatusThreshold,
-    });
-
-    await this._cacheAuthIdsPromise?.catch(error => {
-      logger.error("OnEnd:AddingLoggerAuthFailed", {
-        error,
-      });
     });
 
     const output: string[] = [];

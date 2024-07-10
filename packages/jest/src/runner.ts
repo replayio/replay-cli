@@ -1,17 +1,17 @@
 import type { JestEnvironment } from "@jest/environment";
 import type { TestFileEvent, TestResult } from "@jest/test-result";
 import type { Circus, Config } from "@jest/types";
+import { logger } from "@replay-cli/shared/logger";
+import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   ReplayReporter,
-  removeAnsiCodes,
   getMetadataFilePath as getMetadataFilePathBase,
   initMetadataFile,
+  removeAnsiCodes,
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
 import path from "path";
 import * as pkgJson from "../package.json";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
-import { initLogger } from "@replay-cli/shared/logger";
 
 const runner = require("jest-circus/runner");
 const pluginVersion = require("@replayio/jest/package.json").version;
@@ -39,7 +39,7 @@ const ReplayRunner = async (
   sendMessageToJest?: TestFileEvent
 ): Promise<TestResult> => {
   setUserAgent(`${pkgJson.name}/${pkgJson.version}`);
-  initLogger(pkgJson.name, pkgJson.version);
+  logger.initialize(pkgJson.name, pkgJson.version);
   if (!version) {
     try {
       version = require(require.resolve("jest/package.json", {

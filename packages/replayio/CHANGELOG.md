@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2
+
+### Patch Changes
+
+- [#612](https://github.com/replayio/replay-cli/pull/612) [`e8e50cd`](https://github.com/replayio/replay-cli/commit/e8e50cd24335d1277c6af5eca911f5469acf2d4a) Thanks [@Andarist](https://github.com/Andarist)! - Return a proper exit code when installation fails
+
 ## 1.5.1
 
 ### Patch Changes
