@@ -4,7 +4,11 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "src/**", "tsconfig.json"],
-      "outputs": ["dist/**", ".tsbuildinfo"]
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "src/**", "tsconfig.json"]
     }
   },
   "globalDependencies": ["tsconfig.json"]

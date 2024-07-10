@@ -15752,6 +15752,7 @@ __metadata:
     superstruct: "npm:^1.0.4"
     table: "npm:^6.8.2"
     ts-jest: "npm:^28.0.6"
+    turbo: "npm:^2.0.5"
     typescript: "npm:^5.5.2"
     undici: "npm:^5.28.4"
     uuid: "npm:^8.3.2"
