@@ -54,14 +54,14 @@ class Logger {
 
   // This should be called with the name once at the entry point.
   // For example, with the Playwright plugin, it is called in the Reporter interface constructor.
-  // initialize(app: string, version: string | undefined) {
-  //   if (this.initialized) {
-  //     console.warn(`Logger already initialized.`);
-  //   }
+  initialize(app: string, version: string | undefined) {
+    if (this.initialized) {
+      console.warn(`Logger already initialized.`);
+    }
 
-  //   this.initialized = true;
-  //   this.grafana = this.initGrafana(app, version);
-  // }
+    this.initialized = true;
+    this.grafana = this.initGrafana(app, version);
+  }
 
   private initGrafana(app: string, version: string | undefined) {
     const lokiTransport = new LokiTransport({
