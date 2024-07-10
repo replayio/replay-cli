@@ -12,7 +12,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
   for (const [key, value] of Object.entries(metadata)) {
     if (typeof value !== "object") {
       if (opts.verbose) {
-        logger.log(
+        console.log(
           `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
         );
       }
