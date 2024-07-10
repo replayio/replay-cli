@@ -11,30 +11,27 @@ import { AuthenticatedTaskQueue } from "./session/AuthenticatedTaskQueue";
 class LaunchDarklyClient extends AuthenticatedTaskQueue {
   private client: LDClient | undefined;
 
-  async onAuthenticate(authInfo: AuthInfo | null) {
-    this.client = initializeLDClient(
-      "60ca05fb43d6f10d234bb3cf",
-      {
-        anonymous: false,
-      } satisfies LDUser,
-      {
-        localStoragePath: getReplayPath("launchdarkly-user-cache"),
-        logger: {
-          debug() {},
-          error() {},
-          info() {},
-          warn() {},
-        },
-      }
-    );
-
+  onAuthenticate(authInfo: AuthInfo | null) {
+    let context: LDContext = {
+      anonymous: true,
+    };
     if (authInfo) {
-      await this.client.identify({
+      context = {
         anonymous: false,
         key: authInfo.id,
         kind: authInfo.type,
-      } satisfies LDContext);
+      };
     }
+
+    this.client = initializeLDClient("60ca05fb43d6f10d234bb3cf", context, {
+      localStoragePath: getReplayPath("launchdarkly-user-cache"),
+      logger: {
+        debug() {},
+        error() {},
+        info() {},
+        warn() {},
+      },
+    });
   }
 
   async onFinalize() {
