@@ -146,7 +146,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   getFixtureData(test: TestExecutionIdData) {
-    return withSentrySync("GetFixtureData", () => {
+    return withSentrySync(() => {
       const id = this._getTestExecutionId(test);
       this.fixtureData[id] ??= {
         steps: [],
@@ -164,7 +164,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
   // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
   private _getTestExecutionId(test: TestExecutionIdData) {
-    return withSentrySync("GetTestExecutionId", () => {
+    return withSentrySync(() => {
       return [
         test.filePath,
         test.projectName ?? "",
@@ -177,7 +177,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   getSource(test: TestCase) {
-    return withSentrySync("GetSource", () => {
+    return withSentrySync(() => {
       return {
         title: test.title,
         scope: test.titlePath().slice(3, -1),
@@ -186,14 +186,14 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   onBegin({ version }: FullConfig) {
-    return withSentrySync("OnBegin", () => {
+    return withSentrySync(() => {
       this.reporter.setTestRunnerVersion(version);
       this.reporter.onTestSuiteBegin();
     });
   }
 
   private _registerExecutedProject(test: TestCase) {
-    return withSentrySync("RegisterExecutedProject", () => {
+    return withSentrySync(() => {
       const project = test.parent.project();
       if (project) {
         let projectMetadata = this._executedProjects[project.name];
@@ -210,7 +210,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestBegin(test: TestCase, testResult: TestResult) {
-    return withSentrySync("OnTestBegin", () => {
+    return withSentrySync(() => {
       const projectMetadata = this._registerExecutedProject(test);
 
       // Don't save metadata for non-Replay projects
@@ -229,7 +229,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   getStepsFromFixture(test: TestExecutionIdData) {
-    return withSentrySync("GetStepsFromFixture", () => {
+    return withSentrySync(() => {
       const hookMap: Record<
         "afterAll" | "afterEach" | "beforeAll" | "beforeEach",
         UserActionEvent[]
@@ -290,7 +290,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    return withSentrySync("OnTestEnd", () => {
+    return withSentrySync(() => {
       const status = result.status;
 
       // Skipped tests won't have a reply so nothing to do here
@@ -381,7 +381,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   async onEnd() {
-    return withSentry("OnEnd", async () => {
+    return withSentry(async () => {
       try {
         await this.reporter.onEnd();
 
@@ -434,7 +434,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   parseArguments(apiName: string, params: any) {
-    return withSentrySync("ParseArguments", () => {
+    return withSentrySync(() => {
       logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
       if (!params || typeof params !== "object") {
         return [];

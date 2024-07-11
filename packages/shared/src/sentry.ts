@@ -88,26 +88,20 @@ export function initSentry(app: string, version: string | undefined) {
   sentry.initialize(app, version);
 }
 
-export async function withSentry<T>(
-  methodName: string,
-  fn: () => T | Promise<T>,
-  tags?: Tags
-): Promise<T> {
+export async function withSentry<T>(fn: () => T | Promise<T>, tags?: Tags): Promise<T> {
   try {
     const result = await fn();
     return result;
   } catch (error: any) {
-    logger.error(`${methodName}Failed`, tags);
     sentry.captureException(error);
     throw error;
   }
 }
 
-export function withSentrySync<T>(methodName: string, fn: () => T): T {
+export function withSentrySync<T>(fn: () => T): T {
   try {
     return fn();
   } catch (error: any) {
-    logger.error(`${methodName}:Failed`, error);
     sentry.captureException(error);
     throw error;
   }
