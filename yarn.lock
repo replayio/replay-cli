@@ -3429,6 +3429,7 @@ __metadata:
     normalize-path: "npm:^3.0.0"
     rollup: "npm:^4.18.0"
     tsx: "npm:^4.15.7"
+    typescript: "npm:^5.5.2"
   bin:
     pkg-build: ./bin.js
   languageName: unknown
