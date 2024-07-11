@@ -1,10 +1,10 @@
+import { logError, logInfo } from "@replay-cli/shared/logger";
 import fetch from "node-fetch";
-import { warn } from "./logging";
-import { logger } from "@replay-cli/shared/logger";
 import { getErrorMessage } from "./legacy-cli/error";
+import { warn } from "./logging";
 
 async function queryGraphqlEndpoint(apiKey: string, name: string, query: string, variables = {}) {
-  logger.info("QueryGraphqlEndpoint:Started", { name });
+  logInfo("QueryGraphqlEndpoint:Started", { name });
 
   const options = {
     method: "POST",
@@ -20,12 +20,12 @@ async function queryGraphqlEndpoint(apiKey: string, name: string, query: string,
   };
 
   const server = process.env.REPLAY_API_SERVER || "https://api.replay.io";
-  logger.info("QueryGraphqlEndpoint", { server, name });
+  logInfo("QueryGraphqlEndpoint", { server, name });
 
   const result = await fetch(`${server}/v1/graphql`, options);
   const json: any = await result.json();
 
-  logger.info("QueryGraphqlEndpoint:Succeeded", { server, name });
+  logInfo("QueryGraphqlEndpoint:Succeeded", { server, name });
 
   return json;
 }
@@ -54,13 +54,13 @@ async function fetchWorkspaceConfig(apiKey: string) {
 
     if (json.errors) {
       const errorMessages = json.errors.map(getErrorMessage);
-      logger.error("FetchWorkspaceConfig:GraphqlFailed", { errorMessages });
+      logError("FetchWorkspaceConfig:GraphqlFailed", { errorMessages });
       throw new Error(json.errors[0].message || "Unexpected error");
     }
 
     const edges = json.data?.auth.workspaces.edges;
     if (!edges || edges.length !== 1) {
-      logger.error("FetchWorkspaceConfig:FailedToFindWorkspace", {
+      logError("FetchWorkspaceConfig:FailedToFindWorkspace", {
         hadEdges: !!edges,
         edgesLength: edges?.length ?? null,
       });
@@ -68,7 +68,7 @@ async function fetchWorkspaceConfig(apiKey: string) {
       throw new Error("Failed to find a workspace for the given apiKey");
     }
 
-    logger.info("FetchWorkspaceConfig", { workspaceSettings: edges[0].node.settings });
+    logInfo("FetchWorkspaceConfig", { workspaceSettings: edges[0].node.settings });
 
     const features = edges[0].node.settings.features;
 
@@ -77,7 +77,7 @@ async function fetchWorkspaceConfig(apiKey: string) {
     };
   } catch (error) {
     warn("Failed to fetch test suite configuration; continuing with defaults", error);
-    logger.error("FetchWorkspaceConfig:Failed", { error });
+    logError("FetchWorkspaceConfig:Failed", { error });
 
     return {
       env: {},

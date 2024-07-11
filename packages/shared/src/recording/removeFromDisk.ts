@@ -1,6 +1,6 @@
 import { readdirSync, removeSync, writeFileSync } from "fs-extra";
 import { join } from "path";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { recordingLogPath, recordingsPath } from "./config";
 import { getRecordings } from "./getRecordings";
 import { readRecordingLog } from "./readRecordingLog";
@@ -24,7 +24,7 @@ function getAssetsUsageMap(recordings: LocalRecording[]) {
 }
 
 export function removeFromDisk(id: string) {
-  logger.debug("Removing recording", { id });
+  logDebug("Removing recording", { id });
 
   const recordings = getRecordings();
   const recording = recordings.find(recording => recording.id.startsWith(id));
@@ -35,14 +35,14 @@ export function removeFromDisk(id: string) {
 
     metadata.sourceMaps.forEach(sourceMap => {
       if (assetsUsageMap[sourceMap.path] === 1) {
-        logger.debug("Removing recording source-map file", { sourceMap });
+        logDebug("Removing recording source-map file", { sourceMap });
         removeSync(sourceMap.path);
         removeSync(sourceMap.path.replace(/\.map$/, ".lookup"));
       }
 
       sourceMap.originalSources.forEach(source => {
         if (assetsUsageMap[source.path] === 1) {
-          logger.debug("Removing recording original source file", { source });
+          logDebug("Removing recording original source file", { source });
           removeSync(source.path);
         }
       });
@@ -50,7 +50,7 @@ export function removeFromDisk(id: string) {
 
     // Delete recording data file
     if (path) {
-      logger.debug("Removing recording data file", { path });
+      logDebug("Removing recording data file", { path });
 
       removeSync(path);
     }
@@ -79,7 +79,7 @@ export function removeFromDisk(id: string) {
 }
 
 export function removeAllFromDisk() {
-  logger.debug("Removing all recordings");
+  logDebug("Removing all recordings");
 
   const files = readdirSync(recordingsPath);
   files.forEach(fileName => {

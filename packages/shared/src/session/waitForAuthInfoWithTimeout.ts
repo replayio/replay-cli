@@ -7,5 +7,5 @@ const promise = raceWithTimeout(deferredAuthInfo.promise, WAIT_FOR_AUTH_INFO_TIM
 export async function waitForAuthInfoWithTimeout() {
   const authInfo = await promise;
 
-  return authInfo ?? null;
+  return authInfo;
 }

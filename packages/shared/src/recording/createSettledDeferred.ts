@@ -1,5 +1,5 @@
 import { createDeferred } from "../async/createDeferred";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 
 export function createSettledDeferred<Data>(data: Data, task: () => Promise<void>) {
   const deferred = createDeferred<boolean, Data>(data);
@@ -9,7 +9,7 @@ export function createSettledDeferred<Data>(data: Data, task: () => Promise<void
       deferred.resolve(true);
     },
     error => {
-      logger.debug("Deferred action failed", { data, error });
+      logDebug("Deferred action failed", { data, error });
 
       deferred.resolve(false);
     }

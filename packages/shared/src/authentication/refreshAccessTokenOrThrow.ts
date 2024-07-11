@@ -1,5 +1,5 @@
 import { fetch } from "undici";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { AuthenticationError } from "./AuthenticationError";
 import { authClientId, authHost } from "./config";
 
@@ -21,13 +21,13 @@ export async function refreshAccessTokenOrThrow(
   const json: any = await resp.json();
 
   if (json.error) {
-    logger.debug("OAuth token request failed", json);
+    logDebug("OAuth token request failed", json);
 
     throw new AuthenticationError("auth0-error", json.error);
   }
 
   if (!json.access_token || !json.refresh_token) {
-    logger.debug("OAuth token request was missing access or refresh token", json);
+    logDebug("OAuth token request was missing access or refresh token", json);
 
     throw new AuthenticationError(
       "no-access-or-refresh-token",

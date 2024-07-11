@@ -1,5 +1,5 @@
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { logDebug, logError, logInfo } from "@replay-cli/shared/logger";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanelClient";
 import { existsSync } from "fs-extra";
 import { getBrowserPath } from "../browser/getBrowserPath";
 import { getLatestRelease } from "../installation/getLatestReleases";
@@ -15,7 +15,7 @@ export type Version = {
   version: Release["version"];
 };
 
-export const checkForRuntimeUpdate = mixpanelClient.createAsyncFunctionWithTracking(
+export const checkForRuntimeUpdate = createAsyncFunctionWithTracking(
   async function checkForRuntimeUpdate(): Promise<UpdateCheck<Version>> {
     let latestRelease: Release;
     let latestBuildId: string;
@@ -23,14 +23,14 @@ export const checkForRuntimeUpdate = mixpanelClient.createAsyncFunctionWithTrack
       latestRelease = await getLatestRelease();
       latestBuildId = latestRelease?.buildId ?? null;
       if (latestBuildId == null) {
-        logger.info("CheckForRuntimeUpdate:NoReleaseFound");
+        logInfo("CheckForRuntimeUpdate:NoReleaseFound");
 
         return {
           hasUpdate: undefined,
         };
       }
     } catch (error) {
-      logger.error("CheckForRuntimeUpdate:Failed", { error });
+      logError("CheckForRuntimeUpdate:Failed", { error });
 
       return {
         hasUpdate: undefined,
@@ -47,7 +47,7 @@ export const checkForRuntimeUpdate = mixpanelClient.createAsyncFunctionWithTrack
     }
 
     const { buildId: currentBuildId } = getCurrentRuntimeMetadata("chromium") ?? {};
-    logger.debug("CheckForRuntimeUpdate:CurrentBuild", { currentBuildId, latestBuildId });
+    logDebug("CheckForRuntimeUpdate:CurrentBuild", { currentBuildId, latestBuildId });
 
     return {
       hasUpdate: currentBuildId !== latestBuildId,

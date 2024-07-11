@@ -1,7 +1,9 @@
-import { Browser, TestInfoError, test } from "@playwright/test";
+import { Browser, test, TestInfoError } from "@playwright/test";
+import { createDeferred, Deferred } from "@replay-cli/shared/async/createDeferred";
+import { logError, logInfo } from "@replay-cli/shared/logger";
 import { ReporterError } from "@replayio/test-utils";
-import assert from "node:assert/strict";
 import dbg from "debug";
+import assert from "node:assert/strict";
 import WebSocket from "ws";
 import { Errors } from "./error";
 import {
@@ -13,8 +15,6 @@ import {
 } from "./playwrightTypes";
 import { getServerPort } from "./server";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
-import { logger } from "@replay-cli/shared/logger";
-import { createDeferred, Deferred } from "@replay-cli/shared/async/createDeferred";
 
 function isErrorWithCode<T extends string>(error: unknown, code: T): error is { code: T } {
   return !!error && typeof error === "object" && "code" in error && error.code === code;
@@ -238,7 +238,7 @@ export async function replayFixture(
           },
         }).catch(err => {
           // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-          logger.error("ReplayFixture:FailedToAddExpectStep", { error: err });
+          logError("ReplayFixture:FailedToAddExpectStep", { error: err });
         });
 
         return step;
@@ -262,7 +262,7 @@ export async function replayFixture(
           },
         }).catch(err => {
           // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-          logger.error("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
+          logError("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
         });
       }
     };
@@ -290,7 +290,7 @@ export async function replayFixture(
     }
   }
 
-  logger.info("ReplayFixture:SettingUp");
+  logInfo("ReplayFixture:SettingUp");
 
   let ws: WebSocket;
 
@@ -327,7 +327,7 @@ export async function replayFixture(
             // it's not worth it when a convenient API is available though
             // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
             // they can't be *logged* here because that interferes with the active reporter output
-            logger.error("ReplayFixture:FailedToAddAnnotation", { error });
+            logError("ReplayFixture:FailedToAddAnnotation", { error });
           }
         });
       })
@@ -387,7 +387,7 @@ export async function replayFixture(
           })
         );
       } catch (wsError) {
-        logger.error("ReplayFixture:FailedToSendErrorToReporter", { wsError });
+        logError("ReplayFixture:FailedToSendErrorToReporter", { wsError });
       }
     }
   }
@@ -476,7 +476,7 @@ export function addReplayFixture() {
   const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
   const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
   if (!fixtures) {
-    logger.error("ReplayFixture:FailedToInject");
+    logError("ReplayFixture:FailedToInject");
     return;
   }
 

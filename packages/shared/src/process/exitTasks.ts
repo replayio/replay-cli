@@ -1,10 +1,6 @@
-import { launchDarklyClient } from "../launchDarklylient";
-import { logger } from "../logger";
-import { mixpanelClient } from "../mixpanelClient";
+import { close as closeLaunchDarklyClient } from "../launchDarklylient";
+import { flushLog } from "../logger";
+import { closeMixpanel } from "../mixpanelClient";
 import { ExitTask } from "./types";
 
-export const exitTasks: ExitTask[] = [
-  () => launchDarklyClient.close(),
-  () => mixpanelClient.close(),
-  () => logger.close(),
-];
+export const exitTasks: ExitTask[] = [closeLaunchDarklyClient, closeMixpanel, flushLog];

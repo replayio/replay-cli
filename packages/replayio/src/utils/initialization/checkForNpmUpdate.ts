@@ -1,5 +1,5 @@
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { logError } from "@replay-cli/shared/logger";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanelClient";
 import { fetch } from "undici";
 import { version as currentVersion, name as packageName } from "../../../package.json";
 import { shouldPrompt } from "../prompt/shouldPrompt";
@@ -7,7 +7,7 @@ import { UpdateCheck } from "./types";
 
 const PROMPT_ID = "npm-update";
 
-export const checkForNpmUpdate = mixpanelClient.createAsyncFunctionWithTracking(
+export const checkForNpmUpdate = createAsyncFunctionWithTracking(
   async function checkForNpmUpdate(): Promise<UpdateCheck<string>> {
     try {
       // https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md#abbreviated-metadata-format
@@ -29,7 +29,7 @@ export const checkForNpmUpdate = mixpanelClient.createAsyncFunctionWithTracking(
         toVersion: latestVersion,
       };
     } catch (error) {
-      logger.error("CheckForNpmUpdate:Failed", { error });
+      logError("CheckForNpmUpdate:Failed", { error });
     }
 
     return {

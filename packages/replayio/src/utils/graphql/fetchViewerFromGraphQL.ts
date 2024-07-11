@@ -1,6 +1,6 @@
 import { GraphQLError } from "@replay-cli/shared/graphql/GraphQLError";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
-import { logger } from "@replay-cli/shared/logger";
+import { logInfo } from "@replay-cli/shared/logger";
 
 export type AuthInfo = {
   userEmail: string | undefined;
@@ -9,7 +9,7 @@ export type AuthInfo = {
 };
 
 export async function fetchViewerFromGraphQL(accessToken: string): Promise<AuthInfo> {
-  logger.info("FetchViewerFromGraphQL:Start");
+  logInfo("FetchViewerFromGraphQL:Start");
 
   const { data, errors } = await queryGraphQL(
     "ViewerInfo",

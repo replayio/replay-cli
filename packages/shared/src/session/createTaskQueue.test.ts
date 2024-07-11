@@ -1,5 +1,5 @@
 import { createDeferred } from "../async/createDeferred";
-import type { AuthenticatedTaskQueue as AuthenticatedTaskQueueType } from "./AuthenticatedTaskQueue";
+import type { TaskQueue } from "./createTaskQueue";
 import { waitForAuthInfoWithTimeout } from "./waitForAuthInfoWithTimeout";
 
 async function act(callback: () => void | Promise<void>) {
@@ -7,14 +7,11 @@ async function act(callback: () => void | Promise<void>) {
   await Promise.resolve();
 }
 
-describe("AuthenticatedTaskQueue", () => {
-  let AuthenticatedTaskQueue: typeof AuthenticatedTaskQueueType;
-  let test: AuthenticatedTaskQueueType & {
-    append: AuthenticatedTaskQueueType["addToQueue"];
-    authenticateMock: jest.Mock;
-    finalizeMock: jest.Mock;
-    initializeMock: jest.Mock;
-  };
+describe("createTaskQueue", () => {
+  let taskQueue: TaskQueue;
+  let taskQueueOnAuthInfo: jest.Mock;
+  let taskQueueOnDestroy: jest.Mock;
+  let taskQueueOnPackageInfo: jest.Mock;
 
   async function initializeSession() {
     await require("../session/initializeSession").initializeSession({
@@ -37,23 +34,18 @@ describe("AuthenticatedTaskQueue", () => {
       }),
     }));
 
+    taskQueueOnAuthInfo = jest.fn();
+    taskQueueOnDestroy = jest.fn();
+    taskQueueOnPackageInfo = jest.fn();
+
     // jest.resetModules does not work with import; only works with require()
-    AuthenticatedTaskQueue = require("./AuthenticatedTaskQueue").AuthenticatedTaskQueue;
+    const createTaskQueue = require("./createTaskQueue").createTaskQueue;
 
-    class Test extends AuthenticatedTaskQueue {
-      append = super.addToQueue;
-
-      authenticateMock = jest.fn();
-      onAuthenticate = this.authenticateMock;
-
-      finalizeMock = jest.fn();
-      onFinalize = this.finalizeMock;
-
-      initializeMock = jest.fn();
-      onInitialize = this.initializeMock;
-    }
-
-    test = new Test();
+    taskQueue = createTaskQueue({
+      onAuthInfo: taskQueueOnAuthInfo,
+      onDestroy: taskQueueOnDestroy,
+      onPackageInfo: taskQueueOnPackageInfo,
+    });
   });
 
   afterEach(() => {
@@ -61,21 +53,21 @@ describe("AuthenticatedTaskQueue", () => {
   });
 
   it("should initialize subclass once package info is available", async () => {
-    expect(test.authenticateMock).not.toHaveBeenCalled();
-    expect(test.initializeMock).not.toHaveBeenCalled();
+    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
+    expect(taskQueueOnPackageInfo).not.toHaveBeenCalled();
 
     await initializeSession();
 
-    expect(test.authenticateMock).toHaveBeenCalledTimes(1);
-    expect(test.initializeMock).toHaveBeenCalledTimes(1);
+    expect(taskQueueOnAuthInfo).toHaveBeenCalledTimes(1);
+    expect(taskQueueOnPackageInfo).toHaveBeenCalledTimes(1);
   });
 
   it("should finalize subclass during shutdown", async () => {
-    expect(test.finalizeMock).not.toHaveBeenCalled();
+    expect(taskQueueOnDestroy).not.toHaveBeenCalled();
 
-    await test.close();
+    await taskQueue.flushAndClose();
 
-    expect(test.finalizeMock).toHaveBeenCalledTimes(1);
+    expect(taskQueueOnDestroy).toHaveBeenCalledTimes(1);
   });
 
   it("should flush queued tasks once authenticated", async () => {
@@ -83,8 +75,8 @@ describe("AuthenticatedTaskQueue", () => {
     const taskB = jest.fn();
     const taskC = jest.fn();
 
-    test.append(taskA);
-    test.append(taskB);
+    taskQueue.push(taskA);
+    taskQueue.push(taskB);
 
     expect(taskA).not.toHaveBeenCalled();
     expect(taskB).not.toHaveBeenCalled();
@@ -94,7 +86,7 @@ describe("AuthenticatedTaskQueue", () => {
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
 
-    test.append(taskC);
+    taskQueue.push(taskC);
 
     expect(taskC).toHaveBeenCalledTimes(1);
   });
@@ -103,13 +95,13 @@ describe("AuthenticatedTaskQueue", () => {
     const taskA = jest.fn();
     const taskB = jest.fn();
 
-    test.append(taskA);
-    test.append(taskB);
+    taskQueue.push(taskA);
+    taskQueue.push(taskB);
 
     expect(taskA).not.toHaveBeenCalled();
     expect(taskB).not.toHaveBeenCalled();
 
-    await test.close();
+    await taskQueue.flushAndClose();
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
@@ -122,16 +114,16 @@ describe("AuthenticatedTaskQueue", () => {
     expect(taskA).not.toHaveBeenCalled();
     expect(taskB).not.toHaveBeenCalled();
 
-    test.append(taskA);
+    taskQueue.push(taskA);
 
-    await test.close();
+    await taskQueue.flushAndClose();
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).not.toHaveBeenCalled();
 
-    test.append(taskB);
+    taskQueue.push(taskB);
 
-    await test.close();
+    await taskQueue.flushAndClose();
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
@@ -147,31 +139,31 @@ describe("AuthenticatedTaskQueue", () => {
     const deferredB = createDeferred();
     const deferredC = createDeferred();
 
-    test.append(async () => {
+    taskQueue.push(async () => {
       await deferredA.promise;
     });
-    test.append(async () => {
+    taskQueue.push(async () => {
       await deferredB.promise;
     });
-    test.append(async () => {
+    taskQueue.push(async () => {
       await deferredC.promise;
     });
-    expect(test.queueSize).toBe(3);
+    expect(taskQueue.queueSize).toBe(3);
 
     await initializeSession();
-    expect(test.queueSize).toBe(3);
+    expect(taskQueue.queueSize).toBe(3);
 
     await act(async () => deferredA.resolve());
-    expect(test.queueSize).toBe(2);
+    expect(taskQueue.queueSize).toBe(2);
 
-    const closePromise = test.close();
-    expect(test.queueSize).toBe(2);
+    const closePromise = taskQueue.flushAndClose();
+    expect(taskQueue.queueSize).toBe(2);
 
     await act(async () => deferredB.reject(new Error("Fake error")));
-    expect(test.queueSize).toBe(1);
+    expect(taskQueue.queueSize).toBe(1);
 
     await act(async () => deferredC.resolve());
-    expect(test.queueSize).toBe(0);
+    expect(taskQueue.queueSize).toBe(0);
 
     await closePromise;
   });

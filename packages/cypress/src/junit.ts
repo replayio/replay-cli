@@ -1,4 +1,4 @@
-import { logger } from "@replay-cli/shared/logger";
+import { logDebug, logError, logInfo } from "@replay-cli/shared/logger";
 import { warn } from "@replayio/test-utils";
 import { RecordingEntry } from "@replayio/test-utils";
 import fs, { readFileSync, writeFileSync } from "fs";
@@ -14,15 +14,15 @@ function readXmlFile(path: string) {
   }
 
   try {
-    logger.debug("ReadXmlFile:Started", { path });
+    logDebug("ReadXmlFile:Started", { path });
     const contents = readFileSync(path, "utf-8");
-    logger.info("ReadXmlFile:FileInfo", { bytes: contents.length, path });
+    logInfo("ReadXmlFile:FileInfo", { bytes: contents.length, path });
     const dom = xml(contents, { setPos: false, noChildNodes: ["?xml"] });
     gFileCache.set(path, dom);
 
     return dom;
   } catch (e) {
-    logger.error("ReadXmlFile:Failed", { path, error: e });
+    logError("ReadXmlFile:Failed", { path, error: e });
     warn("[junit] Failed to read and parse reporter file", e);
   }
 }
@@ -43,7 +43,7 @@ function writeOutputFile(dom: (string | INode)[], outputFile: string) {
       .join("\n");
     writeFileSync(outputFile, updatedContents, "utf-8");
   } catch (e) {
-    logger.error("WriteOutputFile:Failed", { outputFile, error: e });
+    logError("WriteOutputFile:Failed", { outputFile, error: e });
     warn("[junit] Failed to update reporter file", e);
   }
 }
@@ -105,7 +105,7 @@ function addReplayLinkProperty(node: INode, replayUrls: string[]) {
       )
     );
   } catch (e) {
-    logger.error("AddReplayLinkProperty:Failed", { error: e });
+    logError("AddReplayLinkProperty:Failed", { error: e });
   }
 }
 
@@ -116,13 +116,13 @@ function escapeForXml(content: string) {
 function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
   try {
     const failures = findDescendentsByTagName(node, "failure");
-    logger.info("AppendReplayUrlsToFailures:Started", {
+    logInfo("AppendReplayUrlsToFailures:Started", {
       failures: failures.length,
       replayUrls,
     });
     failures.forEach(failure => {
       if (typeof failure.children[0] !== "string") {
-        logger.info("AppendReplayUrlsToFailures:FailureNodeNotString", { failure });
+        logInfo("AppendReplayUrlsToFailures:FailureNodeNotString", { failure });
         return;
       }
 
@@ -133,7 +133,7 @@ function appendReplayUrlsToFailureNodes(node: INode, replayUrls: string[]) {
       failure.children[0] = escapeForXml(output);
     });
   } catch (e) {
-    logger.error("AppendReplayUrlsToFailures:Failed", { error: e });
+    logError("AppendReplayUrlsToFailures:Failed", { error: e });
   }
 }
 
@@ -150,7 +150,7 @@ function findOutputFileForSpec(specRelativePath: string, xmlFiles: string[]) {
     const rootSuite = getRootSuite(dom);
 
     if (!rootSuite || !testSuites) {
-      logger.error("FindOutputFileForSpec:FailedToFindRootSuite", { dom });
+      logError("FindOutputFileForSpec:FailedToFindRootSuite", { dom });
       continue;
     }
 
@@ -181,7 +181,7 @@ export function updateJUnitReports(
   mochaFile?: string
 ) {
   try {
-    logger.info("UpdateJUnitReports:Started", {
+    logInfo("UpdateJUnitReports:Started", {
       specRelativePath,
       recordings: recordings.map(r => r.id),
       projectBase,
@@ -189,7 +189,7 @@ export function updateJUnitReports(
     });
 
     if (mochaFile && typeof mochaFile !== "string") {
-      logger.error("UpdateJUnitReports:InvalidMochaFile", { mochaFile });
+      logError("UpdateJUnitReports:InvalidMochaFile", { mochaFile });
       warn(
         "Unsupported reporterOptions configuration",
         new Error("Expected string for mocha file but received " + typeof mochaFile)
@@ -205,7 +205,7 @@ export function updateJUnitReports(
       throw new Error(`Failed to find JUnit reporter output file`);
     }
 
-    logger.info("UpdateJUnitReports:FoundRootSuite", { specRelativePath });
+    logInfo("UpdateJUnitReports:FoundRootSuite", { specRelativePath });
 
     const testSuites = getTestSuitesNode(dom);
     const rootSuite = getRootSuite(dom);
@@ -222,7 +222,7 @@ export function updateJUnitReports(
 
     writeOutputFile(dom, xmlFile);
   } catch (e) {
-    logger.error("UpdateJUnitReports:Failed", { specRelativePath, error: e });
+    logError("UpdateJUnitReports:Failed", { specRelativePath, error: e });
     warn(`[junit] Unexpected reporter error  for ${specRelativePath}`, e);
   }
 }

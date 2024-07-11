@@ -1,6 +1,6 @@
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
-import { logger } from "@replay-cli/shared/logger";
+import { logError } from "@replay-cli/shared/logger";
 import { getUserAgent } from "@replay-cli/shared/session/getUserAgent";
 import { readFile, writeFileSync } from "fs-extra";
 import { File, FormData, fetch } from "undici";
@@ -62,7 +62,7 @@ export async function reportBrowserCrash(stderr: string) {
       };
     }
   } catch (error) {
-    logger.error("ReportBrowserCrash:FailedToUpload", { error });
+    logError("ReportBrowserCrash:FailedToUpload", { error });
   }
 
   return {

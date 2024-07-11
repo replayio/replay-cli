@@ -5,8 +5,8 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { logError, logInfo } from "@replay-cli/shared/logger";
+import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { waitForExitTasks } from "@replay-cli/shared/process/waitForExitTasks";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initializeSession } from "@replay-cli/shared/session/initializeSession";
@@ -91,7 +91,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
     });
 
     if (!config || typeof config !== "object") {
-      mixpanelClient.trackEvent("error.invalid-reporter-config", { config });
+      trackEvent("error.invalid-reporter-config", { config });
 
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -304,7 +304,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
               try {
                 return [filename, readFileSync(filename, "utf8")];
               } catch (e) {
-                logger.error("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
+                logError("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
                   filename,
                   error: e,
                 });
@@ -371,13 +371,13 @@ export default class ReplayPlaywrightReporter implements Reporter {
       const output: string[] = [];
 
       if (!didUseReplayBrowser) {
-        mixpanelClient.trackEvent("warning.reporter-used-without-replay-project");
+        trackEvent("warning.reporter-used-without-replay-project");
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
       if (!isReplayBrowserInstalled) {
         if (didUseReplayBrowser) {
-          mixpanelClient.trackEvent("warning.replay-browser-not-installed");
+          trackEvent("warning.replay-browser-not-installed");
         }
 
         output.push(
@@ -420,7 +420,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   }
 
   parseArguments(apiName: string, params: any) {
-    logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
+    logInfo("PlaywrightReporter:ParseArguments", { apiName, params });
     if (!params || typeof params !== "object") {
       return [];
     }

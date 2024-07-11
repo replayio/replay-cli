@@ -1,11 +1,11 @@
 import { AuthInfo } from "../authentication/types";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { base64Decode } from "../strings/decode";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 
 export async function fetchAuthInfoFromGraphQL(accessToken: string): Promise<AuthInfo> {
-  logger.debug("Fetching auth info from GraphQL");
+  logDebug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
     "AuthInfo",

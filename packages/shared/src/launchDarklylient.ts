@@ -1,17 +1,18 @@
 import {
+  initialize as initializeLDClient,
   LDClient,
   LDContext,
   LDSingleKindContext,
-  initialize as initializeLDClient,
 } from "launchdarkly-node-client-sdk";
+import { createDeferred } from "./async/createDeferred";
 import { AuthInfo } from "./authentication/types";
 import { getReplayPath } from "./getReplayPath";
-import { AuthenticatedTaskQueue } from "./session/AuthenticatedTaskQueue";
+import { createTaskQueue } from "./session/createTaskQueue";
 
-class LaunchDarklyClient extends AuthenticatedTaskQueue {
-  private client: LDClient | undefined;
+let clientDeferred = createDeferred<LDClient>();
 
-  onAuthenticate(authInfo: AuthInfo | null) {
+const taskQueue = createTaskQueue({
+  onAuthInfo: (authInfo: AuthInfo | undefined) => {
     let context: LDContext = {
       anonymous: true,
     };
@@ -23,7 +24,7 @@ class LaunchDarklyClient extends AuthenticatedTaskQueue {
       } satisfies LDSingleKindContext;
     }
 
-    this.client = initializeLDClient("60ca05fb43d6f10d234bb3cf", context, {
+    const client = initializeLDClient("60ca05fb43d6f10d234bb3cf", context, {
       localStoragePath: getReplayPath("launchdarkly-user-cache"),
       logger: {
         debug() {},
@@ -32,25 +33,32 @@ class LaunchDarklyClient extends AuthenticatedTaskQueue {
         warn() {},
       },
     });
-  }
 
-  async onFinalize() {
-    if (this.client) {
-      await this.client.close();
+    clientDeferred.resolve(client);
+  },
+  onDestroy: async () => {
+    const client = clientDeferred.resolution;
+    if (client) {
+      await client.close();
     }
-  }
+  },
+});
 
-  onInitialize() {
-    // Np-op
-  }
-
-  async getFeatureFlagValue<Type>(flag: string, defaultValue: boolean) {
-    await this.waitUntil("initialized-and-authenticated");
-
-    await this.client?.waitForInitialization();
-
-    return (await this.client?.variation(flag, defaultValue)) as Type;
-  }
+export async function close() {
+  taskQueue.flushAndClose();
 }
 
-export const launchDarklyClient = new LaunchDarklyClient();
+export async function getFeatureFlagValue<Type>(flag: string, defaultValue: Type) {
+  await clientDeferred.promise;
+
+  const client = clientDeferred.resolution;
+  if (client) {
+    await client.waitForInitialization();
+
+    const value = await client.variation(flag, defaultValue);
+
+    return value as Type;
+  }
+
+  return defaultValue;
+}

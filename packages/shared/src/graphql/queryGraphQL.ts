@@ -1,6 +1,6 @@
 import { fetch } from "undici";
 import { replayApiServer } from "../config";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { getUserAgent } from "../session/getUserAgent";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
@@ -23,11 +23,11 @@ export async function queryGraphQL(name: string, query: string, variables = {}, 
     options.headers.Authorization = `Bearer ${apiKey.trim()}`;
   }
 
-  logger.debug("Querying graphql endpoint", { name, replayApiServer });
+  logDebug("Querying graphql endpoint", { name, replayApiServer });
   const result = await fetch(`${replayApiServer}/v1/graphql`, options);
 
   const json: any = await result.json();
-  logger.debug("GraphQL Response", { json });
+  logDebug("GraphQL Response", { json });
 
   return json;
 }

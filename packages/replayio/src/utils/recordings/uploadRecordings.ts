@@ -1,9 +1,9 @@
 import { Deferred, STATUS_RESOLVED } from "@replay-cli/shared/async/createDeferred";
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { disableAnimatedLog, replayAppHost } from "@replay-cli/shared/config";
-import { logger } from "@replay-cli/shared/logger";
+import { logDebug } from "@replay-cli/shared/logger";
 import { logUpdate } from "@replay-cli/shared/logUpdate";
-import { mixpanelClient } from "@replay-cli/shared/mixpanelClient";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanelClient";
 import { printTable } from "@replay-cli/shared/printTable";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import {
@@ -113,7 +113,7 @@ function printViewRecordingLinks(recordings: LocalRecording[]) {
   }
 }
 
-export const uploadRecordings = mixpanelClient.createAsyncFunctionWithTracking(
+export const uploadRecordings = createAsyncFunctionWithTracking(
   async function uploadRecordings(
     recordings: LocalRecording[],
     {
@@ -127,7 +127,7 @@ export const uploadRecordings = mixpanelClient.createAsyncFunctionWithTracking(
   ) {
     recordings = recordings.filter(recording => {
       if (!canUpload(recording)) {
-        logger.debug(`Cannot upload recording ${recording.id}`, { recording });
+        logDebug(`Cannot upload recording ${recording.id}`, { recording });
         return false;
       }
 

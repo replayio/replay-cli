@@ -4,7 +4,7 @@ import StackUtils from "stack-utils";
 import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
 import { getDeviceId } from "./getDeviceId";
-import { AuthenticatedTaskQueue } from "./session/AuthenticatedTaskQueue";
+import { createTaskQueue } from "./session/createTaskQueue";
 import { PackageInfo } from "./session/types";
 
 const GRAFANA_USER = "909360";
@@ -13,7 +13,78 @@ const GRAFANA_PUBLIC_TOKEN =
 const GRAFANA_BASIC_AUTH = `${GRAFANA_USER}:${GRAFANA_PUBLIC_TOKEN}`;
 const HOST = "https://logs-prod-006.grafana.net";
 
+type LogLevel = "error" | "warn" | "info" | "debug";
+type Tags = Record<string, unknown>;
+
 const stackUtils = new StackUtils({ cwd: process.cwd(), internals: StackUtils.nodeInternals() });
+
+const deviceId = getDeviceId();
+const localDebugger = dbg("replay");
+const sessionId = randomUUID();
+
+let grafana: {
+  logger: winston.Logger;
+  close: () => Promise<void>;
+} | null = null;
+
+const taskQueue = createTaskQueue({
+  onDestroy: async () => {
+    if (process.env.REPLAY_TELEMETRY_DISABLED) {
+      return;
+    }
+
+    if (grafana) {
+      await grafana.close();
+    }
+  },
+
+  onPackageInfo: ({ packageName, packageVersion }: PackageInfo) => {
+    const lokiTransport = new LokiTransport({
+      host: HOST,
+      labels: { app: packageName, version: packageVersion },
+      json: true,
+      basicAuth: GRAFANA_BASIC_AUTH,
+      format: winston.format.json(),
+      replaceTimestamp: true,
+      timeout: 5000,
+      onConnectionError: err => localDebugger("Grafana connection error", err),
+      gracefulShutdown: true,
+    });
+
+    grafana = {
+      logger: winston.createLogger({
+        // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
+        // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
+        level: "info",
+        transports: [lokiTransport],
+      }),
+      close: async () => {
+        await lokiTransport.flush().catch(() => {});
+        lokiTransport.close?.();
+      },
+    };
+  },
+});
+
+export async function flushLog() {
+  await taskQueue.flushAndClose();
+}
+
+export function logDebug(message: string, tags?: Record<string, any>) {
+  log(message, "debug", tags);
+}
+
+export function logError(message: string, tags?: Tags) {
+  log(message, "error", tags);
+}
+
+export function logInfo(message: string, tags?: Tags) {
+  log(message, "info", tags);
+}
+
+export function logWarning(message: string, tags?: Tags) {
+  log(message, "warn", tags);
+}
 
 function anonymizeStackTrace(stack: string): string {
   return stack
@@ -31,141 +102,60 @@ function anonymizeStackTrace(stack: string): string {
     .join("\n");
 }
 
-type LogLevel = "error" | "warn" | "info" | "debug";
+function log(message: string, level: LogLevel, tags?: Tags) {
+  taskQueue.push(authInfo => {
+    const formattedTags = formatTags(tags);
 
-type Tags = Record<string, unknown>;
+    localDebugger(message, formattedTags);
 
-class Logger extends AuthenticatedTaskQueue {
-  private deviceId: string;
-  private grafana: {
-    logger: winston.Logger;
-    close: () => Promise<void>;
-  } | null = null;
-  private localDebugger: debug.Debugger;
-  private sessionId: string;
-
-  constructor() {
-    super();
-
-    this.localDebugger = dbg("replay");
-    this.deviceId = getDeviceId();
-    this.sessionId = randomUUID();
-  }
-
-  onAuthenticate() {
-    // No-op
-  }
-
-  async onFinalize() {
     if (process.env.REPLAY_TELEMETRY_DISABLED) {
       return;
     }
 
-    if (this.grafana) {
-      await this.grafana.close();
-    }
-  }
-
-  onInitialize({ packageName, packageVersion }: PackageInfo) {
-    const lokiTransport = new LokiTransport({
-      host: HOST,
-      labels: { app: packageName, version: packageVersion },
-      json: true,
-      basicAuth: GRAFANA_BASIC_AUTH,
-      format: winston.format.json(),
-      replaceTimestamp: true,
-      timeout: 5000,
-      onConnectionError: err => this.localDebugger("Grafana connection error", err),
-      gracefulShutdown: true,
-    });
-
-    this.grafana = {
-      logger: winston.createLogger({
-        // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
-        // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
-        level: "info",
-        transports: [lokiTransport],
-      }),
-      close: async () => {
-        await lokiTransport.flush().catch(() => {});
-        lokiTransport.close?.();
-      },
+    const entry: LogEntry = {
+      level,
+      message,
+      ...formattedTags,
+      deviceId,
+      sessionId,
     };
-  }
 
-  private log(message: string, level: LogLevel, tags?: Tags) {
-    super.addToQueue(authInfo => {
-      const formattedTags = this.formatTags(tags);
-
-      this.localDebugger(message, formattedTags);
-
-      if (process.env.REPLAY_TELEMETRY_DISABLED) {
-        return;
-      }
-
-      const entry: LogEntry = {
-        level,
-        message,
-        ...formattedTags,
-        deviceId: this.deviceId,
-        sessionId: this.sessionId,
-      };
-
-      if (authInfo) {
-        switch (authInfo.type) {
-          case "user": {
-            entry.userId = authInfo.id;
-            break;
-          }
-          case "workspace": {
-            entry.workspaceId = authInfo.id;
-            break;
-          }
+    if (authInfo) {
+      switch (authInfo.type) {
+        case "user": {
+          entry.userId = authInfo.id;
+          break;
+        }
+        case "workspace": {
+          entry.workspaceId = authInfo.id;
+          break;
         }
       }
-
-      if (this.grafana) {
-        this.grafana.logger.log(entry);
-      }
-    });
-  }
-
-  private formatTags(tags?: Record<string, unknown>) {
-    if (!tags) {
-      return;
     }
 
-    return Object.entries(tags).reduce((result, [key, value]) => {
-      if (value instanceof Error) {
-        result[key] = {
-          // Intentionally keeping this for any extra properties attached in `Error`
-          ...(value as any),
-          errorName: value.name,
-          errorMessage: value.message,
-          errorStack: anonymizeStackTrace(value.stack ?? ""),
-        };
-      } else {
-        result[key] = value;
-      }
-      return result;
-    }, {} as Record<string, unknown>);
-  }
-
-  debug(message: string, tags?: Record<string, any>) {
-    this.log(message, "debug", tags);
-  }
-
-  error(message: string, tags?: Tags) {
-    this.log(message, "error", tags);
-  }
-
-  info(message: string, tags?: Tags) {
-    this.log(message, "info", tags);
-  }
-
-  warn(message: string, tags?: Tags) {
-    this.log(message, "warn", tags);
-  }
+    if (grafana) {
+      grafana.logger.log(entry);
+    }
+  });
 }
 
-export const logger = new Logger();
+function formatTags(tags?: Record<string, unknown>) {
+  if (!tags) {
+    return;
+  }
+
+  return Object.entries(tags).reduce((result, [key, value]) => {
+    if (value instanceof Error) {
+      result[key] = {
+        // Intentionally keeping this for any extra properties attached in `Error`
+        ...(value as any),
+        errorName: value.name,
+        errorMessage: value.message,
+        errorStack: anonymizeStackTrace(value.stack ?? ""),
+      };
+    } else {
+      result[key] = value;
+    }
+    return result;
+  }, {} as Record<string, unknown>);
+}

@@ -1,6 +1,7 @@
 import { STATUS_RESOLVED } from "../async/createDeferred";
 import { getAuthInfo } from "../authentication/getAuthInfo";
 import { AuthInfo } from "../authentication/types";
+import { logError } from "../logger";
 import { deferredAuthInfo, deferredPackageInfo } from "./deferred";
 
 export async function initializeSession({
@@ -20,7 +21,11 @@ export async function initializeSession({
 
   let authInfo: AuthInfo | undefined = undefined;
   if (accessToken) {
-    authInfo = await getAuthInfo(accessToken);
+    try {
+      authInfo = await getAuthInfo(accessToken);
+    } catch (error) {
+      logError("InitializeSession:AuthInfoQueryFailed", { error });
+    }
   }
 
   deferredAuthInfo.resolve(authInfo);

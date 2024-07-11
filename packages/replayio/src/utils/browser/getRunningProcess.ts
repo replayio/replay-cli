@@ -1,5 +1,4 @@
-import { logger } from "@replay-cli/shared/logger";
-import { highlight } from "@replay-cli/shared/theme";
+import { logDebug } from "@replay-cli/shared/logger";
 import findProcess from "find-process";
 import { getBrowserPath } from "./getBrowserPath";
 
@@ -10,7 +9,7 @@ export async function getRunningProcess() {
   if (processes.length > 0) {
     const match = processes[0];
 
-    logger.debug("GetRunningProcess:AlreadyRunning", { pid: match.pid });
+    logDebug("GetRunningProcess:AlreadyRunning", { pid: match.pid });
 
     return match;
   }

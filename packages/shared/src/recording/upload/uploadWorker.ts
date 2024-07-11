@@ -1,5 +1,5 @@
 import { createDeferred, Deferred } from "../../async/createDeferred";
-import { launchDarklyClient } from "../../launchDarklylient";
+import { getFeatureFlagValue } from "../../launchDarklylient";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { removeFromDisk } from "../removeFromDisk";
@@ -24,10 +24,7 @@ export function createUploadWorker({
   let multiPartUpload = false;
 
   (async () => {
-    multiPartUpload = await launchDarklyClient.getFeatureFlagValue<boolean>(
-      "cli-multipart-upload",
-      false
-    );
+    multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
     try {
       await client.waitUntilAuthenticated();
       deferredAuthenticated.resolve(true);

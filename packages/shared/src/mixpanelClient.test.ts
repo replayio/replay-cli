@@ -1,9 +1,7 @@
 import { createDeferred, Deferred } from "./async/createDeferred";
 import type { initializeSession as InitializeSessionType } from "./session/initializeSession";
-import type {
-  mixpanelClient as MixpanelClientType,
-  MixpanelImplementation,
-} from "./mixpanelClient";
+import type { MixpanelImplementation } from "./mixpanelClient";
+import type * as MixpanelClient from "./mixpanelClient";
 
 async function act(callback: () => void | Promise<void>) {
   await callback();
@@ -13,7 +11,7 @@ async function act(callback: () => void | Promise<void>) {
 describe("MixpanelClient", () => {
   let initializeSession: typeof InitializeSessionType;
   let mockMixpanelClient: MixpanelImplementation;
-  let mixpanelClient: typeof MixpanelClientType;
+  let mixpanelClient: typeof MixpanelClient;
 
   const anyCallback = expect.any(Function);
   const anyProperties = expect.any(Object);
@@ -37,7 +35,7 @@ describe("MixpanelClient", () => {
 
     // jest.resetModules does not work with import; only works with require()
     initializeSession = require("./session/initializeSession").initializeSession;
-    mixpanelClient = require("./mixpanelClient").mixpanelClient;
+    mixpanelClient = require("./mixpanelClient");
     mixpanelClient.mockForTests(mockMixpanelClient);
   });
 
@@ -55,11 +53,11 @@ describe("MixpanelClient", () => {
 
       mixpanelClient.trackEvent("pending-1");
 
-      expect(mixpanelClient.queueSize).toBe(1);
+      expect(mixpanelClient.getQueueSizeForTests()).toBe(1);
 
-      await act(() => mixpanelClient.close());
+      await act(() => mixpanelClient.closeMixpanel());
 
-      expect(mixpanelClient.queueSize).toBe(0);
+      expect(mixpanelClient.getQueueSizeForTests()).toBe(0);
     });
 
     it("should not hang when closing an uninitialized session", async () => {
@@ -68,7 +66,7 @@ describe("MixpanelClient", () => {
 
       expect(mockMixpanelClient.track).toHaveBeenCalledTimes(0);
 
-      await act(() => mixpanelClient.close());
+      await act(() => mixpanelClient.closeMixpanel());
     });
   });
 
@@ -377,7 +375,7 @@ describe("MixpanelClient", () => {
     beforeEach(async () => {
       createDeferred = require("./async/createDeferred").createDeferred;
 
-      await await initializeSession({
+      await initializeSession({
         accessToken: "fake-access-token",
         packageName: "fake-package",
         packageVersion: "0.0.0",

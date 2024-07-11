@@ -1,6 +1,6 @@
 import { readFileSync } from "fs-extra";
 import { insert } from "../array";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { recordingLogPath } from "./config";
 import { LogEntry, RECORDING_LOG_KIND } from "./types";
 
@@ -46,7 +46,7 @@ export function readRecordingLog() {
     try {
       processLine(line);
     } catch {
-      logger.debug("Error parsing line", { line });
+      logDebug("Error parsing line", { line });
 
       // Early versions of `replayio` could remove the trailing \n from recordings.log,
       // so the next entry would be appended to the last line, creating a line with two entries.
@@ -60,7 +60,7 @@ export function readRecordingLog() {
         try {
           processLine(line);
         } catch (error) {
-          logger.debug("Error parsing split line", { line });
+          logDebug("Error parsing split line", { line });
         }
       });
     }
