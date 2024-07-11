@@ -7,7 +7,8 @@
   },
   "scripts": {
     "build": "pkg-build",
-    "test": "jest --ci"
+    "test": "jest --ci",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "bvaughn-enquirer": "2.4.2",

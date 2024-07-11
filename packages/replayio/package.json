@@ -13,8 +13,7 @@
     "build": "pkg-build",
     "lint": "prettier --write .",
     "test": "jest --ci",
-    "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch"
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
