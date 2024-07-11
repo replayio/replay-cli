@@ -1,7 +1,7 @@
 import {
   LDClient,
   LDContext,
-  LDUser,
+  LDSingleKindContext,
   initialize as initializeLDClient,
 } from "launchdarkly-node-client-sdk";
 import { AuthInfo } from "./authentication/types";
@@ -20,7 +20,7 @@ class LaunchDarklyClient extends AuthenticatedTaskQueue {
         anonymous: false,
         key: authInfo.id,
         kind: authInfo.type,
-      };
+      } satisfies LDSingleKindContext;
     }
 
     this.client = initializeLDClient("60ca05fb43d6f10d234bb3cf", context, {

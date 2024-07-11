@@ -89,5 +89,6 @@ export type LocalRecording = {
   processingStatus: "failed" | "processed" | "processing" | undefined;
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
   unusableReason: string | undefined;
+  uploadError: Error | undefined;
   uploadStatus: "failed" | "uploading" | "uploaded" | undefined;
 };

@@ -2,7 +2,6 @@ import { SessionId, sessionError } from "@replayio/protocol";
 import assert from "node:assert/strict";
 import WebSocket from "ws";
 import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
-import { getAccessToken } from "../authentication/getAccessToken";
 import { replayWsServer } from "../config";
 import { logger } from "../logger";
 import { ProtocolError } from "./ProtocolError";
@@ -22,10 +21,12 @@ export default class ProtocolClient {
   private nextMessageId = 1;
   private pendingCommands: Map<number, Deferred<any, CommandData>> = new Map();
   private socket: WebSocket;
+  private accessToken: string;
 
-  constructor() {
+  constructor(accessToken: string) {
     logger.debug(`Creating WebSocket for ${replayWsServer}`);
 
+    this.accessToken = accessToken;
     this.socket = new WebSocket(replayWsServer);
 
     this.socket.on("close", this.onSocketClose);
@@ -110,12 +111,12 @@ export default class ProtocolClient {
 
   private onSocketClose = () => {
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
-      this.deferredAuthenticated.resolve(false);
+      this.deferredAuthenticated.reject(new Error("Socket closed before authentication completed"));
     }
   };
 
   private onSocketError = (error: any) => {
-    logger.debug("Socket error", { error });
+    logger.error("ProtocolClient:Error", { error });
 
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
       this.deferredAuthenticated.reject(error);
@@ -153,15 +154,10 @@ export default class ProtocolClient {
 
   private onSocketOpen = async () => {
     try {
-      const { accessToken } = await getAccessToken();
-      assert(accessToken, "No access token found");
-
-      await setAccessToken(this, { accessToken });
-
+      await setAccessToken(this, { accessToken: this.accessToken });
       this.deferredAuthenticated.resolve(true);
     } catch (error) {
-      logger.debug("Error authenticating", { error });
-
+      logger.error("ProtocolClient:ServerAuthFailed", { error });
       this.socket.close();
       this.deferredAuthenticated.reject(error as Error);
     }

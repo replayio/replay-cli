@@ -18,6 +18,10 @@
   },
   "devDependencies": {
     "@replay-cli/tsconfig": "workspace:^",
-    "@types/normalize-path": "^3.0.2"
+    "@types/normalize-path": "^3.0.2",
+    "typescript": "^5.5.2"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }
