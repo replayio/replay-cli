@@ -41,16 +41,25 @@ describe("AuthenticatedTaskQueue", () => {
     AuthenticatedTaskQueue = require("./AuthenticatedTaskQueue").AuthenticatedTaskQueue;
 
     class Test extends AuthenticatedTaskQueue {
+      initializeMock: jest.Mock<any, any>;
+      authenticateMock: jest.Mock<any, any>;
+      finalizeMock: jest.Mock<any, any>;
+
+      constructor() {
+        const initializeMock = jest.fn();
+        const authenticateMock = jest.fn();
+        const finalizeMock = jest.fn();
+        super({
+          onInitialize: initializeMock,
+          onAuthenticate: authenticateMock,
+          onFinalize: finalizeMock,
+        });
+        this.initializeMock = initializeMock;
+        this.authenticateMock = authenticateMock;
+        this.finalizeMock = finalizeMock;
+      }
+
       append = super.addToQueue;
-
-      authenticateMock = jest.fn();
-      onAuthenticate = this.authenticateMock;
-
-      finalizeMock = jest.fn();
-      onFinalize = this.finalizeMock;
-
-      initializeMock = jest.fn();
-      onInitialize = this.initializeMock;
     }
 
     test = new Test();

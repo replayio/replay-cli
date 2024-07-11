@@ -13,31 +13,23 @@ export type MixpanelImplementation = {
   track: (eventName: string, properties: PropertyDict, callback: Callback) => void;
 };
 
-class MixpanelClient extends AuthenticatedTaskQueue {
+class MixpanelClient {
   private _additionalProperties: Properties = {};
   private _mixpanelClient: MixpanelImplementation | undefined;
   private _packageName: string | undefined;
   private _packageVersion: string | undefined;
 
-  constructor() {
-    super();
+  private queue = new AuthenticatedTaskQueue({
+    onInitialize: ({ packageName, packageVersion }: PackageInfo) => {
+      this._packageName = packageName;
+      this._packageVersion = packageVersion;
+    },
+  });
 
+  constructor() {
     if (!disableMixpanel) {
       this._mixpanelClient = initMixpanel(mixpanelToken);
     }
-  }
-
-  onAuthenticate() {
-    // No-op
-  }
-
-  async onFinalize() {
-    // No-op
-  }
-
-  async onInitialize({ packageName, packageVersion }: PackageInfo) {
-    this._packageName = packageName;
-    this._packageVersion = packageVersion;
   }
 
   appendAdditionalProperties(additionalProperties: Properties) {
@@ -105,7 +97,7 @@ class MixpanelClient extends AuthenticatedTaskQueue {
     // This method does not await the deferred/promise
     // because it is meant to be used in a fire-and-forget manner
     // The application will wait for all pending events to be resolved before exiting
-    super.addToQueue(async authInfo => {
+    this.queue.addToQueue(async authInfo => {
       logger.debug("MixpanelClient:AddToQueue:SendMessage", { eventName, properties });
 
       this._mixpanelClient?.track(

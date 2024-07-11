@@ -17,39 +17,51 @@ type Queued = {
 // Note this is the base class used by the (Grafana) Logger
 // It should avoid calling the logger itself– to prevent circular (import) references
 // and also to reduce the risk of infinite loops
-export abstract class AuthenticatedTaskQueue {
+export class AuthenticatedTaskQueue {
   private authenticated: boolean = false;
   private authInfo: AuthInfo | null = null;
   private queue: Set<Queued> = new Set();
 
-  constructor() {
+  private _onInitialize: ((packageInfo: PackageInfo) => void | Promise<void>) | undefined;
+  private _onAuthenticate: ((authInfo: AuthInfo | null) => void | Promise<void>) | undefined;
+  private _onFinalize: (() => void | Promise<void>) | undefined;
+
+  constructor({
+    onInitialize,
+    onAuthenticate,
+    onFinalize,
+  }: {
+    onInitialize?: (packageInfo: PackageInfo) => void | Promise<void>;
+    onAuthenticate?: (authInfo: AuthInfo | null) => void | Promise<void>;
+    onFinalize?: () => void | Promise<void>;
+  }) {
+    this._onInitialize = onInitialize;
+    this._onAuthenticate = onAuthenticate;
+    this._onFinalize = onFinalize;
+
     deferredPackageInfo.promise.then(packageInfo => {
-      this.onInitialize(packageInfo);
+      this._onInitialize?.(packageInfo);
     });
 
     waitForAuthInfoWithTimeout().then(authInfo => {
       this.authenticated = true;
       this.authInfo = authInfo;
 
-      this.onAuthenticate(authInfo);
+      this._onAuthenticate?.(authInfo);
       this.flushQueue();
     });
   }
 
   async close() {
     await this.flushQueue();
-    await this.onFinalize();
+    await this._onFinalize?.();
   }
 
   get queueSize() {
     return this.queue.size;
   }
 
-  protected abstract onAuthenticate(authInfo: AuthInfo | null): void | Promise<void>;
-  protected abstract onFinalize(): void | Promise<void>;
-  protected abstract onInitialize(packageInfo: PackageInfo): void | Promise<void>;
-
-  protected addToQueue(task: Task) {
+  addToQueue(task: Task) {
     const queued: Queued = {
       deferred: createDeferred(),
       status: "waiting",
@@ -63,9 +75,7 @@ export abstract class AuthenticatedTaskQueue {
     }
   }
 
-  protected async waitUntil(
-    status: "initialized" | "initialized-and-authenticated"
-  ): Promise<void> {
+  async waitUntil(status: "initialized" | "initialized-and-authenticated"): Promise<void> {
     await deferredPackageInfo.promise;
 
     if (status === "initialized-and-authenticated") {

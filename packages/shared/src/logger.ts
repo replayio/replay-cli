@@ -35,7 +35,7 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 
 type Tags = Record<string, unknown>;
 
-class Logger extends AuthenticatedTaskQueue {
+class Logger {
   private deviceId: string;
   private grafana: {
     logger: winston.Logger;
@@ -44,57 +44,50 @@ class Logger extends AuthenticatedTaskQueue {
   private localDebugger: debug.Debugger;
   private sessionId: string;
 
-  constructor() {
-    super();
+  private queue = new AuthenticatedTaskQueue({
+    onInitialize: ({ packageName, packageVersion }: PackageInfo) => {
+      const lokiTransport = new LokiTransport({
+        host: HOST,
+        labels: { app: packageName, version: packageVersion },
+        json: true,
+        basicAuth: GRAFANA_BASIC_AUTH,
+        format: winston.format.json(),
+        replaceTimestamp: true,
+        timeout: 5000,
+        onConnectionError: err => this.localDebugger("Grafana connection error", err),
+        gracefulShutdown: true,
+      });
 
+      this.grafana = {
+        logger: winston.createLogger({
+          // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
+          // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
+          level: "info",
+          transports: [lokiTransport],
+        }),
+        close: async () => {
+          await lokiTransport.flush().catch(() => {});
+          lokiTransport.close?.();
+        },
+      };
+    },
+    onFinalize: async () => {
+      if (process.env.REPLAY_TELEMETRY_DISABLED) {
+        return;
+      }
+
+      await this.grafana?.close();
+    },
+  });
+
+  constructor() {
     this.localDebugger = dbg("replay");
     this.deviceId = getDeviceId();
     this.sessionId = randomUUID();
   }
 
-  onAuthenticate() {
-    // No-op
-  }
-
-  async onFinalize() {
-    if (process.env.REPLAY_TELEMETRY_DISABLED) {
-      return;
-    }
-
-    if (this.grafana) {
-      await this.grafana.close();
-    }
-  }
-
-  onInitialize({ packageName, packageVersion }: PackageInfo) {
-    const lokiTransport = new LokiTransport({
-      host: HOST,
-      labels: { app: packageName, version: packageVersion },
-      json: true,
-      basicAuth: GRAFANA_BASIC_AUTH,
-      format: winston.format.json(),
-      replaceTimestamp: true,
-      timeout: 5000,
-      onConnectionError: err => this.localDebugger("Grafana connection error", err),
-      gracefulShutdown: true,
-    });
-
-    this.grafana = {
-      logger: winston.createLogger({
-        // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
-        // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
-        level: "info",
-        transports: [lokiTransport],
-      }),
-      close: async () => {
-        await lokiTransport.flush().catch(() => {});
-        lokiTransport.close?.();
-      },
-    };
-  }
-
   private log(message: string, level: LogLevel, tags?: Tags) {
-    super.addToQueue(authInfo => {
+    this.queue.addToQueue(authInfo => {
       const formattedTags = this.formatTags(tags);
 
       this.localDebugger(message, formattedTags);
