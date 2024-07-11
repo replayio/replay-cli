@@ -22,7 +22,7 @@ class SentryAPI {
 
   initialize(app: string, version: string | undefined) {
     if (this.initialized) {
-      console.warn(`Logger already initialized.`);
+      console.warn(`Sentry already initialized.`);
     }
 
     Sentry.init({
