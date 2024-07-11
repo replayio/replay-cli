@@ -31,6 +31,7 @@ export async function uploadRecording(
     processingBehavior: ProcessingBehavior;
   }
 ) {
+  logger.info("UploadRecording:Started", { recordingId: recording.id });
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
@@ -116,7 +117,13 @@ export async function uploadRecording(
       kind: RECORDING_LOG_KIND.uploadFailed,
     });
 
+    logger.error("UploadRecording:Failed", {
+      error,
+      recordingId: recording.id,
+      buildId: recording.buildId,
+    });
     recording.uploadStatus = "failed";
+    recording.uploadError = error as Error;
 
     throw error;
   }
@@ -133,6 +140,7 @@ export async function uploadRecording(
     server: replayWsServer,
   });
 
+  logger.info("UploadRecording:Succeeded", { recording: recording.id });
   recording.uploadStatus = "uploaded";
 
   switch (processingBehavior) {
@@ -271,15 +279,36 @@ async function uploadPart(
   },
   abortSignal: AbortSignal
 ): Promise<string> {
-  logger.debug("Uploading chunk", { recordingPath, size, start, end });
+  logger.info("UploadRecording:UploadPart:Started", {
+    recordingPath,
+    size,
+    start,
+    end,
+  });
   const stream = createReadStream(recordingPath, { start, end });
-  const response = await uploadRecordingReadStream(stream, { url, size }, abortSignal);
+  try {
+    const response = await uploadRecordingReadStream(stream, { url, size }, abortSignal);
+    const etag = response.headers.get("etag");
 
-  const etag = response.headers.get("etag");
-  assert(etag, "Etag has to be returned in the response headers");
-  logger.debug("Etag received", { etag, recordingPath, size, start, end });
+    logger.info("UploadRecording:UploadPart:Succeeded", {
+      recordingPath,
+      size,
+      start,
+      end,
+      etag,
+    });
 
-  return etag;
+    assert(etag, "Etag has to be returned in the response headers");
+    return etag;
+  } catch (error) {
+    logger.error("UploadRecording:UploadPart:Failed", {
+      recordingPath,
+      size,
+      start,
+      end,
+    });
+    throw error;
+  }
 }
 
 async function uploadRecordingReadStream(

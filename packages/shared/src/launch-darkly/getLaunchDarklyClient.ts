@@ -1,4 +1,8 @@
-import { LDClient, LDUser, initialize as initializeLDClient } from "launchdarkly-node-client-sdk";
+import {
+  LDClient,
+  LDSingleKindContext,
+  initialize as initializeLDClient,
+} from "launchdarkly-node-client-sdk";
 import { getReplayPath } from "../getReplayPath";
 
 let client: LDClient;
@@ -14,8 +18,9 @@ export function getLaunchDarklyClient(initialize: boolean = true) {
     client = initializeLDClient(
       "60ca05fb43d6f10d234bb3cf",
       {
+        kind: "user",
         anonymous: true,
-      } satisfies LDUser,
+      } satisfies LDSingleKindContext,
       {
         localStoragePath: getReplayPath("launchdarkly-user-cache"),
         logger: {

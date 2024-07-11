@@ -110,6 +110,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
             recordingStatus: "recording",
             unusableReason: undefined,
             uploadStatus: undefined,
+            uploadError: undefined,
           };
 
           idToRecording[entry.id] = recording;

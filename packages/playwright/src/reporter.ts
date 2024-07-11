@@ -85,14 +85,16 @@ export default class ReplayPlaywrightReporter implements Reporter {
   constructor(config: ReplayPlaywrightConfig) {
     setUserAgent(`${packageName}/${packageVersion}`);
 
+    const accessToken = getAccessToken(config);
+
     logger.initialize(packageName, packageVersion);
-    logger.identify(getAccessToken(config));
+    logger.identify(accessToken);
+
     mixpanelAPI.initialize({
-      accessToken: getAccessToken(config),
+      accessToken,
       packageName,
       packageVersion,
     });
-
     if (!config || typeof config !== "object") {
       mixpanelAPI.trackEvent("error.invalid-reporter-config", { config });
 

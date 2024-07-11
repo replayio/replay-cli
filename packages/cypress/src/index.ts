@@ -263,10 +263,12 @@ const plugin = (
 ) => {
   setUserAgent(`${packageName}/${packageVersion}`);
 
+  const accessToken = getAuthKey(config);
+
   logger.initialize(packageName, packageVersion);
-  logger.identify(getAuthKey(config));
+  logger.identify(accessToken);
   mixpanelAPI.initialize({
-    accessToken: getAuthKey(config),
+    accessToken,
     packageName,
     packageVersion,
   });
