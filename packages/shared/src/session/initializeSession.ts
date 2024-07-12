@@ -2,7 +2,8 @@ import { STATUS_RESOLVED } from "../async/createDeferred";
 import { getAuthInfo } from "../authentication/getAuthInfo";
 import { AuthInfo } from "../authentication/types";
 import { logError } from "../logger";
-import { deferredAuthInfo, deferredPackageInfo } from "./deferred";
+import { deferredAuthInfo } from "./waitForAuthInfo";
+import { deferredPackageInfo } from "./waitForPackageInfo";
 
 export async function initializeSession({
   accessToken,
@@ -13,20 +14,20 @@ export async function initializeSession({
   packageName: string;
   packageVersion: string;
 }) {
-  if (deferredPackageInfo.status === STATUS_RESOLVED) {
-    return;
+  if (deferredPackageInfo.status !== STATUS_RESOLVED) {
+    deferredPackageInfo.resolve({ packageName, packageVersion });
   }
 
-  deferredPackageInfo.resolve({ packageName, packageVersion });
-
-  let authInfo: AuthInfo | undefined = undefined;
-  if (accessToken) {
-    try {
-      authInfo = await getAuthInfo(accessToken);
-    } catch (error) {
-      logError("InitializeSession:AuthInfoQueryFailed", { error });
+  if (deferredAuthInfo.status !== STATUS_RESOLVED) {
+    let authInfo: AuthInfo | undefined = undefined;
+    if (accessToken) {
+      try {
+        authInfo = await getAuthInfo(accessToken);
+      } catch (error) {
+        logError("InitializeSession:AuthInfoQueryFailed", { error });
+      }
     }
-  }
 
-  deferredAuthInfo.resolve(authInfo);
+    deferredAuthInfo.resolve(authInfo);
+  }
 }

@@ -1,6 +1,5 @@
 import { createDeferred } from "../async/createDeferred";
 import type { TaskQueue } from "./createTaskQueue";
-import { waitForAuthInfoWithTimeout } from "./waitForAuthInfoWithTimeout";
 
 async function act(callback: () => void | Promise<void>) {
   await callback();
@@ -8,30 +7,43 @@ async function act(callback: () => void | Promise<void>) {
 }
 
 describe("createTaskQueue", () => {
+  let mockGetAuthInfo: jest.Mock;
   let taskQueue: TaskQueue;
   let taskQueueOnAuthInfo: jest.Mock;
   let taskQueueOnDestroy: jest.Mock;
   let taskQueueOnPackageInfo: jest.Mock;
 
   async function initializeSession() {
-    await require("../session/initializeSession").initializeSession({
+    const { initializeSession } = require("./initializeSession");
+
+    await initializeSession({
       accessToken: "fake-access-token",
       packageName: "fake-package-name",
       packageVersion: "0.0.0",
     });
+  }
 
-    // Let async task queue
-    await waitForAuthInfoWithTimeout();
+  async function initializeSessionPackageInfoOnly() {
+    const { waitForPackageInfo } = require("./waitForPackageInfo");
+
+    mockGetAuthInfo.mockReturnValue(new Promise(resolve => {}));
+
+    // Don't await the whole session initialization, just the package info
+    initializeSession();
+
+    await waitForPackageInfo();
   }
 
   beforeEach(() => {
     jest.useFakeTimers();
 
+    mockGetAuthInfo = jest.fn(async () => ({
+      id: "fake-session-id",
+    }));
+
     // This test should not talk to our live GraphQL server
     jest.mock("../authentication/getAuthInfo", () => ({
-      getAuthInfo: async () => ({
-        id: "fake-session-id",
-      }),
+      getAuthInfo: mockGetAuthInfo,
     }));
 
     taskQueueOnAuthInfo = jest.fn();
@@ -39,7 +51,7 @@ describe("createTaskQueue", () => {
     taskQueueOnPackageInfo = jest.fn();
 
     // jest.resetModules does not work with import; only works with require()
-    const createTaskQueue = require("./createTaskQueue").createTaskQueue;
+    const { createTaskQueue } = require("./createTaskQueue");
 
     taskQueue = createTaskQueue({
       onAuthInfo: taskQueueOnAuthInfo,
@@ -52,17 +64,25 @@ describe("createTaskQueue", () => {
     jest.resetModules();
   });
 
-  it("should initialize subclass once package info is available", async () => {
+  it("should call onPackageInfo once package info is available", async () => {
     expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
     expect(taskQueueOnPackageInfo).not.toHaveBeenCalled();
+
+    await initializeSessionPackageInfoOnly();
+
+    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
+    expect(taskQueueOnPackageInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it("should call onAuthInfo once auth info is available", async () => {
+    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
 
     await initializeSession();
 
     expect(taskQueueOnAuthInfo).toHaveBeenCalledTimes(1);
-    expect(taskQueueOnPackageInfo).toHaveBeenCalledTimes(1);
   });
 
-  it("should finalize subclass during shutdown", async () => {
+  it("should call onDestroy during shutdown", async () => {
     expect(taskQueueOnDestroy).not.toHaveBeenCalled();
 
     await taskQueue.flushAndClose();
@@ -92,16 +112,22 @@ describe("createTaskQueue", () => {
   });
 
   it("should flush queue without authentication if requested", async () => {
+    await initializeSessionPackageInfoOnly();
+
     const taskA = jest.fn();
     const taskB = jest.fn();
 
     taskQueue.push(taskA);
     taskQueue.push(taskB);
 
+    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
     expect(taskA).not.toHaveBeenCalled();
     expect(taskB).not.toHaveBeenCalled();
 
     await taskQueue.flushAndClose();
+
+    // It should lazily initialize without auth info before flushing
+    expect(taskQueueOnAuthInfo).toHaveBeenCalledTimes(1);
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
@@ -111,30 +137,28 @@ describe("createTaskQueue", () => {
     const taskA = jest.fn();
     const taskB = jest.fn();
 
-    expect(taskA).not.toHaveBeenCalled();
-    expect(taskB).not.toHaveBeenCalled();
-
     taskQueue.push(taskA);
 
-    await taskQueue.flushAndClose();
+    expect(taskA).not.toHaveBeenCalled();
+
+    await initializeSession();
 
     expect(taskA).toHaveBeenCalledTimes(1);
-    expect(taskB).not.toHaveBeenCalled();
 
     taskQueue.push(taskB);
-
-    await taskQueue.flushAndClose();
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
 
-    await initializeSession();
+    await taskQueue.flushAndClose();
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
   });
 
   it("should track pending promises until resolved or rejected", async () => {
+    const { createDeferred } = require("../async/createDeferred");
+
     const deferredA = createDeferred();
     const deferredB = createDeferred();
     const deferredC = createDeferred();

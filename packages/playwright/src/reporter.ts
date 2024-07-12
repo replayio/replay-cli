@@ -372,6 +372,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
 
       if (!didUseReplayBrowser) {
         trackEvent("warning.reporter-used-without-replay-project");
+
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 

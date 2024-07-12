@@ -1,6 +1,7 @@
-import { deferredPackageInfo } from "./deferred";
+import { waitForPackageInfo } from "./waitForPackageInfo";
 
 export async function getUserAgent() {
-  const { packageName, packageVersion } = await deferredPackageInfo.promise;
+  const { packageName, packageVersion } = await waitForPackageInfo();
+
   return `${packageName}/${packageVersion}`;
 }

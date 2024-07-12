@@ -105,22 +105,23 @@ export function trackEvent(eventName: string, properties: Properties = {}) {
   taskQueue.push(async authInfo => {
     logDebug("MixpanelClient:AddToQueue:SendMessage", { eventName, properties });
 
-    mixpanelClient?.track(
-      eventName,
-      {
-        ...properties,
-        ...additionalProperties,
-        distinct_id: authInfo?.id,
-        packageName: packageName,
-        packageVersion: packageVersion,
-      },
-      (error: any | undefined) => {
-        if (error) {
-          logError("MixpanelClient:AddToQueue:Failed", { eventName, error, properties });
-        } else {
-          logDebug("MixpanelClient:AddToQueue:Success", { eventName, properties });
-        }
+    const mergedProperties = {
+      ...properties,
+      ...additionalProperties,
+      packageName: packageName,
+      packageVersion: packageVersion,
+    } as Properties;
+
+    if (authInfo?.id) {
+      mergedProperties.distinct_id = authInfo.id;
+    }
+
+    mixpanelClient?.track(eventName, mergedProperties, (error: any | undefined) => {
+      if (error) {
+        logError("MixpanelClient:AddToQueue:Failed", { eventName, error, properties });
+      } else {
+        logDebug("MixpanelClient:AddToQueue:Success", { eventName, properties });
       }
-    );
+    });
   });
 }

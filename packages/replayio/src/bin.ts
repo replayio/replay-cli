@@ -1,11 +1,11 @@
+import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { logError } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { name as packageName, version as packageVersion } from "../package.json";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
 
 // Commands self-register with "commander"
-import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
-import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import "./commands/info";
 import "./commands/list";
 import "./commands/login";

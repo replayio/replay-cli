@@ -9,16 +9,40 @@ async function act(callback: () => void | Promise<void>) {
 }
 
 describe("MixpanelClient", () => {
-  let initializeSession: typeof InitializeSessionType;
+  let mockGetAuthInfo: jest.Mock;
   let mockMixpanelClient: MixpanelImplementation;
   let mixpanelClient: typeof MixpanelClient;
 
   const anyCallback = expect.any(Function);
   const anyProperties = expect.any(Object);
 
+  async function initializeSession(includeAccessToken = true) {
+    const { initializeSession } = require("./session/initializeSession");
+
+    await initializeSession({
+      accessToken: includeAccessToken ? "fake-access-token" : undefined,
+      packageName: "fake-package",
+      packageVersion: "0.0.0",
+    });
+  }
+
+  async function initializeSessionPackageInfoOnly() {
+    const { waitForPackageInfo } = require("./session/waitForPackageInfo");
+
+    mockGetAuthInfo.mockReturnValue(new Promise(resolve => {}));
+
+    // Don't await the whole session initialization, just the package info
+    initializeSession();
+
+    await waitForPackageInfo();
+  }
+
   beforeEach(() => {
     jest.useFakeTimers();
 
+    mockGetAuthInfo = jest.fn(async () => ({
+      id: "fake-session-id",
+    }));
     mockMixpanelClient = {
       init: jest.fn(),
       track: jest.fn((_, __, callback) => {
@@ -28,13 +52,10 @@ describe("MixpanelClient", () => {
 
     // This test should not talk to our live GraphQL server
     jest.mock("./authentication/getAuthInfo", () => ({
-      getAuthInfo: async () => ({
-        id: "fake-session-id",
-      }),
+      getAuthInfo: mockGetAuthInfo,
     }));
 
     // jest.resetModules does not work with import; only works with require()
-    initializeSession = require("./session/initializeSession").initializeSession;
     mixpanelClient = require("./mixpanelClient");
     mixpanelClient.mockForTests(mockMixpanelClient);
   });
@@ -45,11 +66,7 @@ describe("MixpanelClient", () => {
 
   describe("close", () => {
     it("should flush pending requests before closing", async () => {
-      await initializeSession({
-        accessToken: "fake-access-token",
-        packageName: "fake-package",
-        packageVersion: "0.0.0",
-      });
+      await initializeSession();
 
       mixpanelClient.trackEvent("pending-1");
 
@@ -60,23 +77,25 @@ describe("MixpanelClient", () => {
       expect(mixpanelClient.getQueueSizeForTests()).toBe(0);
     });
 
-    it("should not hang when closing an uninitialized session", async () => {
+    it("should pending requests when closing an uninitialized session", async () => {
+      await initializeSessionPackageInfoOnly();
+
       mixpanelClient.trackEvent("pending-1");
       mixpanelClient.trackEvent("pending-2");
 
+      expect(mixpanelClient.getQueueSizeForTests()).toBe(2);
       expect(mockMixpanelClient.track).toHaveBeenCalledTimes(0);
 
       await act(() => mixpanelClient.closeMixpanel());
+
+      expect(mixpanelClient.getQueueSizeForTests()).toBe(0);
+      expect(mockMixpanelClient.track).toHaveBeenCalledTimes(2);
     });
   });
 
   describe("createAsyncFunctionWithTracking", () => {
     beforeEach(async () => {
-      await initializeSession({
-        accessToken: "fake-access-token",
-        packageName: "fake-package",
-        packageVersion: "0.0.0",
-      });
+      await initializeSession();
     });
 
     it("should pass arguments along to trackAsyncEvent", async () => {
@@ -192,13 +211,7 @@ describe("MixpanelClient", () => {
 
         expect(mockMixpanelClient.track).toHaveBeenCalledTimes(0);
 
-        await act(async () => {
-          await initializeSession({
-            accessToken: "fake-access-token",
-            packageName: "fake-package",
-            packageVersion: "0.0.0",
-          });
-        });
+        await initializeSession();
 
         expect(mockMixpanelClient.track).toHaveBeenCalledTimes(3);
 
@@ -216,13 +229,7 @@ describe("MixpanelClient", () => {
 
         expect(mockMixpanelClient.track).toHaveBeenCalledTimes(0);
 
-        await act(async () => {
-          await initializeSession({
-            accessToken: undefined,
-            packageName: "fake-package",
-            packageVersion: "0.0.0",
-          });
-        });
+        await initializeSession();
 
         expect(mockMixpanelClient.track).toHaveBeenCalledTimes(1);
 
@@ -235,13 +242,7 @@ describe("MixpanelClient", () => {
         mixpanelClient.trackEvent("fake-package.no-args");
         mixpanelClient.trackEvent("fake-package.some-args", { foo: 123, bar: "abc" });
 
-        await act(async () => {
-          await initializeSession({
-            accessToken: undefined,
-            packageName: "fake-package",
-            packageVersion: "0.0.0",
-          });
-        });
+        await initializeSession(false);
 
         expect(mockMixpanelClient.track).toHaveBeenCalledTimes(2);
         expect(mockMixpanelClient.track).toHaveBeenNthCalledWith(
@@ -261,11 +262,7 @@ describe("MixpanelClient", () => {
 
     describe("authenticated", () => {
       beforeEach(async () => {
-        await initializeSession({
-          accessToken: "fake-access-token",
-          packageName: "fake-package",
-          packageVersion: "0.0.0",
-        });
+        await initializeSession();
       });
 
       it("should enforce the package name prefix", async () => {
@@ -318,11 +315,7 @@ describe("MixpanelClient", () => {
 
       describe("appendAdditionalProperties", () => {
         it("should support appending additional default properties", async () => {
-          await initializeSession({
-            accessToken: "fake-access-token",
-            packageName: "fake-package",
-            packageVersion: "0.0.0",
-          });
+          await initializeSession();
 
           mixpanelClient.trackEvent("fake-package.no-properties");
           mixpanelClient.appendAdditionalProperties({ foo: 123 });
@@ -375,11 +368,7 @@ describe("MixpanelClient", () => {
     beforeEach(async () => {
       createDeferred = require("./async/createDeferred").createDeferred;
 
-      await initializeSession({
-        accessToken: "fake-access-token",
-        packageName: "fake-package",
-        packageVersion: "0.0.0",
-      });
+      await initializeSession();
     });
 
     it("should return the result of the promise after logging", async () => {

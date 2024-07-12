@@ -1,26 +1,25 @@
+import assert from "node:assert/strict";
 import { createDeferred } from "../async/createDeferred";
 import { isPromiseLike } from "../async/isPromiseLike";
 import { timeoutAfter } from "../async/timeoutAfter";
 import { AuthInfo } from "../authentication/types";
-import { FLUSH_TIMEOUT } from "./config";
-import { deferredPackageInfo } from "./deferred";
 import { PackageInfo } from "./types";
-import { waitForAuthInfoWithTimeout } from "./waitForAuthInfoWithTimeout";
+import { waitForAuthInfo } from "./waitForAuthInfo";
+import { waitForPackageInfo } from "./waitForPackageInfo";
 
 export type Task = (authInfo: AuthInfo | undefined) => void | Promise<void>;
-
-type Queued = {
+export type TaskQueue = {
+  flushAndClose(): void;
+  push(task: Task): void;
+  get queueSize(): number;
+};
+export type Queued = {
   deferred: ReturnType<typeof createDeferred>;
   status: "waiting" | "running" | "finished";
   task: Task;
 };
 
-export type TaskQueue = {
-  get queueSize(): number;
-  flush(): void;
-  flushAndClose(): void;
-  push(task: Task): void;
-};
+const FLUSH_TIMEOUT = 500;
 
 export function createTaskQueue({
   onAuthInfo,
@@ -31,28 +30,42 @@ export function createTaskQueue({
   onDestroy?: () => void | Promise<void>;
   onPackageInfo?: (packageInfo: PackageInfo) => void | Promise<void>;
 }): TaskQueue {
-  let authenticated: boolean = false;
+  let didAuthenticate: boolean = false;
+  let didSendPackageInfo: boolean = false;
   let authInfo: AuthInfo | undefined;
   let queue: Set<Queued> = new Set();
 
-  deferredPackageInfo.promise.then(packageInfo => {
+  waitForPackageInfo().then(packageInfo => {
+    didSendPackageInfo = true;
+
     if (onPackageInfo) {
       onPackageInfo(packageInfo);
     }
   });
 
-  waitForAuthInfoWithTimeout().then(resolved => {
-    authenticated = true;
-    authInfo = resolved;
-
-    if (onAuthInfo) {
-      onAuthInfo(authInfo);
-    }
-
+  waitForAuthInfo().then(resolved => {
+    authenticate(resolved);
     flush();
   });
 
+  function authenticate(value: AuthInfo | undefined) {
+    if (!didAuthenticate) {
+      didAuthenticate = true;
+      authInfo = value;
+
+      if (onAuthInfo) {
+        onAuthInfo(authInfo);
+      }
+    }
+  }
+
   async function flush() {
+    assert(didSendPackageInfo, "Package info must be sent before flushing tasks");
+
+    if (!didAuthenticate) {
+      authenticate(undefined);
+    }
+
     const clonedQueue = Array.from(queue);
     const promises = clonedQueue.map(queued => {
       if (queued.status === "waiting") {
@@ -66,7 +79,9 @@ export function createTaskQueue({
   }
 
   async function flushAndClose() {
-    await flush();
+    if (queue.size > 0) {
+      await flush();
+    }
 
     if (onDestroy) {
       await onDestroy();
@@ -82,7 +97,7 @@ export function createTaskQueue({
 
     queue.add(queued);
 
-    if (authenticated) {
+    if (didAuthenticate) {
       runTask(queued);
     }
   }
@@ -108,11 +123,10 @@ export function createTaskQueue({
   }
 
   return {
+    flushAndClose,
+    push,
     get queueSize() {
       return queue.size;
     },
-    flush,
-    flushAndClose,
-    push,
   };
 }
