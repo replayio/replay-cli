@@ -5,14 +5,19 @@ import {
   LDSingleKindContext,
 } from "launchdarkly-node-client-sdk";
 import { createDeferred } from "./async/createDeferred";
-import { AuthInfo } from "./authentication/types";
 import { getReplayPath } from "./getReplayPath";
 import { createTaskQueue } from "./session/createTaskQueue";
 
 let clientDeferred = createDeferred<LDClient>();
 
 const taskQueue = createTaskQueue({
-  onAuthInfo: (authInfo: AuthInfo | undefined) => {
+  onDestroy: async () => {
+    const client = clientDeferred.resolution;
+    if (client) {
+      await client.close();
+    }
+  },
+  onInitialize: ({ authInfo }) => {
     let context: LDContext = {
       anonymous: true,
     };
@@ -35,12 +40,6 @@ const taskQueue = createTaskQueue({
     });
 
     clientDeferred.resolve(client);
-  },
-  onDestroy: async () => {
-    const client = clientDeferred.resolution;
-    if (client) {
-      await client.close();
-    }
   },
 });
 

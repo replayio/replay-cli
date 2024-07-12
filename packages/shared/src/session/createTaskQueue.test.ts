@@ -9,9 +9,8 @@ async function act(callback: () => void | Promise<void>) {
 describe("createTaskQueue", () => {
   let mockGetAuthInfo: jest.Mock;
   let taskQueue: TaskQueue;
-  let taskQueueOnAuthInfo: jest.Mock;
   let taskQueueOnDestroy: jest.Mock;
-  let taskQueueOnPackageInfo: jest.Mock;
+  let taskQueueOnInitialize: jest.Mock;
 
   async function initializeSession() {
     const { initializeSession } = require("./initializeSession");
@@ -46,17 +45,15 @@ describe("createTaskQueue", () => {
       getAuthInfo: mockGetAuthInfo,
     }));
 
-    taskQueueOnAuthInfo = jest.fn();
     taskQueueOnDestroy = jest.fn();
-    taskQueueOnPackageInfo = jest.fn();
+    taskQueueOnInitialize = jest.fn();
 
     // jest.resetModules does not work with import; only works with require()
     const { createTaskQueue } = require("./createTaskQueue");
 
     taskQueue = createTaskQueue({
-      onAuthInfo: taskQueueOnAuthInfo,
       onDestroy: taskQueueOnDestroy,
-      onPackageInfo: taskQueueOnPackageInfo,
+      onInitialize: taskQueueOnInitialize,
     });
   });
 
@@ -64,22 +61,20 @@ describe("createTaskQueue", () => {
     jest.resetModules();
   });
 
-  it("should call onPackageInfo once package info is available", async () => {
-    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
-    expect(taskQueueOnPackageInfo).not.toHaveBeenCalled();
-
-    await initializeSessionPackageInfoOnly();
-
-    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
-    expect(taskQueueOnPackageInfo).toHaveBeenCalledTimes(1);
-  });
-
-  it("should call onAuthInfo once auth info is available", async () => {
-    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
+  it("should call onInitialize once package and auth info are available", async () => {
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
 
     await initializeSession();
 
-    expect(taskQueueOnAuthInfo).toHaveBeenCalledTimes(1);
+    expect(taskQueueOnInitialize).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not call onInitialize if only package info is available", async () => {
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
+
+    await initializeSessionPackageInfoOnly();
+
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
   });
 
   it("should call onDestroy during shutdown", async () => {
@@ -120,14 +115,14 @@ describe("createTaskQueue", () => {
     taskQueue.push(taskA);
     taskQueue.push(taskB);
 
-    expect(taskQueueOnAuthInfo).not.toHaveBeenCalled();
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
     expect(taskA).not.toHaveBeenCalled();
     expect(taskB).not.toHaveBeenCalled();
 
     await taskQueue.flushAndClose();
 
     // It should lazily initialize without auth info before flushing
-    expect(taskQueueOnAuthInfo).toHaveBeenCalledTimes(1);
+    expect(taskQueueOnInitialize).toHaveBeenCalledTimes(1);
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);

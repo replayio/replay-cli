@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { createDeferred } from "../async/createDeferred";
 import { isPromiseLike } from "../async/isPromiseLike";
 import { timeoutAfter } from "../async/timeoutAfter";
@@ -22,48 +21,62 @@ export type Queued = {
 const FLUSH_TIMEOUT = 500;
 
 export function createTaskQueue({
-  onAuthInfo,
   onDestroy,
-  onPackageInfo,
+  onInitialize,
 }: {
-  onAuthInfo?: (authInfo: AuthInfo | undefined) => void | Promise<void>;
-  onDestroy?: () => void | Promise<void>;
-  onPackageInfo?: (packageInfo: PackageInfo) => void | Promise<void>;
+  onDestroy: () => void | Promise<void>;
+  onInitialize: ({
+    authInfo,
+    packageInfo,
+  }: {
+    authInfo: AuthInfo | null;
+    packageInfo: PackageInfo;
+  }) => void | Promise<void>;
 }): TaskQueue {
-  let didAuthenticate: boolean = false;
-  let didSendPackageInfo: boolean = false;
-  let authInfo: AuthInfo | undefined;
+  let cachedAuthInfo: AuthInfo | null | undefined;
+  let cachedPackageInfo: PackageInfo | undefined;
+  let destroyed = false;
+  let initialized = false;
   let queue: Set<Queued> = new Set();
 
   waitForPackageInfo().then(packageInfo => {
-    didSendPackageInfo = true;
+    cachedPackageInfo = packageInfo;
 
-    if (onPackageInfo) {
-      onPackageInfo(packageInfo);
+    if (cachedAuthInfo !== undefined) {
+      initialized = true;
+
+      onInitialize({
+        authInfo: cachedAuthInfo,
+        packageInfo: cachedPackageInfo,
+      });
+
+      flush();
     }
   });
 
-  waitForAuthInfo().then(resolved => {
-    authenticate(resolved);
-    flush();
-  });
+  waitForAuthInfo().then(authInfo => {
+    cachedAuthInfo = authInfo ?? null;
 
-  function authenticate(value: AuthInfo | undefined) {
-    if (!didAuthenticate) {
-      didAuthenticate = true;
-      authInfo = value;
+    if (cachedPackageInfo !== undefined) {
+      initialized = true;
 
-      if (onAuthInfo) {
-        onAuthInfo(authInfo);
-      }
+      onInitialize({
+        authInfo: cachedAuthInfo,
+        packageInfo: cachedPackageInfo,
+      });
+
+      flush();
     }
-  }
+  });
 
   async function flush() {
-    assert(didSendPackageInfo, "Package info must be sent before flushing tasks");
+    if (!initialized && cachedPackageInfo !== undefined) {
+      initialized = true;
 
-    if (!didAuthenticate) {
-      authenticate(undefined);
+      onInitialize({
+        authInfo: cachedAuthInfo || null,
+        packageInfo: cachedPackageInfo,
+      });
     }
 
     const clonedQueue = Array.from(queue);
@@ -79,13 +92,17 @@ export function createTaskQueue({
   }
 
   async function flushAndClose() {
+    if (destroyed) {
+      return;
+    }
+
+    destroyed = true;
+
     if (queue.size > 0) {
       await flush();
     }
 
-    if (onDestroy) {
-      await onDestroy();
-    }
+    await onDestroy();
   }
 
   function push(task: Task) {
@@ -97,7 +114,7 @@ export function createTaskQueue({
 
     queue.add(queued);
 
-    if (didAuthenticate) {
+    if (initialized) {
       runTask(queued);
     }
   }
@@ -108,7 +125,7 @@ export function createTaskQueue({
     try {
       queued.status = "running";
 
-      const maybePromise = task(authInfo);
+      const maybePromise = task(cachedAuthInfo || undefined);
       if (isPromiseLike(maybePromise)) {
         await maybePromise;
       }

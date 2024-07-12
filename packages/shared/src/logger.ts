@@ -5,7 +5,6 @@ import winston, { LogEntry } from "winston";
 import LokiTransport from "winston-loki";
 import { getDeviceId } from "./getDeviceId";
 import { createTaskQueue } from "./session/createTaskQueue";
-import { PackageInfo } from "./session/types";
 
 const GRAFANA_USER = "909360";
 const GRAFANA_PUBLIC_TOKEN =
@@ -38,30 +37,30 @@ const taskQueue = createTaskQueue({
     }
   },
 
-  onPackageInfo: ({ packageName, packageVersion }: PackageInfo) => {
+  onInitialize: ({ packageInfo: { packageName, packageVersion } }) => {
     const lokiTransport = new LokiTransport({
-      host: HOST,
-      labels: { app: packageName, version: packageVersion },
-      json: true,
       basicAuth: GRAFANA_BASIC_AUTH,
       format: winston.format.json(),
+      gracefulShutdown: true,
+      host: HOST,
+      json: true,
+      labels: { app: packageName, version: packageVersion },
+      onConnectionError: err => localDebugger("Grafana connection error", err),
       replaceTimestamp: true,
       timeout: 5000,
-      onConnectionError: err => localDebugger("Grafana connection error", err),
-      gracefulShutdown: true,
     });
 
     grafana = {
+      close: async () => {
+        await lokiTransport.flush().catch(() => {});
+        lokiTransport.close?.();
+      },
       logger: winston.createLogger({
         // Levels greater than or equal to "info" ("info", "warn", "error") will be logged.
         // See https://github.com/winstonjs/winston?tab=readme-ov-file#logging.
         level: "info",
         transports: [lokiTransport],
       }),
-      close: async () => {
-        await lokiTransport.flush().catch(() => {});
-        lokiTransport.close?.();
-      },
     };
   },
 });

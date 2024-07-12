@@ -2,7 +2,6 @@ import { Callback, PropertyDict, init as initMixpanel } from "mixpanel";
 import { disableMixpanel, mixpanelToken } from "./config";
 import { logDebug, logError } from "./logger";
 import { createTaskQueue } from "./session/createTaskQueue";
-import { PackageInfo } from "./session/types";
 
 export type Properties = Record<string, unknown>;
 
@@ -23,7 +22,8 @@ if (!disableMixpanel) {
 }
 
 const taskQueue = createTaskQueue({
-  onPackageInfo: (packageInfo: PackageInfo) => {
+  onDestroy: () => {},
+  onInitialize: ({ packageInfo }) => {
     packageName = packageInfo.packageName;
     packageVersion = packageInfo.packageVersion;
   },
