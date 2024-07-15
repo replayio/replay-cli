@@ -1,8 +1,11 @@
 import { retryWithExponentialBackoff } from "@replay-cli/shared/async/retryOnFailure";
-import { getAuthInfo } from "@replay-cli/shared/graphql/getAuthInfo";
 import { queryGraphQL } from "@replay-cli/shared/graphql/queryGraphQL";
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI, Properties } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { logError, logInfo } from "@replay-cli/shared/logger";
+import {
+  appendAdditionalProperties,
+  Properties,
+  trackEvent,
+} from "@replay-cli/shared/mixpanelClient";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
 import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
 import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
@@ -169,7 +172,7 @@ function parseRuntime(runtime?: string) {
 
 function createGraphqlError(operation: string, errors: any) {
   const errorMessages = errors.map(getErrorMessage);
-  logger.error("GraphQlOperationFailed", { operation, errors: errors.map(getErrorMessage) });
+  logError("GraphQlOperationFailed", { operation, errors: errors.map(getErrorMessage) });
 
   for (const error of errors) {
     switch (error.extensions?.code) {
@@ -273,11 +276,11 @@ export default class ReplayReporter<
     // Logging this here instead of in _parseConfig is intentional; the logger has been associated with the user's API key
     if (config) {
       if (config.filter) {
-        logger.info("ReplayReporter:Config:HasFilter", {
+        logInfo("ReplayReporter:Config:HasFilter", {
           filter: config.filter.toString(),
         });
       } else {
-        logger.info("ReplayReporter:Config:NoFilter");
+        logInfo("ReplayReporter:Config:NoFilter");
       }
     }
   }
@@ -421,9 +424,9 @@ export default class ReplayReporter<
   }
 
   addError(error: Error | ReporterError, context?: Properties) {
-    logger.error("AddError", { error });
+    logError("AddError", { error });
 
-    mixpanelAPI.trackEvent(`test-suite.error.${error.name}`, { context, error });
+    trackEvent(`test-suite.error.${error.name}`, { context, error });
 
     if (error.name === "ReporterError") {
       this._errors.push(error as ReporterError);
@@ -438,7 +441,7 @@ export default class ReplayReporter<
       "x-replay-diagnostics": metadata,
     };
 
-    mixpanelAPI.appendAdditionalProperties({ baseMetadata: this._baseMetadata });
+    appendAdditionalProperties({ baseMetadata: this._baseMetadata });
   }
 
   onTestSuiteBegin(config?: ReplayReporterConfig<TRecordingMetadata>, metadataKey?: string) {
@@ -446,7 +449,7 @@ export default class ReplayReporter<
       this._parseConfig(config, metadataKey);
     }
 
-    logger.info("OnTestSuiteBegin:ReporterConfiguration", {
+    logInfo("OnTestSuiteBegin:ReporterConfiguration", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       runner: this._runner,
@@ -456,7 +459,7 @@ export default class ReplayReporter<
       hasFilter: !!this._filter,
     });
 
-    mixpanelAPI.trackEvent("test-suite.begin", {
+    trackEvent("test-suite.begin", {
       baseId: this._baseId,
       runTitle: this._runTitle,
       upload: this._upload,
@@ -464,9 +467,9 @@ export default class ReplayReporter<
     });
 
     if (!this._apiKey) {
-      logger.info("OnTestSuiteBegin:NoApiKey");
+      logInfo("OnTestSuiteBegin:NoApiKey");
 
-      mixpanelAPI.trackEvent("test-suite.no-api-key");
+      trackEvent("test-suite.no-api-key");
 
       return;
     }
@@ -475,13 +478,13 @@ export default class ReplayReporter<
   }
 
   private async _startTestRunShard(): Promise<TestRunPendingWork> {
-    logger.info("StartTestRunShard:Started");
+    logInfo("StartTestRunShard:Started");
 
     let metadata: any = {};
     try {
       metadata = await sourceMetadata.init();
     } catch (error) {
-      logger.error("StartTestRunShard:InitMetadataFailed", {
+      logError("StartTestRunShard:InitMetadataFailed", {
         error,
       });
     }
@@ -505,7 +508,7 @@ export default class ReplayReporter<
       triggerReason: metadata.source?.trigger?.workflow ?? null,
     };
 
-    logger.info("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
+    logInfo("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
 
     try {
       return retryWithExponentialBackoff(async () => {
@@ -545,7 +548,7 @@ export default class ReplayReporter<
           };
         }
 
-        logger.info("StartTestRunShard:CreatedShard", {
+        logInfo("StartTestRunShard:CreatedShard", {
           testRunShardId,
           baseId: this._baseId,
         });
@@ -558,7 +561,7 @@ export default class ReplayReporter<
         };
       });
     } catch (error) {
-      logger.error("StartTestRunShardFailed", {
+      logError("StartTestRunShardFailed", {
         error,
       });
 
@@ -572,7 +575,7 @@ export default class ReplayReporter<
   private async _addTestsToShard(
     tests: TestRunTestInputModel[]
   ): Promise<TestRunTestsPendingWork | undefined> {
-    logger.info("AddTestsToSharded", { testsLength: tests.length });
+    logInfo("AddTestsToSharded", { testsLength: tests.length });
 
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
@@ -582,7 +585,7 @@ export default class ReplayReporter<
         return;
       }
     }
-    logger.info("AddTestsToShard:WillAddTests", {
+    logInfo("AddTestsToShard:WillAddTests", {
       testsLength: tests.length,
       testRunShardId,
     });
@@ -616,13 +619,13 @@ export default class ReplayReporter<
         }
       });
 
-      logger.info("AddTestsToShard:AddedTests", { testRunShardId });
+      logInfo("AddTestsToShard:AddedTests", { testRunShardId });
 
       return {
         type: "test-run-tests",
       };
     } catch (error) {
-      logger.error("AddTestsToShard:Failed", { error });
+      logError("AddTestsToShard:Failed", { error });
       return {
         type: "test-run-tests",
         error: new Error(`Unexpected error adding tests to run: ${getErrorMessage(error)}`),
@@ -631,7 +634,7 @@ export default class ReplayReporter<
   }
 
   private async _completeTestRunShard(): Promise<TestRunPendingWork | undefined> {
-    logger.info("CompleteTestRunShard:Started");
+    logInfo("CompleteTestRunShard:Started");
 
     let testRunShardId = this._testRunShardId;
     if (!testRunShardId) {
@@ -642,7 +645,7 @@ export default class ReplayReporter<
       }
     }
 
-    logger.info("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
+    logInfo("CompleteTestRunShard:WillMarkCompleted", { testRunShardId });
 
     try {
       await retryWithExponentialBackoff(async () => {
@@ -671,7 +674,7 @@ export default class ReplayReporter<
         }
       });
 
-      logger.info("CompleteTestRunShard:MarkedComplete", { testRunShardId });
+      logInfo("CompleteTestRunShard:MarkedComplete", { testRunShardId });
 
       return {
         type: "test-run",
@@ -679,7 +682,7 @@ export default class ReplayReporter<
         phase: "complete",
       };
     } catch (error) {
-      logger.error("CompleteTestRunShard:Failed", {
+      logError("CompleteTestRunShard:Failed", {
         error,
         testRunShardId,
       });
@@ -691,7 +694,7 @@ export default class ReplayReporter<
   }
 
   onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
-    logger.info("OnTestBegin:Started", { testExecutionId });
+    logInfo("OnTestBegin:Started", { testExecutionId });
 
     if (this._apiKey && !this._testRunShardIdPromise) {
       // This method won't be called until a test is run with the Replay browser
@@ -708,13 +711,13 @@ export default class ReplayReporter<
       },
     };
 
-    logger.info("OnTestBegin:WillWriteMetadata", { metadataFilePath, metadata });
+    logInfo("OnTestBegin:WillWriteMetadata", { metadataFilePath, metadata });
 
     try {
       mkdirSync(dirname(metadataFilePath), { recursive: true });
       writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2), {});
     } catch (error) {
-      logger.error("OnTestBegin:InitReplayMetadataFailed", {
+      logError("OnTestBegin:InitReplayMetadataFailed", {
         error,
       });
     }
@@ -733,9 +736,9 @@ export default class ReplayReporter<
     extraMetadata?: Record<string, unknown>;
     runnerGroupKey?: string;
   }) {
-    logger.info("OnTestEnd:Started", { specFile });
+    logInfo("OnTestEnd:Started", { specFile });
 
-    mixpanelAPI.trackEvent("test-suite.test-end", {
+    trackEvent("test-suite.test-end", {
       replayTitle,
       specFile,
     });
@@ -743,7 +746,7 @@ export default class ReplayReporter<
     // if we bailed building test metadata because of a crash or because no
     // tests ran, we can bail here too
     if (tests.length === 0) {
-      logger.info("OnTestEnd:NoTestsFound", { specFile });
+      logInfo("OnTestEnd:NoTestsFound", { specFile });
       return;
     }
 
@@ -758,14 +761,14 @@ export default class ReplayReporter<
     }
     // Cypress retries are on the same recordings, we only want to upload a single recording once
     if (this._uploadedRecordings.has(recording.id)) {
-      logger.info("UploadRecording:AlreadyScheduled", {
+      logInfo("UploadRecording:AlreadyScheduled", {
         recordingId: recording.id,
       });
       return;
     }
     const uploadableRecording = getRecordings().find(r => r.id === recording.id);
     if (!uploadableRecording) {
-      logger.info("UploadRecording:NoUploadableRecording", {
+      logInfo("UploadRecording:NoUploadableRecording", {
         recordingId: recording.id,
       });
       return;
@@ -785,7 +788,7 @@ export default class ReplayReporter<
       filter,
     });
 
-    logger.info("GetRecordingsForTest:FoundRecordings", {
+    logInfo("GetRecordingsForTest:FoundRecordings", {
       recordingsLength: recordings.length,
       filter,
     });
@@ -832,12 +835,12 @@ export default class ReplayReporter<
     replayTitle?: string,
     extraMetadata?: Record<string, unknown>
   ) {
-    logger.info("SetRecordingMetadata:Started", {
+    logInfo("SetRecordingMetadata:Started", {
       recordingIds: recordings.map(r => r.id),
       errorLength: this._errors.length,
     });
 
-    mixpanelAPI.trackEvent("test-suite.metadata", {
+    trackEvent("test-suite.metadata", {
       numErrors: this._errors.length,
       numRecordings: recordings.length,
       replayTitle,
@@ -864,7 +867,7 @@ export default class ReplayReporter<
         ...validatedSourceMetadata,
       };
     } catch (error) {
-      logger.error("SetRecordingMetadata:GenerateSourceMetadataFailed", {
+      logError("SetRecordingMetadata:GenerateSourceMetadataFailed", {
         error,
       });
     }
@@ -917,7 +920,7 @@ export default class ReplayReporter<
       if (this._apiKey) {
         this._pendingWork.push(this._addTestsToShard(testInputs));
       } else {
-        logger.info("EnqueuePostTestWork:WillSkipAddTests");
+        logInfo("EnqueuePostTestWork:WillSkipAddTests");
       }
 
       const testMetadata = this._buildTestMetadata(tests, specFile);
@@ -966,7 +969,7 @@ export default class ReplayReporter<
         testRun: testMetadata,
       };
     } catch (error) {
-      logger.error("EnqueuePostTestWork:Failed", { error });
+      logError("EnqueuePostTestWork:Failed", { error });
       return {
         type: "post-test",
         error: new Error(`Error setting metadata and uploading replays: ${getErrorMessage(error)}`),
@@ -1137,9 +1140,9 @@ export default class ReplayReporter<
   }
 
   async onEnd(): Promise<PendingWork[]> {
-    logger.info("OnEnd:Started");
+    logInfo("OnEnd:Started");
 
-    mixpanelAPI.trackEvent("test-suite.ending", {
+    trackEvent("test-suite.ending", {
       minimizeUploads: this._minimizeUploads,
       numPendingWork: this._pendingWork.length,
       uploadStatusThreshold: this._uploadStatusThreshold,
@@ -1154,7 +1157,7 @@ export default class ReplayReporter<
 
     while (this._pendingWork.length) {
       const pendingWork = this._pendingWork;
-      logger.info("OnEnd:PendingWork", { pendingWorkLength: pendingWork.length });
+      logInfo("OnEnd:PendingWork", { pendingWorkLength: pendingWork.length });
       this._pendingWork = [];
       completedWork.push(...(await Promise.allSettled(pendingWork)));
     }
@@ -1163,7 +1166,7 @@ export default class ReplayReporter<
       const postSettledWork = await Promise.allSettled([this._completeTestRunShard()]);
       completedWork.push(...postSettledWork);
     } else {
-      logger.info("OnEnd:WillSkipCompletingTestRun");
+      logInfo("OnEnd:WillSkipCompletingTestRun");
     }
 
     const failures = completedWork.filter(r => r.status === "rejected");
@@ -1244,7 +1247,7 @@ export default class ReplayReporter<
       }
     }
 
-    mixpanelAPI.trackEvent("test-suite.results", {
+    trackEvent("test-suite.results", {
       errors,
       numCrashed,
       numUploaded,

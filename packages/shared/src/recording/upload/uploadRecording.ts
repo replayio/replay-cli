@@ -5,7 +5,7 @@ import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retryOnFailure";
 import { replayWsServer } from "../../config";
-import { logger } from "../../logger";
+import { logDebug, logError, logInfo } from "../../logger";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { beginRecordingMultipartUpload } from "../../protocol/api/beginRecordingMultipartUpload";
 import { beginRecordingUpload } from "../../protocol/api/beginRecordingUpload";
@@ -13,7 +13,7 @@ import { endRecordingMultipartUpload } from "../../protocol/api/endRecordingMult
 import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
-import { getUserAgent } from "../../userAgent";
+import { getUserAgent } from "../../session/getUserAgent";
 import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
@@ -31,7 +31,7 @@ export async function uploadRecording(
     processingBehavior: ProcessingBehavior;
   }
 ) {
-  logger.info("UploadRecording:Started", { recordingId: recording.id });
+  logInfo("UploadRecording:Started", { recordingId: recording.id });
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
@@ -39,7 +39,7 @@ export async function uploadRecording(
 
   const { size } = await stat(path);
 
-  logger.debug(`Uploading recording ${recording.id} of size ${size}`, { recording });
+  logDebug(`Uploading recording ${recording.id} of size ${size}`, { recording });
 
   const { metadata, recordingData } = await validateRecordingMetadata(recording);
 
@@ -65,7 +65,7 @@ export async function uploadRecording(
       await retryWithExponentialBackoff(
         () => setRecordingMetadata(client, { metadata, recordingData }),
         (error: unknown, attemptNumber: number) => {
-          logger.debug(`Attempt ${attemptNumber} to set metadata failed`, { error });
+          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
         }
       );
 
@@ -91,7 +91,7 @@ export async function uploadRecording(
       await retryWithExponentialBackoff(
         () => setRecordingMetadata(client, { metadata, recordingData }),
         (error: unknown, attemptNumber: number) => {
-          logger.debug(`Attempt ${attemptNumber} to set metadata failed`, { error });
+          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
         }
       );
       await uploadQueue.add(() =>
@@ -103,7 +103,7 @@ export async function uploadRecording(
               url: uploadLink,
             }),
           (error: any, attemptNumber: number) => {
-            logger.debug(`Attempt ${attemptNumber} to upload failed`, { error });
+            logDebug(`Attempt ${attemptNumber} to upload failed`, { error });
             if (error.code === "ENOENT") {
               throw error;
             }
@@ -117,7 +117,7 @@ export async function uploadRecording(
       kind: RECORDING_LOG_KIND.uploadFailed,
     });
 
-    logger.error("UploadRecording:Failed", {
+    logError("UploadRecording:Failed", {
       error,
       recordingId: recording.id,
       buildId: recording.buildId,
@@ -128,11 +128,11 @@ export async function uploadRecording(
     throw error;
   }
 
-  logger.debug(`Uploaded ${size} bytes for recording {recording.id}`);
+  logDebug(`Uploaded ${size} bytes for recording {recording.id}`);
 
   if (recording.metadata.sourceMaps.length) {
     await uploadSourceMaps(client, recording);
-    logger.debug(`Uploaded source maps for recording ${recording.id}`);
+    logDebug(`Uploaded source maps for recording ${recording.id}`);
   }
 
   updateRecordingLog(recording, {
@@ -140,12 +140,12 @@ export async function uploadRecording(
     server: replayWsServer,
   });
 
-  logger.info("UploadRecording:Succeeded", { recording: recording.id });
+  logInfo("UploadRecording:Succeeded", { recording: recording.id });
   recording.uploadStatus = "uploaded";
 
   switch (processingBehavior) {
     case "start-processing": {
-      logger.debug(`Start processing recording ${recording.id} ...`);
+      logDebug(`Start processing recording ${recording.id} ...`);
 
       // In this code path, we intentionally don't update the "processingStatus" nor the recording log
       // because this would interfere with how the recordings are printed when the upload has finished
@@ -156,12 +156,12 @@ export async function uploadRecording(
       break;
     }
     case "wait-for-processing-to-finish": {
-      logger.debug(`Begin processing recording ${recording.id} ...`);
+      logDebug(`Begin processing recording ${recording.id} ...`);
 
       try {
         await client.waitUntilAuthenticated();
 
-        logger.debug(`Processing recording ${recording.id}`);
+        logDebug(`Processing recording ${recording.id}`);
 
         updateRecordingLog(recording, {
           kind: RECORDING_LOG_KIND.processingStarted,
@@ -172,7 +172,7 @@ export async function uploadRecording(
         await retryWithExponentialBackoff(
           () => processRecording(client, { recordingId: recording.id }),
           (error: unknown, attemptNumber: number) => {
-            logger.debug(`Processing failed after ${attemptNumber} attempts`, { error });
+            logDebug(`Processing failed after ${attemptNumber} attempts`, { error });
           }
         );
 
@@ -229,7 +229,7 @@ async function uploadRecordingFileInParts({
             const start = index * chunkSize;
             const end = Math.min(start + chunkSize, totalSize) - 1; // -1 because end is inclusive
 
-            logger.debug("Uploading part", {
+            logDebug("Uploading part", {
               partNumber,
               start,
               end,
@@ -246,7 +246,7 @@ async function uploadRecordingFileInParts({
             if (attemptNumber < maxAttempts && error.code !== "ENOENT") {
               message += `; will be retried`;
             }
-            logger.error(message, { error });
+            logError(message, { error });
 
             if (error.code === "ENOENT") {
               throw error;
@@ -279,7 +279,7 @@ async function uploadPart(
   },
   abortSignal: AbortSignal
 ): Promise<string> {
-  logger.info("UploadRecording:UploadPart:Started", {
+  logInfo("UploadRecording:UploadPart:Started", {
     recordingPath,
     size,
     start,
@@ -290,7 +290,7 @@ async function uploadPart(
     const response = await uploadRecordingReadStream(stream, { url, size }, abortSignal);
     const etag = response.headers.get("etag");
 
-    logger.info("UploadRecording:UploadPart:Succeeded", {
+    logInfo("UploadRecording:UploadPart:Succeeded", {
       recordingPath,
       size,
       start,
@@ -301,7 +301,7 @@ async function uploadPart(
     assert(etag, "Etag has to be returned in the response headers");
     return etag;
   } catch (error) {
-    logger.error("UploadRecording:UploadPart:Failed", {
+    logError("UploadRecording:UploadPart:Failed", {
       recordingPath,
       size,
       start,
@@ -322,12 +322,14 @@ async function uploadRecordingReadStream(
   const closeStream = () => stream.close();
   stream.on("error", streamError.reject);
 
+  const userAgent = await getUserAgent();
+
   try {
     const response = await Promise.race([
       fetch(url, {
         headers: {
           "Content-Length": size.toString(),
-          "User-Agent": getUserAgent(),
+          "User-Agent": userAgent,
           Connection: "keep-alive",
         },
         method: "PUT",
@@ -338,11 +340,11 @@ async function uploadRecordingReadStream(
       streamError.promise,
     ]);
 
-    logger.debug("Fetch response received", { response });
+    logDebug("Fetch response received", { response });
 
     if (!response.ok) {
       const respText = await response.text();
-      logger.debug(`Fetch response text: ${respText}`);
+      logDebug(`Fetch response text: ${respText}`);
       throw new Error(
         `Failed to upload recording. Response was ${response.status} ${response.statusText}`
       );

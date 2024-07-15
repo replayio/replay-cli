@@ -1,15 +1,11 @@
-import { logger } from "../logger";
+import { AuthInfo } from "../authentication/types";
+import { logDebug } from "../logger";
 import { base64Decode } from "../strings/decode";
 import { GraphQLError } from "./GraphQLError";
 import { queryGraphQL } from "./queryGraphQL";
 
-export type AuthInfo = {
-  id: string;
-  type: "user" | "workspace";
-};
-
 export async function fetchAuthInfoFromGraphQL(accessToken: string): Promise<AuthInfo> {
-  logger.debug("Fetching auth info from GraphQL");
+  logDebug("Fetching auth info from GraphQL");
 
   const { data, errors } = await queryGraphQL(
     "AuthInfo",

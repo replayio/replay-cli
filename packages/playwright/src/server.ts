@@ -1,8 +1,8 @@
+import { logInfo } from "@replay-cli/shared/logger";
 import { ReporterError } from "@replayio/test-utils";
 import dbg from "debug";
 import { WebSocketServer } from "ws";
 import { FixtureEvent, FixtureStepEnd, FixtureStepStart, TestExecutionIdData } from "./fixture";
-import { logger } from "@replay-cli/shared/logger";
 
 const debug = dbg("replay:playwright:server");
 const debugMessages = debug.extend("messages");
@@ -18,7 +18,7 @@ export function startServer({
   onStepEnd?: (test: TestExecutionIdData, stepEnd: FixtureStepEnd) => void;
   onError?: (test: TestExecutionIdData, error: ReporterError) => void;
 }) {
-  logger.info("PlaywrightServer:Starting", {
+  logInfo("PlaywrightServer:Starting", {
     port,
     onStepStart: !!onStepStart,
     onStepEnd: !!onStepEnd,
@@ -28,7 +28,7 @@ export function startServer({
   const wss = new WebSocketServer({ port });
 
   wss.on("connection", function connection(ws) {
-    logger.info("PlaywrightServer:ConnectionEstablished");
+    logInfo("PlaywrightServer:ConnectionEstablished");
 
     ws.on("error", console.error);
 
@@ -63,7 +63,7 @@ export function startServer({
     throw new Error("Unexpected server listening on pipe or domain socket");
   }
 
-  logger.info("PlaywrightServer:Started", { port: address.port });
+  logInfo("PlaywrightServer:Started", { port: address.port });
 
   return wss;
 }

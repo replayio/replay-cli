@@ -1,4 +1,4 @@
-import { logger } from "@replay-cli/shared/logger";
+import { logInfo } from "@replay-cli/shared/logger";
 import { writeFileSync, appendFileSync, mkdirSync } from "fs";
 import path from "path";
 
@@ -14,11 +14,11 @@ function getFixtureFile() {
 }
 
 export function initFixtureFile() {
-  logger.info("InitFixtureFile:Started", {
+  logInfo("InitFixtureFile:Started", {
     updateFixture: process.env.REPLAY_CYPRESS_UPDATE_FIXTURE,
   });
   if (process.env.REPLAY_CYPRESS_UPDATE_FIXTURE) {
-    logger.info("InitFixtureFile:FixtureFile", { fixtureFile: getFixtureFile() });
+    logInfo("InitFixtureFile:FixtureFile", { fixtureFile: getFixtureFile() });
     try {
       mkdirSync(path.dirname(getFixtureFile()), { recursive: true });
       writeFileSync(getFixtureFile(), "");

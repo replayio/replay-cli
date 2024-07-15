@@ -1,12 +1,12 @@
 import { replayWsServer } from "../../config";
-import { logger } from "../../logger";
+import { logError, logInfo } from "../../logger";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { reportCrash } from "../../protocol/api/reportCrash";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
 
 export async function uploadCrashedData(client: ProtocolClient, recording: LocalRecording) {
-  logger.info("UploadCrashedData:Started", { recordingId: recording.id });
+  logInfo("UploadCrashedData:Started", { recordingId: recording.id });
 
   const crashData = recording.crashData?.slice() ?? [];
   crashData.push({
@@ -22,10 +22,10 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
       server: replayWsServer,
     });
 
-    logger.info("UploadCrashedData:Succeeded", { recording: recording.id });
+    logInfo("UploadCrashedData:Succeeded", { recording: recording.id });
     recording.uploadStatus = "uploaded";
   } catch (error) {
-    logger.error("UploadCrashedData:Failed", {
+    logError("UploadCrashedData:Failed", {
       error,
       recordingId: recording.id,
       buildId: recording.buildId,

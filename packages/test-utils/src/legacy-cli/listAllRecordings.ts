@@ -1,3 +1,4 @@
+import { logInfo } from "@replay-cli/shared/logger";
 import jsonata from "jsonata";
 import { readRecordings } from "./recordingLog";
 import {
@@ -7,7 +8,6 @@ import {
   RecordingEntry,
   type ExternalRecordingEntry,
 } from "./types";
-import { logger } from "@replay-cli/shared/logger";
 
 function filterRecordings(
   recordings: RecordingEntry[],
@@ -15,7 +15,7 @@ function filterRecordings(
   includeCrashes: FilterOptions["includeCrashes"]
 ) {
   let filteredRecordings = recordings;
-  logger.info("FilterRecordings:Started", {
+  logInfo("FilterRecordings:Started", {
     numRecordingLogReplays: recordings.length,
     filterType: filter ? typeof filter : undefined,
   });
@@ -23,14 +23,14 @@ function filterRecordings(
     const exp = jsonata(`$filter($, ${filter})[]`);
     filteredRecordings = exp.evaluate(recordings) || [];
 
-    logger.info("FilterRecordings:UsedString", {
+    logInfo("FilterRecordings:UsedString", {
       filteredRecordingsLength: filteredRecordings.length,
       filter,
     });
   } else if (typeof filter === "function") {
     filteredRecordings = recordings.filter(filter);
 
-    logger.info("FilterRecordings:UsedFunction", {
+    logInfo("FilterRecordings:UsedFunction", {
       filteredRecordingsLength: filteredRecordings.length,
     });
   }
@@ -41,7 +41,7 @@ function filterRecordings(
         filteredRecordings.push(r);
       }
     });
-    logger.info("FilterRecordings:IncludedCrashes", {
+    logInfo("FilterRecordings:IncludedCrashes", {
       filteredRecordingsLength: filteredRecordings.length,
     });
   }
@@ -57,7 +57,7 @@ function listRecording(recording: RecordingEntry): ExternalRecordingEntry {
 }
 
 export function listAllRecordings(opts: Options & ListOptions = {}) {
-  logger.info("ListAllRecordings:Started");
+  logInfo("ListAllRecordings:Started");
   const recordings = readRecordings();
 
   if (opts.all) {

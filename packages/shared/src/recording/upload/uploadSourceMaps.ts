@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { hashValue } from "../../hashValue";
-import { logger } from "../../logger";
+import { logDebug } from "../../logger";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { addOriginalSource } from "../../protocol/api/addOriginalSource";
 import { addSourceMap } from "../../protocol/api/addSourceMap";
@@ -32,7 +32,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
 
   for (const sourceMap of recording.metadata.sourceMaps) {
     queueGroup.add(async () => {
-      logger.debug(`Uploading source map ${sourceMap.path} for recording ${recording.id}`, {
+      logDebug(`Uploading source map ${sourceMap.path} for recording ${recording.id}`, {
         recording,
         sourceMap,
       });
@@ -49,16 +49,17 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
         });
         sourceMapId = result.id;
       } catch (error) {
-        logger.debug(
-          `Failed to upload source map ${sourceMap.path} for recording ${recording.id}`,
-          { error, recording, sourceMap }
-        );
+        logDebug(`Failed to upload source map ${sourceMap.path} for recording ${recording.id}`, {
+          error,
+          recording,
+          sourceMap,
+        });
         return;
       }
 
       for (const source of sourceMap.originalSources) {
         queueGroup.add(async () => {
-          logger.debug(
+          logDebug(
             `Uploading original source ${source.path} for source map ${sourceMap.path} for recording ${recording.id}`,
             { recording, source, sourceMap }
           );
@@ -71,7 +72,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
               resource: await ensureResource(client, sourceContent),
             });
           } catch (error) {
-            logger.debug(
+            logDebug(
               `Failed to upload original source ${source.path} for source map ${sourceMap.path} for recording ${recording.id}`,
               { error, recording, source, sourceMap }
             );

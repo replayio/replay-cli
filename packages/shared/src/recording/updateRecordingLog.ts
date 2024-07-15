@@ -1,5 +1,5 @@
 import { appendFileSync } from "fs-extra";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { recordingLogPath } from "./config";
 import { LocalRecording, LogEntry } from "./types";
 
@@ -7,8 +7,8 @@ export function updateRecordingLog(
   recording: LocalRecording,
   partialEntry: Omit<LogEntry, "id" | "recordingId" | "timestamp">
 ) {
-  logger.debug(`Updating recording log ${recordingLogPath}`);
-  logger.debug(`Appending entry for recording ${recording.id}`, { partialEntry, recording });
+  logDebug(`Updating recording log ${recordingLogPath}`);
+  logDebug(`Appending entry for recording ${recording.id}`, { partialEntry, recording });
 
   const entry: LogEntry = {
     ...partialEntry,

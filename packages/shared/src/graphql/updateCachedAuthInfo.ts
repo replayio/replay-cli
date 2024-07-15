@@ -1,7 +1,7 @@
 import { readFromCache, writeToCache } from "../cache";
 import { cachePath } from "./cachePath";
-import { AuthInfo } from "./fetchAuthInfoFromGraphQL";
-import { Cached } from "./getAuthInfo";
+import { Cached } from "../authentication/getAuthInfo";
+import { AuthInfo } from "../authentication/types";
 
 export function updateCachedAuthInfo(accessToken: string, authInfo: AuthInfo | undefined) {
   const cached = readFromCache<Cached>(cachePath) ?? {};

@@ -2,8 +2,8 @@
 
 import { writeToCache } from "@replay-cli/shared/cache";
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
-import { logger } from "@replay-cli/shared/logger";
-import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanel/createAsyncFunctionWithTracking";
+import { logDebug, logError, logInfo } from "@replay-cli/shared/logger";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanelClient";
 import { dim, link } from "@replay-cli/shared/theme";
 import { spawnSync } from "child_process";
 import { ensureDirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs-extra";
@@ -23,7 +23,7 @@ type Result = {
 
 export const installLatestRelease = createAsyncFunctionWithTracking(
   async function installLatestRelease(): Promise<Result | undefined> {
-    logger.info("InstallLatestRelease:Start");
+    logInfo("InstallLatestRelease:Start");
     const runtimeBaseDir = getReplayPath("runtimes");
     const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
     const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
@@ -39,17 +39,17 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
 
       progress.setPending("Processing downloaded browser archive");
 
-      logger.info("InstallLatestRelease:RemovingPreviousInstallation", { runtimePath });
+      logInfo("InstallLatestRelease:RemovingPreviousInstallation", { runtimePath });
       rmSync(runtimePath, { force: true, recursive: true });
 
       ensureDirSync(runtimeBaseDir);
 
-      logger.info("InstallLatestRelease:WritingDownloadFile", { downloadFilePath });
+      logInfo("InstallLatestRelease:WritingDownloadFile", { downloadFilePath });
       writeFileSync(downloadFilePath, buffers);
 
       extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-      logger.info("InstallLatestRelease:DeletingDownloadedFile", { downloadFilePath });
+      logInfo("InstallLatestRelease:DeletingDownloadedFile", { downloadFilePath });
       unlinkSync(downloadFilePath);
 
       // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
@@ -67,7 +67,7 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
       const latestVersion = latestRelease.version;
 
       // Write version metadata to disk so we can compare against the latest release and prompt to update
-      logger.info("InstallLatestRelease:SavingMetadata", { metadataPath });
+      logInfo("InstallLatestRelease:SavingMetadata", { metadataPath });
       writeToCache<MetadataJSON>(metadataPath, {
         chromium: {
           buildId: latestBuildId,
@@ -83,7 +83,7 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
         forkedVersion: latestVersion,
       };
     } catch (error) {
-      logger.error("InstallLatestRelease:Failed", { error });
+      logError("InstallLatestRelease:Failed", { error });
 
       progress.setFailed("Something went wrong installing the Replay browser.");
       throw error;
@@ -124,7 +124,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
     const buffers = await new Promise<Buffer[] | null>((resolve, reject) => {
       const request = get(options, response => {
         if (response.statusCode != 200) {
-          logger.debug("DownloadReplayFile:UnexpectedStatus", { statusCode: response.statusCode });
+          logDebug("DownloadReplayFile:UnexpectedStatus", { statusCode: response.statusCode });
           request.destroy();
           resolve(null);
           return;
@@ -135,7 +135,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        logger.debug("DownloadReplayFile:Error", { error });
+        logDebug("DownloadReplayFile:Error", { error });
         request.destroy();
         resolve(null);
       });
@@ -150,7 +150,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
 }
 
 function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string) {
-  logger.info(`ExtractBrowserArchive:Extracting`, { downloadFilePath });
+  logInfo(`ExtractBrowserArchive:Extracting`, { downloadFilePath });
 
   const tarResult = spawnSync("tar", ["xf", runtimeMetadata.downloadFileName], {
     cwd: runtimeBaseDir,
@@ -158,7 +158,7 @@ function extractBrowserArchive(runtimeBaseDir: string, downloadFilePath: string)
   if (tarResult.status !== 0) {
     const hasXz = spawnSync("which", ["xz"]).status === 0;
 
-    logger.error("ExtractBrowserArchive:Failed", {
+    logError("ExtractBrowserArchive:Failed", {
       downloadFilePath,
       hasXz,
       stderr: String(tarResult.stderr),

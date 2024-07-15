@@ -1,7 +1,7 @@
 import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
-import { initLaunchDarklyFromAccessToken } from "@replay-cli/shared/launch-darkly/initLaunchDarklyFromAccessToken";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { initializeAuthInfo } from "@replay-cli/shared/session/initializeAuthInfo";
+import { initializePackageInfo } from "@replay-cli/shared/session/initializePackageInfo";
 import { name as packageName, version as packageVersion } from "../../../package.json";
 import { logPromise } from "../async/logPromise";
 import { checkForNpmUpdate } from "./checkForNpmUpdate";
@@ -9,7 +9,6 @@ import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
 import { promptForAuthentication } from "./promptForAuthentication";
 import { promptForNpmUpdate } from "./promptForNpmUpdate";
 import { promptForRuntimeUpdate } from "./promptForRuntimeUpdate";
-import { logger } from "@replay-cli/shared/logger";
 
 export async function initialize({
   checkForNpmUpdate: shouldCheckForNpmUpdate,
@@ -20,6 +19,13 @@ export async function initialize({
   checkForRuntimeUpdate: boolean;
   requireAuthentication: boolean;
 }) {
+  // Initialize package info before checking authentication status
+  // If authentication times out, package info will still be required to flush pending task queue items
+  initializePackageInfo({
+    packageName,
+    packageVersion,
+  });
+
   // These initialization steps can run in parallel to improve startup time
   // None of them should log anything though; that would interfere with the initialization-in-progress message
   const promises = Promise.all([
@@ -47,26 +53,10 @@ export async function initialize({
     accessToken = await promptForAuthentication();
   }
 
-  // Initialize LaunchDarkly and Mixpanel for authenticated users
-  // These tasks don't print anything so they can be done in parallel with the upgrade prompts
-  // They also shouldn't block on failure, so we should only wait a couple of seconds before giving up
-  const abortController = new AbortController();
-
-  const loggerPromise = raceWithTimeout(logger.identify(accessToken), 2_500, abortController);
-
-  const launchDarklyPromise = accessToken
-    ? raceWithTimeout(
-        initLaunchDarklyFromAccessToken(accessToken, abortController.signal),
-        2_500,
-        abortController
-      )
-    : Promise.resolve();
-
-  const mixpanelPromise = raceWithTimeout(
-    mixpanelAPI.initialize({ accessToken, packageName, packageVersion }),
-    2_500,
-    abortController
-  );
+  // Initialize auth info only after successful authentication
+  initializeAuthInfo({
+    accessToken,
+  });
 
   if (npmUpdateCheck.hasUpdate && npmUpdateCheck.shouldShowPrompt) {
     await promptForNpmUpdate(npmUpdateCheck);
@@ -75,6 +65,4 @@ export async function initialize({
   if (runtimeUpdateCheck.hasUpdate && runtimeUpdateCheck.shouldShowPrompt) {
     await promptForRuntimeUpdate(runtimeUpdateCheck);
   }
-
-  await Promise.all([loggerPromise, launchDarklyPromise, mixpanelPromise]);
 }

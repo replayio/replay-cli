@@ -1,6 +1,6 @@
 import { ProcessError } from "@replay-cli/shared/ProcessError";
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { logError } from "@replay-cli/shared/logger";
+import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { canUpload } from "@replay-cli/shared/recording/canUpload";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
@@ -39,7 +39,7 @@ async function record(url: string = "about:blank") {
     await launchBrowser(url, { processGroupId });
   } catch (error) {
     if (error instanceof ProcessError) {
-      logger.error("Record:BrowserCrash", { error: error.stderr });
+      logError("Record:BrowserCrash", { error: error.stderr });
       const { errorLogPath, uploaded } = await reportBrowserCrash(error.stderr);
 
       console.log("\nSomething went wrong while recording. Try again.");
@@ -103,7 +103,7 @@ async function record(url: string = "about:blank") {
     console.log(""); // Spacing for readability
   }
 
-  mixpanelAPI.trackEvent("record.results", {
+  trackEvent("record.results", {
     crashedCount: crashedRecordings.length,
     successCountsByType: finishedRecordings.reduce(
       (map, recording) => {
