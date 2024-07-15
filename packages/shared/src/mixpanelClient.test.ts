@@ -16,6 +16,15 @@ describe("MixpanelClient", () => {
   const anyCallback = expect.any(Function);
   const anyProperties = expect.any(Object);
 
+  async function initializePackageInfoOnly() {
+    const { initializePackageInfo } = require("./session/initializePackageInfo");
+
+    await initializePackageInfo({
+      packageName: "fake-package-name",
+      packageVersion: "0.0.0",
+    });
+  }
+
   async function initializeSession(includeAccessToken = true) {
     const { initializeSession } = require("./session/initializeSession");
 
@@ -24,17 +33,6 @@ describe("MixpanelClient", () => {
       packageName: "fake-package",
       packageVersion: "0.0.0",
     });
-  }
-
-  async function initializeSessionPackageInfoOnly() {
-    const { waitForPackageInfo } = require("./session/waitForPackageInfo");
-
-    mockGetAuthInfo.mockReturnValue(new Promise(resolve => {}));
-
-    // Don't await the whole session initialization, just the package info
-    initializeSession();
-
-    await waitForPackageInfo();
   }
 
   beforeEach(() => {
@@ -78,7 +76,7 @@ describe("MixpanelClient", () => {
     });
 
     it("should pending requests when closing an uninitialized session", async () => {
-      await initializeSessionPackageInfoOnly();
+      await initializePackageInfoOnly();
 
       mixpanelClient.trackEvent("pending-1");
       mixpanelClient.trackEvent("pending-2");

@@ -1,5 +1,8 @@
 import { raceWithTimeout } from "@replay-cli/shared/async/raceWithTimeout";
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
+import { initializeAuthInfo } from "@replay-cli/shared/session/initializeAuthInfo";
+import { initializePackageInfo } from "@replay-cli/shared/session/initializePackageInfo";
+import { name as packageName, version as packageVersion } from "../../../package.json";
 import { logPromise } from "../async/logPromise";
 import { checkForNpmUpdate } from "./checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "./checkForRuntimeUpdate";
@@ -16,6 +19,13 @@ export async function initialize({
   checkForRuntimeUpdate: boolean;
   requireAuthentication: boolean;
 }) {
+  // Initialize package info before checking authentication status
+  // If authentication times out, package info will still be required to flush pending task queue items
+  initializePackageInfo({
+    packageName,
+    packageVersion,
+  });
+
   // These initialization steps can run in parallel to improve startup time
   // None of them should log anything though; that would interfere with the initialization-in-progress message
   const promises = Promise.all([
@@ -42,6 +52,11 @@ export async function initialize({
   if (requireAuthentication && !accessToken) {
     accessToken = await promptForAuthentication();
   }
+
+  // Initialize auth info only after successful authentication
+  initializeAuthInfo({
+    accessToken,
+  });
 
   if (npmUpdateCheck.hasUpdate && npmUpdateCheck.shouldShowPrompt) {
     await promptForNpmUpdate(npmUpdateCheck);

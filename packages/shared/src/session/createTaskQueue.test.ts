@@ -1,4 +1,3 @@
-import { createDeferred } from "../async/createDeferred";
 import type { TaskQueue } from "./createTaskQueue";
 
 async function act(callback: () => void | Promise<void>) {
@@ -12,25 +11,26 @@ describe("createTaskQueue", () => {
   let taskQueueOnDestroy: jest.Mock;
   let taskQueueOnInitialize: jest.Mock;
 
-  async function initializeSession() {
-    const { initializeSession } = require("./initializeSession");
+  async function initializeAuthInfoOnly() {
+    const { initializeAuthInfo } = require("./initializeAuthInfo");
 
-    await initializeSession({
+    await initializeAuthInfo({
       accessToken: "fake-access-token",
+    });
+  }
+
+  async function initializePackageInfoOnly() {
+    const { initializePackageInfo } = require("./initializePackageInfo");
+
+    await initializePackageInfo({
       packageName: "fake-package-name",
       packageVersion: "0.0.0",
     });
   }
 
-  async function initializeSessionPackageInfoOnly() {
-    const { waitForPackageInfo } = require("./waitForPackageInfo");
-
-    mockGetAuthInfo.mockReturnValue(new Promise(resolve => {}));
-
-    // Don't await the whole session initialization, just the package info
-    initializeSession();
-
-    await waitForPackageInfo();
+  async function initializeSession() {
+    await initializeAuthInfoOnly();
+    await initializePackageInfoOnly();
   }
 
   beforeEach(() => {
@@ -72,7 +72,15 @@ describe("createTaskQueue", () => {
   it("should not call onInitialize if only package info is available", async () => {
     expect(taskQueueOnInitialize).not.toHaveBeenCalled();
 
-    await initializeSessionPackageInfoOnly();
+    await initializePackageInfoOnly();
+
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
+  });
+
+  it("should not call onInitialize if only auth info is available", async () => {
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
+
+    await initializeAuthInfoOnly();
 
     expect(taskQueueOnInitialize).not.toHaveBeenCalled();
   });
@@ -107,7 +115,7 @@ describe("createTaskQueue", () => {
   });
 
   it("should flush queue without authentication if requested", async () => {
-    await initializeSessionPackageInfoOnly();
+    await initializePackageInfoOnly();
 
     const taskA = jest.fn();
     const taskB = jest.fn();
@@ -126,6 +134,20 @@ describe("createTaskQueue", () => {
 
     expect(taskA).toHaveBeenCalledTimes(1);
     expect(taskB).toHaveBeenCalledTimes(1);
+  });
+
+  it("should warn if queue is flushed without package info", async () => {
+    const task = jest.fn();
+
+    taskQueue.push(task);
+
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
+    expect(task).not.toHaveBeenCalled();
+
+    await taskQueue.flushAndClose();
+
+    expect(taskQueueOnInitialize).not.toHaveBeenCalled();
+    expect(task).not.toHaveBeenCalled();
   });
 
   it("should only flush a task once", async () => {

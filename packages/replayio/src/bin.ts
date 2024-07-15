@@ -1,8 +1,5 @@
-import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
 import { logError } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
-import { initializeSession } from "@replay-cli/shared/session/initializeSession";
-import { name as packageName, version as packageVersion } from "../package.json";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
 
 // Commands self-register with "commander"
@@ -17,14 +14,6 @@ import "./commands/update";
 import "./commands/upload";
 import "./commands/upload-source-maps";
 import "./commands/whoami";
-
-getAccessToken().then(({ accessToken }) => {
-  initializeSession({
-    accessToken,
-    packageName,
-    packageVersion,
-  });
-});
 
 finalizeCommander();
 

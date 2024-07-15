@@ -2,6 +2,7 @@ import { Callback, PropertyDict, init as initMixpanel } from "mixpanel";
 import { disableMixpanel, mixpanelToken } from "./config";
 import { logDebug, logError } from "./logger";
 import { createTaskQueue } from "./session/createTaskQueue";
+import { createDeferred } from "./async/createDeferred";
 
 export type Properties = Record<string, unknown>;
 
@@ -116,12 +117,16 @@ export function trackEvent(eventName: string, properties: Properties = {}) {
       mergedProperties.distinct_id = authInfo.id;
     }
 
-    mixpanelClient?.track(eventName, mergedProperties, (error: any | undefined) => {
-      if (error) {
-        logError("MixpanelClient:AddToQueue:Failed", { eventName, error, properties });
-      } else {
-        logDebug("MixpanelClient:AddToQueue:Success", { eventName, properties });
-      }
+    await new Promise<void>(resolve => {
+      mixpanelClient?.track(eventName, mergedProperties, (error: any | undefined) => {
+        if (error) {
+          logError("MixpanelClient:AddToQueue:Failed", { eventName, error, properties });
+        } else {
+          logDebug("MixpanelClient:AddToQueue:Success", { eventName, properties });
+        }
+
+        resolve();
+      });
     });
   });
 }

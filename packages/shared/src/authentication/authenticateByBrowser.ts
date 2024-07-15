@@ -5,6 +5,7 @@ import { replayAppHost } from "../config";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
 import { logDebug } from "../logger";
+import { highlight } from "../theme";
 import { cachedAuthPath } from "./config";
 import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 
@@ -22,7 +23,8 @@ export async function authenticateByBrowser() {
 
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
-  console.log("You have been signed in successfully!");
+  console.log("");
+  console.log(highlight("You have been signed in successfully!"));
 
   return accessToken;
 }

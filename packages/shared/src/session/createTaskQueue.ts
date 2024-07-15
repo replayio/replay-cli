@@ -70,7 +70,11 @@ export function createTaskQueue({
   });
 
   async function flush() {
-    if (!initialized && cachedPackageInfo !== undefined) {
+    if (!initialized) {
+      if (cachedPackageInfo === undefined) {
+        return;
+      }
+
       initialized = true;
 
       onInitialize({
