@@ -1,5 +1,11 @@
 # @replayio/playwright
 
+## 3.1.9
+
+### Patch Changes
+
+- [#624](https://github.com/replayio/replay-cli/pull/624) [`82852c2`](https://github.com/replayio/replay-cli/commit/82852c2d1e9f58c7036a8c0ab5b50e8ef79efa3e) Thanks [@bvaughn](https://github.com/bvaughn)! - Improve async initialization and teardown logic
+
 ## 3.1.8
 
 ### Patch Changes
