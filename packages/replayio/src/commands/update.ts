@@ -18,7 +18,9 @@ registerCommand("update", {
 async function update() {
   try {
     const [runtimeUpdateCheck, npmUpdateCheck] = await Promise.all([
-      checkForRuntimeUpdate(),
+      process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE
+        ? { hasUpdate: true }
+        : checkForRuntimeUpdate(),
       checkForNpmUpdate(),
     ]);
 
