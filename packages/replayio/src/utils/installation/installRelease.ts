@@ -11,19 +11,18 @@ import { get } from "https";
 import { join } from "path";
 import { logAsyncOperation } from "../async/logAsyncOperation";
 import { metadataPath, runtimeMetadata } from "./config";
-import { getLatestRelease } from "./getLatestReleases";
 import { MetadataJSON } from "./types";
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
 
-type Result = {
+type ReleaseSpec = {
   buildId: string;
   forkedVersion: string | null;
 };
 
-export const installLatestRelease = createAsyncFunctionWithTracking(
-  async function installLatestRelease(): Promise<Result | undefined> {
-    logInfo("InstallLatestRelease:Start");
+export const installRelease = createAsyncFunctionWithTracking(
+  async function installRelease(releaseSpec: ReleaseSpec): Promise<ReleaseSpec | undefined> {
+    logInfo("InstallRelease:Start");
     const runtimeBaseDir = getReplayPath("runtimes");
     const runtimePath = getReplayPath("runtimes", runtimeMetadata.destinationName);
     const downloadFilePath = getReplayPath("runtimes", runtimeMetadata.downloadFileName);
@@ -39,17 +38,17 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
 
       progress.setPending("Processing downloaded browser archive");
 
-      logInfo("InstallLatestRelease:RemovingPreviousInstallation", { runtimePath });
+      logInfo("InstallRelease:RemovingPreviousInstallation", { runtimePath });
       rmSync(runtimePath, { force: true, recursive: true });
 
       ensureDirSync(runtimeBaseDir);
 
-      logInfo("InstallLatestRelease:WritingDownloadFile", { downloadFilePath });
+      logInfo("InstallRelease:WritingDownloadFile", { downloadFilePath });
       writeFileSync(downloadFilePath, buffers);
 
       extractBrowserArchive(runtimeBaseDir, runtimePath);
 
-      logInfo("InstallLatestRelease:DeletingDownloadedFile", { downloadFilePath });
+      logInfo("InstallRelease:DeletingDownloadedFile", { downloadFilePath });
       unlinkSync(downloadFilePath);
 
       // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
@@ -62,16 +61,12 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
         );
       }
 
-      const latestRelease = await getLatestRelease();
-      const latestBuildId = latestRelease.buildId;
-      const latestVersion = latestRelease.version;
-
       // Write version metadata to disk so we can compare against the latest release and prompt to update
-      logInfo("InstallLatestRelease:SavingMetadata", { metadataPath });
+      logInfo("InstallRelease:SavingMetadata", { metadataPath });
       writeToCache<MetadataJSON>(metadataPath, {
         chromium: {
-          buildId: latestBuildId,
-          forkedVersion: latestVersion,
+          buildId: releaseSpec.buildId,
+          forkedVersion: releaseSpec.forkedVersion,
           installDate: new Date().toISOString(),
         },
       });
@@ -79,11 +74,11 @@ export const installLatestRelease = createAsyncFunctionWithTracking(
       progress.setSuccess("Replay browser has been updated.");
 
       return {
-        buildId: latestBuildId,
-        forkedVersion: latestVersion,
+        buildId: releaseSpec.buildId,
+        forkedVersion: releaseSpec.forkedVersion,
       };
     } catch (error) {
-      logError("InstallLatestRelease:Failed", { error });
+      logError("InstallRelease:Failed", { error });
 
       progress.setFailed("Something went wrong installing the Replay browser.");
       throw error;
