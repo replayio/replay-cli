@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+### Patch Changes
+
+- [#629](https://github.com/replayio/replay-cli/pull/629) [`42866f2`](https://github.com/replayio/replay-cli/commit/42866f2aed8b83c09c268e969d9bbf45331b29d9) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that prevented fresh latest versions to be installed after installing dev versions of the runtime
+
 ## 1.6.0
 
 ### Minor Changes
