@@ -5,7 +5,7 @@ import { registerCommand } from "../utils/commander/registerCommand";
 import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
 import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";
-import { installLatestRelease } from "../utils/installation/installLatestRelease";
+import { installRelease } from "../utils/installation/installRelease";
 
 registerCommand("update", {
   checkForRuntimeUpdate: false,
@@ -18,14 +18,12 @@ registerCommand("update", {
 async function update() {
   try {
     const [runtimeUpdateCheck, npmUpdateCheck] = await Promise.all([
-      process.env.RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE
-        ? { hasUpdate: true }
-        : checkForRuntimeUpdate(),
+      checkForRuntimeUpdate(),
       checkForNpmUpdate(),
     ]);
 
     if (runtimeUpdateCheck.hasUpdate && npmUpdateCheck.hasUpdate) {
-      await installLatestRelease();
+      await installRelease(runtimeUpdateCheck.toVersion);
       await promptForNpmUpdate(npmUpdateCheck, false);
     } else if (npmUpdateCheck.hasUpdate) {
       console.log(statusSuccess("✔"), "You have the latest version of the Replay Browser");
@@ -34,7 +32,7 @@ async function update() {
     } else if (runtimeUpdateCheck.hasUpdate) {
       console.log(statusSuccess("✔"), "You have the latest version of replayio");
 
-      await installLatestRelease();
+      await installRelease(runtimeUpdateCheck.toVersion);
     } else {
       console.log(
         statusSuccess("✔"),
