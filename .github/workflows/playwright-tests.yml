@@ -29,6 +29,8 @@ jobs:
       - run: yarn set resolution "@playwright/test@*" ${{ matrix.playwright-version }}
       - run: yarn test
         working-directory: examples/create-react-app-typescript
+        env:
+          REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}
       - run: node test/upload-and-check-recording.js
         working-directory: examples/create-react-app-typescript
         env:
