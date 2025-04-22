@@ -3289,17 +3289,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:^1.40.1":
-  version: 1.42.1
-  resolution: "@playwright/test@npm:1.42.1"
-  dependencies:
-    playwright: "npm:1.42.1"
-  bin:
-    playwright: cli.js
-  checksum: 10c0/e5d7c1ffedabb934643edb010038edcb70d51d224fb6444844a854d94365a6179d4407a83da176cae37ccd42b62c148843e0b6f9b4c6506048e06558c00d4267
-  languageName: node
-  linkType: hard
-
 "@playwright/test@npm:^1.52.0":
   version: 1.52.0
   resolution: "@playwright/test@npm:1.52.0"
@@ -7106,7 +7095,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-react-app-typescript@workspace:examples/create-react-app-typescript"
   dependencies:
-    "@playwright/test": "npm:^1.40.1"
+    "@playwright/test": "npm:^1.52.0"
     "@replayio/playwright": "workspace:^"
     "@replayio/replay": "npm:latest"
     "@testing-library/jest-dom": "npm:^5.16.2"
@@ -14015,36 +14004,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.42.1":
-  version: 1.42.1
-  resolution: "playwright-core@npm:1.42.1"
-  bin:
-    playwright-core: cli.js
-  checksum: 10c0/9bb0be6defa32eb1b01429615f10c2ad17dcf701656c081a250369c1eb3b0dcc2a0ee21188cd653cdd2303ca73ff94df0d270b178fe3897eba274793dab368ce
-  languageName: node
-  linkType: hard
-
 "playwright-core@npm:1.52.0":
   version: 1.52.0
   resolution: "playwright-core@npm:1.52.0"
   bin:
     playwright-core: cli.js
   checksum: 10c0/640945507e6ca2144e9f596b2a6ecac042c2fd3683ff99e6271e9a7b38f3602d415f282609d569456f66680aab8b3c5bb1b257d8fb63a7fc0ed648261110421f
-  languageName: node
-  linkType: hard
-
-"playwright@npm:1.42.1":
-  version: 1.42.1
-  resolution: "playwright@npm:1.42.1"
-  dependencies:
-    fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.42.1"
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  bin:
-    playwright: cli.js
-  checksum: 10c0/91dcbfe92d75ca9eb4bfff69bb1ec28007b5a96f6187f48e52aa0f6acf8c24f6039ed6467c152964cc92f4ab64b85dc665b13c52b2fb9f7b9182ddb9db404e37
   languageName: node
   linkType: hard
 
