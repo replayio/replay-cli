@@ -3300,6 +3300,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@playwright/test@npm:^1.52.0":
+  version: 1.52.0
+  resolution: "@playwright/test@npm:1.52.0"
+  dependencies:
+    playwright: "npm:1.52.0"
+  bin:
+    playwright: cli.js
+  checksum: 10c0/1c428b421593eb4f79b7c99783a389c3ab3526c9051ec772749f4fca61414dfa9f2344eba846faac5f238084aa96c836364a91d81d3034ac54924f239a93e247
+  languageName: node
+  linkType: hard
+
 "@pmmmwh/react-refresh-webpack-plugin@npm:^0.5.3":
   version: 0.5.11
   resolution: "@pmmmwh/react-refresh-webpack-plugin@npm:0.5.11"
@@ -3584,7 +3595,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@replayio/playwright@workspace:packages/playwright"
   dependencies:
-    "@playwright/test": "npm:^1.40.1"
+    "@playwright/test": "npm:^1.52.0"
     "@replay-cli/pkg-build": "workspace:^"
     "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
@@ -3614,7 +3625,7 @@ __metadata:
     winston-loki: "npm:^6.1.2"
     ws: "npm:^8.13.0"
   peerDependencies:
-    "@playwright/test": ^1.34.0
+    "@playwright/test": ^1.52.0
   languageName: unknown
   linkType: soft
 
@@ -14013,6 +14024,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.52.0":
+  version: 1.52.0
+  resolution: "playwright-core@npm:1.52.0"
+  bin:
+    playwright-core: cli.js
+  checksum: 10c0/640945507e6ca2144e9f596b2a6ecac042c2fd3683ff99e6271e9a7b38f3602d415f282609d569456f66680aab8b3c5bb1b257d8fb63a7fc0ed648261110421f
+  languageName: node
+  linkType: hard
+
 "playwright@npm:1.42.1":
   version: 1.42.1
   resolution: "playwright@npm:1.42.1"
@@ -14025,6 +14045,21 @@ __metadata:
   bin:
     playwright: cli.js
   checksum: 10c0/91dcbfe92d75ca9eb4bfff69bb1ec28007b5a96f6187f48e52aa0f6acf8c24f6039ed6467c152964cc92f4ab64b85dc665b13c52b2fb9f7b9182ddb9db404e37
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.52.0":
+  version: 1.52.0
+  resolution: "playwright@npm:1.52.0"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.52.0"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10c0/2c6edf1e15e59bbaf77f3fa0fe0ac975793c17cff835d9c8b8bc6395a3b6f1c01898b3058ab37891b2e4d424bcc8f1b4844fe70d943e0143d239d7451408c579
   languageName: node
   linkType: hard
 
