@@ -27,6 +27,7 @@ jobs:
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
       - run: yarn set resolution "@playwright/test@*" ${{ matrix.playwright-version }}
+      - run: npx playwright install-deps chromium
       - run: yarn test
         working-directory: examples/create-react-app-typescript
         env:
