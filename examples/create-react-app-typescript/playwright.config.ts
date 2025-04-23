@@ -5,7 +5,6 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   use: {
     trace: "on-first-retry",
-    defaultBrowserType: "chromium",
   },
   webServer: {
     command: "yarn run start",
