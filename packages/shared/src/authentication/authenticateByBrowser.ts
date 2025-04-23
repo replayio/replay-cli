@@ -4,7 +4,8 @@ import { writeToCache } from "../cache";
 import { replayAppHost } from "../config";
 import { queryGraphQL } from "../graphql/queryGraphQL";
 import { hashValue } from "../hashValue";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
+import { highlight } from "../theme";
 import { cachedAuthPath } from "./config";
 import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 
@@ -15,14 +16,15 @@ export async function authenticateByBrowser() {
 
   console.log("\nPlease log in or register in the browser to continue.");
 
-  logger.debug(`Launching browser to sign into Replay: ${replayAppHost}`);
+  logDebug(`Launching browser to sign into Replay: ${replayAppHost}`);
   await open(`${replayAppHost}/api/browser/auth?key=${key}&source=cli`);
 
   const { accessToken, refreshToken } = await pollForAuthentication(key);
 
   writeToCache(cachedAuthPath, { accessToken, refreshToken });
 
-  console.log("You have been signed in successfully!");
+  console.log("");
+  console.log(highlight("You have been signed in successfully!"));
 
   return accessToken;
 }
@@ -74,7 +76,7 @@ async function pollForAuthentication(key: string) {
       refreshToken = await fetchRefreshTokenFromGraphQLOrThrow(key);
     } catch (error: any) {
       if (error?.id === "missing-request") {
-        logger.debug("Auth request was not found. Retrying in a few seconds...");
+        logDebug("Auth request was not found. Retrying in a few seconds...");
 
         await timeoutAfter(2_500);
       } else {

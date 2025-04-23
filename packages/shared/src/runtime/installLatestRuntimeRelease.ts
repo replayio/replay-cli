@@ -4,7 +4,7 @@ import { get } from "https";
 import { join } from "node:path";
 import { writeToCache } from "../cache";
 import { getReplayPath } from "../getReplayPath";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { dim, link } from "../theme";
 import { metadataPath, runtimeBasePath, runtimeMetadata } from "./config";
 import { getLatestRuntimeRelease } from "./getLatestRuntimeRelease";
@@ -38,17 +38,17 @@ export async function installLatestRuntimeRelease(): Promise<Result | undefined>
     // TODO [PRO-711]
     // TODO [PRO-712] Add Mixpanel tracking "pending"
 
-    logger.debug(`Removing previous installation at ${runtimePath}`);
+    logDebug(`Removing previous installation at ${runtimePath}`);
     rmSync(runtimePath, { force: true, recursive: true });
 
     ensureDirSync(runtimeBasePath);
 
-    logger.debug(`Writing downloaded file data to ${downloadFilePath}`);
+    logDebug(`Writing downloaded file data to ${downloadFilePath}`);
     writeFileSync(downloadFilePath, buffers);
 
     extractBrowserArchive(runtimeBasePath, runtimePath);
 
-    logger.debug(`Deleting downloaded file ${downloadFilePath}`);
+    logDebug(`Deleting downloaded file ${downloadFilePath}`);
     unlinkSync(downloadFilePath);
 
     // This seems unnecessary, but we've always done it (and changing it would break legacy CLI compat)
@@ -66,7 +66,7 @@ export async function installLatestRuntimeRelease(): Promise<Result | undefined>
     const latestVersion = latestRelease.version;
 
     // Write version metadata to disk so we can compare against the latest release and prompt to update
-    logger.debug(`Saving release metadata to ${metadataPath}`);
+    logDebug(`Saving release metadata to ${metadataPath}`);
     writeToCache<MetadataJSON>(metadataPath, {
       chromium: {
         buildId: latestBuildId,
@@ -83,7 +83,7 @@ export async function installLatestRuntimeRelease(): Promise<Result | undefined>
       forkedVersion: latestVersion,
     };
   } catch (error) {
-    logger.debug("Browser installation failed", { error });
+    logDebug("Browser installation failed", { error });
 
     // TODO [PRO-711]
     // TODO [PRO-712] Add Mixpanel tracking "failed"
@@ -118,7 +118,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
     const buffers = await new Promise<Buffer[] | null>(resolve => {
       const request = get(options, response => {
         if (response.statusCode != 200) {
-          logger.debug(`Download received status code ${response.statusCode}, retrying...`);
+          logDebug(`Download received status code ${response.statusCode}, retrying...`);
           request.destroy();
           resolve(null);
           return;
@@ -129,7 +129,7 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
         response.on("end", () => resolve(buffers));
       });
       request.on("error", error => {
-        logger.debug("Download error; retrying ...", { error });
+        logDebug("Download error; retrying ...", { error });
         request.destroy();
         resolve(null);
       });
@@ -144,13 +144,13 @@ async function downloadReplayFile({ onRetry }: { onRetry?: (attempt: number) => 
 }
 
 async function extractBrowserArchive(runtimeBasePath: string, downloadFilePath: string) {
-  logger.debug(`Extracting archived file at ${downloadFilePath}`);
+  logDebug(`Extracting archived file at ${downloadFilePath}`);
 
   const tarResult = spawnSync("tar", ["xf", runtimeMetadata.downloadFileName], {
     cwd: runtimeBasePath,
   });
   if (tarResult.status !== 0) {
-    logger.debug(`Failed to extract ${downloadFilePath}`, { stderr: String(tarResult.stderr) });
+    logDebug(`Failed to extract ${downloadFilePath}`, { stderr: String(tarResult.stderr) });
 
     throw new Error("Unable to extract browser archive");
   }

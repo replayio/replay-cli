@@ -2,7 +2,7 @@
   "name": "create-react-app-typescript",
   "private": true,
   "dependencies": {
-    "@playwright/test": "^1.40.1",
+    "@playwright/test": "^1.52.0",
     "@replayio/playwright": "workspace:^",
     "@replayio/replay": "latest",
     "@testing-library/jest-dom": "^5.16.2",

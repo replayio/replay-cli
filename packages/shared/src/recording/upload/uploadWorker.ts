@@ -1,5 +1,5 @@
 import { createDeferred, Deferred } from "../../async/createDeferred";
-import { getFeatureFlagValue } from "../../launch-darkly/getFeatureFlagValue";
+import { getFeatureFlagValue } from "../../launchDarklylient";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { removeFromDisk } from "../removeFromDisk";

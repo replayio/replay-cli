@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import WebSocket from "ws";
 import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
 import { replayWsServer } from "../config";
-import { logger } from "../logger";
+import { logDebug, logError } from "../logger";
 import { ProtocolError } from "./ProtocolError";
 import { setAccessToken } from "./api/setAccessToken";
 
 type Callback = (params: any) => void;
 
 type CommandData = {
-  // `command` is kept around only for logger.debugging purposes
+  // `command` is kept around only for logDebugging purposes
   command: unknown;
   sessionId: SessionId | undefined;
 };
@@ -24,7 +24,7 @@ export default class ProtocolClient {
   private accessToken: string;
 
   constructor(accessToken: string) {
-    logger.debug(`Creating WebSocket for ${replayWsServer}`);
+    logDebug(`Creating WebSocket for ${replayWsServer}`);
 
     this.accessToken = accessToken;
     this.socket = new WebSocket(replayWsServer);
@@ -83,7 +83,7 @@ export default class ProtocolClient {
   }) {
     const id = this.nextMessageId++;
 
-    logger.debug("Sending command", { id, method, params, sessionId });
+    logDebug("Sending command", { id, method, params, sessionId });
 
     const command = {
       id,
@@ -94,7 +94,7 @@ export default class ProtocolClient {
 
     this.socket.send(JSON.stringify(command), error => {
       if (error) {
-        logger.debug("Received socket error", { error });
+        logDebug("Received socket error", { error });
       }
     });
 
@@ -116,7 +116,7 @@ export default class ProtocolClient {
   };
 
   private onSocketError = (error: any) => {
-    logger.error("ProtocolClient:Error", { error });
+    logError("ProtocolClient:Error", { error });
 
     if (this.deferredAuthenticated.status === STATUS_PENDING) {
       this.deferredAuthenticated.reject(error);
@@ -132,23 +132,23 @@ export default class ProtocolClient {
 
       this.pendingCommands.delete(id);
       if (result) {
-        logger.debug("Resolving response", { contents });
+        logDebug("Resolving response", { contents });
         deferred.resolve(result);
       } else if (error) {
-        logger.debug("Received error", { contents });
+        logDebug("Received error", { contents });
         deferred.reject(new ProtocolError(error));
       } else {
-        logger.debug("Received error", { contents });
+        logDebug("Received error", { contents });
         deferred.reject(new Error(`Channel error: ${contents}`));
       }
     } else if (this.eventListeners.has(method)) {
-      logger.debug("Received event", { contents });
+      logDebug("Received event", { contents });
       const callbacks = this.eventListeners.get(method);
       if (callbacks) {
         callbacks.forEach(callback => callback(params));
       }
     } else {
-      logger.debug("Received message without a handler", { contents });
+      logDebug("Received message without a handler", { contents });
     }
   };
 
@@ -157,7 +157,7 @@ export default class ProtocolClient {
       await setAccessToken(this, { accessToken: this.accessToken });
       this.deferredAuthenticated.resolve(true);
     } catch (error) {
-      logger.error("ProtocolClient:ServerAuthFailed", { error });
+      logError("ProtocolClient:ServerAuthFailed", { error });
       this.socket.close();
       this.deferredAuthenticated.reject(error as Error);
     }

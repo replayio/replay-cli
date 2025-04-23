@@ -1,9 +1,10 @@
 /// <reference types="cypress" />
 
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { logError, logInfo } from "@replay-cli/shared/logger";
+import { trackEvent } from "@replay-cli/shared/mixpanelClient";
+import { waitForExitTasks } from "@replay-cli/shared/process/waitForExitTasks";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { RecordingEntry, initMetadataFile, warn } from "@replayio/test-utils";
 import chalk from "chalk";
 import path from "path";
@@ -71,7 +72,7 @@ function updateReporters(
   config: Cypress.PluginConfigOptions
 ) {
   const { reporter, reporterOptions } = config;
-  logger.info("UpdateReporters:Started", { reporter, reporterOptions });
+  logInfo("UpdateReporters:Started", { reporter, reporterOptions });
   if (reporter !== "junit") {
     return;
   }
@@ -96,11 +97,11 @@ function onBeforeBrowserLaunch(
   browser: Cypress.Browser,
   launchOptions: Cypress.BeforeBrowserLaunchOptions
 ) {
-  logger.info("OnBeforeBrowserLaunch:Started", { browser, launchOptions });
+  logInfo("OnBeforeBrowserLaunch:Started", { browser, launchOptions });
   assertReporter(cypressReporter);
   cypressReporter.onLaunchBrowser(browser.family);
 
-  logger.info("OnBeforeBrowserLaunch:BrowserLaunching", { family: browser.family });
+  logInfo("OnBeforeBrowserLaunch:BrowserLaunching", { family: browser.family });
 
   const config = cypressReporter.config;
   if (browser.name !== "electron" && config.version && semver.gte(config.version, "10.9.0")) {
@@ -121,7 +122,7 @@ function onBeforeBrowserLaunch(
       ...cypressReporter.getExtraEnv(),
     };
 
-    logger.info("OnBeforeBrowserLaunch:BrowserEnvironment", { replayEnv });
+    logInfo("OnBeforeBrowserLaunch:BrowserEnvironment", { replayEnv });
 
     launchOptions.env = env;
   }
@@ -158,8 +159,8 @@ async function onAfterRun() {
   });
 
   if (missingSteps) {
-    logger.error("OnAfterRun:AfterRunMissingSteps", { missingSteps });
-    mixpanelAPI.trackEvent("warning.missing-steps");
+    logError("OnAfterRun:AfterRunMissingSteps", { missingSteps });
+    trackEvent("warning.missing-steps");
     loudWarning(
       "Your tests completed but our plugin did not receive any command events.",
       "",
@@ -169,23 +170,23 @@ async function onAfterRun() {
     );
   }
 
-  await logger.close().catch(() => {});
+  await waitForExitTasks();
 }
 
 function onBeforeSpec(spec: Cypress.Spec) {
-  logger.info("OnBeforeSpec:Started", { spec: spec.relative });
+  logInfo("OnBeforeSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   cypressReporter.onBeforeSpec(spec);
 }
 
 function onAfterSpec(spec: Cypress.Spec, result: CypressCommandLine.RunResult) {
-  logger.info("OnAfterSpec:Started", { spec: spec.relative });
+  logInfo("OnAfterSpec:Started", { spec: spec.relative });
   assertReporter(cypressReporter);
   return cypressReporter.onAfterSpec(spec, result);
 }
 
 function onReplayTask(value: any) {
-  logger.info("OnReplayTask:Started", { value });
+  logInfo("OnReplayTask:Started", { value });
   assertReporter(cypressReporter);
   const reporter = cypressReporter;
 
@@ -193,11 +194,11 @@ function onReplayTask(value: any) {
 
   value.forEach(v => {
     if (isStepEvent(v)) {
-      logger.info("OnReplayTask:ReplayTaskEvent", { event: v });
+      logInfo("OnReplayTask:ReplayTaskEvent", { event: v });
       reporter.addStep(v);
     } else {
-      logger.error("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
-      mixpanelAPI.trackEvent("error.replay-task-unexpected-payload", { payload: v });
+      logError("OnReplayTask:ReplayTaskUnexpectedPayload", { payload: v });
+      trackEvent("error.replay-task-unexpected-payload", { payload: v });
     }
   });
 
@@ -261,14 +262,8 @@ const plugin = (
   config: Cypress.PluginConfigOptions,
   options: PluginOptions = {}
 ) => {
-  setUserAgent(`${packageName}/${packageVersion}`);
-
-  const accessToken = getAuthKey(config);
-
-  logger.initialize(packageName, packageVersion);
-  logger.identify(accessToken);
-  mixpanelAPI.initialize({
-    accessToken,
+  initializeSession({
+    accessToken: getAuthKey(config),
     packageName,
     packageVersion,
   });
@@ -277,15 +272,15 @@ const plugin = (
 
   const portPromise = createServer().then(({ server: wss, port }) => {
     wss.on("connection", function connection(ws) {
-      logger.info("CypressPlugin:WebSocketConnected");
+      logInfo("CypressPlugin:WebSocketConnected");
 
       ws.on("close", () => {
-        logger.info("CypressPlugin:WebSocketClosed");
+        logInfo("CypressPlugin:WebSocketClosed");
       });
 
       ws.on("error", error => {
-        logger.error("CypressPlugin:WebSocketError", { error });
-        mixpanelAPI.trackEvent("error.websocket-error", { error });
+        logError("CypressPlugin:WebSocketError", { error });
+        trackEvent("error.websocket-error", { error });
         warn("WebSocket error", error);
       });
 
@@ -295,8 +290,8 @@ const plugin = (
           const obj = JSON.parse(payload) as { events: StepEvent[] };
           onReplayTask(obj.events);
         } catch (error) {
-          logger.error("CypressPlugin:WebSocketMessageError", { error });
-          mixpanelAPI.trackEvent("error.websocket-message-error", { error });
+          logError("CypressPlugin:WebSocketMessageError", { error });
+          trackEvent("error.websocket-message-error", { error });
           warn("Error parsing message from test", error);
         }
       });
@@ -324,7 +319,7 @@ const plugin = (
       [CONNECT_TASK_NAME]: async value => {
         const port = await portPromise;
 
-        logger.info("CypressPlugin:ConnectedToServer", { port });
+        logInfo("CypressPlugin:ConnectedToServer", { port });
         return { port };
       },
     });
@@ -344,14 +339,14 @@ const plugin = (
     if (config.isTextTerminal) {
       config.env.NO_COMMAND_LOG =
         process.env.CYPRESS_NO_COMMAND_LOG ?? config.env.NO_COMMAND_LOG ?? 1;
-      logger.info("CypressPlugin:CommandLogEnabled", {
+      logInfo("CypressPlugin:CommandLogEnabled", {
         noCommandLog: config.env.NO_COMMAND_LOG,
       });
     }
 
     const chromiumPath = getRuntimePath();
     if (chromiumPath) {
-      logger.info("CypressPlugin:AddedChromium", { chromiumPath });
+      logInfo("CypressPlugin:AddedChromium", { chromiumPath });
       config.browsers = config.browsers.concat({
         name: "replay-chromium",
         channel: "stable",
@@ -364,7 +359,7 @@ const plugin = (
         isHeadless: false,
       });
     } else {
-      logger.info("CypressPlugin:ReplayChromiumNotSupported", {
+      logInfo("CypressPlugin:ReplayChromiumNotSupported", {
         platform: process.platform,
         chromiumPath,
       });

@@ -1,11 +1,12 @@
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { emphasize } from "@replay-cli/shared/theme";
 import { name as packageName } from "../../../package.json";
-import { installLatestRelease } from "../installation/installLatestRelease";
+import { installRelease } from "../installation/installRelease";
 import { prompt } from "../prompt/prompt";
 import { updateCachedPromptData } from "../prompt/updateCachedPromptData";
 import { Version } from "./checkForRuntimeUpdate";
 import { UpdateCheckResult } from "./types";
+import { getLatestRelease } from "../installation/getLatestReleases";
 
 const PROMPT_ID = "runtime-update";
 
@@ -44,13 +45,17 @@ export async function promptForRuntimeUpdate(updateCheck: UpdateCheckResult<Vers
 
   if (confirmed) {
     try {
-      await installLatestRelease();
+      const latestRelease = await getLatestRelease();
+      await installRelease({
+        buildId: latestRelease.buildId,
+        forkedVersion: latestRelease.version,
+      });
     } catch (error) {
       // A failed update is not a critical error;
       // A failed install will be handled later
     }
   } else {
-    mixpanelAPI.trackEvent("update.runtime.skipped", { newRuntimeVersion: toVersion });
+    trackEvent("update.runtime.skipped", { newRuntimeVersion: toVersion });
   }
 
   console.log("");

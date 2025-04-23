@@ -1,10 +1,10 @@
 /// <reference types="cypress" />
 
+import { logInfo } from "@replay-cli/shared/logger";
 import { ReporterError, TestMetadataV2 } from "@replayio/test-utils";
 import { AFTER_EACH_HOOK } from "./constants";
 import { Errors, assertCurrentTest, assertMatchingStep, isStepAssertionError } from "./error";
 import type { StepEvent } from "./support";
-import { logger } from "@replay-cli/shared/logger";
 
 type Test = TestMetadataV2.Test;
 type UserActionEvent = TestMetadataV2.UserActionEvent;
@@ -43,7 +43,7 @@ function shouldSkipStep(step: StepEvent, skippedSteps: string[]) {
   }
 
   if (reason) {
-    logger.info("ShouldSkipStep:TestStepSkipped", { id: step.command?.id, reason });
+    logInfo("ShouldSkipStep:TestStepSkipped", { id: step.command?.id, reason });
     return true;
   }
 
@@ -118,7 +118,7 @@ function getTestsFromResults(
     });
   });
 
-  logger.info("GetTestsFromResults:TestsFound", {
+  logInfo("GetTestsFromResults:TestsFound", {
     count: tests.length,
     titles: tests.map(t => t.source.title),
   });
@@ -158,7 +158,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
     }
     currentTest = testForStep;
 
-    logger.info("GroupStepsByTest:StepProcessing", { event: step.event, step });
+    logInfo("GroupStepsByTest:StepProcessing", { event: step.event, step });
 
     try {
       switch (step.event) {
@@ -230,7 +230,7 @@ function groupStepsByTest(tests: Test[], steps: StepEvent[]): Test[] {
 
           // TODO [ryanjduffy]: Skipping handling after each events for now
           if (step.test[0] === AFTER_EACH_HOOK) {
-            logger.info("ShouldSkipStep:AfterEachNotSupported");
+            logInfo("ShouldSkipStep:AfterEachNotSupported");
             continue;
           }
 

@@ -1,7 +1,8 @@
 import { readFromCache } from "../cache";
-import { cachePath } from "./cachePath";
-import { AuthInfo, fetchAuthInfoFromGraphQL } from "./fetchAuthInfoFromGraphQL";
-import { updateCachedAuthInfo } from "./updateCachedAuthInfo";
+import { cachePath } from "../graphql/cachePath";
+import { fetchAuthInfoFromGraphQL } from "../graphql/fetchAuthInfoFromGraphQL";
+import { updateCachedAuthInfo } from "../graphql/updateCachedAuthInfo";
+import { AuthInfo } from "./types";
 
 export type Cached = {
   [accessToken: string]: AuthInfo;

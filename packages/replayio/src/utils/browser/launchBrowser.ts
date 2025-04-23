@@ -1,5 +1,5 @@
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
-import { logger } from "@replay-cli/shared/logger";
+import { logDebug, logError, logInfo } from "@replay-cli/shared/logger";
 import { spawnProcess } from "@replay-cli/shared/spawnProcess";
 import { dim } from "@replay-cli/shared/theme";
 import { ensureDirSync, existsSync } from "fs-extra";
@@ -39,11 +39,11 @@ export async function launchBrowser(
   };
 
   if (!existsSync(browserExecutablePath)) {
-    logger.error("LaunchBrowser:BrowserNotFound", { browserExecutablePath });
+    logError("LaunchBrowser:BrowserNotFound", { browserExecutablePath });
     throw new Error(`Replay browser not found at: ${browserExecutablePath}`);
   }
 
-  logger.info("LaunchBrowser:Launching", { args, browserExecutablePath, processOptions });
+  logInfo("LaunchBrowser:Launching", { args, browserExecutablePath, processOptions });
 
   // Wait until the user quits the browser process OR
   // until the user presses a key to continue (in which case, we will kill the process)
@@ -75,10 +75,10 @@ export async function launchBrowser(
       }
     },
     printStderr: (text: string) => {
-      logger.error("LaunchBrowser:Stderr", { text });
+      logError("LaunchBrowser:Stderr", { text });
     },
     printStdout: (text: string) => {
-      logger.debug("LaunchBrowser:Stdout", { text });
+      logDebug("LaunchBrowser:Stdout", { text });
     },
   });
 

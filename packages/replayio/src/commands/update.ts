@@ -1,11 +1,11 @@
+import { logError } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { statusSuccess } from "@replay-cli/shared/theme";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { checkForNpmUpdate } from "../utils/initialization/checkForNpmUpdate";
 import { checkForRuntimeUpdate } from "../utils/initialization/checkForRuntimeUpdate";
 import { promptForNpmUpdate } from "../utils/initialization/promptForNpmUpdate";
-import { installLatestRelease } from "../utils/installation/installLatestRelease";
-import { logger } from "@replay-cli/shared/logger";
+import { installRelease } from "../utils/installation/installRelease";
 
 registerCommand("update", {
   checkForRuntimeUpdate: false,
@@ -23,7 +23,7 @@ async function update() {
     ]);
 
     if (runtimeUpdateCheck.hasUpdate && npmUpdateCheck.hasUpdate) {
-      await installLatestRelease();
+      await installRelease(runtimeUpdateCheck.toVersion);
       await promptForNpmUpdate(npmUpdateCheck, false);
     } else if (npmUpdateCheck.hasUpdate) {
       console.log(statusSuccess("✔"), "You have the latest version of the Replay Browser");
@@ -32,7 +32,7 @@ async function update() {
     } else if (runtimeUpdateCheck.hasUpdate) {
       console.log(statusSuccess("✔"), "You have the latest version of replayio");
 
-      await installLatestRelease();
+      await installRelease(runtimeUpdateCheck.toVersion);
     } else {
       console.log(
         statusSuccess("✔"),
@@ -42,7 +42,7 @@ async function update() {
 
     await exitProcess(0);
   } catch (error) {
-    logger.error("Update:Failed", { error });
+    logError("Update:Failed", { error });
     console.error(error);
 
     await exitProcess(1);

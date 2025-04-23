@@ -1,7 +1,7 @@
+import { logError, logInfo } from "@replay-cli/shared/logger";
+import { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import fetch from "node-fetch";
 import os from "node:os";
-import { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
-import { logger } from "@replay-cli/shared/logger";
 
 function shouldReportTestMetrics() {
   const optOut = process.env.RECORD_REPLAY_TEST_METRICS?.toLowerCase();
@@ -23,7 +23,7 @@ async function pingTestMetrics(
   },
   apiKey?: string
 ) {
-  logger.info("PingTestMetrics:Started");
+  logInfo("PingTestMetrics:Started");
 
   if (!shouldReportTestMetrics()) return;
 
@@ -44,7 +44,7 @@ async function pingTestMetrics(
     },
   });
 
-  logger.info("PingTestMetrics", { body });
+  logInfo("PingTestMetrics", { body });
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
 
@@ -57,8 +57,8 @@ async function pingTestMetrics(
     headers,
     body,
   })
-    .then(() => logger.info("PingTestMetrics:Succeeded"))
-    .catch(error => logger.error("PingTestMetrics:Failed", { body, error }));
+    .then(() => logInfo("PingTestMetrics:Succeeded"))
+    .catch(error => logError("PingTestMetrics:Failed", { body, error }));
 }
 
 export { pingTestMetrics };

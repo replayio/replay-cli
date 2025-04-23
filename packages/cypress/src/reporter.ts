@@ -9,7 +9,7 @@ import {
   type UploadOptions,
 } from "@replayio/test-utils";
 
-import { logger } from "@replay-cli/shared/logger";
+import { logInfo } from "@replay-cli/shared/logger";
 import { Errors } from "./error";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
@@ -76,7 +76,7 @@ class CypressReporter {
     );
 
     this.featureOptions = process.env.CYPRESS_REPLAY_PLUGIN_FEATURES;
-    logger.info("CypressReporter:InitializedWithFeatures", {
+    logInfo("CypressReporter:InitializedWithFeatures", {
       features: getFeatures(this.featureOptions),
     });
   }
@@ -88,7 +88,7 @@ class CypressReporter {
   async authenticate(apiKey: string) {
     this.reporter.setApiKey(apiKey);
     const { env } = await fetchWorkspaceConfig(apiKey);
-    logger.info("Authenticate:ExtraEnv", env);
+    logInfo("Authenticate:ExtraEnv", env);
     this._extraEnv = env;
     this.reporter.setDiagnosticMetadata(env);
   }
@@ -116,13 +116,13 @@ class CypressReporter {
     let currentCount = this.getStepCount();
     const startTime = Date.now();
     while (Date.now() < startTime + MAX_WAIT) {
-      logger.info("WaitingForStableStepCount:Count", { currentCount });
+      logInfo("WaitingForStableStepCount:Count", { currentCount });
       const previousCount = currentCount;
       await new Promise(resolve => setTimeout(resolve, 250));
       currentCount = this.getStepCount();
 
       if (previousCount === currentCount) {
-        logger.info("WaitingForStableStepCount:BreakCondition", {
+        logInfo("WaitingForStableStepCount:BreakCondition", {
           currentCount,
           duration: Date.now() - startTime,
         });
@@ -200,7 +200,7 @@ class CypressReporter {
       result.tests.length === 0
     ) {
       const msg = "No test results found for spec " + spec.relative;
-      logger.info("GetTestResults:NoTestResults", { spec: spec.relative });
+      logInfo("GetTestResults:NoTestResults", { spec: spec.relative });
       this.reporter.addError(new ReporterError(Errors.NoTestResults, msg, spec.relative));
 
       return [

@@ -1,4 +1,4 @@
-import { logger } from "../../logger";
+import { logDebug, logInfo } from "../../logger";
 import { UnstructuredMetadata } from "../types";
 import { validate as validateSource } from "./legacy/source";
 import { validate as validateTest } from "./legacy/test";
@@ -16,7 +16,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
           `Ignoring metadata key "${key}". Expected an object but received ${typeof value}`
         );
       }
-      logger.info("SanitizeMetadata:UnexpectedKeyType", { key, keyType: typeof value });
+      logInfo("SanitizeMetadata:UnexpectedKeyType", { key, keyType: typeof value });
       continue;
     }
 
@@ -29,7 +29,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
             const validated = await validateSource(value as UnstructuredMetadata | undefined);
             Object.assign(updated, validated);
           } catch (error) {
-            logger.debug("Source validation failed", { error });
+            logDebug("Source validation failed", { error });
           }
           break;
         }
@@ -38,7 +38,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
             const validated = await validateTest(value as UnstructuredMetadata | undefined);
             Object.assign(updated, validated);
           } catch (error) {
-            logger.debug("Test validation failed", { error });
+            logDebug("Test validation failed", { error });
           }
           break;
         }
@@ -48,7 +48,7 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
               `Ignoring metadata key "${key}". Custom metadata blocks must be prefixed by "x-". Try "x-${key}" instead.`
             );
           }
-          logger.info("SanitizeMetadata:IgnoringKey", { key });
+          logInfo("SanitizeMetadata:IgnoringKey", { key });
         }
       }
     }

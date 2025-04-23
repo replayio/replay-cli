@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { replayAppHost } from "../config";
-import { logger } from "../logger";
+import { logDebug } from "../logger";
 import { runtimeMetadata } from "./config";
 import { Release } from "./types";
 
 const { architecture, platform, runtime } = runtimeMetadata;
 
 export async function getLatestRuntimeRelease() {
-  logger.debug("Fetching release metadata");
+  logDebug("Fetching release metadata");
 
   const response = await fetch(`${replayAppHost}/api/releases`);
   const json = (await response.json()) as Release[];
@@ -19,7 +19,7 @@ export async function getLatestRuntimeRelease() {
       (release.architecture === architecture || release.architecture === "unknown")
   );
 
-  logger.debug("Latest release", { latestRelease });
+  logDebug("Latest release", { latestRelease });
   assert(latestRelease, `No release found for ${platform}:${runtime}`);
 
   return latestRelease;

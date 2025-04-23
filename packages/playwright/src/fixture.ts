@@ -1,5 +1,5 @@
 import { type Browser, type TestInfoError, test } from "@playwright/test";
-import { logger } from "@replay-cli/shared/logger";
+import { logError, logInfo } from "@replay-cli/shared/logger";
 import { ReporterError } from "@replayio/test-utils";
 import assert from "node:assert/strict";
 import { REPLAY_CONTENT_TYPE } from "./constants";
@@ -8,7 +8,7 @@ import type {
   ClientInstrumentation,
   ClientInstrumentationListener,
   StackFrame,
-  TestInfoInternal,
+  TestInfoImpl,
   TestStepInternal,
 } from "./playwrightTypes";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
@@ -125,7 +125,7 @@ type Playwright = {
 };
 
 const fixtureStates = new WeakMap<
-  TestInfoInternal,
+  TestInfoImpl,
   {
     expectSteps: Set<string>;
     ignoredSteps: Set<string>;
@@ -133,7 +133,7 @@ const fixtureStates = new WeakMap<
   }
 >();
 
-function getFixtureState(testInfo: TestInfoInternal) {
+function getFixtureState(testInfo: TestInfoImpl) {
   let state = fixtureStates.get(testInfo);
   if (!state) {
     const testIdData: TestExecutionIdData = {
@@ -145,7 +145,7 @@ function getFixtureState(testInfo: TestInfoInternal) {
         title: testInfo.title,
         // this one only drops the filename (first segment) and the test title (last segment)
         // it's different from the one in the reporter, since the "root" suites are just the file suites created here:
-        // https://github.com/microsoft/playwright/blob/a6488c4a2879a22e8da0f6708114ef7b9f4d253f/packages/playwright/src/common/testLoader.ts#L36
+        // https://github.com/microsoft/playwright/blob/73285245566bdce80bab736577e9bc278d5cf4bf/packages/playwright/src/common/testLoader.ts#L38
         // in this context they are not attached to the root and project suites
         scope: testInfo.titlePath.slice(1, -1),
       },
@@ -160,12 +160,12 @@ function getFixtureState(testInfo: TestInfoInternal) {
   return state;
 }
 
-const patchedTestInfos = new WeakSet<TestInfoInternal>();
+const patchedTestInfos = new WeakSet<TestInfoImpl>();
 
 export async function replayFixture(
   { playwright, browser }: { playwright: Playwright; browser: Browser },
   use: () => Promise<void>,
-  testInfo: TestInfoInternal
+  testInfo: TestInfoImpl
 ) {
   const { expectSteps, ignoredSteps, testIdData } = getFixtureState(testInfo);
 
@@ -210,7 +210,7 @@ export async function replayFixture(
           },
         }).catch(err => {
           // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-          logger.error("ReplayFixture:FailedToAddExpectStep", { error: err });
+          logError("ReplayFixture:FailedToAddExpectStep", { error: err });
         });
 
         return step;
@@ -234,35 +234,21 @@ export async function replayFixture(
           },
         }).catch(err => {
           // this should never happen since `handlePlaywrightEvent` should always catch errors internally and shouldn't throw
-          logger.error("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
+          logError("ReplayFixture:FailedToAddExpectStepEnd", { error: err });
         });
       }
     };
   }
 
   // start of before hooks can't be intercepted by the fixture in `_addStep`
-  // `_addStep` gets monkey-patched in the this fixture but fixtures are registered in the `_runAsStage`'s callbacks like here:
+  // `_addStep` gets monkey-patched in this fixture but fixtures are registered in the `_runAsStage`'s callbacks like here:
   // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/workerMain.ts#L557-L566
   // while the hook steps are added as part of those main `_runAsStage` functions
   function getCurrentHookType() {
-    if (testInfo._currentHookType) {
-      return testInfo._currentHookType();
-    }
-
-    // based on the removed `hookType` util from Playwright's code:
-    // https://github.com/microsoft/playwright/pull/29863/files#diff-e29aa8067f8fe0e63272392dfa682ea47cf92ec4257dffbd725f6c4992f48896L399-L403
-    const type = testInfo._timeoutManager?.currentRunnableType?.();
-    if (
-      type === "afterAll" ||
-      type === "afterEach" ||
-      type === "beforeAll" ||
-      type === "beforeEach"
-    ) {
-      return type;
-    }
+    return testInfo._currentHookType();
   }
 
-  logger.info("ReplayFixture:SettingUp");
+  logInfo("ReplayFixture:SettingUp");
 
   async function addAnnotation(event: string, id?: string, detail?: Record<string, any>) {
     if (!id) {
@@ -286,7 +272,7 @@ export async function replayFixture(
             // it's not worth it when a convenient API is available though
             // even when the issue gets fixed, it's still a good idea to catch those errors here and `debug` them
             // they can't be *logged* here because that interferes with the active reporter output
-            logger.error("ReplayFixture:FailedToAddAnnotation", { error });
+            logError("ReplayFixture:FailedToAddAnnotation", { error });
           }
         });
       })
@@ -345,14 +331,13 @@ export async function replayFixture(
   }
 
   const csiListener: ClientInstrumentationListener = {
-    onApiCallBegin: (apiName, params, stackTraceOrFrames, wallTimeOrUserData, userDataOrOut) => {
-      const userData = typeof wallTimeOrUserData === "number" ? userDataOrOut : wallTimeOrUserData;
+    onApiCallBegin: ({ userData, params, apiName, frames }) => {
       // `.userObject` holds the step data
-      // https://github.com/microsoft/playwright/blob/8dec672121bb12dbc8371995c1cdba3ca0565ffb/packages/playwright/src/index.ts#L254-L261
+      // https://github.com/microsoft/playwright/blob/73285245566bdce80bab736577e9bc278d5cf4bf/packages/playwright/src/index.ts#L274-L283
       // this has been introduced in Playwright 1.17.0
-      const step: TestStepInternal | undefined = userData?.userObject;
+      const step: TestStepInternal | undefined = userData;
 
-      if (!step) {
+      if (!step?.stepId) {
         return;
       }
 
@@ -368,12 +353,6 @@ export async function replayFixture(
         // all of them are added through `_addStep` (it gets called first) and thus those are filtered out here
         return;
       }
-
-      const frames = stackTraceOrFrames
-        ? "frames" in stackTraceOrFrames
-          ? stackTraceOrFrames.frames
-          : stackTraceOrFrames
-        : [];
 
       if (!frames.length) {
         // if frames are empty it likely means that the api call has been made from Playwright internals
@@ -397,16 +376,15 @@ export async function replayFixture(
       });
     },
 
-    onApiCallEnd: (userData, error) => {
-      const step: TestStepInternal | undefined = userData?.userObject;
-
-      if (!step || ignoredSteps.has(step.stepId)) {
+    onApiCallEnd: ({ userData, error, params }) => {
+      const step: TestStepInternal | undefined = userData;
+      if (!step?.stepId || ignoredSteps.has(step.stepId)) {
         return;
       }
       return handlePlaywrightEvent({
         event: "step:end",
         id: step.stepId,
-        params: userData?.userObject?.params,
+        params,
         detail: {
           error: error ? parseError(error) : null,
         },
@@ -428,7 +406,7 @@ export function addReplayFixture() {
   const testTypeSymbol = Object.getOwnPropertySymbols(test).find(s => s.description === "testType");
   const fixtures = testTypeSymbol ? (test as any)[testTypeSymbol]?.fixtures : null;
   if (!fixtures) {
-    logger.error("ReplayFixture:FailedToInject");
+    logError("ReplayFixture:FailedToInject");
     return;
   }
 

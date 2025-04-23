@@ -1,7 +1,7 @@
 import { existsSync } from "fs-extra";
 import assert from "node:assert/strict";
 import { basename } from "path";
-import { logger } from "../logger";
+import { logDebug, logError } from "../logger";
 import { recordingLogPath } from "./config";
 import { readRecordingLog } from "./readRecordingLog";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
@@ -13,7 +13,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
   if (existsSync(recordingLogPath)) {
     const entries = readRecordingLog();
 
-    logger.debug("Reading recording log", { entries, recordingLogPath });
+    logDebug("Reading recording log", { entries, recordingLogPath });
 
     const idToStartTimestamp: Record<string, number> = {};
 
@@ -296,7 +296,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
     }
   }
 
-  logger.debug(`Found ${recordings.length} recordings`, { recordings });
+  logDebug(`Found ${recordings.length} recordings`, { recordings });
 
   return (
     recordings
@@ -329,7 +329,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 }
 
 function logNotFoundWarning(recordingId: string, entry: LogEntry) {
-  logger.error("RecordingLog:RecordingNotFound", {
+  logError("RecordingLog:RecordingNotFound", {
     recordingId,
     entry,
   });

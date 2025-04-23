@@ -1,4 +1,4 @@
-import { logger } from "@replay-cli/shared/logger";
+import { logDebug } from "@replay-cli/shared/logger";
 import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { replayAppHost } from "../../config";
@@ -8,7 +8,7 @@ import { Release } from "./types";
 const { architecture, platform, runtime } = runtimeMetadata;
 
 export async function getLatestRelease() {
-  logger.debug("GetLatestRelease:Start");
+  logDebug("GetLatestRelease:Start");
 
   const response = await fetch(`${replayAppHost}/api/releases`);
   const json = (await response.json()) as Release[];
@@ -19,7 +19,7 @@ export async function getLatestRelease() {
       (release.architecture === architecture || release.architecture === "unknown")
   );
 
-  logger.debug("GetLatestRelease:LatestRelease", { latestRelease });
+  logDebug("GetLatestRelease:LatestRelease", { latestRelease });
   assert(latestRelease, `No release found for ${platform}:${runtime}`);
 
   return latestRelease;

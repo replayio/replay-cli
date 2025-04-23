@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.6.1
+
+### Patch Changes
+
+- [#629](https://github.com/replayio/replay-cli/pull/629) [`42866f2`](https://github.com/replayio/replay-cli/commit/42866f2aed8b83c09c268e969d9bbf45331b29d9) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that prevented fresh latest versions to be installed after installing dev versions of the runtime
+
+## 1.6.0
+
+### Minor Changes
+
+- [#628](https://github.com/replayio/replay-cli/pull/628) [`5f5859d`](https://github.com/replayio/replay-cli/commit/5f5859d2469f38d386f79c98191f8ca2c867a75e) Thanks [@Andarist](https://github.com/Andarist)! - When `RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE` environment variable is set installs will now always proceed to install the requested version
+
+### Patch Changes
+
+- [#624](https://github.com/replayio/replay-cli/pull/624) [`82852c2`](https://github.com/replayio/replay-cli/commit/82852c2d1e9f58c7036a8c0ab5b50e8ef79efa3e) Thanks [@bvaughn](https://github.com/bvaughn)! - Improve async initialization and teardown logic
+
+- [#619](https://github.com/replayio/replay-cli/pull/619) [`93e8732`](https://github.com/replayio/replay-cli/commit/93e873254ea44239e5768b2e06527a786168a73b) Thanks [@Andarist](https://github.com/Andarist)! - Recommend installing `xz` if it's missing and the browser can't be extracted because of that
+
+- [#617](https://github.com/replayio/replay-cli/pull/617) [`683cb81`](https://github.com/replayio/replay-cli/commit/683cb81ec9a0dc72d937df1469183d4de74543e9) Thanks [@bvaughn](https://github.com/bvaughn)! - Gracefully handle missing recordings.log entries
+
 ## 1.5.2
 
 ### Patch Changes

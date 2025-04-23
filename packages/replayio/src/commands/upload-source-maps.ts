@@ -1,11 +1,11 @@
 import { getAccessToken } from "@replay-cli/shared/authentication/getAccessToken";
+import { logError } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { dim } from "@replay-cli/shared/theme";
 import { uploadSourceMaps as uploadSourceMapsExternal } from "@replayio/sourcemap-upload";
 import { replayApiServer } from "../config";
 import { logPromise } from "../utils/async/logPromise";
 import { registerCommand } from "../utils/commander/registerCommand";
-import { logger } from "@replay-cli/shared/logger";
 
 registerCommand("upload-source-maps <paths...>", { requireAuthentication: true })
   .description("Upload source-maps for a Workspace")
@@ -58,7 +58,7 @@ async function uploadSourceMaps(
       pending: "Uploading source maps...",
       success: "Source maps uploaded",
       failed: error => {
-        logger.error("UploadSourceMaps:Failed", { error });
+        logError("UploadSourceMaps:Failed", { error });
         return `Source maps upload failed:\n${error}`;
       },
     },

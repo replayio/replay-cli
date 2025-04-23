@@ -5,11 +5,12 @@ import type {
   TestError,
   TestResult,
 } from "@playwright/test/reporter";
-import { logger } from "@replay-cli/shared/logger";
-import { mixpanelAPI } from "@replay-cli/shared/mixpanel/mixpanelAPI";
+import { logError, logInfo } from "@replay-cli/shared/logger";
+import { trackEvent } from "@replay-cli/shared/mixpanelClient";
+import { waitForExitTasks } from "@replay-cli/shared/process/waitForExitTasks";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { emphasize, highlight, link } from "@replay-cli/shared/theme";
-import { setUserAgent } from "@replay-cli/shared/userAgent";
 import {
   ReplayReporter,
   ReplayReporterConfig,
@@ -83,20 +84,14 @@ export default class ReplayPlaywrightReporter implements Reporter {
   private _executedProjects: Record<string, { usesReplayBrowser: boolean }> = {};
 
   constructor(config: ReplayPlaywrightConfig) {
-    setUserAgent(`${packageName}/${packageVersion}`);
-
-    const accessToken = getAccessToken(config);
-
-    logger.initialize(packageName, packageVersion);
-    logger.identify(accessToken);
-
-    mixpanelAPI.initialize({
-      accessToken,
+    initializeSession({
+      accessToken: getAccessToken(config),
       packageName,
       packageVersion,
     });
+
     if (!config || typeof config !== "object") {
-      mixpanelAPI.trackEvent("error.invalid-reporter-config", { config });
+      trackEvent("error.invalid-reporter-config", { config });
 
       throw new Error(
         `Expected an object for @replayio/playwright/reporter configuration but received: ${config}`
@@ -315,7 +310,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
               try {
                 return [filename, readFileSync(filename, "utf8")];
               } catch (e) {
-                logger.error("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
+                logError("PlaywrightReporter:FailedToReadPlaywrightTestSource", {
                   filename,
                   error: e,
                 });
@@ -382,13 +377,14 @@ export default class ReplayPlaywrightReporter implements Reporter {
       const output: string[] = [];
 
       if (!didUseReplayBrowser) {
-        mixpanelAPI.trackEvent("warning.reporter-used-without-replay-project");
+        trackEvent("warning.reporter-used-without-replay-project");
+
         output.push(emphasize("None of the configured projects ran using Replay Chromium."));
       }
 
       if (!isReplayBrowserInstalled) {
         if (didUseReplayBrowser) {
-          mixpanelAPI.trackEvent("warning.replay-browser-not-installed");
+          trackEvent("warning.replay-browser-not-installed");
         }
 
         output.push(
@@ -426,12 +422,12 @@ export default class ReplayPlaywrightReporter implements Reporter {
       // the issue is tracked here: https://github.com/microsoft/playwright/issues/23875
       console.log("");
     } finally {
-      await Promise.all([mixpanelAPI.close().catch(noop), logger.close().catch(noop)]);
+      await waitForExitTasks();
     }
   }
 
   parseArguments(apiName: string, params: any) {
-    logger.info("PlaywrightReporter:ParseArguments", { apiName, params });
+    logInfo("PlaywrightReporter:ParseArguments", { apiName, params });
     if (!params || typeof params !== "object") {
       return [];
     }

@@ -1,5 +1,5 @@
-import { logger } from "@replay-cli/shared/logger";
-import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanel/createAsyncFunctionWithTracking";
+import { logError } from "@replay-cli/shared/logger";
+import { createAsyncFunctionWithTracking } from "@replay-cli/shared/mixpanelClient";
 import { fetch } from "undici";
 import { version as currentVersion, name as packageName } from "../../../package.json";
 import { shouldPrompt } from "../prompt/shouldPrompt";
@@ -29,7 +29,7 @@ export const checkForNpmUpdate = createAsyncFunctionWithTracking(
         toVersion: latestVersion,
       };
     } catch (error) {
-      logger.error("CheckForNpmUpdate:Failed", { error });
+      logError("CheckForNpmUpdate:Failed", { error });
     }
 
     return {
