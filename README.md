@@ -23,9 +23,9 @@ That should create an installed version of the package in `dist` within each dir
 
 ## Testing
 
-You can run the unit tests for all of the packages with `earthly +test`. You can run the unit tests for any individual package with `yarn run test` within that package.
+You can run the unit tests for all of the packages with `yarn test`. You can run the unit tests for any individual package with `yarn run test` within that package.
 
 ## Deploying
 
-1. Adjust `package.json#version` in all packages that you want to release
-2. `yarn release`
+1. Create changeset files in all PRs affecting the release artifacts by calling `yarn changeset`
+2. Once the release is ready merge the currently open Version Packages PR
