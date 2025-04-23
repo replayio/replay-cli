@@ -30,7 +30,7 @@ jobs:
       - run: yarn test
         working-directory: examples/create-react-app-typescript
         env:
-          DEBUG: "replay,replayio,pw,playwright"
+          DEBUG: "replay,replayio,pw,playwright,pw:browser"
       - run: node test/upload-and-check-recording.js
         working-directory: examples/create-react-app-typescript
         env:
