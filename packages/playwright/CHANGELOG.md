@@ -1,5 +1,11 @@
 # @replayio/playwright
 
+## 4.0.0
+
+### Major Changes
+
+- [#631](https://github.com/replayio/replay-cli/pull/631) [`065ac4d`](https://github.com/replayio/replay-cli/commit/065ac4d51f320955ee3caaee07ad5d90e7864952) Thanks [@Andarist](https://github.com/Andarist)! - Bumped minimum required Playwright version to 1.52
+
 ## 3.1.9
 
 ### Patch Changes
