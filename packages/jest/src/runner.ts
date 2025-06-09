@@ -10,7 +10,7 @@ import {
   removeAnsiCodes,
 } from "@replayio/test-utils";
 import type Runtime from "jest-runtime";
-import path from "path";
+import path from "node:path";
 import { name as packageName, version as packageVersion } from "../package.json";
 
 const runner = require("jest-circus/runner");
@@ -84,8 +84,8 @@ const ReplayRunner = async (
   function handleTestStart(test: Circus.TestEntry) {
     const source = getSource(test);
     reporter.onTestBegin(
-      [test.invocations, ...source.scope, source.title].join("-"),
-      getMetadataFilePath(getWorkerIndex())
+      getMetadataFilePath(getWorkerIndex()),
+      [relativePath, 1, ...source.scope, source.title].join("-")
     );
   }
 

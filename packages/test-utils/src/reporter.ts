@@ -13,16 +13,15 @@ import * as testMetadata from "@replay-cli/shared/recording/metadata/legacy/test
 import type { TestMetadataV2 } from "@replay-cli/shared/recording/metadata/legacy/test/v2";
 import { LocalRecording, UnstructuredMetadata } from "@replay-cli/shared/recording/types";
 import { createUploadWorker, UploadWorker } from "@replay-cli/shared/recording/upload/uploadWorker";
-import { spawnSync } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
 import assert from "node:assert/strict";
-import { dirname } from "path";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { v4 as uuid } from "uuid";
 import { getAccessToken } from "./getAccessToken";
 import { getErrorMessage } from "./legacy-cli/error";
 import { listAllRecordings } from "./legacy-cli/listAllRecordings";
 import { log } from "./logging";
-import { getMetadataFilePath } from "./metadata";
 import { pingTestMetrics } from "./metrics";
 import { buildTestId, generateOpaqueId } from "./testId";
 import type { RecordingEntry, ReplayReporterConfig, UploadStatusThreshold } from "./types";
@@ -235,9 +234,9 @@ function getFallbackRunTitle() {
 export default class ReplayReporter<
   TRecordingMetadata extends UnstructuredMetadata = UnstructuredMetadata
 > {
-  private _baseId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid();
-  private _testRunShardId: string | null = null;
+  public baseTestRunId = sourceMetadata.getTestRunIdFromEnvironment(process.env) || uuid();
   private _baseMetadata: Record<string, any> | null = null;
+  private _testRunShardId: string | null = null;
   private _schemaVersion: string;
   private _runTitle?: string;
   private _runner: TestRunner;
@@ -450,7 +449,7 @@ export default class ReplayReporter<
     }
 
     logInfo("OnTestSuiteBegin:ReporterConfiguration", {
-      baseId: this._baseId,
+      baseId: this.baseTestRunId,
       runTitle: this._runTitle,
       runner: this._runner,
       baseMetadata: this._baseMetadata,
@@ -460,7 +459,7 @@ export default class ReplayReporter<
     });
 
     trackEvent("test-suite.begin", {
-      baseId: this._baseId,
+      baseId: this.baseTestRunId,
       runTitle: this._runTitle,
       upload: this._upload,
       hasFilter: !!this._filter,
@@ -508,7 +507,7 @@ export default class ReplayReporter<
       triggerReason: metadata.source?.trigger?.workflow ?? null,
     };
 
-    logInfo("StartTestRunShard:WillCreateShard", { baseId: this._baseId });
+    logInfo("StartTestRunShard:WillCreateShard", { baseId: this.baseTestRunId });
 
     try {
       return retryWithExponentialBackoff(async () => {
@@ -526,7 +525,7 @@ export default class ReplayReporter<
           }
         `,
           {
-            clientKey: this._baseId,
+            clientKey: this.baseTestRunId,
             testRun,
           },
           this._apiKey
@@ -550,7 +549,7 @@ export default class ReplayReporter<
 
         logInfo("StartTestRunShard:CreatedShard", {
           testRunShardId,
-          baseId: this._baseId,
+          baseId: this.baseTestRunId,
         });
         this._testRunShardId = testRunShardId;
 
@@ -693,7 +692,7 @@ export default class ReplayReporter<
     }
   }
 
-  onTestBegin(testExecutionId?: string, metadataFilePath = getMetadataFilePath("REPLAY_TEST", 0)) {
+  onTestBegin(metadataFilePath?: string, testExecutionId?: string) {
     logInfo("OnTestBegin:Started", { testExecutionId });
 
     if (this._apiKey && !this._testRunShardIdPromise) {
@@ -704,10 +703,22 @@ export default class ReplayReporter<
     }
 
     this._errors = [];
+
+    if (!metadataFilePath) {
+      // Playwright writes the metadata file on its own in the fixture
+      // it helps avoiding race conditions between its fixture and uts reporter since they run in different processes
+      return;
+    }
+
+    assert(
+      testExecutionId,
+      "Calling `onTestBegin` with `metadataFilePath` requires `testExecutionId` to be passed too."
+    );
+
     const metadata = {
       ...(this._baseMetadata || {}),
       "x-replay-test": {
-        id: testExecutionId ? `${this._baseId}-${testExecutionId}` : this._baseId,
+        id: testExecutionId,
       },
     };
 
@@ -779,8 +790,7 @@ export default class ReplayReporter<
 
   getRecordingsForTest(tests: { executionId: string }[]) {
     const filter = `function($v) { $v.metadata.\`x-replay-test\`.id in ${JSON.stringify([
-      ...tests.map(test => `${this._baseId}-${test.executionId}`),
-      this._baseId,
+      ...tests.map(test => test.executionId),
     ])} and $not($exists($v.metadata.test)) }`;
 
     const recordings = listAllRecordings({
@@ -811,7 +821,7 @@ export default class ReplayReporter<
       result,
       resultCounts,
       run: {
-        id: this._baseId,
+        id: this.baseTestRunId,
         title: this._runTitle,
       },
       tests,
@@ -950,7 +960,7 @@ export default class ReplayReporter<
       const firstRecording: RecordingEntry | undefined = recordings[0];
       pingTestMetrics(
         firstRecording?.id,
-        this._baseId,
+        this.baseTestRunId,
         {
           id: testMetadata.source.path + "#" + testMetadata.source.title,
           source: testMetadata.source,

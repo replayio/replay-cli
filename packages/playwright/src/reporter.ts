@@ -17,7 +17,6 @@ import {
   ReporterError,
   TestMetadataV2,
   getAccessToken,
-  getMetadataFilePath as getMetadataFilePathBase,
   removeAnsiCodes,
 } from "@replayio/test-utils";
 import { existsSync, readFileSync } from "fs";
@@ -27,16 +26,13 @@ import {
   FixtureStepStart,
   ParsedErrorFrame,
   ReporterErrorEvent,
-  TestExecutionIdData,
+  TestExecutionData,
 } from "./fixture";
 import { StackFrame } from "./playwrightTypes";
 import { REPLAY_CONTENT_TYPE } from "./constants";
+import assert from "assert";
 
 type UserActionEvent = TestMetadataV2.UserActionEvent;
-
-export function getMetadataFilePath(workerIndex = 0) {
-  return getMetadataFilePathBase("PLAYWRIGHT", workerIndex);
-}
 
 function extractErrorMessage(error: TestError) {
   const message = removeAnsiCodes(error.message);
@@ -68,7 +64,10 @@ type ReplayPlaywrightRecordingMetadata = {
 };
 
 export interface ReplayPlaywrightConfig
-  extends ReplayReporterConfig<ReplayPlaywrightRecordingMetadata> {
+  extends Omit<
+    ReplayReporterConfig<ReplayPlaywrightRecordingMetadata>,
+    "metadataKey" | "metadata"
+  > {
   captureTestFile?: boolean;
 }
 
@@ -121,7 +120,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
   // this is different because it includes `repeatEachIndex` and `attempt`
   // TODO(PRO-667): this could be simplified to `${test.testId}-${test.repeatEachIndex}-${test.attempt}`
   // before doing that all recipients of `TestExecutionIdData` should be rechecked to see if such a change would be safe
-  private _getTestExecutionId(test: TestExecutionIdData) {
+  private _getTestExecutionId(test: TestExecutionData) {
     return [
       test.filePath,
       test.projectName ?? "",
@@ -162,21 +161,13 @@ export default class ReplayPlaywrightReporter implements Reporter {
   onTestBegin(test: TestCase, testResult: TestResult) {
     const projectMetadata = this._registerExecutedProject(test);
 
-    // Don't save metadata for non-Replay projects
+    // skip for non-Replay projects
     if (!projectMetadata?.usesReplayBrowser) return;
 
-    const testExecutionId = this._getTestExecutionId({
-      filePath: test.location.file,
-      projectName: test.parent.project()?.name,
-      repeatEachIndex: test.repeatEachIndex,
-      attempt: testResult.retry + 1,
-      source: this.getSource(test),
-    });
-
-    this.reporter.onTestBegin(testExecutionId, getMetadataFilePath(testResult.workerIndex));
+    this.reporter.onTestBegin();
   }
 
-  private _processAttachments(testId: TestExecutionIdData, attachments: TestResult["attachments"]) {
+  private _processAttachments(testData: TestExecutionData, attachments: TestResult["attachments"]) {
     const indexedSteps = new Map<string, UserActionEvent>();
 
     const hookMap: Record<
@@ -189,10 +180,10 @@ export default class ReplayPlaywrightReporter implements Reporter {
       beforeEach: [],
     };
 
+    let executionId: string | undefined;
     const main: UserActionEvent[] = [];
-
     const stacks: Record<string, StackFrame[]> = {};
-    const filenames = new Set([testId.filePath]);
+    const filenames = new Set([testData.filePath]);
 
     for (const attachment of attachments) {
       if (attachment.contentType !== REPLAY_CONTENT_TYPE || !attachment.body) {
@@ -200,6 +191,12 @@ export default class ReplayPlaywrightReporter implements Reporter {
       }
 
       switch (attachment.name) {
+        case "replay:test:start": {
+          testData.executionId = (
+            JSON.parse(attachment.body.toString()) as { executionId: string }
+          ).executionId;
+          break;
+        }
         case "replay:step:start": {
           const fixtureStep = JSON.parse(attachment.body.toString()) as FixtureStep;
           const step: UserActionEvent = {
@@ -210,7 +207,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
                 name: fixtureStep.apiName,
                 arguments: this.parseArguments(fixtureStep.apiName, fixtureStep.params),
               },
-              scope: testId.source.scope,
+              scope: testData.source.scope,
               error: null,
               category: mapFixtureStepCategory(fixtureStep),
             },
@@ -257,13 +254,17 @@ export default class ReplayPlaywrightReporter implements Reporter {
           this.reporter.addError(
             new ReporterError(fixtureEvent.code, fixtureEvent.message, fixtureEvent.detail),
             {
-              ...testId,
+              ...testData,
             }
           );
           break;
         }
       }
     }
+    assert(
+      testData.executionId,
+      "Expected `executionId` to be set by `replay:test:start` attachment"
+    );
     return {
       events: {
         ...hookMap,
@@ -285,7 +286,8 @@ export default class ReplayPlaywrightReporter implements Reporter {
     // Don't save metadata for non-Replay projects
     if (!projectMetadata?.usesReplayBrowser) return;
 
-    const testExecutionIdData: TestExecutionIdData = {
+    const testData: TestExecutionData = {
+      executionId: "", // set by `_processAttachments`
       filePath: test.location.file,
       projectName: test.parent.project()?.name,
       repeatEachIndex: test.repeatEachIndex,
@@ -293,10 +295,7 @@ export default class ReplayPlaywrightReporter implements Reporter {
       source: this.getSource(test),
     };
 
-    const { events, filenames, stacks } = this._processAttachments(
-      testExecutionIdData,
-      result.attachments
-    );
+    const { events, filenames, stacks } = this._processAttachments(testData, result.attachments);
 
     const relativePath = test.titlePath()[2];
 
@@ -326,10 +325,10 @@ export default class ReplayPlaywrightReporter implements Reporter {
     const tests = [
       {
         id: 0,
-        attempt: testExecutionIdData.attempt,
-        source: testExecutionIdData.source,
-        executionGroupId: String(testExecutionIdData.repeatEachIndex),
-        executionId: this._getTestExecutionId(testExecutionIdData),
+        attempt: testData.attempt,
+        source: testData.source,
+        executionGroupId: String(testData.repeatEachIndex),
+        executionId: testData.executionId,
         maxAttempts: test.retries + 1,
         approximateDuration: test.results.reduce((acc, r) => acc + r.duration, 0),
         result: status === "interrupted" ? ("unknown" as const) : status,
