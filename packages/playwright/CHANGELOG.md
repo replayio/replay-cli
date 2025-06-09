@@ -1,5 +1,17 @@
 # @replayio/playwright
 
+## 5.0.0
+
+### Major Changes
+
+- [#634](https://github.com/replayio/replay-cli/pull/634) [`3ffcb13`](https://github.com/replayio/replay-cli/commit/3ffcb1372b05fbc4598584d56fdf67470d26d33e) Thanks [@Andarist](https://github.com/Andarist)! - Removed `createReplayReporterConfig` and `getMetadataFilePath` exports
+
+- [#634](https://github.com/replayio/replay-cli/pull/634) [`3ffcb13`](https://github.com/replayio/replay-cli/commit/3ffcb1372b05fbc4598584d56fdf67470d26d33e) Thanks [@Andarist](https://github.com/Andarist)! - Removed support for setting custom `metadata` using config options
+
+### Patch Changes
+
+- [#634](https://github.com/replayio/replay-cli/pull/634) [`3ffcb13`](https://github.com/replayio/replay-cli/commit/3ffcb1372b05fbc4598584d56fdf67470d26d33e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a race condition causing recordings sometimes not being correctly associated with tests
+
 ## 4.0.0
 
 ### Major Changes
