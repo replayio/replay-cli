@@ -99,7 +99,7 @@ class CypressReporter {
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
     // current test
-    this.reporter.onTestBegin(getMetadataFilePath());
+    this.reporter.onTestBegin(getMetadataFilePath(), this.reporter.baseTestRunId);
   }
 
   onBeforeSpec(spec: Cypress.Spec) {
@@ -107,7 +107,7 @@ class CypressReporter {
     appendToFixtureFile("spec:start", { spec, startTime });
 
     this.clearSteps();
-    this.reporter.onTestBegin(getMetadataFilePath());
+    this.reporter.onTestBegin(getMetadataFilePath(), this.reporter.baseTestRunId);
   }
 
   async waitForStableStepCount() {
