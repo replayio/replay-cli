@@ -1,9 +1,12 @@
 import { type Browser, type TestInfoError, test } from "@playwright/test";
 import { logError, logInfo } from "@replay-cli/shared/logger";
-import { ReporterError } from "@replayio/test-utils";
+import { ReporterError, getMetadataFilePath } from "@replayio/test-utils";
 import assert from "node:assert/strict";
 import { REPLAY_CONTENT_TYPE } from "./constants";
 import { Errors } from "./error";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { v4 as uuid } from "uuid";
+import { dirname } from "node:path";
 import type {
   ClientInstrumentation,
   ClientInstrumentationListener,
@@ -12,6 +15,22 @@ import type {
   TestStepInternal,
 } from "./playwrightTypes";
 import { captureRawStack, filteredStackTrace } from "./stackTrace";
+
+const baseId = uuid();
+const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
+export const metadataFilePath = getMetadataFilePath("PLAYWRIGHT", workerIndex);
+
+function getBaseMetadata() {
+  let baseMetadata = process.env.PLAYWRIGHT_REPLAY_METADATA || process.env.RECORD_REPLAY_METADATA;
+  if (baseMetadata && typeof baseMetadata === "string") {
+    try {
+      return JSON.parse(baseMetadata);
+    } catch (error) {
+      logError("ReplayFixture:FailedParseBaseMetadata", { error, baseMetadata });
+    }
+  }
+  return {};
+}
 
 interface StepStartDetail {
   apiName: string;
@@ -26,7 +45,8 @@ export interface FixtureStepStart extends StepStartDetail {
   id: string;
 }
 
-export interface TestExecutionIdData {
+export interface TestExecutionData {
+  executionId: string;
   filePath: string;
   projectName: string | undefined;
   repeatEachIndex: number;
@@ -39,7 +59,7 @@ export interface TestExecutionIdData {
 
 interface FixtureStepStartEvent extends FixtureStepStart {
   event: "step:start";
-  test: TestExecutionIdData;
+  test: TestExecutionData;
 }
 
 interface StepEndDetail {
@@ -52,12 +72,12 @@ export interface FixtureStepEnd extends StepEndDetail {
 
 interface FixtureStepEndEvent extends FixtureStepEnd {
   event: "step:end";
-  test: TestExecutionIdData;
+  test: TestExecutionData;
 }
 
 export interface ReporterErrorEvent extends ReporterError {
   event: "error";
-  test: TestExecutionIdData;
+  test: TestExecutionData;
 }
 
 export type FixtureEvent = FixtureStepStartEvent | FixtureStepEndEvent | ReporterErrorEvent;
@@ -129,18 +149,20 @@ const fixtureStates = new WeakMap<
   {
     expectSteps: Set<string>;
     ignoredSteps: Set<string>;
-    testIdData: TestExecutionIdData;
+    testData: TestExecutionData;
   }
 >();
 
 function getFixtureState(testInfo: TestInfoImpl) {
   let state = fixtureStates.get(testInfo);
   if (!state) {
-    const testIdData: TestExecutionIdData = {
+    const attempt = testInfo.retry + 1;
+    const testData: TestExecutionData = {
+      executionId: `${baseId}-${testInfo.testId}-${testInfo.repeatEachIndex}-${attempt}`,
       filePath: testInfo.file,
       projectName: testInfo.project.name,
       repeatEachIndex: testInfo.repeatEachIndex,
-      attempt: testInfo.retry + 1,
+      attempt,
       source: {
         title: testInfo.title,
         // this one only drops the filename (first segment) and the test title (last segment)
@@ -153,7 +175,7 @@ function getFixtureState(testInfo: TestInfoImpl) {
     state = {
       expectSteps: new Set(),
       ignoredSteps: new Set(),
-      testIdData,
+      testData: testData,
     };
     fixtureStates.set(testInfo, state);
   }
@@ -167,7 +189,7 @@ export async function replayFixture(
   use: () => Promise<void>,
   testInfo: TestInfoImpl
 ) {
-  const { expectSteps, ignoredSteps, testIdData } = getFixtureState(testInfo);
+  const { expectSteps, ignoredSteps, testData } = getFixtureState(testInfo);
 
   // fixtures are created repeatedly for the same test
   // since they are created for beforeAll and afterAll hooks too
@@ -264,7 +286,7 @@ export async function replayFixture(
             await page.evaluate(ReplayAddAnnotation, [
               event,
               id,
-              JSON.stringify({ ...detail, test: testIdData }),
+              JSON.stringify({ ...detail, test: testData }),
             ] as const);
           } catch (error) {
             // `onApiCallBegin`/`onApiCallEnd` are not awaited, see: https://github.com/microsoft/playwright/pull/30795
@@ -395,6 +417,28 @@ export async function replayFixture(
   const clientInstrumentation = playwright._instrumentation;
   clientInstrumentation.addListener(csiListener);
 
+  try {
+    const metadata = {
+      ...getBaseMetadata(),
+      "x-replay-test": {
+        id: testData.executionId,
+      },
+    };
+    logInfo("ReplayFixture:WillWriteMetadata", { metadataFilePath, metadata });
+    mkdirSync(dirname(metadataFilePath), { recursive: true });
+    writeFileSync(metadataFilePath, JSON.stringify(metadata, undefined, 2));
+  } catch (error) {
+    logError("ReplayFixture:InitReplayMetadataFailed", {
+      error,
+    });
+  }
+
+  testInfo.attach(`replay:test:start`, {
+    body: JSON.stringify({
+      executionId: testData.executionId,
+    }),
+    contentType: REPLAY_CONTENT_TYPE,
+  });
   await use();
 
   clientInstrumentation.removeListener(csiListener);

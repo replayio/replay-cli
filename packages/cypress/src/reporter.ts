@@ -1,4 +1,5 @@
 /// <reference types="cypress" />
+import { logInfo } from "@replay-cli/shared/logger";
 import {
   ReplayReporter,
   ReplayReporterConfig,
@@ -8,8 +9,6 @@ import {
   getMetadataFilePath as getMetadataFilePathBase,
   type UploadOptions,
 } from "@replayio/test-utils";
-
-import { logInfo } from "@replay-cli/shared/logger";
 import { Errors } from "./error";
 import { PluginFeature, getFeatures, isFeatureEnabled } from "./features";
 import { appendToFixtureFile, initFixtureFile } from "./fixture";
@@ -100,8 +99,7 @@ class CypressReporter {
     // Cypress around 10.9 launches the browser before `before:spec` is called
     // causing us to fail to create the metadata file and link the replay to the
     // current test
-    const metadataPath = getMetadataFilePath();
-    this.reporter.onTestBegin(undefined, metadataPath);
+    this.reporter.onTestBegin(getMetadataFilePath());
   }
 
   onBeforeSpec(spec: Cypress.Spec) {
@@ -109,7 +107,7 @@ class CypressReporter {
     appendToFixtureFile("spec:start", { spec, startTime });
 
     this.clearSteps();
-    this.reporter.onTestBegin(undefined, getMetadataFilePath());
+    this.reporter.onTestBegin(getMetadataFilePath());
   }
 
   async waitForStableStepCount() {

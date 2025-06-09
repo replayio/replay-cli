@@ -1,8 +1,8 @@
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initMetadataFile } from "@replayio/test-utils";
 
-import { addReplayFixture } from "./fixture";
-import { getMetadataFilePath, ReplayPlaywrightConfig } from "./reporter";
+import { addReplayFixture, metadataFilePath } from "./fixture";
+import { ReplayPlaywrightConfig } from "./reporter";
 
 function getDeviceConfig() {
   const executablePath = getExecutablePath();
@@ -13,22 +13,13 @@ function getDeviceConfig() {
     RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS,
     // it doesn't log anything eagerly but it makes it possible to enable verbose logs with DEBUG=pw:browser
     RECORD_REPLAY_VERBOSE: 1,
+    RECORD_REPLAY_METADATA: undefined,
+    RECORD_REPLAY_METADATA_FILE: initMetadataFile(metadataFilePath),
   };
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {
     env.RECORD_ALL_CONTENT = "";
     env.RECORD_REPLAY_DRIVER = __filename;
-  }
-
-  // When TEST_WORKER_INDEX is set, this is being run in the context of a
-  // @playwright/test worker so we create a per-worker metadata file that can be
-  // used by the reporter to inject test-specific metadata which will be picked
-  // up by the driver when it creates a new recording
-  if (process.env.TEST_WORKER_INDEX) {
-    const workerIndex = +(process.env.TEST_WORKER_INDEX || 0);
-    const path = getMetadataFilePath(workerIndex);
-    env.RECORD_REPLAY_METADATA = undefined;
-    env.RECORD_REPLAY_METADATA_FILE = initMetadataFile(path);
   }
 
   return {
@@ -57,16 +48,9 @@ export const devices = {
 };
 
 export function replayReporter(config: ReplayPlaywrightConfig = {}) {
-  // intentionally produce a mutable array here with the help of satisfies
-  // this has to be kept for a foreseeable future to keep compat with older Playwright versions
-  // even after the fix for this gets released: https://github.com/microsoft/playwright/pull/30387
-  return ["@replayio/playwright/reporter", config] as const satisfies unknown[];
+  return ["@replayio/playwright/reporter", config] as const;
 }
 
-/** @deprecated use `replayReporter` instead */
-export const createReplayReporterConfig = replayReporter;
-
-export { getMetadataFilePath };
 export type { ReplayPlaywrightConfig };
 
 // ⚠️ this is an initialization-time side-effect
