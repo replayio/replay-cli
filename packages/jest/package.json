@@ -56,7 +56,6 @@
     "jest-environment-node": "^27.5.1",
     "jest-runtime": "^27.5.1",
     "jsonata": "^1.8.6",
-    "launchdarkly-node-client-sdk": "^3.2.1",
     "mixpanel": "^0.18.0",
     "node-fetch": "^2.6.7",
     "p-map": "^4.0.0",

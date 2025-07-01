@@ -18,7 +18,6 @@
     "debug": "^4.3.4",
     "find-process": "^1.4.7",
     "fs-extra": "^11.2.0",
-    "launchdarkly-node-client-sdk": "^3.2.1",
     "log-update": "^4",
     "mixpanel": "^0.18.0",
     "open": "^8.4.2",
