@@ -1,5 +1,4 @@
 import { createDeferred, Deferred } from "../../async/createDeferred";
-import { getFeatureFlagValue } from "../../launchDarklylient";
 import ProtocolClient from "../../protocol/ProtocolClient";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { removeFromDisk } from "../removeFromDisk";
@@ -21,10 +20,7 @@ export function createUploadWorker({
   const deferredAuthenticated = createDeferred<boolean>();
   const deferredActions: Deferred<boolean, LocalRecording>[] = [];
 
-  let multiPartUpload = false;
-
   (async () => {
-    multiPartUpload = await getFeatureFlagValue<boolean>("cli-multipart-upload", false);
     try {
       await client.waitUntilAuthenticated();
       deferredAuthenticated.resolve(true);
@@ -41,7 +37,7 @@ export function createUploadWorker({
         if (recording.recordingStatus === "crashed") {
           await uploadCrashedData(client, recording);
         } else {
-          await uploadRecording(client, recording, { multiPartUpload, processingBehavior });
+          await uploadRecording(client, recording, { multiPartUpload: true, processingBehavior });
         }
       });
       deferredActions.push(deferred);

@@ -44,7 +44,6 @@
     "inquirer": "^8.0.0",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
-    "launchdarkly-node-client-sdk": "^3.2.1",
     "log-update": "^4",
     "mixpanel": "^0.18.0",
     "open": "^8.4.2",
