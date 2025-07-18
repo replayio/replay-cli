@@ -1,6 +1,6 @@
 {
   "name": "@replayio/playwright",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Configuration utilities for using the Replay browsers with playwright",
   "main": "./dist/index.js",
   "exports": {
