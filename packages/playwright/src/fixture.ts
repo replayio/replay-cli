@@ -463,6 +463,14 @@ export function addReplayFixture() {
           // https://github.com/microsoft/playwright/pull/14104
           auto: "all-hooks-included",
           _title: "Replay.io fixture",
+          // The main reason we specify a custom timeout here is to get our own "slot" for the timeout.
+          // By default, Playwright reuses the `afterHooksSlot` and if that already has a timeout then the teardown logic of our fixture wouldn't be able to run.
+          // Every code in a fixture after `await use()` is implicitly executed as teardown.
+          // https://github.com/microsoft/playwright/blob/d223cffe4bd2a3b85dee4831c29904f09c585836/packages/playwright/src/worker/workerMain.ts#L407-L409
+          //
+          // To make things worse, that default `afterHooksSlot`'s timeout can even be exhausted by the internal `testInfo._onDidFinishTestFunction` that is responsible, for example, for making screenshots at the end of the test.
+          // https://github.com/microsoft/playwright/blob/d223cffe4bd2a3b85dee4831c29904f09c585836/packages/playwright/src/worker/workerMain.ts#L390-L391
+          timeout: 5000,
         },
       ],
     },
