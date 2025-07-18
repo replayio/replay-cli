@@ -1,5 +1,11 @@
 # @replayio/puppeteer
 
+## 0.2.13
+
+### Patch Changes
+
+- [#636](https://github.com/replayio/replay-cli/pull/636) [`34bc229`](https://github.com/replayio/replay-cli/commit/34bc229cc77dff7a3cd4215868102a4545311d48) Thanks [@Andarist](https://github.com/Andarist)! - Removed usage of LaunchDarkly from the codebase
+
 ## 0.2.12
 
 ### Patch Changes
