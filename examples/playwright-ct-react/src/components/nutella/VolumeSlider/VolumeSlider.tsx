@@ -1,6 +1,12 @@
-import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/20/solid";
+import { VolumeX, Volume2 } from "lucide-react";
 import * as RadixSlider from "@radix-ui/react-slider";
-import { animate, motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useTransform,
+} from "framer-motion";
 import { ElementRef, useRef, useState } from "react";
 
 const MAX_OVERFLOW = 50;
@@ -14,7 +20,7 @@ export function VolumeSlider() {
   let overflow = useMotionValue(0);
   let scale = useMotionValue(1);
 
-  useMotionValueEvent(clientX, "change", latest => {
+  useMotionValueEvent(clientX, "change", (latest) => {
     if (ref.current) {
       let { left, right } = ref.current.getBoundingClientRect();
       let newValue;
@@ -52,20 +58,21 @@ export function VolumeSlider() {
           transition: { duration: 0.25 },
         }}
         style={{
-          x: useTransform(() => (region === "left" ? -overflow.get() / scale.get() : 0)),
+          x: useTransform(() =>
+            region === "left" ? -overflow.get() / scale.get() : 0
+          ),
         }}
       >
-        <SpeakerXMarkIcon className="size-5 translate-x-0 translate-y-0 text-foreground" />
+        <VolumeX className="size-5 translate-x-0 translate-y-0 text-white" />
       </motion.div>
 
       <RadixSlider.Root
         ref={ref}
-        data-testid="volume-slider"
         value={[volume]}
         onValueChange={([v]) => setVolume(Math.floor(v))}
         step={0.01}
         className="relative flex w-full max-w-[200px] grow cursor-grab touch-none select-none items-center py-4 active:cursor-grabbing"
-        onPointerMove={e => {
+        onPointerMove={(e) => {
           if (e.buttons > 0) {
             clientX.jump(e.clientX);
           }
@@ -97,11 +104,11 @@ export function VolumeSlider() {
           }}
           className="flex grow"
         >
-          <RadixSlider.Track className="relative isolate h-full grow overflow-hidden rounded-full bg-muted">
-            <RadixSlider.Range data-testid="volume-range" className="absolute h-full bg-primary" />
+          <RadixSlider.Track className="relative isolate h-full grow overflow-hidden rounded-full bg-gray-500 ">
+            <RadixSlider.Range className="absolute h-full bg-white" />
           </RadixSlider.Track>
         </motion.div>
-        <RadixSlider.Thumb data-testid="volume-thumb" />
+        <RadixSlider.Thumb />
       </RadixSlider.Root>
 
       <motion.div
@@ -110,13 +117,12 @@ export function VolumeSlider() {
           transition: { duration: 0.25 },
         }}
         style={{
-          x: useTransform(() => (region === "right" ? overflow.get() / scale.get() : 0)),
+          x: useTransform(() =>
+            region === "right" ? overflow.get() / scale.get() : 0
+          ),
         }}
       >
-        <SpeakerWaveIcon
-          data-testid="speaker-high-icon"
-          className="size-5 translate-x-0 translate-y-0 text-foreground"
-        />
+        <Volume2 className="size-5 translate-x-0 translate-y-0 text-white" />
       </motion.div>
     </motion.div>
   );
