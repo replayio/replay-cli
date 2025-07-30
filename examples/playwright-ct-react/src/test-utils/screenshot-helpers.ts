@@ -1,4 +1,4 @@
-import type { Page, Locator } from '@playwright/test';
+import type { Page, Locator } from "@playwright/test";
 
 /**
  * Takes a screenshot of a component with automatic bounds detection and padding
@@ -20,9 +20,9 @@ export async function takeComponentScreenshot(
       clip: {
         x: Math.max(0, bounds.x - padding),
         y: Math.max(0, bounds.y - padding),
-        width: bounds.width + (padding * 2),
-        height: bounds.height + (padding * 2)
-      }
+        width: bounds.width + padding * 2,
+        height: bounds.height + padding * 2,
+      },
     });
   }
 }
@@ -67,15 +67,11 @@ export async function testComponentStates(
     if (state.action) {
       await state.action();
     }
-    
+
     if (state.waitTime) {
       await page.waitForTimeout(state.waitTime);
     }
-    
-    await takeComponentScreenshot(
-      component,
-      page,
-      `test-results/component-${state.name}.png`
-    );
+
+    await takeComponentScreenshot(component, page, `test-results/component-${state.name}.png`);
   }
-} 
+}

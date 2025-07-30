@@ -19,15 +19,15 @@ export function Checklist({ initialItems, title = "Checklist" }: ChecklistProps)
   const [ref, animate] = useAnimate();
 
   function handleChange(id: string) {
-    const newItems = items.map((item) => ({
+    const newItems = items.map(item => ({
       ...item,
       checked: item.id === id ? !item.checked : item.checked,
     }));
 
     setItems(newItems);
 
-    if (newItems.every((item) => item.checked)) {
-      const lastCompletedItem = items.findIndex((item) => !item.checked);
+    if (newItems.every(item => item.checked)) {
+      const lastCompletedItem = items.findIndex(item => !item.checked);
       const random = Math.random();
 
       const animations = [
@@ -55,7 +55,10 @@ export function Checklist({ initialItems, title = "Checklist" }: ChecklistProps)
   }
 
   return (
-    <div data-testid="checklist-container" className="flex w-full max-w-sm flex-col rounded bg-card px-3 py-4 shadow-xl border">
+    <div
+      data-testid="checklist-container"
+      className="flex w-full max-w-sm flex-col rounded bg-card px-3 py-4 shadow-xl border"
+    >
       <p className="ml-2 flex items-center text-lg font-semibold text-card-foreground">
         <svg className="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M4 6h12M4 10h12M4 14h12" />
@@ -63,7 +66,7 @@ export function Checklist({ initialItems, title = "Checklist" }: ChecklistProps)
         <span data-testid="checklist-title">{title}</span>
       </p>
       <div ref={ref} className="mt-4">
-        {items.map((item) => (
+        {items.map(item => (
           <label
             data-testid={`checklist-item-${item.id}`}
             key={item.id}
@@ -86,4 +89,4 @@ export function Checklist({ initialItems, title = "Checklist" }: ChecklistProps)
   );
 }
 
-export default Checklist; 
+export default Checklist;

@@ -283,10 +283,10 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult) {
     const status = result.status;
-    logInfo("PlaywrightCTReporter:onTestEnd:Starting", { 
-      testTitle: test.title, 
-      status, 
-      attachmentCount: result.attachments.length 
+    logInfo("PlaywrightCTReporter:onTestEnd:Starting", {
+      testTitle: test.title,
+      status,
+      attachmentCount: result.attachments.length,
     });
 
     // Skipped tests won't have a reply so nothing to do here
@@ -380,10 +380,10 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
       extraMetadata: playwrightMetadata,
     };
 
-    logInfo("PlaywrightCTReporter:onTestEnd:CallingReporter", { 
+    logInfo("PlaywrightCTReporter:onTestEnd:CallingReporter", {
       testTitle: test.title,
       testsCount: tests.length,
-      hasExtraMetadata: !!playwrightMetadata
+      hasExtraMetadata: !!playwrightMetadata,
     });
 
     // Write debug data to file if requested
@@ -391,7 +391,7 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
       try {
         const debugDir = path.dirname(this.config.debugOutputFile);
         mkdirSync(debugDir, { recursive: true });
-        
+
         const debugData = {
           timestamp: new Date().toISOString(),
           testTitle: test.title,
@@ -399,18 +399,18 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
           attachments: result.attachments.map(att => ({
             name: att.name,
             contentType: att.contentType,
-            bodySize: att.body?.length || 0
-          }))
+            bodySize: att.body?.length || 0,
+          })),
         };
-        
+
         writeFileSync(
-          `${this.config.debugOutputFile}.${Date.now()}.json`, 
+          `${this.config.debugOutputFile}.${Date.now()}.json`,
           JSON.stringify(debugData, null, 2)
         );
-        
-        logInfo("PlaywrightCTReporter:DebugFileWritten", { 
+
+        logInfo("PlaywrightCTReporter:DebugFileWritten", {
           file: this.config.debugOutputFile,
-          testTitle: test.title 
+          testTitle: test.title,
         });
       } catch (error) {
         logError("PlaywrightCTReporter:DebugFileWriteError", { error });
@@ -424,18 +424,18 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
 
   async onEnd() {
     try {
-      logInfo("PlaywrightCTReporter:onEnd:Starting", { 
+      logInfo("PlaywrightCTReporter:onEnd:Starting", {
         projectsExecuted: Object.keys(this._executedProjects),
-        config: { upload: this.config.upload, apiKey: !!this.config.apiKey }
+        config: { upload: this.config.upload, apiKey: !!this.config.apiKey },
       });
-      
+
       console.log("[replay.io CT]: Starting reporter cleanup...");
-      
+
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Reporter cleanup timed out after 30 seconds")), 30000);
       });
-      
+
       try {
         await Promise.race([this.reporter.onEnd(), timeoutPromise]);
         console.log("[replay.io CT]: Reporter cleanup completed.");
@@ -512,7 +512,7 @@ export default class ReplayPlaywrightCTReporter implements Reporter {
       case "mount":
         return [params.component || "Component"];
       case "unmount":
-        return [params.component || "Component"];  
+        return [params.component || "Component"];
       case "update":
         return [params.component || "Component"];
       case "page.goto":

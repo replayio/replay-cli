@@ -1,12 +1,6 @@
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/20/solid";
 import * as RadixSlider from "@radix-ui/react-slider";
-import {
-  animate,
-  motion,
-  useMotionValue,
-  useMotionValueEvent,
-  useTransform,
-} from "framer-motion";
+import { animate, motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
 import { ElementRef, useRef, useState } from "react";
 
 const MAX_OVERFLOW = 50;
@@ -20,7 +14,7 @@ export function VolumeSlider() {
   let overflow = useMotionValue(0);
   let scale = useMotionValue(1);
 
-  useMotionValueEvent(clientX, "change", (latest) => {
+  useMotionValueEvent(clientX, "change", latest => {
     if (ref.current) {
       let { left, right } = ref.current.getBoundingClientRect();
       let newValue;
@@ -58,9 +52,7 @@ export function VolumeSlider() {
           transition: { duration: 0.25 },
         }}
         style={{
-          x: useTransform(() =>
-            region === "left" ? -overflow.get() / scale.get() : 0
-          ),
+          x: useTransform(() => (region === "left" ? -overflow.get() / scale.get() : 0)),
         }}
       >
         <SpeakerXMarkIcon className="size-5 translate-x-0 translate-y-0 text-foreground" />
@@ -73,7 +65,7 @@ export function VolumeSlider() {
         onValueChange={([v]) => setVolume(Math.floor(v))}
         step={0.01}
         className="relative flex w-full max-w-[200px] grow cursor-grab touch-none select-none items-center py-4 active:cursor-grabbing"
-        onPointerMove={(e) => {
+        onPointerMove={e => {
           if (e.buttons > 0) {
             clientX.jump(e.clientX);
           }
@@ -118,12 +110,13 @@ export function VolumeSlider() {
           transition: { duration: 0.25 },
         }}
         style={{
-          x: useTransform(() =>
-            region === "right" ? overflow.get() / scale.get() : 0
-          ),
+          x: useTransform(() => (region === "right" ? overflow.get() / scale.get() : 0)),
         }}
       >
-        <SpeakerWaveIcon data-testid="speaker-high-icon" className="size-5 translate-x-0 translate-y-0 text-foreground" />
+        <SpeakerWaveIcon
+          data-testid="speaker-high-icon"
+          className="size-5 translate-x-0 translate-y-0 text-foreground"
+        />
       </motion.div>
     </motion.div>
   );
@@ -141,4 +134,4 @@ function decay(value: number, max: number) {
   return sigmoid * max;
 }
 
-export default VolumeSlider; 
+export default VolumeSlider;

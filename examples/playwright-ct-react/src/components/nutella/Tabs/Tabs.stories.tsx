@@ -1,14 +1,14 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import Tabs from './Tabs';
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import Tabs from "./Tabs";
 
 const meta: Meta<typeof Tabs> = {
-  title: 'Tabs',
+  title: "Tabs",
   component: Tabs,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
   decorators: [
-    (Story) => (
+    Story => (
       <div className="p-8">
         <Story />
       </div>
@@ -48,4 +48,4 @@ export const TwoTabs: Story = {
       { id: "signup", label: "Sign Up" },
     ],
   },
-}; 
+};

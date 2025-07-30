@@ -6,7 +6,7 @@ This package provides a specialized integration for using [Replay](https://repla
 
 Standard Playwright tests navigate between pages, creating natural recording boundaries. However, Playwright Component Testing (CT) works differently:
 
-- **Regular tests**: Navigate between pages → each navigation creates a new recording segment  
+- **Regular tests**: Navigate between pages → each navigation creates a new recording segment
 - **CT tests**: Stay on a single page → mount/unmount components dynamically
 
 This package provides enhanced fixtures and reporting specifically designed for CT's component lifecycle model.
@@ -29,20 +29,20 @@ npx replayio install
 
 ```typescript
 // playwright-ct.config.ts
-import { defineConfig, replayReporter } from '@replayio/playwright-ct';
+import { defineConfig, replayReporter } from "@replayio/playwright-ct";
 
 export default defineConfig({
-  testDir: './src',
-  
+  testDir: "./src",
+
   // Add Replay reporter
   reporter: [
     replayReporter({
       apiKey: process.env.REPLAY_API_KEY,
       upload: true,
     }),
-    ['html'],
+    ["html"],
   ],
-  
+
   use: {
     // CT specific options
     ctPort: 3100,
@@ -50,7 +50,7 @@ export default defineConfig({
       // Your vite config here
     },
   },
-  
+
   // Standard Playwright config
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -63,21 +63,21 @@ export default defineConfig({
 
 ```typescript
 // Button.spec.tsx
-import { test, expect } from '@replayio/playwright-ct';
-import { Button } from './Button';
+import { test, expect } from "@replayio/playwright-ct";
+import { Button } from "./Button";
 
-test('should work', async ({ mount }) => {
+test("should work", async ({ mount }) => {
   // This mount is now tracked by Replay
   const component = await mount(<Button title="Submit" />);
-  
+
   // All interactions are recorded
-  await expect(component).toContainText('Submit');
+  await expect(component).toContainText("Submit");
   await component.click();
-  
+
   // Component updates are tracked
   await component.update(<Button title="Updated" />);
-  await expect(component).toContainText('Updated');
-  
+  await expect(component).toContainText("Updated");
+
   // Unmount is tracked
   await component.unmount();
 });
@@ -90,7 +90,7 @@ test('should work', async ({ mount }) => {
 Every component operation is automatically tracked:
 
 - **Mount**: When a component is rendered
-- **Unmount**: When a component is removed  
+- **Unmount**: When a component is removed
 - **Update**: When component props change
 - **Interactions**: All user interactions with components
 
@@ -123,16 +123,16 @@ The `replayReporter` accepts these options:
 replayReporter({
   // Required: Your Replay API key
   apiKey: process.env.REPLAY_API_KEY,
-  
+
   // Whether to upload recordings (default: false)
   upload: true,
-  
+
   // Whether to capture test file source (default: true)
   captureTestFile: true,
-  
+
   // Filter which tests to record
-  filter: (test) => test.title.includes('record'),
-})
+  filter: test => test.title.includes("record"),
+});
 ```
 
 ## How It Works
@@ -151,6 +151,7 @@ await component.unmount();
 ### 2. Step Tracking
 
 All component operations become test steps in the Replay recording:
+
 - Each operation has proper timing and metadata
 - Stack traces point to your test code, not framework internals
 - Errors are properly attributed to the failing operation
@@ -164,6 +165,7 @@ The package injects Replay's annotation system to create markers in the recordin
 ### No Recordings Appear
 
 1. **Verify Replay browser is being used**:
+
    ```bash
    # Should show path to Replay Chromium
    npx replayio which-browser
@@ -172,15 +174,16 @@ The package injects Replay's annotation system to create markers in the recordin
 2. **Check configuration**:
    ```typescript
    // Make sure you're using the CT-specific imports
-   import { test, expect, defineConfig } from '@replayio/playwright-ct';
+   import { test, expect, defineConfig } from "@replayio/playwright-ct";
    ```
 
 ### Component Operations Not Tracked
 
 1. **Verify fixture is loaded**:
+
    ```typescript
-   test('debug', async ({ mount }) => {
-     console.log('Mount type:', typeof mount);
+   test("debug", async ({ mount }) => {
+     console.log("Mount type:", typeof mount);
      // Should show enhanced function, not original
    });
    ```
@@ -190,6 +193,7 @@ The package injects Replay's annotation system to create markers in the recordin
 ### Performance Issues
 
 1. **Disable unnecessary recording features**:
+
    ```typescript
    use: {
      video: 'off',  // Replay handles recording
@@ -211,5 +215,6 @@ The package injects Replay's annotation system to create markers in the recordin
 ## Support
 
 For issues and questions:
+
 - [GitHub Issues](https://github.com/replayio/replay-cli/issues)
 - [Discord Community](https://discord.gg/n2dTK6kcRX)

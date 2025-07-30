@@ -13,11 +13,13 @@ This example demonstrates how to use `@replayio/playwright-ct` for component tes
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    yarn install
    ```
 
 2. Install Replay browser:
+
    ```bash
    npx replayio install
    ```
@@ -60,6 +62,7 @@ yarn test:screenshot
 ## Configuration
 
 The `playwright-ct.config.ts` file shows how to:
+
 - Import from `@replayio/playwright-ct`
 - Configure Replay browser
 - Set up Replay reporter

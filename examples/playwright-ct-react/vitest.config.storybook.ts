@@ -1,24 +1,24 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
-import viteConfig from './vite.config'
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config";
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 
 export default mergeConfig(
   viteConfig,
   defineConfig({
     plugins: [storybookTest()],
     test: {
-      name: 'storybook',
+      name: "storybook",
       browser: {
         enabled: true,
-        provider: 'playwright',
+        provider: "playwright",
         instances: [
           {
-            browser: 'chromium',
+            browser: "chromium",
             headless: true,
           },
         ],
       },
-      setupFiles: ['./.storybook/vitest.setup.ts'],
+      setupFiles: ["./.storybook/vitest.setup.ts"],
     },
   })
-) 
+);

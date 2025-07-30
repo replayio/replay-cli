@@ -190,12 +190,12 @@ interface MountTracker {
 
 function createMountTracker(testInfo: TestInfoImpl): MountTracker {
   const state = getFixtureState(testInfo);
-  
+
   return {
     trackMount(componentId: string, componentName: string) {
-      state.mountedComponents.set(componentId, { 
-        componentName, 
-        mountTime: Date.now() 
+      state.mountedComponents.set(componentId, {
+        componentName,
+        mountTime: Date.now(),
       });
     },
     trackUnmount(componentId: string) {
@@ -203,7 +203,7 @@ function createMountTracker(testInfo: TestInfoImpl): MountTracker {
     },
     getMountedComponents() {
       return state.mountedComponents;
-    }
+    },
   };
 }
 
@@ -391,10 +391,13 @@ export async function replayCTFixture(
 
   // Enhanced mount function that tracks component lifecycle
   const enhancedMount = async (component: any, options?: any) => {
-    console.log("[replay.io CT]: Enhanced mount called for component:", component?.type?.name || component?.type || 'Component');
+    console.log(
+      "[replay.io CT]: Enhanced mount called for component:",
+      component?.type?.name || component?.type || "Component"
+    );
     const componentId = uuid();
-    const componentName = component?.type?.name || component?.type || 'Component';
-    
+    const componentName = component?.type?.name || component?.type || "Component";
+
     // Track mount start
     const mountStepId = uuid();
     testInfo.attach(`replay:step:start`, {
@@ -423,15 +426,15 @@ export async function replayCTFixture(
     try {
       // Call original mount
       const mounted = await mount(component, options);
-      
+
       // Track successful mount
       mountTracker.trackMount(componentId, componentName);
-      
+
       // Wrap the returned locator with enhanced unmount
       const enhancedLocator: any = Object.assign(mounted, {
         unmount: async () => {
           const unmountStepId = uuid();
-          
+
           // Track unmount start
           testInfo.attach(`replay:step:start`, {
             body: JSON.stringify({
@@ -459,10 +462,10 @@ export async function replayCTFixture(
           try {
             // Call original unmount
             await mounted.unmount();
-            
+
             // Track successful unmount
             mountTracker.trackUnmount(componentId);
-            
+
             // Track unmount end
             testInfo.attach(`replay:step:end`, {
               body: JSON.stringify({
@@ -496,10 +499,10 @@ export async function replayCTFixture(
             throw error;
           }
         },
-        
+
         update: async (newComponent: any) => {
           const updateStepId = uuid();
-          
+
           // Track update
           testInfo.attach(`replay:step:start`, {
             body: JSON.stringify({
@@ -526,7 +529,7 @@ export async function replayCTFixture(
 
           try {
             await mounted.update(newComponent);
-            
+
             testInfo.attach(`replay:step:end`, {
               body: JSON.stringify({
                 event: "step:end",
@@ -557,9 +560,9 @@ export async function replayCTFixture(
 
             throw error;
           }
-        }
+        },
       });
-      
+
       // Track mount end
       testInfo.attach(`replay:step:end`, {
         body: JSON.stringify({
@@ -574,7 +577,7 @@ export async function replayCTFixture(
       await addAnnotation("step:end", mountStepId, {
         error: null,
       });
-      
+
       return enhancedLocator;
     } catch (error) {
       // Track mount error
@@ -600,7 +603,7 @@ export async function replayCTFixture(
   try {
     await page.addInitScript(() => {
       window.__RECORD_REPLAY_ANNOTATION_HOOK__ = (source, data) => {
-        console.log('[Replay Annotation]', source, data);
+        console.log("[Replay Annotation]", source, data);
       };
     });
   } catch (error) {

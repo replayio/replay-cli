@@ -1,5 +1,5 @@
-import { composeStories } from '@storybook/react'
+import { composeStories } from "@storybook/react";
 
-import * as stories from './Header.stories'
+import * as stories from "./Header.stories";
 
-export default composeStories(stories) 
+export default composeStories(stories);

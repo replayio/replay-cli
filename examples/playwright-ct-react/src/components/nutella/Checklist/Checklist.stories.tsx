@@ -1,11 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Checklist } from './Checklist';
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Checklist } from "./Checklist";
 
 const meta: Meta<typeof Checklist> = {
-  title: 'Checklist',
+  title: "Checklist",
   component: Checklist,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
 };
 
@@ -53,4 +53,4 @@ export const AllUnchecked: Story = {
     ],
     title: "Todo List",
   },
-}; 
+};

@@ -1,40 +1,37 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests',
-  
+  testDir: "./tests",
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  
+
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  
+
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html'],
-    ['list']
-  ],
-  
+  reporter: [["html"], ["list"]],
+
   /* Global test configuration */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
-    
+    baseURL: "http://localhost:3000",
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
-    
+    trace: "on-first-retry",
+
     /* Take screenshot on failure */
-    screenshot: 'only-on-failure',
-    
+    screenshot: "only-on-failure",
+
     /* Record video on failure */
-    video: 'retain-on-failure',
-    
+    video: "retain-on-failure",
+
     /* Timeout for each action */
     actionTimeout: 10000,
   },
@@ -42,37 +39,37 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
-    
+
     /* Component Testing Project */
     {
-      name: 'component-tests',
-      testDir: './src',
-      testMatch: '**/*.spec.{ts,tsx}',
+      name: "component-tests",
+      testDir: "./src",
+      testMatch: "**/*.spec.{ts,tsx}",
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         // Screenshots for all component tests
-        screenshot: 'on',
+        screenshot: "on",
         // Videos for failed component tests
-        video: 'retain-on-failure',
+        video: "retain-on-failure",
       },
     },
   ],
-  
+
   /* Configure the dev server */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: "npm run dev",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
-}); 
+});

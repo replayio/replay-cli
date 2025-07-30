@@ -1,1 +1,1 @@
-export { VolumeSlider, default } from './VolumeSlider'; 
+export { VolumeSlider, default } from "./VolumeSlider";

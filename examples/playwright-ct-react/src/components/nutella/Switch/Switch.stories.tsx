@@ -1,34 +1,34 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Switch } from './Switch';
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Switch } from "./Switch";
 
 const meta: Meta<typeof Switch> = {
-  title: 'Components/Switch',
+  title: "Components/Switch",
   component: Switch,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
-        component: 'A modern, accessible switch component with multiple sizes and states.'
-      }
-    }
+        component: "A modern, accessible switch component with multiple sizes and states.",
+      },
+    },
   },
   argTypes: {
     size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant of the switch'
+      control: { type: "select" },
+      options: ["sm", "md", "lg"],
+      description: "Size variant of the switch",
     },
     disabled: {
-      control: { type: 'boolean' },
-      description: 'Disable the switch'
+      control: { type: "boolean" },
+      description: "Disable the switch",
     },
     defaultChecked: {
-      control: { type: 'boolean' },
-      description: 'Initial checked state'
-    }
+      control: { type: "boolean" },
+      description: "Initial checked state",
+    },
   },
   decorators: [
-    (Story) => (
+    Story => (
       <div className="p-8 bg-white rounded-xl shadow-sm border">
         <Story />
       </div>
@@ -41,48 +41,48 @@ type Story = StoryObj<typeof Switch>;
 
 export const Default: Story = {
   args: {
-    children: 'Enable notifications',
+    children: "Enable notifications",
     defaultChecked: false,
-    size: 'md'
+    size: "md",
   },
 };
 
 export const WithDescription: Story = {
   args: {
-    label: 'Email notifications',
-    description: 'Receive email updates about your account activity',
+    label: "Email notifications",
+    description: "Receive email updates about your account activity",
     defaultChecked: false,
-    size: 'md'
+    size: "md",
   },
 };
 
 export const Checked: Story = {
   args: {
-    children: 'Auto-save enabled',
+    children: "Auto-save enabled",
     defaultChecked: true,
-    size: 'md'
+    size: "md",
   },
 };
 
 export const Small: Story = {
   args: {
-    children: 'Compact switch',
+    children: "Compact switch",
     defaultChecked: false,
-    size: 'sm'
+    size: "sm",
   },
 };
 
 export const Large: Story = {
   args: {
-    children: 'Large switch',
+    children: "Large switch",
     defaultChecked: true,
-    size: 'lg'
+    size: "lg",
   },
 };
 
 export const Disabled: Story = {
   args: {
-    children: 'Disabled switch',
+    children: "Disabled switch",
     disabled: true,
     defaultChecked: false,
   },
@@ -90,7 +90,7 @@ export const Disabled: Story = {
 
 export const DisabledChecked: Story = {
   args: {
-    children: 'Disabled checked',
+    children: "Disabled checked",
     disabled: true,
     defaultChecked: true,
   },
@@ -116,26 +116,26 @@ export const SettingsPanel: Story = {
   render: () => (
     <div className="max-w-md space-y-6 p-6 bg-gray-50 rounded-lg">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Settings</h3>
-      
-      <Switch 
+
+      <Switch
         label="Push notifications"
         description="Receive push notifications on your device"
         defaultChecked={true}
       />
-      
-      <Switch 
+
+      <Switch
         label="Email notifications"
         description="Get email updates about important activities"
         defaultChecked={false}
       />
-      
-      <Switch 
+
+      <Switch
         label="SMS notifications"
         description="Receive text messages for urgent updates"
         defaultChecked={false}
       />
-      
-      <Switch 
+
+      <Switch
         label="Marketing emails"
         description="Stay updated with our latest features and offers"
         defaultChecked={false}
@@ -152,21 +152,19 @@ export const Interactive: Story = {
         <div className="text-sm text-gray-600 mb-4">
           Try interacting with these switches - they have smooth animations and proper focus states
         </div>
-        
-        <Switch defaultChecked={false}>
-          Toggle me!
-        </Switch>
-        
-        <Switch 
+
+        <Switch defaultChecked={false}>Toggle me!</Switch>
+
+        <Switch
           label="Dark mode"
           description="Switch between light and dark themes"
           defaultChecked={true}
         />
-        
+
         <Switch size="lg" defaultChecked={false}>
           Large interactive switch
         </Switch>
       </div>
     );
   },
-}; 
+};

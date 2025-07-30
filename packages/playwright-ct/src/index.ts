@@ -1,9 +1,5 @@
 /* Copyright 2020-2024 Record Replay Inc. */
-import {
-  defineConfig as ctDefineConfig,
-  test,
-  expect,
-} from "@playwright/experimental-ct-react";
+import { defineConfig as ctDefineConfig, test, expect } from "@playwright/experimental-ct-react";
 import type {
   TestInfo,
   Request,
@@ -23,20 +19,12 @@ interface TestInfoImpl extends TestInfo {
   retry: number;
   attach: (name: string, options: { contentType: string; body: string }) => Promise<void>;
   _addStep: (
-    data: Omit<
-      TestStepInternal,
-      "complete" | "stepId" | "steps" | "attachmentIndices" | "info"
-    >,
+    data: Omit<TestStepInternal, "complete" | "stepId" | "steps" | "attachmentIndices" | "info">,
     parentStep?: TestStepInternal
   ) => TestStepInternal;
   _onStepBegin: (step: StepBeginPayload) => void;
   _onStepEnd: (step: StepEndPayload) => void;
-  _currentHookType: () =>
-    | "beforeEach"
-    | "afterEach"
-    | "beforeAll"
-    | "afterAll"
-    | undefined;
+  _currentHookType: () => "beforeEach" | "afterEach" | "beforeAll" | "afterAll" | undefined;
 }
 
 type TestInfoErrorImpl = TestInfoError;
@@ -127,7 +115,7 @@ interface Playwright {
   _instrumentation: ClientInstrumentation;
 }
 
-// Re-export test and expect for CT users  
+// Re-export test and expect for CT users
 export { test, expect };
 
 function getExecutablePath() {
@@ -166,7 +154,6 @@ function getDeviceConfig() {
     defaultBrowserType: "chromium" as const,
   };
 }
-
 
 // Export defineConfig with CT support and Replay devices
 export function defineConfig(config: any) {
@@ -229,4 +216,3 @@ function addReplayCTFixture() {
 // currently this works somewhat accidentally, it only works because Playwright workers load config files
 // if the config would be serialized and passed down to them from the parent it wouldn't work
 addReplayCTFixture();
-
