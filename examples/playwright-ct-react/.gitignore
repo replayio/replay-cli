@@ -1,0 +1,6 @@
+# Local Netlify folder
+.netlify
+playwright-report/*
+playwright/.cache/*
+storybook-static/*
+test-results/*
