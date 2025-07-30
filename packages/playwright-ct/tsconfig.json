@@ -1,0 +1,13 @@
+{
+  "extends": "@replay-cli/tsconfig/base.json",
+  "compilerOptions": {
+    "target": "ES2017",
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../test-utils"
+    }
+  ]
+}
