@@ -216,7 +216,6 @@ export async function replayCTFixture(
   const { expectSteps, ignoredSteps, testData } = getFixtureState(testInfo);
   const mountTracker = createMountTracker(testInfo);
 
-  console.log("[replay.io CT]: ReplayCTFixture being called for test:", testInfo.title);
   logInfo("ReplayCTFixture:SettingUp");
 
   // Initialize metadata file

@@ -3,7 +3,7 @@
 import { stagger, useAnimate } from "framer-motion";
 import { useState } from "react";
 
-type ChecklistItem = {
+export type ChecklistItem = {
   id: string;
   text: string;
   checked: boolean;

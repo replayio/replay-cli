@@ -1,21 +1,5 @@
-import { test, expect } from "@replayio/playwright-ct";
+import { test, expect, takeComponentScreenshot } from "@replayio/playwright-ct";
 import Header from "./Header";
-
-// Helper function to take screenshots with automatic component bounds
-async function takeComponentScreenshot(component: any, page: any, filename: string, padding = 20) {
-  const bounds = await component.boundingBox();
-  if (bounds) {
-    await page.screenshot({
-      path: filename,
-      clip: {
-        x: Math.max(0, bounds.x - padding),
-        y: Math.max(0, bounds.y - padding),
-        width: bounds.width + padding * 2,
-        height: bounds.height + padding * 2,
-      },
-    });
-  }
-}
 
 test.describe("Header Component with Video Recording", () => {
   test("renders header with logo and navigation", async ({ mount, page }) => {

@@ -4,6 +4,7 @@
     { "path": "./packages/cypress" },
     { "path": "./packages/jest" },
     { "path": "./packages/playwright" },
+    { "path": "./packages/playwright-ct" },
     { "path": "./packages/puppeteer" },
     { "path": "./packages/replayio" },
     { "path": "./packages/shared" },

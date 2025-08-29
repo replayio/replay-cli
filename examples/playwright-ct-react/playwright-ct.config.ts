@@ -24,8 +24,8 @@ export default defineConfig({
   /* Reporter to use */
   reporter: [
     replayReporter({
-      apiKey: "rwk_suq5mfH7akPgpUsJ41oJhxdgy9Y6UtvjOmbZhxzTNrI",
-      // upload: true,
+      apiKey: "rwk_qhKFN3uQ488vmhCsuWKdNbVgHXR4M5dmEnwZVmWs68T",
+      upload: true,
     }),
     ["html", { outputFolder: "playwright-report" }],
     ["list"],

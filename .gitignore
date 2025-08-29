@@ -14,6 +14,7 @@ tsconfig.tsbuildinfo
 !.yarn/sdks
 !.yarn/versions
 
+**/storybook-static/*
 **/playwright-report/*
 **/playwright/.cache/*
 **/storybook-static/*

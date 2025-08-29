@@ -9,6 +9,7 @@ import { FullConfig } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function globalSetup(_config: FullConfig) {
   console.log("🔧 Setting up enhanced Playwright CT utilities...");
 

@@ -1,4 +1,4 @@
-import { test, expect } from "@replayio/playwright-ct";
+import { test, expect, takeComponentScreenshot } from "@replayio/playwright-ct";
 import Tabs from "./Tabs";
 
 const defaultTabs = [
@@ -9,21 +9,6 @@ const defaultTabs = [
   { id: "science", label: "Science" },
 ];
 
-// Helper function to take screenshots with automatic component bounds
-async function takeComponentScreenshot(component: any, page: any, filename: string, padding = 20) {
-  const bounds = await component.boundingBox();
-  if (bounds) {
-    await page.screenshot({
-      path: filename,
-      clip: {
-        x: Math.max(0, bounds.x - padding),
-        y: Math.max(0, bounds.y - padding),
-        width: bounds.width + padding * 2,
-        height: bounds.height + padding * 2,
-      },
-    });
-  }
-}
 
 test.describe("Tabs Component with Video Recording", () => {
   // This test will be recorded as video due to our config

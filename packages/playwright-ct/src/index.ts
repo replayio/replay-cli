@@ -1,31 +1,16 @@
 /* Copyright 2020-2024 Record Replay Inc. */
 import { defineConfig as ctDefineConfig, test, expect } from "@playwright/experimental-ct-react";
+import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
+import { initMetadataFile } from "@replayio/test-utils";
+import { metadataFilePath, replayCTFixture } from "./fixture";
+import { type ReplayPlaywrightConfig } from "./reporter";
 import type {
-  TestInfo,
-  Request,
   BrowserContext,
   APIRequestContext,
   TestInfoError,
 } from "@playwright/test";
-import { type ReplayPlaywrightConfig } from "./reporter";
-import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
-import { initMetadataFile } from "@replayio/test-utils";
-import { metadataFilePath, replayCTFixture } from "./fixture";
-
+import type { Page } from "playwright-core";
 // #region Playwright internal types (same as Vibe Coder)
-interface TestInfoImpl extends TestInfo {
-  testId: string;
-  repeatEachIndex: number;
-  retry: number;
-  attach: (name: string, options: { contentType: string; body: string }) => Promise<void>;
-  _addStep: (
-    data: Omit<TestStepInternal, "complete" | "stepId" | "steps" | "attachmentIndices" | "info">,
-    parentStep?: TestStepInternal
-  ) => TestStepInternal;
-  _onStepBegin: (step: StepBeginPayload) => void;
-  _onStepEnd: (step: StepEndPayload) => void;
-  _currentHookType: () => "beforeEach" | "afterEach" | "beforeAll" | "afterAll" | undefined;
-}
 
 type TestInfoErrorImpl = TestInfoError;
 
@@ -64,15 +49,6 @@ type StepBeginPayload = {
   category: string;
   wallTime: number; // milliseconds since unix epoch
   location?: { file: string; line: number; column: number };
-};
-
-type StepEndPayload = {
-  testId: string;
-  stepId: string;
-  wallTime: number; // milliseconds since unix epoch
-  error?: TestInfoErrorImpl;
-  suggestedRebaseline?: string;
-  annotations: { type: string; description?: string }[];
 };
 
 interface ApiCallData {
@@ -202,6 +178,31 @@ function addReplayCTFixture() {
     },
   });
 }
+
+type ExtractMountResultFromTest<TTest extends (...args: any[]) => any> =
+  Parameters<TTest>[2] extends (...args: infer BodyArgs) => any
+    ? BodyArgs[0] extends { mount: (...args: any[]) => infer R }
+      ? Awaited<R>
+      : never
+    : never;
+
+export type MountResult = ExtractMountResultFromTest<typeof test>;
+
+export async function takeComponentScreenshot(component: MountResult, page: Page, filename: string, padding = 20) {
+  const bounds = await component.boundingBox();
+  if (bounds) {
+    await page.screenshot({
+      path: filename,
+      clip: {
+        x: Math.max(0, bounds.x - padding),
+        y: Math.max(0, bounds.y - padding),
+        width: bounds.width + padding * 2,
+        height: bounds.height + padding * 2,
+      },
+    });
+  }
+}
+
 
 // ⚠️ this is an initialization-time side-effect (same as regular @replayio/playwright)
 // there is no other way to add this fixture reliably to make it available automatically

@@ -4,15 +4,15 @@ import { motion, useMotionTemplate, useMotionValue, useScroll, useTransform } fr
 import { useEffect } from "react";
 
 function useBoundedScroll(threshold: number) {
-  let { scrollY } = useScroll();
-  let scrollYBounded = useMotionValue(0);
-  let scrollYBoundedProgress = useTransform(scrollYBounded, [0, threshold], [0, 1]);
+  const { scrollY } = useScroll();
+  const scrollYBounded = useMotionValue(0);
+  const scrollYBoundedProgress = useTransform(scrollYBounded, [0, threshold], [0, 1]);
 
   useEffect(() => {
     return scrollY.on("change", current => {
-      let previous = scrollY.getPrevious() ?? 0;
-      let diff = current - previous;
-      let newScrollYBounded = scrollYBounded.get() + diff;
+      const previous = scrollY.getPrevious() ?? 0;
+      const diff = current - previous;
+      const newScrollYBounded = scrollYBounded.get() + diff;
 
       scrollYBounded.set(clamp(newScrollYBounded, 0, threshold));
     });
@@ -22,8 +22,8 @@ function useBoundedScroll(threshold: number) {
 }
 
 export default function Header() {
-  let { scrollYBoundedProgress } = useBoundedScroll(400);
-  let scrollYBoundedProgressDelayed = useTransform(scrollYBoundedProgress, [0, 0.75, 1], [0, 0, 1]);
+  const { scrollYBoundedProgress } = useBoundedScroll(400);
+  const scrollYBoundedProgressDelayed = useTransform(scrollYBoundedProgress, [0, 0.75, 1], [0, 0, 1]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 overflow-hidden text-muted-foreground">
@@ -91,4 +91,4 @@ export default function Header() {
   );
 }
 
-let clamp = (number: number, min: number, max: number) => Math.min(Math.max(number, min), max);
+const clamp = (number: number, min: number, max: number) => Math.min(Math.max(number, min), max);

@@ -12,17 +12,17 @@ import { ElementRef, useRef, useState } from "react";
 const MAX_OVERFLOW = 50;
 
 export function VolumeSlider() {
-  let [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(50);
 
-  let ref = useRef<ElementRef<typeof RadixSlider.Root>>(null);
-  let [region, setRegion] = useState("middle");
-  let clientX = useMotionValue(0);
-  let overflow = useMotionValue(0);
-  let scale = useMotionValue(1);
+  const ref = useRef<ElementRef<typeof RadixSlider.Root>>(null);
+  const [region, setRegion] = useState("middle");
+  const clientX = useMotionValue(0);
+  const overflow = useMotionValue(0);
+  const scale = useMotionValue(1);
 
   useMotionValueEvent(clientX, "change", (latest) => {
     if (ref.current) {
-      let { left, right } = ref.current.getBoundingClientRect();
+      const { left, right } = ref.current.getBoundingClientRect();
       let newValue;
 
       if (latest < left) {
@@ -85,7 +85,7 @@ export function VolumeSlider() {
           style={{
             scaleX: useTransform(() => {
               if (ref.current) {
-                let { width } = ref.current.getBoundingClientRect();
+                const { width } = ref.current.getBoundingClientRect();
 
                 return 1 + overflow.get() / width;
               }
@@ -93,7 +93,7 @@ export function VolumeSlider() {
             scaleY: useTransform(overflow, [0, MAX_OVERFLOW], [1, 0.8]),
             transformOrigin: useTransform(() => {
               if (ref.current) {
-                let { left, width } = ref.current.getBoundingClientRect();
+                const { left, width } = ref.current.getBoundingClientRect();
 
                 return clientX.get() < left + width / 2 ? "right" : "left";
               }
@@ -134,8 +134,8 @@ function decay(value: number, max: number) {
     return 0;
   }
 
-  let entry = value / max;
-  let sigmoid = 2 * (1 / (1 + Math.exp(-entry)) - 0.5);
+  const entry = value / max;
+  const sigmoid = 2 * (1 / (1 + Math.exp(-entry)) - 0.5);
 
   return sigmoid * max;
 }

@@ -1,21 +1,5 @@
-import { test, expect } from "@replayio/playwright-ct";
-import { Checklist } from "./Checklist";
-
-// Helper function to take screenshots with automatic component bounds
-async function takeComponentScreenshot(component: any, page: any, filename: string, padding = 20) {
-  const bounds = await component.boundingBox();
-  if (bounds) {
-    await page.screenshot({
-      path: filename,
-      clip: {
-        x: Math.max(0, bounds.x - padding),
-        y: Math.max(0, bounds.y - padding),
-        width: bounds.width + padding * 2,
-        height: bounds.height + padding * 2,
-      },
-    });
-  }
-}
+import { test, expect, takeComponentScreenshot } from "@replayio/playwright-ct";
+import { Checklist, type ChecklistItem } from "./Checklist";
 
 const defaultItems = [
   { id: "1", text: "Review code", checked: false },
@@ -30,7 +14,7 @@ const allCheckedItems = [
   { id: "3", text: "Task Three", checked: true },
 ];
 
-const emptyItems: any[] = [];
+const emptyItems: ChecklistItem[] = [] ;
 
 test.describe("Checklist Component with Video Recording", () => {
   test("renders checklist with default items", async ({ mount, page }) => {
