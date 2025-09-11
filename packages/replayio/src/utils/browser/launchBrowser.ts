@@ -13,9 +13,10 @@ export async function launchBrowser(
   options: {
     processGroupId?: string;
     record?: boolean;
+    headless?: boolean;
   }
 ) {
-  const { processGroupId, record = true } = options;
+  const { processGroupId, record = true, headless = false } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -27,6 +28,9 @@ export async function launchBrowser(
     "--no-default-browser-check",
     `--user-data-dir=${profileDir}`,
   ];
+  if (headless) {
+    args.push("--headless=new");
+  }
   const processOptions = {
     env: {
       RECORD_ALL_CONTENT: record ? "1" : undefined,
