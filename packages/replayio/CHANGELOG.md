@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- [#640](https://github.com/replayio/replay-cli/pull/640) [`cd8b86a`](https://github.com/replayio/replay-cli/commit/cd8b86aeb63f016df9461da4793d28720b435235) Thanks [@Andarist](https://github.com/Andarist)! - Add support for recording in headless mode using `replayio record --headless`
+
+### Patch Changes
+
+- [#636](https://github.com/replayio/replay-cli/pull/636) [`34bc229`](https://github.com/replayio/replay-cli/commit/34bc229cc77dff7a3cd4215868102a4545311d48) Thanks [@Andarist](https://github.com/Andarist)! - Removed usage of LaunchDarkly from the codebase
+
 ## 1.6.1
 
 ### Patch Changes
