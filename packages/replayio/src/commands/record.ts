@@ -21,10 +21,11 @@ import { uploadRecordings } from "../utils/recordings/uploadRecordings";
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
   .description("Launch the replay browser in recording mode")
+  .option("--headless", "Run the browser in headless mode", false)
   .action(record)
   .allowUnknownOption();
 
-async function record(url: string = "about:blank") {
+async function record(url: string = "about:blank", { headless }: { headless?: boolean }) {
   // this flag is intentionally not listed in the command options
   const verbose = process.argv.includes("--verbose");
   if (verbose) {
@@ -36,7 +37,7 @@ async function record(url: string = "about:blank") {
   try {
     await killBrowserIfRunning();
 
-    await launchBrowser(url, { processGroupId });
+    await launchBrowser(url, { processGroupId, headless });
   } catch (error) {
     if (error instanceof ProcessError) {
       logError("Record:BrowserCrash", { error: error.stderr });
