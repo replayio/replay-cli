@@ -13,3 +13,13 @@ tsconfig.tsbuildinfo
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+**/storybook-static/*
+**/playwright-report/*
+**/playwright/.cache/*
+**/storybook-static/*
+**/test-results/*
+
+.specstory/*
+
+**/.env
