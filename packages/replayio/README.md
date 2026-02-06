@@ -37,6 +37,8 @@ replayio browser close
 ```
 
 `agent-browser` is installed as a dependency and patched to enforce Replay Chrome launch behavior.
+On `replayio browser close`, recordings for the closed browser session are automatically uploaded
+when you are authenticated (`replayio login` or `REPLAY_API_KEY`).
 
 ## Contributing
 
