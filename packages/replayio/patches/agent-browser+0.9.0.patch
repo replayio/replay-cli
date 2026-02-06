@@ -1,0 +1,126 @@
+diff --git a/node_modules/agent-browser/dist/browser.js b/node_modules/agent-browser/dist/browser.js
+index 1494c27..c6fcbe5 100644
+--- a/node_modules/agent-browser/dist/browser.js
++++ b/node_modules/agent-browser/dist/browser.js
+@@ -1,8 +1,60 @@
+ import { chromium, firefox, webkit, devices, } from 'playwright-core';
++import * as replayPlaywright from '@replayio/playwright';
+ import path from 'node:path';
+ import os from 'node:os';
+ import { existsSync, mkdirSync, rmSync } from 'node:fs';
+ import { getEnhancedSnapshot, parseRef } from './snapshot.js';
++const REPLAY_REQUIRED_PREFIX = 'REPLAY_REQUIRED:';
++function replayRequiredError(message) {
++    return new Error(`${REPLAY_REQUIRED_PREFIX}\n${message}`);
++}
++function requireReplayExecutablePath(browserType, explicitPath) {
++    if (browserType && browserType !== 'chromium') {
++        throw replayRequiredError(`Replay Chrome is required to record every run.\n\n` +
++            `Unsupported browser type: ${browserType}.\n` +
++            `Use Chromium (Replay Chrome) or remove the --browser option.`);
++    }
++    const getExecutablePath = replayPlaywright.getExecutablePath;
++    if (!getExecutablePath) {
++        throw replayRequiredError(`Replay Chrome is required to record every run.\n\n` +
++            `Could not resolve Replay Chrome runtime.\n` +
++            `Run: agent-browser install`);
++    }
++    const resolved = getExecutablePath('chromium');
++    if (!resolved || !existsSync(resolved)) {
++        throw replayRequiredError(`Replay Chrome is required to record every run.\n\n` +
++            `Replay Chrome is not installed or not supported on this platform.\n` +
++            `Run: agent-browser install\n` +
++            `Supported: macOS (arm64/x64), Linux (x64).`);
++    }
++    if (explicitPath) {
++        const normalizedExplicit = path.resolve(explicitPath);
++        const normalizedResolved = path.resolve(resolved);
++        if (normalizedExplicit !== normalizedResolved) {
++            throw replayRequiredError(`Replay Chrome is required to record every run.\n\n` +
++                `Custom executable path does not match Replay Chrome.\n` +
++                `Resolved Replay Chrome: ${resolved}`);
++        }
++        return normalizedExplicit;
++    }
++    return resolved;
++}
++function getReplayLaunchEnv() {
++    const devices = replayPlaywright.devices;
++    const replayDevice = devices?.['Replay Chromium'];
++    const env = replayDevice?.launchOptions?.env;
++    if (env && typeof env === 'object') {
++        return Object.fromEntries(Object.entries(env).flatMap(([key, value]) => value === undefined || value === null ? [] : [[key, String(value)]]));
++    }
++    return {
++        ...process.env,
++        RECORD_ALL_CONTENT: '1',
++        RECORD_REPLAY_VERBOSE: '1',
++        ...(process.env.RECORD_REPLAY_ENABLE_ASSERTS
++            ? { RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS }
++            : {}),
++    };
++}
+ /**
+  * Manages the Playwright browser lifecycle with multiple tabs/windows
+  */
+@@ -881,6 +933,8 @@ export class BrowserManager {
+             return;
+         }
+         const browserType = options.browser ?? 'chromium';
++        const executablePath = requireReplayExecutablePath(browserType, options.executablePath);
++        const replayLaunchEnv = getReplayLaunchEnv();
+         if (hasExtensions && browserType !== 'chromium') {
+             throw new Error('Extensions are only supported in Chromium');
+         }
+@@ -896,11 +950,12 @@ export class BrowserManager {
+             const allArgs = options.args ? [...extArgs, ...options.args] : extArgs;
+             context = await launcher.launchPersistentContext(path.join(os.tmpdir(), `agent-browser-ext-${session}`), {
+                 headless: false,
+-                executablePath: options.executablePath,
++                executablePath,
+                 args: allArgs,
+                 viewport,
+                 extraHTTPHeaders: options.headers,
+                 userAgent: options.userAgent,
++                env: replayLaunchEnv,
+                 ...(options.proxy && { proxy: options.proxy }),
+                 ignoreHTTPSErrors: options.ignoreHTTPSErrors ?? false,
+             });
+@@ -912,11 +967,12 @@ export class BrowserManager {
+             const profilePath = options.profile.replace(/^~\//, os.homedir() + '/');
+             context = await launcher.launchPersistentContext(profilePath, {
+                 headless: options.headless ?? true,
+-                executablePath: options.executablePath,
++                executablePath,
+                 args: options.args,
+                 viewport,
+                 extraHTTPHeaders: options.headers,
+                 userAgent: options.userAgent,
++                env: replayLaunchEnv,
+                 ...(options.proxy && { proxy: options.proxy }),
+                 ignoreHTTPSErrors: options.ignoreHTTPSErrors ?? false,
+             });
+@@ -926,8 +982,9 @@ export class BrowserManager {
+             // Regular ephemeral browser
+             this.browser = await launcher.launch({
+                 headless: options.headless ?? true,
+-                executablePath: options.executablePath,
++                executablePath,
+                 args: options.args,
++                env: replayLaunchEnv,
+             });
+             this.cdpEndpoint = null;
+             context = await this.browser.newContext({
+diff --git a/node_modules/agent-browser/package.json b/node_modules/agent-browser/package.json
+index 38b9d3c..2e74226 100644
+--- a/node_modules/agent-browser/package.json
++++ b/node_modules/agent-browser/package.json
+@@ -10,7 +10,7 @@
+     "skills"
+   ],
+   "bin": {
+-    "agent-browser": "./bin/agent-browser.js"
++    "replay-browser": "./bin/agent-browser.js"
+   },
+   "keywords": [
+     "browser",

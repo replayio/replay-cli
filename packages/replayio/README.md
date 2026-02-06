@@ -26,6 +26,18 @@ This CLI will automatically prompt you to log into your Replay account (or to re
 
 The CLI will also prompt you to download the Replay runtime if you have not already done so.
 
+## Browser facade
+
+`replayio` exposes an `agent-browser` facade under the `browser` command:
+
+```bash
+replayio browser open https://google.com
+replayio browser click "text=Sign in"
+replayio browser close
+```
+
+`agent-browser` is installed as a dependency and patched to enforce Replay Chrome launch behavior.
+
 ## Contributing
 
 Contributing guide can be found [here](contributing.md).
