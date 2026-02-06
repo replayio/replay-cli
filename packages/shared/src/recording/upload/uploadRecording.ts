@@ -22,7 +22,6 @@ import { uploadSourceMaps } from "./uploadSourceMaps";
 import { validateRecordingMetadata } from "./validateRecordingMetadata";
 
 const uploadQueue = createPromiseQueue({ concurrency: 10 });
-const defaultUploadRequestTimeoutMs = 120_000;
 
 export async function uploadRecording(
   client: ProtocolClient,
@@ -323,20 +322,6 @@ async function uploadRecordingReadStream(
   const closeStream = () => stream.close();
   stream.on("error", streamError.reject);
 
-  const timeoutMs = getUploadRequestTimeoutMs();
-  const timeoutError = new Error(`Upload request timed out after ${timeoutMs}ms`);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(timeoutError), timeoutMs);
-
-  const abortListener = () => controller.abort(abortSignal?.reason);
-  if (abortSignal) {
-    if (abortSignal.aborted) {
-      abortListener();
-    } else {
-      abortSignal.addEventListener("abort", abortListener, { once: true });
-    }
-  }
-
   const userAgent = await getUserAgent();
 
   try {
@@ -350,7 +335,7 @@ async function uploadRecordingReadStream(
         method: "PUT",
         body: stream,
         duplex: "half",
-        signal: controller.signal,
+        signal: abortSignal,
       }),
       streamError.promise,
     ]);
@@ -367,19 +352,7 @@ async function uploadRecordingReadStream(
 
     return response;
   } finally {
-    clearTimeout(timeout);
-    if (abortSignal) {
-      abortSignal.removeEventListener("abort", abortListener);
-    }
     // it's idempotent but it has to be closed manually when the upload gets aborted
     closeStream();
   }
-}
-
-function getUploadRequestTimeoutMs() {
-  const fromEnv = Number(process.env.REPLAY_UPLOAD_REQUEST_TIMEOUT_MS);
-  if (Number.isFinite(fromEnv) && fromEnv > 0) {
-    return fromEnv;
-  }
-  return defaultUploadRequestTimeoutMs;
 }

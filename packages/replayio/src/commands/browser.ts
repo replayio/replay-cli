@@ -77,7 +77,9 @@ async function runBrowser() {
   child.on("exit", async code => {
     const exitCode = code ?? 0;
     if (exitCode === 0 && closeContext) {
-      await autoUploadClosedSessionRecordings(closeContext, { silent: forwardArgs.includes("--json") });
+      await autoUploadClosedSessionRecordings(closeContext, {
+        silent: forwardArgs.includes("--json"),
+      });
     }
     await exitProcess(exitCode);
   });
@@ -167,7 +169,9 @@ async function autoUploadClosedSessionRecordings(
     const failedIds = await uploadRecordingsInSubprocess(recordings, options);
     if (!options.silent && failedIds.length > 0) {
       console.error(
-        `Automatic upload failed for browser session "${context.session}". Failed recording id(s): ${failedIds.join(", ")}`
+        `Automatic upload failed for browser session "${
+          context.session
+        }". Failed recording id(s): ${failedIds.join(", ")}`
       );
     }
   } catch (error) {
@@ -220,7 +224,8 @@ async function waitForSessionRecordings(context: SessionCloseContext): Promise<L
     }
 
     const hasScopedPending = scopedRecordings.some(
-      recording => context.scopedRecordingIds.has(recording.id) && recording.recordingStatus === "recording"
+      recording =>
+        context.scopedRecordingIds.has(recording.id) && recording.recordingStatus === "recording"
     );
 
     if (context.scopedRecordingIds.size === 0) {
@@ -235,7 +240,8 @@ async function waitForSessionRecordings(context: SessionCloseContext): Promise<L
 
       const hasFallbackPending = fallbackRecordings.some(
         recording =>
-          context.fallbackRecordingIds.has(recording.id) && recording.recordingStatus === "recording"
+          context.fallbackRecordingIds.has(recording.id) &&
+          recording.recordingStatus === "recording"
       );
       if (!hasFallbackPending) {
         return [];
