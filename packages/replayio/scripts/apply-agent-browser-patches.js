@@ -38,13 +38,7 @@ function main() {
   const patchDirArg = path.relative(nodeModulesRoot, patchDir);
   const result = spawnSync(
     process.execPath,
-    [
-      patchPackageEntry,
-      "--patch-dir",
-      patchDirArg,
-      "--error-on-fail",
-      "--silent",
-    ],
+    [patchPackageEntry, "--patch-dir", patchDirArg, "--error-on-fail", "--silent"],
     {
       cwd: nodeModulesRoot,
       stdio: "inherit",
@@ -64,7 +58,13 @@ function main() {
 
 function ensureReplayBrowserShim(nodeModulesRoot) {
   const binDir = path.join(nodeModulesRoot, "node_modules", ".bin");
-  const source = path.join(nodeModulesRoot, "node_modules", "agent-browser", "bin", "agent-browser.js");
+  const source = path.join(
+    nodeModulesRoot,
+    "node_modules",
+    "agent-browser",
+    "bin",
+    "agent-browser.js"
+  );
   if (!fs.existsSync(source) || !fs.existsSync(binDir)) {
     return;
   }
@@ -83,7 +83,7 @@ function ensureReplayBrowserShim(nodeModulesRoot) {
   fs.chmodSync(unixShimPath, 0o755);
 
   const cmdShimPath = path.join(binDir, "replay-browser.cmd");
-  const cmdShim = "@ECHO off\r\nnode \"%~dp0\\..\\agent-browser\\bin\\agent-browser.js\" %*\r\n";
+  const cmdShim = '@ECHO off\r\nnode "%~dp0\\..\\agent-browser\\bin\\agent-browser.js" %*\r\n';
   fs.writeFileSync(cmdShimPath, cmdShim, "utf8");
 }
 
