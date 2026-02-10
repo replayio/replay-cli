@@ -7,6 +7,7 @@ import "./commands/info";
 import "./commands/list";
 import "./commands/login";
 import "./commands/logout";
+import "./commands/browser";
 import "./commands/open";
 import "./commands/record";
 import "./commands/remove";
