@@ -57,6 +57,7 @@ export async function uploadRecording(
 
       const recordingId = await uploadRecordingWithoutPresignedUrls({
         accessToken,
+        recordingId: id,
         recordingPath: path,
         size,
       });
@@ -346,10 +347,12 @@ function getDispatchHttpUrl(): string {
 
 async function uploadRecordingWithoutPresignedUrls({
   accessToken,
+  recordingId,
   recordingPath,
   size,
 }: {
   accessToken: string;
+  recordingId: string;
   recordingPath: string;
   size: number;
 }): Promise<string> {
@@ -370,7 +373,10 @@ async function uploadRecordingWithoutPresignedUrls({
     // Small file: send everything directly to create-recording.
     const response = await fetch(`${baseUrl}/nut/create-recording`, {
       method: "POST",
-      headers: authHeaders,
+      headers: {
+        ...authHeaders,
+        "x-replay-recording-id": recordingId,
+      },
       body: fileBuffer,
     });
     if (!response.ok) {
@@ -430,6 +436,7 @@ async function uploadRecordingWithoutPresignedUrls({
     headers: {
       ...authHeaders,
       "x-replay-upload-id": uploadId,
+      "x-replay-recording-id": recordingId,
     },
     body: finalChunk,
   });
