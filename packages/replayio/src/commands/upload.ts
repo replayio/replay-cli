@@ -11,6 +11,7 @@ import { uploadRecordings } from "../utils/recordings/uploadRecordings";
 registerCommand("upload", { requireAuthentication: true })
   .argument("[ids...]", `Recording ids ${dim("(comma-separated)")}`, value => value.split(","))
   .option("-a, --all", "Upload all recordings")
+  .option("--no-presigned", "Upload without presigned URLs (slower)")
   .description("Upload recording(s)")
   .action(upload);
 
@@ -18,8 +19,10 @@ async function upload(
   shortIds: string[],
   {
     all = false,
+    presigned = true,
   }: {
     all?: boolean;
+    presigned?: boolean;
   } = {}
 ) {
   const recordings = getRecordings();
@@ -49,7 +52,10 @@ async function upload(
   }
 
   if (selectedRecordings.length > 0) {
-    await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
+    await uploadRecordings(selectedRecordings, {
+      processingBehavior: "start-processing",
+      noPresigned: !presigned,
+    });
   }
 
   await exitProcess(0);

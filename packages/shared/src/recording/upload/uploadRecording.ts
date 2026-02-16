@@ -1,6 +1,7 @@
-import { ReadStream, createReadStream, stat } from "fs-extra";
+import { ReadStream, createReadStream, readFile, stat } from "fs-extra";
 import assert from "node:assert/strict";
 import { fetch } from "undici";
+import { Buffer } from "node:buffer";
 import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retryOnFailure";
@@ -27,7 +28,9 @@ export async function uploadRecording(
   client: ProtocolClient,
   recording: LocalRecording,
   options: {
+    accessToken: string;
     multiPartUpload: boolean;
+    noPresigned?: boolean;
     processingBehavior: ProcessingBehavior;
   }
 ) {
@@ -35,7 +38,7 @@ export async function uploadRecording(
   const { buildId, id, path } = recording;
   assert(path, "Recording path is required");
 
-  const { multiPartUpload, processingBehavior } = options;
+  const { accessToken, multiPartUpload, noPresigned, processingBehavior } = options;
 
   const { size } = await stat(path);
 
@@ -46,7 +49,30 @@ export async function uploadRecording(
   recording.uploadStatus = "uploading";
 
   try {
-    if (multiPartUpload && size > multiPartMinSizeThreshold) {
+    if (noPresigned) {
+      updateRecordingLog(recording, {
+        kind: RECORDING_LOG_KIND.uploadStarted,
+        server: replayWsServer,
+      });
+
+      const recordingId = await uploadRecordingWithoutPresignedUrls({
+        accessToken,
+        recordingPath: path,
+        size,
+      });
+
+      // The server assigns a new recording ID; update local state so
+      // metadata, processing, and view links use the correct ID.
+      recording.id = recordingId;
+      recordingData.id = recordingId;
+
+      await retryWithExponentialBackoff(
+        () => setRecordingMetadata(client, { metadata, recordingData }),
+        (error: unknown, attemptNumber: number) => {
+          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
+        }
+      );
+    } else if (multiPartUpload && size > multiPartMinSizeThreshold) {
       const { chunkSize, partLinks, recordingId, uploadId } = await beginRecordingMultipartUpload(
         client,
         {
@@ -309,6 +335,113 @@ async function uploadPart(
     });
     throw error;
   }
+}
+
+const NO_PRESIGNED_CHUNK_SIZE = 1024 * 1024; // 1 MB
+
+function getDispatchHttpUrl(): string {
+  // replayWsServer is e.g. "wss://dispatch.replay.io"
+  return replayWsServer.replace(/^wss:/, "https:").replace(/^ws:/, "http:");
+}
+
+async function uploadRecordingWithoutPresignedUrls({
+  accessToken,
+  recordingPath,
+  size,
+}: {
+  accessToken: string;
+  recordingPath: string;
+  size: number;
+}): Promise<string> {
+  const baseUrl = getDispatchHttpUrl();
+  const userAgent = await getUserAgent();
+  const fileBuffer = await readFile(recordingPath);
+  const numChunks = Math.ceil(size / NO_PRESIGNED_CHUNK_SIZE);
+
+  logDebug(`No-presigned upload: ${size} bytes in ${numChunks} chunk(s)`);
+
+  const authHeaders = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/octet-stream",
+    "User-Agent": userAgent,
+  };
+
+  if (numChunks <= 1) {
+    // Small file: send everything directly to create-recording.
+    const response = await fetch(`${baseUrl}/nut/create-recording`, {
+      method: "POST",
+      headers: authHeaders,
+      body: fileBuffer,
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`create-recording failed: ${response.status} - ${text}`);
+    }
+    const json = (await response.json()) as { recordingId: string };
+    return json.recordingId;
+  }
+
+  // Multi-chunk: send all but last chunk via partial-upload, last via create-recording.
+  const lastChunkIndex = numChunks - 1;
+
+  // First chunk establishes the uploadId.
+  const firstChunk = fileBuffer.subarray(0, NO_PRESIGNED_CHUNK_SIZE);
+  const firstResponse = await fetch(`${baseUrl}/nut/partial-upload`, {
+    method: "POST",
+    headers: authHeaders,
+    body: firstChunk,
+  });
+  if (!firstResponse.ok) {
+    const text = await firstResponse.text();
+    throw new Error(`partial-upload (chunk 0) failed: ${firstResponse.status} - ${text}`);
+  }
+  const { uploadId } = (await firstResponse.json()) as { uploadId: string };
+
+  logDebug(`No-presigned upload: chunk 0/${numChunks} uploaded, got uploadId ${uploadId}`);
+
+  // Upload middle chunks sequentially.
+  for (let i = 1; i < lastChunkIndex; i++) {
+    const start = i * NO_PRESIGNED_CHUNK_SIZE;
+    const end = Math.min(start + NO_PRESIGNED_CHUNK_SIZE, size);
+    const chunk = fileBuffer.subarray(start, end);
+
+    const resp = await fetch(`${baseUrl}/nut/partial-upload`, {
+      method: "POST",
+      headers: {
+        ...authHeaders,
+        "x-replay-upload-id": uploadId,
+        "x-replay-upload-index": i.toString(),
+      },
+      body: chunk,
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`partial-upload (chunk ${i}) failed: ${resp.status} - ${text}`);
+    }
+    logDebug(`No-presigned upload: chunk ${i}/${numChunks} uploaded`);
+  }
+
+  // Final chunk goes to create-recording.
+  const finalStart = lastChunkIndex * NO_PRESIGNED_CHUNK_SIZE;
+  const finalChunk = fileBuffer.subarray(finalStart);
+
+  const finalResponse = await fetch(`${baseUrl}/nut/create-recording`, {
+    method: "POST",
+    headers: {
+      ...authHeaders,
+      "x-replay-upload-id": uploadId,
+    },
+    body: finalChunk,
+  });
+  if (!finalResponse.ok) {
+    const text = await finalResponse.text();
+    throw new Error(`create-recording failed: ${finalResponse.status} - ${text}`);
+  }
+  const json = (await finalResponse.json()) as { recordingId: string };
+
+  logDebug(`No-presigned upload: chunk ${lastChunkIndex}/${numChunks} uploaded (final)`);
+  logInfo("UploadRecording:NoPresigned:Succeeded", { recordingId: json.recordingId });
+  return json.recordingId;
 }
 
 async function uploadRecordingReadStream(

@@ -10,10 +10,12 @@ import { uploadRecording } from "./uploadRecording";
 export function createUploadWorker({
   accessToken,
   deleteOnSuccess,
+  noPresigned,
   processingBehavior,
 }: {
   accessToken: string;
   deleteOnSuccess?: boolean;
+  noPresigned?: boolean;
   processingBehavior: ProcessingBehavior;
 }) {
   const client = new ProtocolClient(accessToken);
@@ -37,7 +39,12 @@ export function createUploadWorker({
         if (recording.recordingStatus === "crashed") {
           await uploadCrashedData(client, recording);
         } else {
-          await uploadRecording(client, recording, { multiPartUpload: true, processingBehavior });
+          await uploadRecording(client, recording, {
+            accessToken,
+            multiPartUpload: true,
+            noPresigned,
+            processingBehavior,
+          });
         }
       });
       deferredActions.push(deferred);
