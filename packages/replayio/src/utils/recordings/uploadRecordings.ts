@@ -121,6 +121,7 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
       ...options
     }: {
       deleteOnSuccess?: boolean;
+      noPresigned?: boolean;
       processingBehavior: ProcessingBehavior;
       silent?: boolean;
     }
