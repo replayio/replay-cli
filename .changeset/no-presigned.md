@@ -1,6 +1,5 @@
 ---
-"replayio": patch
-"@replay-cli/shared": patch
+"replayio": minor
 ---
 
-Add --no-presigned option to upload command
+Add `--no-presigned` option to upload command
