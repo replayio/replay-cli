@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0
+
+### Minor Changes
+
+- [#646](https://github.com/replayio/replay-cli/pull/646) [`44d3700`](https://github.com/replayio/replay-cli/commit/44d37007204a6e7fe6956da904b0abbd95a1e7e3) Thanks [@bhackett1024](https://github.com/bhackett1024)! - Add `--no-presigned` option to upload command
+
 ## 1.7.0
 
 ### Minor Changes
