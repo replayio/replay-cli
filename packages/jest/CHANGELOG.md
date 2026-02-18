@@ -1,5 +1,11 @@
 # @replayio/jest
 
+## 0.3.12
+
+### Patch Changes
+
+- [#650](https://github.com/replayio/replay-cli/pull/650) [`984ee77`](https://github.com/replayio/replay-cli/commit/984ee77df9fbcec8e1e412df370d78b8feeeb42c) Thanks [@bhackett1024](https://github.com/bhackett1024)! - Support proxy environment variables
+
 ## 0.3.11
 
 ### Patch Changes
