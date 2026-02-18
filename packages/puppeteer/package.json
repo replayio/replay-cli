@@ -42,6 +42,7 @@
     "chalk": "^4.1.2",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
+    "https-proxy-agent": "^7.0.6",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",
     "mixpanel": "^0.18.0",

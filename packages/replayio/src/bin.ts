@@ -1,6 +1,10 @@
 import { logError } from "@replay-cli/shared/logger";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
+import { initUndiciProxy } from "@replay-cli/shared/proxy";
 import { finalizeCommander } from "./utils/commander/finalizeCommander";
+
+// Route all undici fetch() calls through the proxy if configured
+initUndiciProxy();
 
 // Commands self-register with "commander"
 import "./commands/info";

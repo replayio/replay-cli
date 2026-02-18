@@ -3449,6 +3449,7 @@ __metadata:
     debug: "npm:^4.3.4"
     find-process: "npm:^1.4.7"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     jest: "npm:^28.1.3"
     log-update: "npm:^4"
     mixpanel: "npm:^0.18.0"
@@ -3507,6 +3508,7 @@ __metadata:
     cypress: "npm:^13.11.0"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     is-uuid: "npm:^1.0.2"
     jsonata: "npm:^1.8.6"
     mixpanel: "npm:^0.18.0"
@@ -3546,6 +3548,7 @@ __metadata:
     "@types/stack-utils": "npm:^2.0.3"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     is-uuid: "npm:^1.0.2"
     jest-circus: "npm:^27.5.1"
     jest-environment-node: "npm:^27.5.1"
@@ -3594,6 +3597,7 @@ __metadata:
     chalk: "npm:^4.1.2"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     is-uuid: "npm:^1.0.2"
     jsonata: "npm:^1.8.6"
     mixpanel: "npm:^0.18.0"
@@ -3641,6 +3645,7 @@ __metadata:
     chalk: "npm:^4.1.2"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     is-uuid: "npm:^1.0.2"
     jsonata: "npm:^1.8.6"
     mixpanel: "npm:^0.18.0"
@@ -3756,6 +3761,7 @@ __metadata:
     "@types/stack-utils": "npm:^2.0.3"
     debug: "npm:^4.3.4"
     fs-extra: "npm:^11.2.0"
+    https-proxy-agent: "npm:^7.0.6"
     jsonata: "npm:^1.8.6"
     mixpanel: "npm:^0.18.0"
     node-fetch: "npm:^2.6.7"
@@ -5409,6 +5415,13 @@ __metadata:
   dependencies:
     debug: "npm:^4.3.4"
   checksum: 10c0/fc974ab57ffdd8421a2bc339644d312a9cca320c20c3393c9d8b1fd91731b9bbabdb985df5fc860f5b79d81c3e350daa3fcb31c5c07c0bb385aafc817df004ce
+  languageName: node
+  linkType: hard
+
+"agent-base@npm:^7.1.2":
+  version: 7.1.4
+  resolution: "agent-base@npm:7.1.4"
+  checksum: 10c0/c2c9ab7599692d594b6a161559ada307b7a624fa4c7b03e3afdb5a5e31cd0e53269115b620fcab024c5ac6a6f37fa5eb2e004f076ad30f5f7e6b8b671f7b35fe
   languageName: node
   linkType: hard
 
@@ -10361,6 +10374,16 @@ __metadata:
     agent-base: "npm:^7.0.2"
     debug: "npm:4"
   checksum: 10c0/bc4f7c38da32a5fc622450b6cb49a24ff596f9bd48dcedb52d2da3fa1c1a80e100fb506bd59b326c012f21c863c69b275c23de1a01d0b84db396822fdf25e52b
+  languageName: node
+  linkType: hard
+
+"https-proxy-agent@npm:^7.0.6":
+  version: 7.0.6
+  resolution: "https-proxy-agent@npm:7.0.6"
+  dependencies:
+    agent-base: "npm:^7.1.2"
+    debug: "npm:4"
+  checksum: 10c0/f729219bc735edb621fa30e6e84e60ee5d00802b8247aac0d7b79b0bd6d4b3294737a337b93b86a0bd9e68099d031858a39260c976dc14cdbba238ba1f8779ac
   languageName: node
   linkType: hard
 
@@ -15738,6 +15761,7 @@ __metadata:
     debug: "npm:^4.3.4"
     find-process: "npm:^1.4.7"
     fs-extra: "npm:latest"
+    https-proxy-agent: "npm:^7.0.6"
     inquirer: "npm:^8.0.0"
     is-uuid: "npm:^1.0.2"
     jest: "npm:^28.1.3"
