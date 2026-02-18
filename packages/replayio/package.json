@@ -41,6 +41,7 @@
     "debug": "^4.3.4",
     "find-process": "^1.4.7",
     "fs-extra": "latest",
+    "https-proxy-agent": "^7.0.6",
     "inquirer": "^8.0.0",
     "is-uuid": "^1.0.2",
     "jsonata": "^1.8.6",

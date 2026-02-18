@@ -4,6 +4,7 @@ import WebSocket from "ws";
 import { Deferred, STATUS_PENDING, createDeferred } from "../async/createDeferred";
 import { replayWsServer } from "../config";
 import { logDebug, logError } from "../logger";
+import { getWebSocketProxyAgent } from "../proxy";
 import { ProtocolError } from "./ProtocolError";
 import { setAccessToken } from "./api/setAccessToken";
 
@@ -27,7 +28,9 @@ export default class ProtocolClient {
     logDebug(`Creating WebSocket for ${replayWsServer}`);
 
     this.accessToken = accessToken;
-    this.socket = new WebSocket(replayWsServer);
+
+    const proxyAgent = getWebSocketProxyAgent();
+    this.socket = new WebSocket(replayWsServer, proxyAgent ? { agent: proxyAgent } : {});
 
     this.socket.on("close", this.onSocketClose);
     this.socket.on("error", this.onSocketError);

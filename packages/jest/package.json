@@ -51,6 +51,7 @@
     "@jest/types": "^27.5.1",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
+    "https-proxy-agent": "^7.0.6",
     "is-uuid": "^1.0.2",
     "jest-circus": "^27.5.1",
     "jest-environment-node": "^27.5.1",
