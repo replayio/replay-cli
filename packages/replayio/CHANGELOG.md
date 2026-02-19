@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.2
+
+### Patch Changes
+
+- [#652](https://github.com/replayio/replay-cli/pull/652) [`f383fd7`](https://github.com/replayio/replay-cli/commit/f383fd7097ab58576df65aa79a20597d1db50395) Thanks [@bhackett1024](https://github.com/bhackett1024)! - Ignore node_modules-only metadata
+
 ## 1.8.1
 
 ### Patch Changes
