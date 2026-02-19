@@ -67,9 +67,34 @@ function filterNodeModulesStacks(metadata: UnstructuredMetadata) {
     return;
   }
 
+  const removedIds = new Set<string>();
   for (const [key, frames] of Object.entries(playwright.stacks)) {
     if (frames.every(frame => frame.file?.includes("node_modules"))) {
       delete playwright.stacks[key];
+      removedIds.add(key);
+    }
+  }
+
+  if (removedIds.size === 0) {
+    return;
+  }
+
+  const test = metadata["test"] as
+    | { tests?: Array<{ events?: Record<string, Array<{ data?: { id?: string } }>> }> }
+    | undefined;
+  if (!test?.tests) {
+    return;
+  }
+
+  for (const entry of test.tests) {
+    if (!entry.events) {
+      continue;
+    }
+    for (const phase of Object.keys(entry.events)) {
+      const events = entry.events[phase];
+      if (Array.isArray(events)) {
+        entry.events[phase] = events.filter(e => !removedIds.has(e.data?.id ?? ""));
+      }
     }
   }
 }
