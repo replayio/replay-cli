@@ -54,5 +54,22 @@ export async function sanitizeMetadata(metadata: UnstructuredMetadata, opts: Opt
     }
   }
 
+  filterNodeModulesStacks(updated);
+
   return updated;
+}
+
+function filterNodeModulesStacks(metadata: UnstructuredMetadata) {
+  const playwright = metadata["x-replay-playwright"] as
+    | { stacks?: Record<string, Array<{ file?: string }>> }
+    | undefined;
+  if (!playwright?.stacks) {
+    return;
+  }
+
+  for (const [key, frames] of Object.entries(playwright.stacks)) {
+    if (frames.every(frame => frame.file?.includes("node_modules"))) {
+      delete playwright.stacks[key];
+    }
+  }
 }
