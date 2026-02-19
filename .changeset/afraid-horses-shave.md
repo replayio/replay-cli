@@ -1,5 +1,5 @@
 ---
-"@replay-cli/shared": patch
+"replayio": patch
 ---
 
 Ignore node_modules-only metadata
