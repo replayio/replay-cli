@@ -1,7 +1,10 @@
-import { ReadStream, createReadStream, readFile, stat } from "fs-extra";
+import { ReadStream, createReadStream, readFile, stat, writeFile } from "fs-extra";
 import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { Buffer } from "node:buffer";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { inspect } from "node:util";
 import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retryOnFailure";
@@ -23,6 +26,26 @@ import { uploadSourceMaps } from "./uploadSourceMaps";
 import { validateRecordingMetadata } from "./validateRecordingMetadata";
 
 const uploadQueue = createPromiseQueue({ concurrency: 10 });
+
+async function setMetadataWithRetry(
+  client: ProtocolClient,
+  metadata: Record<string, unknown>,
+  recordingData: Record<string, unknown>
+) {
+  await retryWithExponentialBackoff(
+    () => setRecordingMetadata(client, { metadata, recordingData }),
+    (error: unknown, attemptNumber: number) => {
+      logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
+      if (attemptNumber === 1) {
+        const filePath = join(tmpdir(), `replay-metadata-${Date.now()}.txt`);
+        const content = inspect({ metadata, recordingData }, { depth: null, maxStringLength: null });
+        writeFile(filePath, content).then(() => {
+          logDebug(`Metadata written to ${filePath}`);
+        });
+      }
+    }
+  );
+}
 
 export async function uploadRecording(
   client: ProtocolClient,
@@ -67,12 +90,7 @@ export async function uploadRecording(
       recording.id = recordingId;
       recordingData.id = recordingId;
 
-      await retryWithExponentialBackoff(
-        () => setRecordingMetadata(client, { metadata, recordingData }),
-        (error: unknown, attemptNumber: number) => {
-          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
-        }
-      );
+      await setMetadataWithRetry(client, metadata, recordingData);
     } else if (multiPartUpload && size > multiPartMinSizeThreshold) {
       const { chunkSize, partLinks, recordingId, uploadId } = await beginRecordingMultipartUpload(
         client,
@@ -89,12 +107,7 @@ export async function uploadRecording(
         server: replayWsServer,
       });
 
-      await retryWithExponentialBackoff(
-        () => setRecordingMetadata(client, { metadata, recordingData }),
-        (error: unknown, attemptNumber: number) => {
-          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
-        }
-      );
+      await setMetadataWithRetry(client, metadata, recordingData);
 
       const partIds = await uploadRecordingFileInParts({
         chunkSize,
@@ -115,12 +128,7 @@ export async function uploadRecording(
         server: replayWsServer,
       });
 
-      await retryWithExponentialBackoff(
-        () => setRecordingMetadata(client, { metadata, recordingData }),
-        (error: unknown, attemptNumber: number) => {
-          logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
-        }
-      );
+      await setMetadataWithRetry(client, metadata, recordingData);
       await uploadQueue.add(() =>
         retryWithExponentialBackoff(
           () =>
