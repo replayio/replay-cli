@@ -6,7 +6,8 @@
     "packages/*",
     "packages/*/example",
     "scripts/*",
-    "examples/*"
+    "examples/*",
+    "tests/*"
   ],
   "directories": {
     "example": "examples"
@@ -15,7 +16,7 @@
     "build": "turbo run build --filter=\"./packages/*\"",
     "watch": "turbo watch build --filter=\"./packages/*\"",
     "test": "yarn run test:unit",
-    "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --topological run test",
+    "test:unit": "yarn workspaces foreach --all --exclude=. --exclude=examples/create-react-app-typescript --exclude=packages/cypress/example --exclude=@replay-cli/chrome-test --topological run test",
     "typecheck": "turbo run typecheck --filter=\"./packages/*\" --filter=\"./scripts/*\"",
     "typecheck:watch": "turbo watch typecheck --filter=\"./packages/*\" --filter=\"./scripts/*\"",
     "lint": "prettier --check .",

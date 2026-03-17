@@ -1,0 +1,12 @@
+{
+  "name": "@replay-cli/chrome-test",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Run: node test.js direct OR node test.js adapter\"",
+    "test:direct": "node test.js direct",
+    "test:adapter": "node test.js adapter"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

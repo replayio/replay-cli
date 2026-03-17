@@ -2,6 +2,10 @@
 
 // CDP Protocol Adapter
 // Makes replay-chrome (Chrome 108) compatible with tools expecting Chrome 131+
+//
+// Key incompatibility: Chrome 108's Target.setAutoAttach only affects future
+// targets. Chrome 131+ also attaches to existing targets. This adapter
+// polyfills that behavior by manually attaching after setAutoAttach.
 
 "use strict";
 
@@ -57,10 +61,85 @@ const PARAM_STRIPS = {
 
 const SPOOFED_VERSION = "Chrome/131.0.6778.264";
 
+// Internal message IDs use a high range to avoid conflicts with Puppeteer's IDs
+const INTERNAL_ID_BASE = 9000000;
+
 class CDPAdapter {
   constructor() {
     // Track pending request methods by message id for response transformation
     this.pendingMethods = new Map();
+    // Callbacks for adapter-internal CDP commands sent to Chrome
+    this.internalCallbacks = new Map();
+    this.nextInternalId = INTERNAL_ID_BASE;
+    // Transport functions set by the proxy layer
+    this._sendToChrome = null;
+    this._sendToPuppeteer = null;
+  }
+
+  // Set transport functions so the adapter can send its own commands
+  setTransport(sendToChrome, sendToPuppeteer) {
+    this._sendToChrome = sendToChrome;
+    this._sendToPuppeteer = sendToPuppeteer;
+  }
+
+  // Send an internal CDP command to Chrome and return the result
+  _callChrome(method, params) {
+    return new Promise((resolve) => {
+      const id = this.nextInternalId++;
+      this.internalCallbacks.set(id, resolve);
+      this._sendToChrome({ id, method, params });
+    });
+  }
+
+  // CDP target filter matching: returns true if target should be included.
+  // Filters are processed in order; first matching entry wins.
+  _matchesFilter(targetInfo, filters) {
+    for (const filter of filters) {
+      if (!filter.type || filter.type === targetInfo.type) {
+        return !filter.exclude;
+      }
+    }
+    return false; // no match = excluded
+  }
+
+  // Polyfill: after setAutoAttach, manually attach to existing targets that
+  // match the filter (Chrome 108 only auto-attaches future targets).
+  async _polyfillAutoAttach(filter) {
+    if (!this._sendToChrome) return;
+
+    const result = await this._callChrome("Target.getTargets", {});
+    if (!result || !result.targetInfos) return;
+
+    for (const target of result.targetInfos) {
+      if (target.attached) continue;
+      if (!this._matchesFilter(target, filter)) continue;
+
+      await this._callChrome("Target.attachToTarget", {
+        targetId: target.targetId,
+        flatten: true,
+      });
+    }
+  }
+
+  // Polyfill: after createTarget, check if the new target got auto-attached.
+  // If not, manually attach it so Puppeteer can use it.
+  async _polyfillNewTarget(targetId) {
+    if (!this._sendToChrome) return;
+
+    // Small delay to let Chrome's auto-attach run first
+    await new Promise((r) => setTimeout(r, 100));
+
+    const result = await this._callChrome("Target.getTargets", {});
+    if (!result || !result.targetInfos) return;
+
+    const target = result.targetInfos.find((t) => t.targetId === targetId);
+    if (!target || target.attached) return;
+
+    // Target wasn't auto-attached — manually attach it
+    await this._callChrome("Target.attachToTarget", {
+      targetId: targetId,
+      flatten: true,
+    });
   }
 
   // Puppeteer -> Chrome
@@ -98,9 +177,34 @@ class CDPAdapter {
 
   // Chrome -> Puppeteer
   transformResponse(msg) {
+    // Intercept responses to our internal commands — don't forward to Puppeteer
+    if (msg.id !== undefined && msg.id >= INTERNAL_ID_BASE) {
+      const cb = this.internalCallbacks.get(msg.id);
+      if (cb) {
+        this.internalCallbacks.delete(msg.id);
+        cb(msg.result || msg.error);
+      }
+      return { drop: true };
+    }
+
     if (msg.id !== undefined && this.pendingMethods.has(msg.id)) {
       const method = this.pendingMethods.get(msg.id);
       this.pendingMethods.delete(msg.id);
+
+      // Polyfill: Chrome 108's setAutoAttach only affects future targets.
+      // After each setAutoAttach succeeds, attach existing unattached targets.
+      if (method === "Target.setAutoAttach" && msg.result) {
+        const filter = this._lastAutoAttachFilter;
+        if (filter) {
+          this._polyfillAutoAttach(filter);
+        }
+      }
+
+      // Polyfill: Chrome 108's createTarget doesn't auto-attach new pages
+      // through tab sessions like Chrome 131+ does. Manually attach new targets.
+      if (method === "Target.createTarget" && msg.result && msg.result.targetId) {
+        this._polyfillNewTarget(msg.result.targetId);
+      }
 
       // Spoof browser version
       if (method === "Browser.getVersion" && msg.result && msg.result.product) {
@@ -113,7 +217,23 @@ class CDPAdapter {
 
     return { msg };
   }
+
+  // Called from transformRequest to save the filter before forwarding
+  _trackAutoAttachFilter(params) {
+    if (params && params.filter) {
+      this._lastAutoAttachFilter = params.filter;
+    }
+  }
 }
+
+// Override transformRequest to also track the auto-attach filter
+const _origTransformRequest = CDPAdapter.prototype.transformRequest;
+CDPAdapter.prototype.transformRequest = function (msg) {
+  if (msg.method === "Target.setAutoAttach") {
+    this._trackAutoAttachFilter(msg.params);
+  }
+  return _origTransformRequest.call(this, msg);
+};
 
 // ---------------------------------------------------------------------------
 // Pipe-mode proxy (FD 3/4 <-> FD 3/4)
@@ -138,6 +258,12 @@ function startPipeMode() {
   // Chrome's stdio[4] = readable (Chrome writes responses to us)
   const toChrome = chrome.stdio[3];
   const fromChrome = chrome.stdio[4];
+
+  // Give adapter transport access for internal commands
+  adapter.setTransport(
+    (msg) => toChrome.write(JSON.stringify(msg) + "\0"),
+    (msg) => toPuppeteer.write(JSON.stringify(msg) + "\0")
+  );
 
   relayPipe(fromPuppeteer, toChrome, toPuppeteer, (msg) =>
     adapter.transformRequest(msg)
@@ -172,7 +298,9 @@ function relayPipe(readable, writable, replyWritable, transform) {
       }
 
       const result = transform(msg);
-      if (result.reply && replyWritable) {
+      if (result.drop) {
+        // Internal message consumed by adapter, don't forward
+      } else if (result.reply && replyWritable) {
         replyWritable.write(JSON.stringify(result.reply) + "\0");
       } else if (result.msg) {
         writable.write(JSON.stringify(result.msg) + "\0");
@@ -198,7 +326,6 @@ async function startWsMode() {
 
   const WebSocketClient = ws.WebSocket || ws;
   const WebSocketServer = ws.WebSocketServer || ws.Server;
-  const adapter = new CDPAdapter();
 
   // Extract the requested debug port from args
   let requestedPort = 0;
@@ -234,17 +361,19 @@ async function startWsMode() {
         captured = true;
         resolve(match[1]);
       } else {
-        // Forward non-endpoint stderr immediately
         process.stderr.write(chunk);
       }
     });
 
     chrome.on("exit", (code) => {
       if (!captured)
-        reject(new Error(`Chrome exited with code ${code} before providing WS URL`));
+        reject(
+          new Error(`Chrome exited with code ${code} before providing WS URL`)
+        );
     });
     setTimeout(() => {
-      if (!captured) reject(new Error("Timeout waiting for Chrome WS endpoint"));
+      if (!captured)
+        reject(new Error("Timeout waiting for Chrome WS endpoint"));
     }, 30000);
   });
 
@@ -296,15 +425,32 @@ async function startWsMode() {
     const targetUrl = `ws://${chromeHost}:${chromePort}${req.url}`;
     const chromeWs = new WebSocketClient(targetUrl);
 
+    // Each WS connection gets its own adapter instance for independent state
+    const adapter = new CDPAdapter();
+
     // Buffer messages until Chrome WS is open
     const buffered = [];
+
+    function sendToChromeRaw(data) {
+      if (chromeWs.readyState === WebSocketClient.OPEN) {
+        chromeWs.send(typeof data === "string" ? data : JSON.stringify(data));
+      } else {
+        buffered.push(typeof data === "string" ? data : JSON.stringify(data));
+      }
+    }
+
+    // Give adapter transport access
+    adapter.setTransport(
+      (msg) => sendToChromeRaw(JSON.stringify(msg)),
+      (msg) => puppeteerWs.send(JSON.stringify(msg))
+    );
 
     puppeteerWs.on("message", (data) => {
       let msg;
       try {
         msg = JSON.parse(data.toString());
       } catch {
-        sendToChrome(data);
+        sendToChromeRaw(data);
         return;
       }
 
@@ -312,17 +458,9 @@ async function startWsMode() {
       if (result.reply) {
         puppeteerWs.send(JSON.stringify(result.reply));
       } else if (result.msg) {
-        sendToChrome(JSON.stringify(result.msg));
+        sendToChromeRaw(JSON.stringify(result.msg));
       }
     });
-
-    function sendToChrome(data) {
-      if (chromeWs.readyState === WebSocketClient.OPEN) {
-        chromeWs.send(data);
-      } else {
-        buffered.push(data);
-      }
-    }
 
     chromeWs.on("open", () => {
       for (const d of buffered) chromeWs.send(d);
@@ -338,7 +476,9 @@ async function startWsMode() {
         return;
       }
       const result = adapter.transformResponse(msg);
-      if (result.msg) {
+      if (result.drop) {
+        // Internal message consumed by adapter
+      } else if (result.msg) {
         puppeteerWs.send(JSON.stringify(result.msg));
       }
     });
