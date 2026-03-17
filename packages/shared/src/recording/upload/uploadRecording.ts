@@ -1,10 +1,7 @@
-import { ReadStream, createReadStream, readFile, stat, writeFile } from "fs-extra";
+import { ReadStream, createReadStream, readFile, stat } from "fs-extra";
 import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { Buffer } from "node:buffer";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { inspect } from "node:util";
 import { createDeferred } from "../../async/createDeferred";
 import { createPromiseQueue } from "../../async/createPromiseQueue";
 import { retryWithExponentialBackoff, retryWithLinearBackoff } from "../../async/retryOnFailure";
@@ -19,6 +16,7 @@ import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { getUserAgent } from "../../session/getUserAgent";
 import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
+import { dumpMetadataToFile } from "../metadata/dumpMetadataToFile";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
 import { ProcessingBehavior } from "./types";
@@ -37,11 +35,7 @@ async function setMetadataWithRetry(
     (error: unknown, attemptNumber: number) => {
       logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
       if (attemptNumber === 1) {
-        const filePath = join(tmpdir(), `replay-metadata-${Date.now()}.txt`);
-        const content = inspect({ metadata, recordingData }, { depth: null, maxStringLength: null });
-        writeFile(filePath, content).then(() => {
-          logDebug(`Metadata written to ${filePath}`);
-        });
+        dumpMetadataToFile("setMetadataWithRetry", { metadata, recordingData });
       }
     }
   );
