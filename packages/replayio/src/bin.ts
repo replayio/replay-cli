@@ -18,6 +18,7 @@ import "./commands/update";
 import "./commands/upload";
 import "./commands/upload-source-maps";
 import "./commands/whoami";
+import "./commands/get-adapter-browser";
 
 finalizeCommander();
 

@@ -25,6 +25,7 @@
   },
   "files": [
     "dist",
+    "adapter",
     "replayio.js"
   ],
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replayio/README.md",

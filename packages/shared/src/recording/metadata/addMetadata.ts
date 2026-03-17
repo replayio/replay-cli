@@ -2,6 +2,7 @@ import path from "node:path";
 import { appendFileSync } from "node:fs";
 import { UnstructuredMetadata } from "../types";
 import { getReplayPath } from "../../getReplayPath";
+import { dumpMetadataToFile } from "./dumpMetadataToFile";
 
 /**
  * Adds unstructured metadata to the local recordings database.
@@ -23,5 +24,10 @@ export function addMetadata(recordingId: string, metadata: UnstructuredMetadata)
     timestamp: Date.now(),
   };
 
-  appendFileSync(path.join(getReplayPath(), "recordings.log"), `\n${JSON.stringify(entry)}\n`);
+  try {
+    appendFileSync(path.join(getReplayPath(), "recordings.log"), `\n${JSON.stringify(entry)}\n`);
+  } catch (error) {
+    dumpMetadataToFile("addMetadata", { recordingId, metadata });
+    throw error;
+  }
 }
