@@ -38,7 +38,10 @@ async function setMetadataWithRetry(
       logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
       if (attemptNumber === 1) {
         const filePath = join(tmpdir(), `replay-metadata-${Date.now()}.txt`);
-        const content = inspect({ metadata, recordingData }, { depth: null, maxStringLength: null });
+        const content = inspect(
+          { metadata, recordingData },
+          { depth: null, maxStringLength: null }
+        );
         writeFile(filePath, content).then(() => {
           logDebug(`Metadata written to ${filePath}`);
         });
