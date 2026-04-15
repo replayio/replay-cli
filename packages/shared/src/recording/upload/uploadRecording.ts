@@ -479,6 +479,9 @@ async function uploadRecordingReadStream(
           "Content-Length": size.toString(),
           "User-Agent": userAgent,
           Connection: "keep-alive",
+          ...(process.env.REPLAY_CLIENT_SOURCE
+            ? { "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE }
+            : {}),
         },
         method: "PUT",
         body: stream,

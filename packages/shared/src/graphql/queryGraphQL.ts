@@ -23,6 +23,10 @@ export async function queryGraphQL(name: string, query: string, variables = {}, 
     options.headers.Authorization = `Bearer ${apiKey.trim()}`;
   }
 
+  if (process.env.REPLAY_CLIENT_SOURCE) {
+    options.headers["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE;
+  }
+
   logDebug("Querying graphql endpoint", { name, replayApiServer });
   const result = await fetch(`${replayApiServer}/v1/graphql`, options);
 
