@@ -364,7 +364,12 @@ export async function replayFixture(
       }
 
       if (apiName === "page.evaluate") {
-        console.log("FIXTURE", JSON.stringify({ userData, params, apiName, frames }));
+        try {
+          console.log("FIXTURE", JSON.stringify({ userData, params, apiName, frames }));
+        } catch (error) {
+          logError("ReplayFixture:FailedToLogEvaluateCall", { error });
+        }
+        
       }
 
       // 1.52 had params in the ApiCallData itself
