@@ -20,6 +20,7 @@ const fetch = require("node-fetch");
       metadata?.test?.tests?.length > 0 && mainSteps?.length > 0,
       "No test events found in metadata"
     );
+    console.log(JSON.stringify(mainSteps, null, 2));
     assert(
       !mainSteps.some(
         step =>
