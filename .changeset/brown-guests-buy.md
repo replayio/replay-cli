@@ -2,4 +2,4 @@
 "@replayio/playwright": patch
 ---
 
-Filter out redundant Replay-internal steps in Playwrgiht 1.53+
+Filter out redundant Replay-internal steps in Playwright 1.53+
