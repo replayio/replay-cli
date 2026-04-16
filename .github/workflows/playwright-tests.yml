@@ -24,12 +24,12 @@ jobs:
       # it's added here to deps to avoid affecting Turborepo's dependency graph and related caching
       - run: yarn add --dev "replayio@workspace:^"
       - run: npx --no replayio install
-      - name: Resolve Playwright descriptor
-        run: |
-          echo "CURRENT_PLAYWRIGHT_DESCRIPTOR=@playwright/test@npm:$(node -p "require('./examples/create-react-app-typescript/package.json').dependencies['@playwright/test']")" >> "$GITHUB_ENV"
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
-      - run: yarn set resolution "$CURRENT_PLAYWRIGHT_DESCRIPTOR" "npm:${{ matrix.playwright-version }}"
+      - name: Set Playwright resolution
+        run: |
+          PLAYWRIGHT_DESCRIPTOR="@playwright/test@npm:$(node -p "require('./examples/create-react-app-typescript/package.json').dependencies['@playwright/test']")"
+          yarn set resolution "$PLAYWRIGHT_DESCRIPTOR" "npm:${{ matrix.playwright-version }}"
       - run: yarn test
         working-directory: examples/create-react-app-typescript
       - run: node test/upload-and-check-recording.js
