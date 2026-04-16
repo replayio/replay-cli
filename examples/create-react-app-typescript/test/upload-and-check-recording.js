@@ -20,14 +20,9 @@ const fetch = require("node-fetch");
       metadata?.test?.tests?.length > 0 && mainSteps?.length > 0,
       "No test events found in metadata"
     );
-    console.log(JSON.stringify(mainSteps, null, 2));
     assert(
-      !mainSteps.some(
-        step =>
-          step.data.command.name === "page.evaluate" &&
-          step.data.command.arguments.some(arg => arg.includes("ReplayAddAnnotation"))
-      ),
-      "Test metadata contains an evaluate step with the ReplayAddAnnotation expression"
+      mainSteps.length === 2,
+      `Expected 2 main steps in metadata: [page.goto, expect], got: ${JSON.stringify(mainSteps)}`
     );
     console.log("Checking annotations");
     const annotationCount = await countAnnotations(recordingId, "replay-playwright", apiKey);
