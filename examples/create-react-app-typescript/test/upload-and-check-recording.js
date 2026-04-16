@@ -15,9 +15,18 @@ const fetch = require("node-fetch");
     await replay.uploadRecording(recordingId, { apiKey });
     console.log("Checking metadata");
     const metadata = await getTestMetadata(recordingId, apiKey);
+    const mainSteps = metadata?.test?.tests?.[0]?.events?.main;
     assert(
-      metadata?.test?.tests?.length > 0 && metadata.test.tests[0].events?.main?.length > 0,
+      metadata?.test?.tests?.length > 0 && mainSteps?.length > 0,
       "No test events found in metadata"
+    );
+    assert(
+      !mainSteps.some(
+        step =>
+          step.data.command.name === "page.evaluate" &&
+          step.data.command.arguments.some(arg => arg.includes("ReplayAddAnnotation"))
+      ),
+      "Test metadata contains an evaluate step with the ReplayAddAnnotation expression"
     );
     console.log("Checking annotations");
     const annotationCount = await countAnnotations(recordingId, "replay-playwright", apiKey);

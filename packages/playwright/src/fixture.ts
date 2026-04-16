@@ -363,6 +363,10 @@ export async function replayFixture(
         return;
       }
 
+      // 1.52 had params in the ApiCallData itself
+      // 1.53 moved them to the second argument of the `onApiCallBegin` callback
+      // but both should have the same thing on the step itself
+      // if (isReplayAnnotation(step.params)) {
       if (isReplayAnnotation(params)) {
         // do not emit page.evaluate steps that add replay annotations
         // this would create an infinite async loop
