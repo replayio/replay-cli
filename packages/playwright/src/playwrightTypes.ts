@@ -80,7 +80,8 @@ export type StepEndPayload = {
 // https://github.com/microsoft/playwright/blob/1a595e1562db4418e0012a42ab8d2e47e90eedf3/packages/playwright-core/src/client/clientInstrumentation.ts#L22-L29
 export interface ApiCallData {
   apiName: string;
-  params?: Record<string, any>;
+  // removed in 1.53: https://github.com/microsoft/playwright/pull/36055/changes#diff-d91d11e780348fea5d4fbb91d52c80e6b880e24a335cb673e39677255882a818
+  // params?: Record<string, any>;
   frames: StackFrame[];
   userData: any;
   stepId?: string;
@@ -92,7 +93,11 @@ export interface ClientInstrumentation {
   addListener(listener: ClientInstrumentationListener): void;
   removeListener(listener: ClientInstrumentationListener): void;
   removeAllListeners(): void;
-  onApiCallBegin(apiCall: ApiCallData): void;
+  onApiCallBegin(
+    apiCall: ApiCallData,
+    // second param introduced in 1.53: https://github.com/microsoft/playwright/pull/36055/changes#diff-d91d11e780348fea5d4fbb91d52c80e6b880e24a335cb673e39677255882a818
+    channel?: { type: string; method: string; params?: Record<string, any> }
+  ): void;
   onApiCallEnd(apiCal: ApiCallData): void;
   onWillPause(options: { keepTestTimeout: boolean }): void;
 
@@ -104,7 +109,11 @@ export interface ClientInstrumentation {
 
 // https://github.com/microsoft/playwright/blob/1a595e1562db4418e0012a42ab8d2e47e90eedf3/packages/playwright-core/src/client/clientInstrumentation.ts#L45-L53
 export interface ClientInstrumentationListener {
-  onApiCallBegin?(apiCall: ApiCallData): void;
+  onApiCallBegin?(
+    apiCall: ApiCallData,
+    // second param introduced in 1.53: https://github.com/microsoft/playwright/pull/36055/changes#diff-d91d11e780348fea5d4fbb91d52c80e6b880e24a335cb673e39677255882a818
+    channel?: { type: string; method: string; params?: Record<string, any> }
+  ): void;
   onApiCallEnd?(apiCall: ApiCallData): void;
   onWillPause?(options: { keepTestTimeout: boolean }): void;
 

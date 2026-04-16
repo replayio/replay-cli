@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        playwright-version: [1.52.x, next]
+        playwright-version: [1.52.x, 1.53.x, 1.59.x, next]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,7 +26,10 @@ jobs:
       - run: npx --no replayio install
       # @playwright/test depends on fixed version of playwright and that depends on fixed version of playwright-core
       # so it should be enough to only enforce the version of @playwright/test here
-      - run: yarn set resolution "@playwright/test@*" ${{ matrix.playwright-version }}
+      - name: Set Playwright resolution
+        run: |
+          PLAYWRIGHT_DESCRIPTOR="@playwright/test@npm:$(node -p "require('./examples/create-react-app-typescript/package.json').dependencies['@playwright/test']")"
+          yarn set resolution "$PLAYWRIGHT_DESCRIPTOR" "npm:${{ matrix.playwright-version }}"
       - run: yarn test
         working-directory: examples/create-react-app-typescript
       - run: node test/upload-and-check-recording.js

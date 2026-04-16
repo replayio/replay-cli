@@ -15,9 +15,14 @@ const fetch = require("node-fetch");
     await replay.uploadRecording(recordingId, { apiKey });
     console.log("Checking metadata");
     const metadata = await getTestMetadata(recordingId, apiKey);
+    const mainSteps = metadata?.test?.tests?.[0]?.events?.main;
     assert(
-      metadata?.test?.tests?.length > 0 && metadata.test.tests[0].events?.main?.length > 0,
+      metadata?.test?.tests?.length > 0 && mainSteps?.length > 0,
       "No test events found in metadata"
+    );
+    assert(
+      mainSteps.length === 2,
+      `Expected 2 main steps in metadata: [page.goto, expect], got: ${JSON.stringify(mainSteps)}`
     );
     console.log("Checking annotations");
     const annotationCount = await countAnnotations(recordingId, "replay-playwright", apiKey);

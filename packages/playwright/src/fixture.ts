@@ -353,7 +353,7 @@ export async function replayFixture(
   }
 
   const csiListener: ClientInstrumentationListener = {
-    onApiCallBegin: ({ userData, params, apiName, frames }) => {
+    onApiCallBegin: ({ userData, apiName, frames }) => {
       // `.userObject` holds the step data
       // https://github.com/microsoft/playwright/blob/73285245566bdce80bab736577e9bc278d5cf4bf/packages/playwright/src/index.ts#L274-L283
       // this has been introduced in Playwright 1.17.0
@@ -362,7 +362,10 @@ export async function replayFixture(
       if (!step?.stepId) {
         return;
       }
-
+      const params = step.params;
+      // 1.52 had params in the ApiCallData itself
+      // 1.53 moved them to the second argument of the `onApiCallBegin` callback
+      // but both should have the same thing on the step itself
       if (isReplayAnnotation(params)) {
         // do not emit page.evaluate steps that add replay annotations
         // this would create an infinite async loop
