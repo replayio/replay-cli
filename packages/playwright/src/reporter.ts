@@ -438,6 +438,10 @@ export default class ReplayPlaywrightReporter implements Reporter {
         // TODO(ryanjduffy): This would be nice to improve but it can be nearly
         // anything so it's not obvious how to simplify it well to an array of
         // strings.
+        const fnName = params.expression?.match(/^function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/)?.[1];
+        if (fnName) {
+          return [`${fnName}()`];
+        }
         return [];
       case "locator.getAttribute":
         return [params.selector, params.name];
