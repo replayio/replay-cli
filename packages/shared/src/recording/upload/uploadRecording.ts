@@ -379,9 +379,7 @@ async function uploadRecordingWithoutPresignedUrls({
     "Content-Type": "application/octet-stream",
     "User-Agent": userAgent,
   };
-  if (process.env.REPLAY_CLIENT_SOURCE) {
-    authHeaders["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE;
-  }
+  authHeaders["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE || "cli";
 
   if (numChunks <= 1) {
     // Small file: send everything directly to create-recording.
@@ -485,9 +483,7 @@ async function uploadRecordingReadStream(
           "Content-Length": size.toString(),
           "User-Agent": userAgent,
           Connection: "keep-alive",
-          ...(process.env.REPLAY_CLIENT_SOURCE
-            ? { "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE }
-            : {}),
+          "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE || "cli",
         },
         method: "PUT",
         body: stream,
