@@ -1,5 +1,11 @@
 # @replayio/playwright
 
+## 5.0.3
+
+### Patch Changes
+
+- [#656](https://github.com/replayio/replay-cli/pull/656) [`7023ae2`](https://github.com/replayio/replay-cli/commit/7023ae2c5862572009d41f136abb659d39a7a76d) Thanks [@Andarist](https://github.com/Andarist)! - Filter out redundant Replay-internal steps in Playwright 1.53+
+
 ## 5.0.2
 
 ### Patch Changes
