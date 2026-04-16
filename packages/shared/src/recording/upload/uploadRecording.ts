@@ -374,11 +374,14 @@ async function uploadRecordingWithoutPresignedUrls({
 
   logDebug(`No-presigned upload: ${size} bytes in ${numChunks} chunk(s)`);
 
-  const authHeaders = {
+  const authHeaders: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/octet-stream",
     "User-Agent": userAgent,
   };
+  if (process.env.REPLAY_CLIENT_SOURCE) {
+    authHeaders["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE;
+  }
 
   if (numChunks <= 1) {
     // Small file: send everything directly to create-recording.
