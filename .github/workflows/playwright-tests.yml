@@ -32,6 +32,8 @@ jobs:
           yarn set resolution "$PLAYWRIGHT_DESCRIPTOR" "npm:${{ matrix.playwright-version }}"
       - run: yarn test
         working-directory: examples/create-react-app-typescript
+        env:
+          DEBUG: replay,pw:browser
       - run: node test/upload-and-check-recording.js
         working-directory: examples/create-react-app-typescript
         env:
