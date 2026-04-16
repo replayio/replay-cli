@@ -81,7 +81,7 @@ export type StepEndPayload = {
 export interface ApiCallData {
   apiName: string;
   // removed in 1.53: https://github.com/microsoft/playwright/pull/36055/changes#diff-d91d11e780348fea5d4fbb91d52c80e6b880e24a335cb673e39677255882a818
-  params?: Record<string, any>;
+  // params?: Record<string, any>;
   frames: StackFrame[];
   userData: any;
   stepId?: string;
