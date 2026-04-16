@@ -363,6 +363,10 @@ export async function replayFixture(
         return;
       }
 
+      if (apiName === "page.evaluate") {
+        console.log("FIXTURE", JSON.stringify({ userData, params, apiName, frames }));
+      }
+
       // 1.52 had params in the ApiCallData itself
       // 1.53 moved them to the second argument of the `onApiCallBegin` callback
       // but both should have the same thing on the step itself
