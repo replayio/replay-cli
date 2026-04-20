@@ -38,7 +38,10 @@ async function setMetadataWithRetry(
       logDebug(`Attempt ${attemptNumber} to set metadata failed`, { error });
       if (attemptNumber === 1) {
         const filePath = join(tmpdir(), `replay-metadata-${Date.now()}.txt`);
-        const content = inspect({ metadata, recordingData }, { depth: null, maxStringLength: null });
+        const content = inspect(
+          { metadata, recordingData },
+          { depth: null, maxStringLength: null }
+        );
         writeFile(filePath, content).then(() => {
           logDebug(`Metadata written to ${filePath}`);
         });
@@ -371,11 +374,15 @@ async function uploadRecordingWithoutPresignedUrls({
 
   logDebug(`No-presigned upload: ${size} bytes in ${numChunks} chunk(s)`);
 
-  const authHeaders = {
+  const authHeaders: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/octet-stream",
     "User-Agent": userAgent,
+    "X-Client-Info": userAgent,
   };
+  if (process.env.REPLAY_CLIENT_SOURCE) {
+    authHeaders["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE;
+  }
 
   if (numChunks <= 1) {
     // Small file: send everything directly to create-recording.
@@ -479,6 +486,9 @@ async function uploadRecordingReadStream(
           "Content-Length": size.toString(),
           "User-Agent": userAgent,
           Connection: "keep-alive",
+          ...(process.env.REPLAY_CLIENT_SOURCE
+            ? { "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE }
+            : {}),
         },
         method: "PUT",
         body: stream,
