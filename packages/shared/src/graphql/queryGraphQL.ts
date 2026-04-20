@@ -2,18 +2,15 @@ import { fetch } from "undici";
 import { replayApiServer } from "../config";
 import { logDebug } from "../logger";
 import { getUserAgent } from "../session/getUserAgent";
-import { waitForPackageInfo } from "../session/waitForPackageInfo";
 
 export async function queryGraphQL(name: string, query: string, variables = {}, apiKey?: string) {
   const userAgent = await getUserAgent();
-  const { packageName } = await waitForPackageInfo();
 
   const options = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": userAgent,
-      "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE || packageName,
     } as Record<string, string>,
     body: JSON.stringify({
       query,
