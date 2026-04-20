@@ -18,6 +18,7 @@ import { endRecordingUpload } from "../../protocol/api/endRecordingUpload";
 import { processRecording } from "../../protocol/api/processRecording";
 import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { getUserAgent } from "../../session/getUserAgent";
+import { waitForPackageInfo } from "../../session/waitForPackageInfo";
 import { multiPartChunkSize, multiPartMinSizeThreshold } from "../config";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
@@ -369,6 +370,7 @@ async function uploadRecordingWithoutPresignedUrls({
 }): Promise<string> {
   const baseUrl = getDispatchHttpUrl();
   const userAgent = await getUserAgent();
+  const { packageName } = await waitForPackageInfo();
   const fileBuffer = await readFile(recordingPath);
   const numChunks = Math.ceil(size / NO_PRESIGNED_CHUNK_SIZE);
 
@@ -378,8 +380,8 @@ async function uploadRecordingWithoutPresignedUrls({
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/octet-stream",
     "User-Agent": userAgent,
+    "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE || packageName,
   };
-  authHeaders["X-Replay-Source"] = process.env.REPLAY_CLIENT_SOURCE || "cli";
 
   if (numChunks <= 1) {
     // Small file: send everything directly to create-recording.
@@ -475,6 +477,7 @@ async function uploadRecordingReadStream(
   stream.on("error", streamError.reject);
 
   const userAgent = await getUserAgent();
+  const { packageName } = await waitForPackageInfo();
 
   try {
     const response = await Promise.race([
@@ -483,7 +486,7 @@ async function uploadRecordingReadStream(
           "Content-Length": size.toString(),
           "User-Agent": userAgent,
           Connection: "keep-alive",
-          "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE || "cli",
+          "X-Replay-Source": process.env.REPLAY_CLIENT_SOURCE || packageName,
         },
         method: "PUT",
         body: stream,
