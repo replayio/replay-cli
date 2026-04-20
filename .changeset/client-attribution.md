@@ -6,4 +6,4 @@
 "@replayio/puppeteer": patch
 ---
 
-add client attribution headers for telemetry. sends X-Client-Info on outbound HTTP requests to enable backend source tracking. forwards REPLAY_CLIENT_SOURCE env var as X-Replay-Source header when set by orchestrated environments.
+internal: add a way to attribute the client origin of the outbound traffic to Replay services
