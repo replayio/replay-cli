@@ -11,13 +11,30 @@ import { refreshAccessTokenOrThrow } from "./refreshAccessTokenOrThrow";
 
 // TODO [PRO-24] Change authentication to remove polling and GraphQL mutation
 
-export async function authenticateByBrowser() {
+export type AdAttribution = Partial<{
+  li_fat_id: string;
+  twclid: string;
+  rdt_cid: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content: string;
+  utm_term: string;
+}>;
+
+export async function authenticateByBrowser(attribution?: AdAttribution) {
   const key = hashValue(String(globalThis.performance.now()));
 
   console.log("\nPlease log in or register in the browser to continue.");
 
   logDebug(`Launching browser to sign into Replay: ${replayAppHost}`);
-  await open(`${replayAppHost}/api/browser/auth?key=${key}&source=cli`);
+  const params = new URLSearchParams({ key, source: "cli" });
+  if (attribution) {
+    for (const [k, v] of Object.entries(attribution)) {
+      if (v) params.set(k, v);
+    }
+  }
+  await open(`${replayAppHost}/api/browser/auth?${params}`);
 
   const { accessToken, refreshToken } = await pollForAuthentication(key);
 
