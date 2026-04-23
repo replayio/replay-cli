@@ -3289,6 +3289,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@playwright/cli@npm:latest":
+  version: 0.1.0
+  resolution: "@playwright/cli@npm:0.1.0"
+  dependencies:
+    minimist: "npm:^1.2.5"
+    playwright: "npm:1.59.0-alpha-1770426101000"
+  bin:
+    playwright-cli: playwright-cli.js
+  checksum: 10c0/7f6cbb9fafc91c00455de7c92524f8ec6239e0705f02ef959497df12d503bf959afe13e65302063a85c3e428c73ee73e89554ef3c8b65f199577980c40948c11
+  languageName: node
+  linkType: hard
+
 "@playwright/test@npm:^1.52.0":
   version: 1.52.0
   resolution: "@playwright/test@npm:1.52.0"
@@ -13092,7 +13104,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimist@npm:^1.2.0, minimist@npm:^1.2.6, minimist@npm:^1.2.8":
+"minimist@npm:^1.2.0, minimist@npm:^1.2.5, minimist@npm:^1.2.6, minimist@npm:^1.2.8":
   version: 1.2.8
   resolution: "minimist@npm:1.2.8"
   checksum: 10c0/19d3fcdca050087b84c2029841a093691a91259a47def2f18222f41e7645a0b7c44ef4b40e88a1e58a40c84d2ef0ee6047c55594d298146d0eb3f6b737c20ce6
@@ -14030,6 +14042,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.59.0-alpha-1770426101000":
+  version: 1.59.0-alpha-1770426101000
+  resolution: "playwright-core@npm:1.59.0-alpha-1770426101000"
+  bin:
+    playwright-core: cli.js
+  checksum: 10c0/cbf57be8ca0076a298fcccb5cad6213c23c9786cf3f3678a0dfab614541d1bdd32ac89b1ca998b851322ef2c4f7de55002838483ddbc330e2dc1be1c02248578
+  languageName: node
+  linkType: hard
+
 "playwright@npm:1.52.0":
   version: 1.52.0
   resolution: "playwright@npm:1.52.0"
@@ -14042,6 +14063,21 @@ __metadata:
   bin:
     playwright: cli.js
   checksum: 10c0/2c6edf1e15e59bbaf77f3fa0fe0ac975793c17cff835d9c8b8bc6395a3b6f1c01898b3058ab37891b2e4d424bcc8f1b4844fe70d943e0143d239d7451408c579
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.59.0-alpha-1770426101000":
+  version: 1.59.0-alpha-1770426101000
+  resolution: "playwright@npm:1.59.0-alpha-1770426101000"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.59.0-alpha-1770426101000"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10c0/0e7e1b7b8e26c3893d19e6421c567e6459b5cd5f801576e3a3f79ffdfc312973b6ee36bb7d45d3309e5632d402cd921368a3f42a053aac8f2532de45e2ef1c3b
   languageName: node
   linkType: hard
 
@@ -15739,6 +15775,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "replayio@workspace:packages/replayio"
   dependencies:
+    "@playwright/cli": "npm:latest"
     "@replay-cli/pkg-build": "workspace:^"
     "@replay-cli/shared": "workspace:^"
     "@replay-cli/tsconfig": "workspace:^"
