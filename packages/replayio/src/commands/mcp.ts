@@ -272,7 +272,7 @@ async function connectRemoteClientWithOAuth(
   remoteUrl: URL,
   options: NormalizedMcpOptions
 ): Promise<Client> {
-  const remoteClient = createRemoteClient();
+  let remoteClient = createRemoteClient();
   const oauthProvider = new ReplayMcpOAuthProvider({
     clientId: options.oauthClientId,
     redirectUrl: options.oauthRedirectUrl,
@@ -291,6 +291,7 @@ async function connectRemoteClientWithOAuth(
     await remoteTransport.finishAuth(authorizationCode);
     await remoteClient.close();
 
+    remoteClient = createRemoteClient();
     remoteTransport = createOAuthTransport(remoteUrl, oauthProvider);
     await remoteClient.connect(remoteTransport);
     return remoteClient;
@@ -428,13 +429,14 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
   async redirectToAuthorization(authorizationUrl: URL) {
     await this.startCallbackServer();
+    const compatibleAuthorizationUrl = getCompatibleAuthorizationUrl(authorizationUrl);
 
     console.error("Replay MCP OAuth required. Opening browser for authorization.");
     console.error(`Using OAuth callback URL: ${this.config.redirectUrl}`);
-    console.error(`If the browser does not open, visit: ${authorizationUrl.toString()}`);
+    console.error(`If the browser does not open, visit: ${compatibleAuthorizationUrl.toString()}`);
 
     try {
-      await open(authorizationUrl.toString());
+      await open(compatibleAuthorizationUrl.toString());
     } catch (error) {
       console.error(
         `Failed to open browser automatically: ${
@@ -521,6 +523,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
         response.writeHead(200, { "Content-Type": "text/html" });
         response.end("<h1>Replay MCP authorization complete</h1><p>You can close this window.</p>");
+        console.error("Replay MCP OAuth callback received. Exchanging authorization code.");
         this.closeCallbackServer();
         resolve(code);
       });
@@ -572,4 +575,22 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
       clientId: this.config.clientId,
     });
   }
+}
+
+function getCompatibleAuthorizationUrl(authorizationUrl: URL) {
+  const compatibleAuthorizationUrl = new URL(authorizationUrl);
+  const resource = compatibleAuthorizationUrl.searchParams.get("resource");
+
+  // Auth0 issues API access tokens based on the non-standard `audience`
+  // authorization parameter. MCP sends RFC 8707 `resource`, so mirror it for
+  // Auth0 while preserving the spec-required parameter.
+  if (
+    resource &&
+    !compatibleAuthorizationUrl.searchParams.has("audience") &&
+    compatibleAuthorizationUrl.hostname.endsWith(".auth0.com")
+  ) {
+    compatibleAuthorizationUrl.searchParams.set("audience", resource);
+  }
+
+  return compatibleAuthorizationUrl;
 }
