@@ -50,6 +50,7 @@ type NormalizedMcpOptions = Omit<McpOptions, "auth"> & {
 };
 
 type CachedMcpOAuthDetails = {
+  clientId?: string;
   codeVerifier?: string;
   discoveryState?: OAuthDiscoveryState;
   state?: string;
@@ -330,7 +331,12 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
   }
 
   tokens() {
-    return this.readCache().tokens;
+    const cache = this.readCache();
+    if (cache.clientId !== this.config.clientId) {
+      return undefined;
+    }
+
+    return cache.tokens;
   }
 
   saveTokens(tokens: OAuthTokens) {
@@ -480,6 +486,9 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
   }
 
   private writeCache(cache: CachedMcpOAuthDetails) {
-    writeToCache<CachedMcpOAuthDetails>(McpOAuthCachePath, cache);
+    writeToCache<CachedMcpOAuthDetails>(McpOAuthCachePath, {
+      ...cache,
+      clientId: this.config.clientId,
+    });
   }
 }
