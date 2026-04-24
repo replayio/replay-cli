@@ -34,22 +34,30 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { program } from "commander";
 import { name as packageName, version as packageVersion } from "../../package.json";
-import { replayMcpOAuthClientId, replayMcpOAuthRedirectUrl, replayMcpServer } from "../config";
+import {
+  replayMcpOAuthAudience,
+  replayMcpOAuthClientId,
+  replayMcpOAuthRedirectUrl,
+  replayMcpServer,
+} from "../config";
 
 type AuthMode = "auto" | "cli" | "oauth";
 
 type McpOptions = {
   auth: string;
+  oauthAudience?: string;
   oauthClientId: string;
   oauthRedirectUrl: string;
   url: string;
 };
 
-type NormalizedMcpOptions = Omit<McpOptions, "auth"> & {
+type NormalizedMcpOptions = Omit<McpOptions, "auth" | "oauthAudience"> & {
   auth: AuthMode;
+  oauthAudience: string;
 };
 
 type CachedMcpOAuthDetails = {
+  audience?: string;
   clientId?: string;
   codeVerifier?: string;
   discoveryState?: OAuthDiscoveryState;
@@ -71,6 +79,11 @@ program
   .command("mcp")
   .description("Run the Replay MCP server over stdio")
   .option("--auth <mode>", "Authentication mode: auto, cli, or oauth", "auto")
+  .option(
+    "--oauth-audience <url>",
+    "Auth0 audience to request for MCP OAuth",
+    replayMcpOAuthAudience
+  )
   .option("--oauth-client-id <id>", "Pre-registered MCP OAuth client ID", replayMcpOAuthClientId)
   .option(
     "--oauth-redirect-url <url>",
@@ -86,12 +99,12 @@ program
   });
 
 async function runMcp(options: McpOptions) {
+  const remoteUrl = new URL(options.url);
   const normalizedOptions = {
     ...options,
     auth: parseAuthMode(options.auth),
+    oauthAudience: options.oauthAudience || getDefaultMcpOAuthAudience(remoteUrl),
   };
-  const { url } = normalizedOptions;
-  const remoteUrl = new URL(url);
   let remoteClient: Client | undefined;
   let remoteClientPromise: Promise<Client> | undefined;
 
@@ -274,6 +287,7 @@ async function connectRemoteClientWithOAuth(
 ): Promise<Client> {
   let remoteClient = createRemoteClient();
   const oauthProvider = new ReplayMcpOAuthProvider({
+    audience: options.oauthAudience,
     clientId: options.oauthClientId,
     redirectUrl: options.oauthRedirectUrl,
   });
@@ -356,6 +370,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
   constructor(
     private readonly config: {
+      audience: string;
       clientId: string;
       redirectUrl: string;
     }
@@ -385,7 +400,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
   tokens() {
     const cache = this.readCache();
-    if (cache.clientId !== this.config.clientId) {
+    if (cache.clientId !== this.config.clientId || cache.audience !== this.config.audience) {
       return undefined;
     }
 
@@ -429,7 +444,10 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
   async redirectToAuthorization(authorizationUrl: URL) {
     await this.startCallbackServer();
-    const compatibleAuthorizationUrl = getCompatibleAuthorizationUrl(authorizationUrl);
+    const compatibleAuthorizationUrl = getCompatibleAuthorizationUrl(
+      authorizationUrl,
+      this.config.audience
+    );
 
     console.error("Replay MCP OAuth required. Opening browser for authorization.");
     console.error(`Using OAuth callback URL: ${this.config.redirectUrl}`);
@@ -572,24 +590,33 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
   private writeCache(cache: CachedMcpOAuthDetails) {
     writeToCache<CachedMcpOAuthDetails>(McpOAuthCachePath, {
       ...cache,
+      audience: this.config.audience,
       clientId: this.config.clientId,
     });
   }
 }
 
-function getCompatibleAuthorizationUrl(authorizationUrl: URL) {
+function getDefaultMcpOAuthAudience(remoteUrl: URL) {
+  if (remoteUrl.origin === "https://dispatch.replay.io" && remoteUrl.pathname === "/mcp") {
+    return "https://dispatch.replay.io/nut/mcp";
+  }
+
+  const resourceUrl = new URL(remoteUrl);
+  resourceUrl.hash = "";
+  return resourceUrl.toString().replace(/\/$/, "");
+}
+
+function getCompatibleAuthorizationUrl(authorizationUrl: URL, audience: string) {
   const compatibleAuthorizationUrl = new URL(authorizationUrl);
-  const resource = compatibleAuthorizationUrl.searchParams.get("resource");
 
   // Auth0 issues API access tokens based on the non-standard `audience`
   // authorization parameter. MCP sends RFC 8707 `resource`, so mirror it for
   // Auth0 while preserving the spec-required parameter.
   if (
-    resource &&
     !compatibleAuthorizationUrl.searchParams.has("audience") &&
     compatibleAuthorizationUrl.hostname.endsWith(".auth0.com")
   ) {
-    compatibleAuthorizationUrl.searchParams.set("audience", resource);
+    compatibleAuthorizationUrl.searchParams.set("audience", audience);
   }
 
   return compatibleAuthorizationUrl;
