@@ -92,53 +92,89 @@ async function runMcp(options: McpOptions) {
   };
   const { url } = normalizedOptions;
   const remoteUrl = new URL(url);
-  const remoteClient = await connectRemoteClient(remoteUrl, normalizedOptions);
+  let remoteClient: Client | undefined;
+  let remoteClientPromise: Promise<Client> | undefined;
 
-  const remoteCapabilities = remoteClient.getServerCapabilities() ?? {};
   const server = new McpServer(
     {
       name: "replay",
       version: packageVersion,
     },
     {
-      capabilities: getLocalCapabilities(remoteCapabilities),
-      instructions: remoteClient.getInstructions(),
+      capabilities: getLocalCapabilities(),
+      instructions: "Replay MCP stdio proxy. Remote Replay tools are loaded on demand.",
     }
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, (request, extra) =>
-    remoteClient.listTools(request.params, { signal: extra.signal })
-  );
-  server.setRequestHandler(CallToolRequestSchema, (request, extra) =>
-    remoteClient.callTool(request.params, undefined, { signal: extra.signal })
-  );
+  const getRemoteClient = async () => {
+    if (!remoteClientPromise) {
+      remoteClientPromise = connectRemoteClient(remoteUrl, normalizedOptions)
+        .then(client => {
+          remoteClient = client;
+          void server.sendToolListChanged().catch(() => {});
+          void server.sendResourceListChanged().catch(() => {});
+          void server.sendPromptListChanged().catch(() => {});
+          return client;
+        })
+        .catch(error => {
+          remoteClientPromise = undefined;
+          throw error;
+        });
+    }
 
-  if (remoteCapabilities.resources) {
-    server.setRequestHandler(ListResourcesRequestSchema, (request, extra) =>
-      remoteClient.listResources(request.params, { signal: extra.signal })
-    );
-    server.setRequestHandler(ReadResourceRequestSchema, (request, extra) =>
-      remoteClient.readResource(request.params, { signal: extra.signal })
-    );
-    server.setRequestHandler(ListResourceTemplatesRequestSchema, (request, extra) =>
-      remoteClient.listResourceTemplates(request.params, { signal: extra.signal })
-    );
-  }
+    return await remoteClientPromise;
+  };
 
-  if (remoteCapabilities.prompts) {
-    server.setRequestHandler(ListPromptsRequestSchema, (request, extra) =>
-      remoteClient.listPrompts(request.params, { signal: extra.signal })
-    );
-    server.setRequestHandler(GetPromptRequestSchema, (request, extra) =>
-      remoteClient.getPrompt(request.params, { signal: extra.signal })
-    );
-  }
+  server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    return await client.listTools(request.params, { signal: extra.signal });
+  });
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    return await client.callTool(request.params, undefined, { signal: extra.signal });
+  });
 
-  if (remoteCapabilities.completions) {
-    server.setRequestHandler(CompleteRequestSchema, (request, extra) =>
-      remoteClient.complete(request.params, { signal: extra.signal })
-    );
-  }
+  server.setRequestHandler(ListResourcesRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    if (!client.getServerCapabilities()?.resources) {
+      return { resources: [] };
+    }
+
+    return await client.listResources(request.params, { signal: extra.signal });
+  });
+  server.setRequestHandler(ReadResourceRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    return await client.readResource(request.params, { signal: extra.signal });
+  });
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    if (!client.getServerCapabilities()?.resources) {
+      return { resourceTemplates: [] };
+    }
+
+    return await client.listResourceTemplates(request.params, { signal: extra.signal });
+  });
+
+  server.setRequestHandler(ListPromptsRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    if (!client.getServerCapabilities()?.prompts) {
+      return { prompts: [] };
+    }
+
+    return await client.listPrompts(request.params, { signal: extra.signal });
+  });
+  server.setRequestHandler(GetPromptRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    return await client.getPrompt(request.params, { signal: extra.signal });
+  });
+  server.setRequestHandler(CompleteRequestSchema, async (request, extra) => {
+    const client = await getRemoteClient();
+    if (!client.getServerCapabilities()?.completions) {
+      return { completion: { values: [] } };
+    }
+
+    return await client.complete(request.params, { signal: extra.signal });
+  });
 
   server.onerror = error => {
     console.error(`Replay MCP stdio error: ${error.message}`);
@@ -155,7 +191,8 @@ async function runMcp(options: McpOptions) {
     process.off("SIGTERM", handleSignal);
     process.stdin.off("end", handleStdinEnd);
 
-    await Promise.allSettled([server.close(), remoteClient.close()]);
+    const remoteClientToClose = remoteClient ?? (await remoteClientPromise?.catch(() => undefined));
+    await Promise.allSettled([server.close(), remoteClientToClose?.close()]);
 
     if (typeof exitCode === "number") {
       process.exit(exitCode);
@@ -286,13 +323,12 @@ function isAuthenticationError(error: unknown) {
   );
 }
 
-function getLocalCapabilities(remoteCapabilities: ServerCapabilities): ServerCapabilities {
+function getLocalCapabilities(): ServerCapabilities {
   return {
-    completions: remoteCapabilities.completions,
-    experimental: remoteCapabilities.experimental,
-    prompts: remoteCapabilities.prompts,
-    resources: remoteCapabilities.resources,
-    tools: remoteCapabilities.tools ?? {},
+    completions: {},
+    prompts: { listChanged: true },
+    resources: { listChanged: true },
+    tools: { listChanged: true },
   };
 }
 
@@ -300,6 +336,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
   readonly clientMetadataUrl = undefined;
   private callbackServer: HttpServer | undefined;
   private callbackPromise: Promise<string> | undefined;
+  private callbackServerReadyPromise: Promise<void> | undefined;
 
   constructor(
     private readonly config: {
@@ -417,6 +454,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
 
   private async startCallbackServer() {
     if (this.callbackPromise) {
+      await this.callbackServerReadyPromise;
       return;
     }
 
@@ -473,13 +511,40 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
       });
 
       this.callbackServer.once("error", reject);
-      this.callbackServer.listen(port, redirectUrl.hostname);
     });
+
+    this.callbackServerReadyPromise = new Promise((resolve, reject) => {
+      const server = this.callbackServer!;
+      const handleError = (error: Error) => {
+        server.off("listening", handleListening);
+        reject(error);
+      };
+      const handleListening = () => {
+        server.off("error", handleError);
+        resolve();
+      };
+
+      server.once("error", handleError);
+      if (redirectUrl.hostname === "localhost") {
+        server.listen(port, handleListening);
+      } else {
+        server.listen(port, redirectUrl.hostname, handleListening);
+      }
+    });
+
+    try {
+      await this.callbackServerReadyPromise;
+    } catch (error) {
+      this.closeCallbackServer();
+      this.callbackPromise = undefined;
+      throw error;
+    }
   }
 
   private closeCallbackServer() {
     this.callbackServer?.close();
     this.callbackServer = undefined;
+    this.callbackServerReadyPromise = undefined;
   }
 
   private readCache() {
