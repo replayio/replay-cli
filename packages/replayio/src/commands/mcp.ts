@@ -102,7 +102,7 @@ async function runMcp(options: McpOptions) {
     },
     {
       capabilities: getLocalCapabilities(),
-      instructions: "Replay MCP stdio proxy. Remote Replay tools are loaded on demand.",
+      instructions: "Replay MCP stdio proxy for the hosted Replay MCP server.",
     }
   );
 
@@ -123,6 +123,15 @@ async function runMcp(options: McpOptions) {
     }
 
     return await remoteClientPromise;
+  };
+  const startRemoteClientConnection = () => {
+    void getRemoteClient().catch(error => {
+      console.error(
+        `Replay MCP remote connection failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    });
   };
 
   server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
@@ -208,12 +217,18 @@ async function runMcp(options: McpOptions) {
   server.onclose = () => {
     void cleanup(0);
   };
+  server.oninitialized = startRemoteClientConnection;
 
   process.on("SIGINT", handleSignal);
   process.on("SIGTERM", handleSignal);
   process.stdin.on("end", handleStdinEnd);
 
   await server.connect(new StdioServerTransport());
+
+  if (process.stdin.isTTY) {
+    console.error("Replay MCP stdio server started. Starting Replay authentication.");
+    startRemoteClientConnection();
+  }
 }
 
 async function connectRemoteClient(remoteUrl: URL, options: NormalizedMcpOptions): Promise<Client> {
