@@ -378,6 +378,7 @@ class ReplayMcpOAuthProvider implements OAuthClientProvider {
     await this.startCallbackServer();
 
     console.error("Replay MCP OAuth required. Opening browser for authorization.");
+    console.error(`Using OAuth callback URL: ${this.config.redirectUrl}`);
     console.error(`If the browser does not open, visit: ${authorizationUrl.toString()}`);
 
     try {

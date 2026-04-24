@@ -49,7 +49,7 @@ stable pre-registered client ID and PKCE.
 The HTTP endpoint can be overridden with `REPLAY_MCP_SERVER` or `replayio mcp --url <url>`.
 The OAuth client can be overridden with `REPLAY_MCP_OAUTH_CLIENT_ID`, and the loopback
 callback can be overridden with `REPLAY_MCP_OAUTH_REDIRECT_URL`. The default OAuth
-callback is `http://127.0.0.1:42813/callback` and must be registered for the client.
+callback is `http://localhost:42813/callback` and must be registered for the client.
 
 ## Contributing
 
