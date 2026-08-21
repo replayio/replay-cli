@@ -1,5 +1,11 @@
 # @replayio/playwright
 
+## 5.0.4
+
+### Patch Changes
+
+- [#655](https://github.com/replayio/replay-cli/pull/655) [`490dab1`](https://github.com/replayio/replay-cli/commit/490dab1c3223901b5c2c6abbb65ec2060ab021c2) Thanks [@michaelfward](https://github.com/michaelfward)! - internal: add a way to attribute the client origin of the outbound traffic to Replay services
+
 ## 5.0.3
 
 ### Patch Changes

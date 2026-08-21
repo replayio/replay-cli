@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0
+
+### Minor Changes
+
+- [#661](https://github.com/replayio/replay-cli/pull/661) [`4438dfb`](https://github.com/replayio/replay-cli/commit/4438dfb23eb29e2eef505d4b70eb4d5d26322dcf) Thanks [@Domiii](https://github.com/Domiii)! - Uploaded recordings no longer start processing by default. Use `--process` to start processing them immediately after upload.
+
+### Patch Changes
+
+- [#655](https://github.com/replayio/replay-cli/pull/655) [`490dab1`](https://github.com/replayio/replay-cli/commit/490dab1c3223901b5c2c6abbb65ec2060ab021c2) Thanks [@michaelfward](https://github.com/michaelfward)! - internal: add a way to attribute the client origin of the outbound traffic to Replay services
+
 ## 1.8.2
 
 ### Patch Changes
