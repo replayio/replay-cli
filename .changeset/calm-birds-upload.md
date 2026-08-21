@@ -2,4 +2,4 @@
 "replayio": minor
 ---
 
-Do not start processing recordings on upload by default; opt in with `--process`
+Uploaded recordings no longer start processing by default. Use `--process` to start processing them immediately after upload.
