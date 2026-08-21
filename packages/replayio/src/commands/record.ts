@@ -158,7 +158,7 @@ async function record(url: string = "about:blank", { headless }: { headless?: bo
       }
 
       if (selectedRecordings.length > 0) {
-        await uploadRecordings(selectedRecordings, { processingBehavior: "start-processing" });
+        await uploadRecordings(selectedRecordings, { processingBehavior: "do-not-process" });
       }
     }
   } else if (crashedRecordings.length === 0) {
