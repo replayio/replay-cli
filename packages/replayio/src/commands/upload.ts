@@ -53,7 +53,7 @@ async function upload(
 
   if (selectedRecordings.length > 0) {
     await uploadRecordings(selectedRecordings, {
-      processingBehavior: "start-processing",
+      processingBehavior: "do-not-process",
       noPresigned: !presigned,
     });
   }
