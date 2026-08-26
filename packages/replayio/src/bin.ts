@@ -11,6 +11,7 @@ import "./commands/info";
 import "./commands/list";
 import "./commands/login";
 import "./commands/logout";
+import "./commands/mcp";
 import "./commands/open";
 import "./commands/record";
 import "./commands/remove";

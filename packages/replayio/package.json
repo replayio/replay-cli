@@ -29,6 +29,7 @@
   ],
   "homepage": "https://github.com/replayio/replay-cli/blob/main/packages/replayio/README.md",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "@replayio/protocol": "^0.71.0",
     "@replayio/sourcemap-upload": "workspace:^",
     "@types/semver": "^7.5.6",

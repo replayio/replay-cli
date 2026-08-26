@@ -1,6 +1,15 @@
 // TODO [PRO-720] Remove these in favor of values exported by "shared"
 export const replayApiServer = process.env.REPLAY_API_SERVER || "https://api.replay.io";
 export const replayAppHost = process.env.REPLAY_APP_SERVER || "https://app.replay.io";
+export const replayMcpServer =
+  process.env.REPLAY_MCP_SERVER ||
+  process.env.RECORD_REPLAY_MCP_SERVER ||
+  "https://dispatch.replay.io/mcp";
+export const replayMcpOAuthClientId =
+  process.env.REPLAY_MCP_OAUTH_CLIENT_ID || "OIteqhJF3KieHSauCGduBqU8shNKzBuO";
+export const replayMcpOAuthRedirectUrl =
+  process.env.REPLAY_MCP_OAUTH_REDIRECT_URL || "http://localhost:42813/callback";
+export const replayMcpOAuthAudience = process.env.REPLAY_MCP_OAUTH_AUDIENCE;
 export const replayWsServer =
   process.env.RECORD_REPLAY_SERVER || process.env.REPLAY_SERVER || "wss://dispatch.replay.io";
 
