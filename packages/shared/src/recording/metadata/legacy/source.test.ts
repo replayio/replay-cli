@@ -3,6 +3,17 @@ import { init } from "./source";
 describe("source", () => {
   describe("init", () => {
     describe("buildkite", () => {
+      let env: NodeJS.ProcessEnv;
+
+      beforeEach(() => {
+        env = process.env;
+        process.env = {};
+      });
+
+      afterEach(() => {
+        process.env = env;
+      });
+
       it("omits merge.id when BUILDKITE_PULL_REQUEST is false", async () => {
         process.env.BUILDKITE_COMMIT = "abc";
         process.env.BUILDKITE_PULL_REQUEST = "false";
