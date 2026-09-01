@@ -23,6 +23,7 @@ export default class ProtocolClient {
   private pendingCommands: Map<number, Deferred<any, CommandData>> = new Map();
   private socket: WebSocket;
   private accessToken: string;
+  private closeError: Error | undefined;
 
   constructor(accessToken: string) {
     logDebug(`Creating WebSocket for ${replayWsServer}`);
@@ -84,6 +85,10 @@ export default class ProtocolClient {
     params: Params;
     sessionId?: string;
   }) {
+    if (this.closeError) {
+      return Promise.reject(this.closeError);
+    }
+
     const id = this.nextMessageId++;
 
     logDebug("Sending command", { id, method, params, sessionId });
@@ -95,15 +100,16 @@ export default class ProtocolClient {
       sessionId,
     };
 
+    const deferred = createDeferred<ResponseType, CommandData>({ sessionId, command });
+    this.pendingCommands.set(id, deferred);
+
     this.socket.send(JSON.stringify(command), error => {
       if (error) {
         logDebug("Received socket error", { error });
+        this.pendingCommands.delete(id);
+        deferred.rejectIfPending(error instanceof Error ? error : new Error(String(error)));
       }
     });
-
-    const deferred = createDeferred<ResponseType, CommandData>({ sessionId, command });
-
-    this.pendingCommands.set(id, deferred);
 
     return deferred.promise;
   }
@@ -112,18 +118,25 @@ export default class ProtocolClient {
     return this.deferredAuthenticated.promise;
   }
 
-  private onSocketClose = () => {
-    if (this.deferredAuthenticated.status === STATUS_PENDING) {
-      this.deferredAuthenticated.reject(new Error("Socket closed before authentication completed"));
+  private failSocket(err: Error) {
+    if (this.closeError) {
+      return;
     }
+    this.closeError = err;
+    this.deferredAuthenticated.rejectIfPending(err);
+    for (const deferred of this.pendingCommands.values()) {
+      deferred.rejectIfPending(err);
+    }
+    this.pendingCommands.clear();
+  }
+
+  private onSocketClose = () => {
+    this.failSocket(new Error("Socket closed"));
   };
 
   private onSocketError = (error: any) => {
     logError("ProtocolClient:Error", { error });
-
-    if (this.deferredAuthenticated.status === STATUS_PENDING) {
-      this.deferredAuthenticated.reject(error);
-    }
+    this.failSocket(error instanceof Error ? error : new Error(String(error)));
   };
 
   private onSocketMessage = (contents: WebSocket.RawData) => {
