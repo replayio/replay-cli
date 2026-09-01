@@ -1,5 +1,11 @@
 # @replayio/cypress
 
+## 3.1.7
+
+### Patch Changes
+
+- [#662](https://github.com/replayio/replay-cli/pull/662) [`827f671`](https://github.com/replayio/replay-cli/commit/827f671eff958351d191f29d284b350a3aad66f6) Thanks [@Domiii](https://github.com/Domiii)! - Prevent recording uploads from hanging when the Replay connection closes.
+
 ## 3.1.6
 
 ### Patch Changes
