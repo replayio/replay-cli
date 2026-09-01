@@ -401,7 +401,7 @@ export async function replayFixture(
       });
     },
 
-    onApiCallEnd: ({ userData, error, params }) => {
+    onApiCallEnd: ({ userData, error }) => {
       const step: TestStepInternal | undefined = userData;
       if (!step?.stepId || ignoredSteps.has(step.stepId)) {
         return;
@@ -409,7 +409,7 @@ export async function replayFixture(
       return handlePlaywrightEvent({
         event: "step:end",
         id: step.stepId,
-        params,
+        params: step.params,
         detail: {
           error: error ? parseError(error) : null,
         },

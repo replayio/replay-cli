@@ -1,4 +1,5 @@
 import { ReadStream, createReadStream, readFile, stat, writeFile } from "fs-extra";
+import { RecordingData } from "@replayio/protocol";
 import assert from "node:assert/strict";
 import { fetch } from "undici";
 import { Buffer } from "node:buffer";
@@ -30,7 +31,7 @@ const uploadQueue = createPromiseQueue({ concurrency: 10 });
 async function setMetadataWithRetry(
   client: ProtocolClient,
   metadata: Record<string, unknown>,
-  recordingData: Record<string, unknown>
+  recordingData: RecordingData
 ) {
   await retryWithExponentialBackoff(
     () => setRecordingMetadata(client, { metadata, recordingData }),
