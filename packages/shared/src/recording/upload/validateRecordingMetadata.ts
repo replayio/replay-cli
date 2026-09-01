@@ -1,9 +1,9 @@
 import { RecordingData } from "@replayio/protocol";
 import { sanitizeMetadata } from "../metadata/sanitizeMetadata";
-import { LocalRecording } from "../types";
+import { LocalRecording, UnstructuredMetadata } from "../types";
 
 export async function validateRecordingMetadata(recording: LocalRecording): Promise<{
-  metadata: Object;
+  metadata: UnstructuredMetadata;
   recordingData: RecordingData;
 }> {
   const {
