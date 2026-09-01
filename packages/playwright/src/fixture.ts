@@ -147,6 +147,7 @@ type Playwright = {
 const fixtureStates = new WeakMap<
   TestInfoImpl,
   {
+    apiSteps: Map<string, TestStepInternal>;
     expectSteps: Set<string>;
     ignoredSteps: Set<string>;
     testData: TestExecutionData;
@@ -173,6 +174,7 @@ function getFixtureState(testInfo: TestInfoImpl) {
       },
     };
     state = {
+      apiSteps: new Map(),
       expectSteps: new Set(),
       ignoredSteps: new Set(),
       testData: testData,
@@ -189,7 +191,7 @@ export async function replayFixture(
   use: () => Promise<void>,
   testInfo: TestInfoImpl
 ) {
-  const { expectSteps, ignoredSteps, testData } = getFixtureState(testInfo);
+  const { apiSteps, expectSteps, ignoredSteps, testData } = getFixtureState(testInfo);
 
   // fixtures are created repeatedly for the same test
   // since they are created for beforeAll and afterAll hooks too
@@ -200,22 +202,28 @@ export async function replayFixture(
 
     const addStep = testInfo._addStep;
     testInfo._addStep = function (data, ...rest) {
+      let frames: StackFrame[] = [];
+
       // expects are not passed through the client side instrumentation (since Playwright 1.41.0: https://github.com/microsoft/playwright/pull/28609)
       // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright-core/src/client/channelOwner.ts#L186-L188
       // they call `_addStep` directly
       // https://github.com/microsoft/playwright/blob/5fa0583dcb708e74d2f7fc456b8c44cec9752709/packages/playwright/src/matchers/expect.ts#L267-L275
       // so we need to handle them here
       if (data.category === "expect") {
-        let frames = data.location ? [data.location] : undefined;
-        if (!frames) {
+        frames = data.location ? [data.location] : [];
+        if (!frames.length) {
           // based on those lines we replicate how Playwright computes the location and precompute it here for it so it uses ours
           // https://github.com/microsoft/playwright/blob/2734a0534256ffde6bd8dc8d27581c7dd26fe2a6/packages/playwright/src/worker/testInfo.ts#L266-L272
           const filteredStack = filteredStackTrace(captureRawStack());
           data.location = filteredStack[0];
           frames = filteredStack;
         }
+      }
 
-        const step = addStep.call(this, data, ...rest);
+      const step = addStep.call(this, data, ...rest);
+      apiSteps.set(step.stepId, step);
+
+      if (data.category === "expect") {
         expectSteps.add(step.stepId);
 
         handlePlaywrightEvent({
@@ -238,7 +246,7 @@ export async function replayFixture(
         return step;
       }
 
-      return addStep.call(this, data, ...rest);
+      return step;
     };
 
     const onStepEnd = testInfo._onStepEnd;
@@ -260,6 +268,15 @@ export async function replayFixture(
         });
       }
     };
+  }
+
+  function getApiStep({ stepId, userData }: { stepId?: string; userData: any }) {
+    // Playwright <= 1.62 stores the step itself in userData. Starting in 1.63,
+    // userData is a completion callback and the step is identified by stepId.
+    if (userData?.stepId) {
+      return userData as TestStepInternal;
+    }
+    return stepId ? apiSteps.get(stepId) : undefined;
   }
 
   // start of before hooks can't be intercepted by the fixture in `_addStep`
@@ -353,20 +370,22 @@ export async function replayFixture(
   }
 
   const csiListener: ClientInstrumentationListener = {
-    onApiCallBegin: ({ userData, apiName, frames }) => {
+    onApiCallBegin: (data, channel) => {
+      const { apiName, frames } = data;
       // `.userObject` holds the step data
       // https://github.com/microsoft/playwright/blob/73285245566bdce80bab736577e9bc278d5cf4bf/packages/playwright/src/index.ts#L274-L283
       // this has been introduced in Playwright 1.17.0
-      const step: TestStepInternal | undefined = userData;
+      const step = getApiStep(data);
 
       if (!step?.stepId) {
         return;
       }
-      const params = step.params;
+      const params = step.params ?? channel?.params ?? data.params;
+      const rawParams = channel?.params ?? data.params ?? step.params;
       // 1.52 had params in the ApiCallData itself
       // 1.53 moved them to the second argument of the `onApiCallBegin` callback
-      // but both should have the same thing on the step itself
-      if (isReplayAnnotation(params)) {
+      // Playwright 1.63 no longer keeps raw evaluate params on the step itself.
+      if (isReplayAnnotation(rawParams)) {
         // do not emit page.evaluate steps that add replay annotations
         // this would create an infinite async loop
         ignoredSteps.add(step.stepId);
@@ -401,8 +420,9 @@ export async function replayFixture(
       });
     },
 
-    onApiCallEnd: ({ userData, error }) => {
-      const step: TestStepInternal | undefined = userData;
+    onApiCallEnd: data => {
+      const { error } = data;
+      const step = getApiStep(data);
       if (!step?.stepId || ignoredSteps.has(step.stepId)) {
         return;
       }
