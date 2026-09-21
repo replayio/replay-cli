@@ -26,6 +26,32 @@ This CLI will automatically prompt you to log into your Replay account (or to re
 
 The CLI will also prompt you to download the Replay runtime if you have not already done so.
 
+## MCP
+
+The CLI can run Replay's MCP server over stdio using your existing Replay CLI authentication:
+
+```json
+{
+  "mcpServers": {
+    "replay": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "replayio", "mcp"]
+    }
+  }
+}
+```
+
+The command tries existing Replay CLI authentication first, using `replayio login` or
+`REPLAY_API_KEY`. If no CLI token is available, it falls back to MCP OAuth using a
+stable pre-registered client ID and PKCE.
+
+The HTTP endpoint can be overridden with `REPLAY_MCP_SERVER` or `replayio mcp --url <url>`.
+The OAuth client can be overridden with `REPLAY_MCP_OAUTH_CLIENT_ID`, the Auth0
+audience can be overridden with `REPLAY_MCP_OAUTH_AUDIENCE`, and the loopback callback
+can be overridden with `REPLAY_MCP_OAUTH_REDIRECT_URL`. The default OAuth callback is
+`http://localhost:42813/callback` and must be registered for the client.
+
 ## Contributing
 
 Contributing guide can be found [here](contributing.md).
