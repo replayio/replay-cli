@@ -14,6 +14,7 @@ export async function selectRecordings(
     noSelectableRecordingsMessage?: string;
     prompt: string;
     selectionMessage: string;
+    streamedUpload?: boolean;
   }
 ): Promise<LocalRecording[]> {
   const {
@@ -22,10 +23,11 @@ export async function selectRecordings(
     noSelectableRecordingsMessage,
     prompt,
     selectionMessage,
+    streamedUpload,
   } = options;
 
   const defaultSelected = (recording: LocalRecording) => {
-    if (!canUpload(recording)) {
+    if (!canUpload(recording, { streamedUpload })) {
       return false;
     } else if (defaultSelectedProp) {
       return defaultSelectedProp(recording);
@@ -34,7 +36,7 @@ export async function selectRecordings(
     }
   };
 
-  const disabledSelector = (recording: LocalRecording) => !canUpload(recording);
+  const disabledSelector = (recording: LocalRecording) => !canUpload(recording, { streamedUpload });
 
   let isShowingAllRecordings = true;
   if (maxRecordingsToDisplay != null && recordings.length > maxRecordingsToDisplay) {

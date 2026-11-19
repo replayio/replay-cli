@@ -11,6 +11,7 @@ jest.mock("../../protocol/api/finishRecording");
 jest.mock("../../protocol/api/setRecordingMetadata");
 jest.mock("../../async/timeoutAfter");
 jest.mock("./uploadRecording");
+jest.mock("./recordingWriter");
 
 const recordingId = "11111111-1111-4111-8111-111111111111";
 
@@ -25,7 +26,9 @@ describe("streamRecording", () => {
     setRecordingMetadata: jest.Mock;
     timeoutAfter: jest.Mock;
     uploadRecording: jest.Mock;
+    isOpenForWriting: jest.Mock;
   };
+  let finish: AbortController;
 
   // Recorder side: appends recording bytes and log entries
   const write = (data: string) => appendFileSync(dataPath, data);
@@ -45,7 +48,7 @@ describe("streamRecording", () => {
     const recording: LocalRecording = readRecordings()[0];
     await streamRecording({}, recording, {
       accessToken: "token",
-      recorderExited: new AbortController().signal,
+      finish: finish.signal,
     }).catch(() => {});
     return recording;
   };
@@ -63,7 +66,10 @@ describe("streamRecording", () => {
       setRecordingMetadata: require("../../protocol/api/setRecordingMetadata").setRecordingMetadata,
       timeoutAfter: require("../../async/timeoutAfter").timeoutAfter,
       uploadRecording: require("./uploadRecording").uploadRecording,
+      isOpenForWriting: require("./recordingWriter").isOpenForWriting,
     };
+    finish = new AbortController();
+    api.isOpenForWriting.mockResolvedValue(true);
     sent = [];
     api.createRecording.mockImplementation(async (_, params) => ({
       recordingId: params.recordingId,
@@ -118,5 +124,47 @@ describe("streamRecording", () => {
     expect(api.uploadRecording).toHaveBeenCalledTimes(1);
     expect(recording.id).toBe(recordingId);
     expect(recording.serverId).not.toBe(recordingId);
+  });
+
+  it("gives up on a recording whose recorder is gone without ending it, without creating it", async () => {
+    write("AB");
+    api.isOpenForWriting.mockResolvedValue(false);
+    onPolls();
+
+    const recording = await stream();
+
+    expect(api.createRecording).not.toHaveBeenCalled();
+    expect(api.uploadRecording).not.toHaveBeenCalled();
+    expect(recording.uploadStatus).toBe("failed");
+  });
+
+  it("waits one poll for `writeFinished` after the recorder closed the file", async () => {
+    write("AB");
+    api.isOpenForWriting.mockResolvedValue(false);
+    onPolls(() => log("writeFinished"));
+
+    const recording = await stream();
+
+    expect(sent).toEqual([{ offset: 0, data: "AB" }]);
+    expect(api.finishRecording).toHaveBeenCalledTimes(1);
+    expect(recording.uploadStatus).toBe("uploaded");
+  });
+
+  it("finishes with the data written so far once `finish` is aborted", async () => {
+    write("AB");
+    onPolls(() => {
+      write("CD");
+      finish.abort();
+    });
+
+    const recording = await stream();
+
+    expect(sent).toEqual([
+      { offset: 0, data: "AB" },
+      { offset: 2, data: "CD" },
+    ]);
+    expect(api.finishRecording).toHaveBeenCalledTimes(1);
+    expect(recording.recordingStatus).toBe("recording");
+    expect(recording.uploadStatus).toBe("uploaded");
   });
 });

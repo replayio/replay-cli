@@ -124,10 +124,12 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
       noPresigned?: boolean;
       processingBehavior: ProcessingBehavior;
       silent?: boolean;
+      // Streams recordings that are still being recorded
+      streamedUpload?: boolean;
     }
   ) {
     recordings = recordings.filter(recording => {
-      if (!canUpload(recording)) {
+      if (!canUpload(recording, { streamedUpload: options.streamedUpload })) {
         logDebug(`Cannot upload recording ${recording.id}`, { recording });
         return false;
       }
@@ -141,7 +143,12 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
 
     const { accessToken } = await getAccessToken();
     assert(accessToken, "No access token found");
-    const worker = createUploadWorker({ accessToken, ...options });
+    const { streamedUpload, ...workerOptions } = options;
+    const worker = createUploadWorker({
+      accessToken,
+      ...workerOptions,
+      streamedUpload: streamedUpload ? {} : undefined,
+    });
     const deferredActions = recordings.map(recording => worker.upload(recording));
 
     if (!silent) {

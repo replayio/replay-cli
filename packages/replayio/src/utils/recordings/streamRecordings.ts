@@ -8,19 +8,17 @@ import assert from "node:assert/strict";
 const pollInterval = 1_000;
 
 // Starts uploading the process group's recordings as soon as the recorder begins writing them.
-// `end` must be called once the recorder has exited.
+// `end` must be called once the recorder has exited; it waits until the uploads are done.
 export async function startStreamedUploads(processGroupId: string) {
   const { accessToken } = await getAccessToken();
   assert(accessToken, "No access token found");
 
-  const recorderExited = new AbortController();
   const worker = createUploadWorker({
     accessToken,
     processingBehavior: "do-not-process",
-    streamedUpload: { recorderExited: recorderExited.signal },
+    streamedUpload: {},
   });
 
-  // Log IDs; an upload may replace a recording's ID
   const startedIds = new Set<string>();
 
   const startUploads = () => {
@@ -45,7 +43,6 @@ export async function startStreamedUploads(processGroupId: string) {
     startedIds,
     end: async () => {
       clearInterval(interval);
-      recorderExited.abort();
       startUploads();
 
       return worker.end();

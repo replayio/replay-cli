@@ -3,7 +3,7 @@ import ProtocolClient from "../../protocol/ProtocolClient";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { removeFromDisk } from "../removeFromDisk";
 import { LocalRecording } from "../types";
-import { streamRecording } from "./streamRecording";
+import { streamRecording, StreamRecordingOptions } from "./streamRecording";
 import { ProcessingBehavior } from "./types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
@@ -20,7 +20,7 @@ export function createUploadWorker({
   noPresigned?: boolean;
   processingBehavior: ProcessingBehavior;
   // Uploads in-progress recordings while they are being written
-  streamedUpload?: { recorderExited: AbortSignal };
+  streamedUpload?: Pick<StreamRecordingOptions, "finish">;
 }) {
   const client = new ProtocolClient(accessToken);
   const deferredAuthenticated = createDeferred<boolean>();

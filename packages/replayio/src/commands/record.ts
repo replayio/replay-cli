@@ -3,7 +3,10 @@ import { logError } from "@replay-cli/shared/logger";
 import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { canUpload } from "@replay-cli/shared/recording/canUpload";
-import { streamedUploadEnabled } from "@replay-cli/shared/recording/config";
+import {
+  assertStreamedUploadSupported,
+  streamedUploadEnabled,
+} from "@replay-cli/shared/recording/config";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
 import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
 import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
@@ -44,6 +47,9 @@ async function record(
 
   const processGroupId = uuid();
 
+  if (streamedUpload) {
+    assertStreamedUploadSupported();
+  }
   const streamedUploads = streamedUpload ? await startStreamedUploads(processGroupId) : undefined;
 
   try {

@@ -12,6 +12,7 @@ import { setRecordingMetadata } from "../../protocol/api/setRecordingMetadata";
 import { readRecordings } from "../getRecordings";
 import { LocalRecording, RECORDING_LOG_KIND } from "../types";
 import { updateRecordingLog } from "../updateRecordingLog";
+import { isOpenForWriting } from "./recordingWriter";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
 import { uploadSourceMaps } from "./uploadSourceMaps";
@@ -22,12 +23,12 @@ const maxChunkSize = 4 * 1024 * 1024;
 
 export type StreamRecordingOptions = {
   accessToken: string;
-  // Aborted once the recorder process has exited
-  recorderExited: AbortSignal;
+  // Once aborted, the recording is finished with the data written so far
+  finish?: AbortSignal;
 };
 
 // Uploads the recording while the recorder is still writing it.
-// Falls back to a regular upload of the finished file if streaming fails.
+// Falls back to a regular upload of the file if streaming fails.
 export async function streamRecording(
   client: ProtocolClient,
   recording: LocalRecording,
@@ -36,7 +37,7 @@ export async function streamRecording(
   logInfo("StreamRecording:Started", { recordingId: recording.id });
 
   try {
-    await streamRecordingData(client, recording, options.recorderExited);
+    await streamRecordingData(client, recording, options.finish);
   } catch (error) {
     logError("StreamRecording:Failed", { error, recordingId: recording.id });
     await uploadAfterStreamFailure(recording, options, error as Error);
@@ -63,11 +64,40 @@ export async function streamRecording(
 async function streamRecordingData(
   client: ProtocolClient,
   recording: LocalRecording,
-  recorderExited: AbortSignal
+  finish: AbortSignal | undefined
 ) {
-  const { buildId, path, serverId } = recording;
+  const { path } = recording;
   assert(path, "Recording path is required");
 
+  // Created with the first data, so recordings that never send any don't create one
+  let recordingId: string | undefined;
+  let offset = 0;
+  const file = await open(path, "r");
+  try {
+    await followRecording(recording, finish, async () => {
+      const { size } = await file.stat();
+      if (size > offset) {
+        recordingId ??= await createStreamedRecording(client, recording);
+        offset = await sendAppendedData(client, recordingId, file, offset, size);
+      }
+    });
+  } finally {
+    await file.close();
+  }
+
+  if (!recordingId) {
+    throw new Error(`Recording ended (${recording.recordingStatus}) before any data was sent`);
+  }
+
+  // Metadata (title, URL, duration) is only complete once the recording has ended
+  await setRecordingMetadata(client, await validateRecordingMetadata(recording));
+  await finishRecording(client, { recordingId });
+}
+
+async function createStreamedRecording(client: ProtocolClient, recording: LocalRecording) {
+  const { buildId, serverId } = recording;
+
+  // Left unfinished, the server discards it once the connection closes
   const { recordingId } = await createRecording(client, {
     buildId,
     recordingId: serverId,
@@ -80,50 +110,46 @@ async function streamRecordingData(
     server: replayWsServer,
   });
 
-  let offset = 0;
-  const file = await open(path, "r");
-  try {
-    await followRecording(recording, recorderExited, async () => {
-      offset = await sendAppendedData(client, recordingId, file, offset);
-    });
-  } finally {
-    await file.close();
-  }
-
-  // Left unfinished, the server discards it once the connection closes
-  if (offset === 0) {
-    throw new Error(`Recording ended (${recording.recordingStatus}) before any data was sent`);
-  }
-
-  // Metadata (title, URL, duration) is only complete once the recording has ended
-  await setRecordingMetadata(client, await validateRecordingMetadata(recording));
-  await finishRecording(client, { recordingId });
+  return recordingId;
 }
 
-// Refreshes the recording from the log and calls `onData` until the recorder has written its last byte.
-// Unusable recordings end without reading further data.
+// Refreshes the recording from the log and calls `onData` until the recorder has written its
+// last byte or `finish` is aborted. Unusable recordings end without reading further data.
+// Throws if the recorder is gone without having ended the recording.
 async function followRecording(
   recording: LocalRecording,
-  recorderExited: AbortSignal,
+  finish: AbortSignal | undefined,
   onData: () => Promise<void>
 ) {
+  const { path } = recording;
+  assert(path, "Recording path is required");
+
+  // The recorder closes the file right before it logs `writeFinished`, so a closed file
+  // only means the recorder is gone if the log still says "recording" one poll later.
+  let closedAtLastPoll = false;
+
   while (true) {
-    // Read before the log, so a status read after exit is final
-    const exited = recorderExited.aborted;
+    // Both are read before the log, so the log read is at least as recent
+    const finishing = !!finish?.aborted;
+    const writing = await isOpenForWriting(path);
 
     refreshRecording(recording);
     if (recording.recordingStatus === "unusable") {
       return;
     }
 
-    await onData();
-
-    if (recording.recordingStatus !== "recording") {
+    const ended = recording.recordingStatus !== "recording";
+    if (writing || ended || finishing) {
+      await onData();
+    }
+    if (ended || finishing) {
       return;
     }
-    if (exited) {
-      throw new Error("Recorder exited without finishing the recording");
+
+    if (!writing && closedAtLastPoll) {
+      throw new Error("Recorder is gone without having finished the recording");
     }
+    closedAtLastPoll = !writing;
 
     await timeoutAfter(pollInterval);
   }
@@ -140,10 +166,9 @@ async function sendAppendedData(
   client: ProtocolClient,
   recordingId: string,
   file: FileHandle,
-  offset: number
+  offset: number,
+  size: number
 ) {
-  const { size } = await file.stat();
-
   while (offset < size) {
     const length = Math.min(size - offset, maxChunkSize);
     const data = Buffer.alloc(length);
@@ -159,11 +184,11 @@ async function sendAppendedData(
 
 async function uploadAfterStreamFailure(
   recording: LocalRecording,
-  { accessToken, recorderExited }: StreamRecordingOptions,
+  { accessToken, finish }: StreamRecordingOptions,
   streamError: Error
 ) {
   try {
-    await followRecording(recording, recorderExited, async () => {});
+    await followRecording(recording, finish, async () => {});
   } catch (error) {
     markUploadFailed(recording, error as Error);
     throw error;
@@ -176,7 +201,9 @@ async function uploadAfterStreamFailure(
         await uploadCrashedData(client, recording);
         break;
       case "finished":
-        // The streamed recording ID is already taken on the server
+      // Only once `finish` was aborted; uploaded as written so far
+      case "recording":
+        // The streamed upload may already hold the ID on the server
         recording.serverId = randomUUID();
         await uploadRecording(client, recording, {
           accessToken,
