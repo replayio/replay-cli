@@ -85,7 +85,7 @@ export function printViewRecordingLinks(recordings: LocalRecording[]) {
     }
     case 1: {
       const recording = recordings[0];
-      const url = `${replayAppHost}/recording/${recording.id}`;
+      const url = `${replayAppHost}/recording/${recording.serverId}`;
 
       console.log("View recording at:");
       console.log(link(url));
@@ -97,7 +97,7 @@ export function printViewRecordingLinks(recordings: LocalRecording[]) {
       for (const recording of recordings) {
         const { processType, title } = formatRecording(recording);
 
-        const url = `${replayAppHost}/recording/${recording.id}`;
+        const url = `${replayAppHost}/recording/${recording.serverId}`;
 
         const formatted = processType ? `${title} ${processType}` : title;
 

@@ -40,7 +40,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
       try {
         const sourceMapContent = await fs.readFile(sourceMap.path, "utf-8");
         const result = await addSourceMap(client, {
-          recordingId: recording.id,
+          recordingId: recording.serverId,
           baseURL: sourceMap.baseURL,
           targetContentHash: sourceMap.targetContentHash,
           targetURLHash: sourceMap.targetURLHash,
@@ -66,7 +66,7 @@ export async function uploadSourceMaps(client: ProtocolClient, recording: LocalR
           try {
             const sourceContent = await fs.readFile(source.path, "utf-8");
             await addOriginalSource(client, {
-              recordingId: recording.id,
+              recordingId: recording.serverId,
               parentId: sourceMapId,
               parentOffset: source.parentOffset,
               resource: await ensureResource(client, sourceContent),

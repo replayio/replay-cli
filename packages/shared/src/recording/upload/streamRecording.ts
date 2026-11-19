@@ -65,29 +65,34 @@ async function streamRecordingData(
   recording: LocalRecording,
   recorderExited: AbortSignal
 ) {
-  const { buildId, id, path } = recording;
+  const { buildId, path, serverId } = recording;
   assert(path, "Recording path is required");
 
   const { recordingId } = await createRecording(client, {
     buildId,
-    recordingId: id,
+    recordingId: serverId,
     requireFinish: true,
   });
-  assert.equal(recordingId, id, "Server assigned a different recording ID");
+  assert.equal(recordingId, serverId, "Server assigned a different recording ID");
 
   updateRecordingLog(recording, {
     kind: RECORDING_LOG_KIND.uploadStarted,
     server: replayWsServer,
   });
 
+  let offset = 0;
   const file = await open(path, "r");
   try {
-    let offset = 0;
     await followRecording(recording, recorderExited, async () => {
       offset = await sendAppendedData(client, recordingId, file, offset);
     });
   } finally {
     await file.close();
+  }
+
+  // Left unfinished, the server discards it once the connection closes
+  if (offset === 0) {
+    throw new Error(`Recording ended (${recording.recordingStatus}) before any data was sent`);
   }
 
   // Metadata (title, URL, duration) is only complete once the recording has ended
@@ -172,7 +177,7 @@ async function uploadAfterStreamFailure(
         break;
       case "finished":
         // The streamed recording ID is already taken on the server
-        recording.id = randomUUID();
+        recording.serverId = randomUUID();
         await uploadRecording(client, recording, {
           accessToken,
           multiPartUpload: true,

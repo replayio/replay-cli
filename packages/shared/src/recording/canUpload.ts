@@ -9,7 +9,8 @@ export function canUpload(
     case "finished":
       break;
     case "recording":
-      if (!streamedUpload) {
+      // Without a host it may be an empty tab (see `getRecordings`)
+      if (!streamedUpload || !recording.metadata.host) {
         return false;
       }
       break;

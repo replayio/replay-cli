@@ -140,6 +140,7 @@ export function readRecordings(): LocalRecording[] {
             path: undefined,
             processingStatus: undefined,
             recordingStatus: "recording",
+            serverId: entry.id,
             unusableReason: undefined,
             uploadStatus: undefined,
             uploadError: undefined,
@@ -259,7 +260,7 @@ export function readRecordings(): LocalRecording[] {
           break;
         }
         case RECORDING_LOG_KIND.uploadFailed: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -268,10 +269,11 @@ export function readRecordings(): LocalRecording[] {
           }
 
           recording.uploadStatus = "failed";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.uploadFinished: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -280,10 +282,11 @@ export function readRecordings(): LocalRecording[] {
           }
 
           recording.uploadStatus = "uploaded";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.uploadStarted: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -292,6 +295,7 @@ export function readRecordings(): LocalRecording[] {
           }
 
           recording.uploadStatus = "uploading";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.writeFinished: {
