@@ -1,5 +1,6 @@
 import { getReplayPath } from "@replay-cli/shared/getReplayPath";
 import { logDebug, logError, logInfo } from "@replay-cli/shared/logger";
+import { streamedRecorderEnv } from "@replay-cli/shared/recording/config";
 import { spawnProcess } from "@replay-cli/shared/spawnProcess";
 import { dim } from "@replay-cli/shared/theme";
 import { ensureDirSync, existsSync } from "fs-extra";
@@ -39,7 +40,7 @@ export async function launchBrowser(
       RECORD_REPLAY_DIRECTORY: getReplayPath(),
       RECORD_REPLAY_METADATA: processGroupId ? JSON.stringify({ processGroupId }) : undefined,
       RECORD_REPLAY_VERBOSE: "1",
-      ...(record && streamedUpload ? { RECORD_REPLAY_STREAMED_UPLOAD: "1" } : {}),
+      ...(record && streamedUpload ? streamedRecorderEnv : {}),
     },
     stdio: undefined,
   };

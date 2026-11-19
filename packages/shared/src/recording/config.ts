@@ -15,9 +15,12 @@ export function assertStreamedUploadSupported() {
   }
 }
 
-// Added to the environment of recorders whose recordings are uploaded while they are made
+// Environment of a recorder whose recordings are uploaded while they are made
+export const streamedRecorderEnv: Record<string, string> = { RECORD_REPLAY_STREAMED_UPLOAD: "1" };
+
+// `streamedRecorderEnv` if REPLAY_STREAMED_UPLOAD enables streamed upload
 export const streamedUploadRecorderEnv: Record<string, string> = streamedUploadEnabled
-  ? { RECORD_REPLAY_STREAMED_UPLOAD: "1" }
+  ? streamedRecorderEnv
   : {};
 
 export const recordingLogPath = getReplayPath("recordings.log");
