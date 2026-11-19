@@ -37,11 +37,18 @@ export async function streamRecording(
   logInfo("StreamRecording:Started", { recordingId: recording.id });
 
   try {
-    await streamRecordingData(client, recording, options.finish);
+    await streamRecordingData(recording, options);
   } catch (error) {
     logError("StreamRecording:Failed", { error, recordingId: recording.id });
     await uploadAfterStreamFailure(recording, options, error as Error);
     return;
+  }
+
+  if (recording.recordingStatus === "unusable") {
+    // Not finished, so the server aborted it
+    const error = new Error(`Recording is unusable: ${recording.unusableReason}`);
+    markUploadFailed(recording, error);
+    throw error;
   }
 
   if (recording.metadata.sourceMaps.length) {
@@ -61,37 +68,47 @@ export async function streamRecording(
   logInfo("StreamRecording:Succeeded", { recordingId: recording.id });
 }
 
+// Finishes the server recording unless the recording became unusable
 async function streamRecordingData(
-  client: ProtocolClient,
   recording: LocalRecording,
-  finish: AbortSignal | undefined
+  { accessToken, finish }: StreamRecordingOptions
 ) {
   const { path } = recording;
   assert(path, "Recording path is required");
 
-  // Created with the first data, so recordings that never send any don't create one
-  let recordingId: string | undefined;
-  let offset = 0;
-  const file = await open(path, "r");
+  // The server recording's own connection: closed before `finishRecording`, the server aborts
+  // the recording (`requireFinish`)
+  const connection = new ProtocolClient(accessToken);
   try {
-    await followRecording(recording, finish, async () => {
-      const { size } = await file.stat();
-      if (size > offset) {
-        recordingId ??= await createStreamedRecording(client, recording);
-        offset = await sendAppendedData(client, recordingId, file, offset, size);
-      }
-    });
+    // Created with the first data, so recordings that never send any don't create one
+    let recordingId: string | undefined;
+    let offset = 0;
+    const file = await open(path, "r");
+    try {
+      await followRecording(recording, finish, async () => {
+        const { size } = await file.stat();
+        if (size > offset) {
+          recordingId ??= await createStreamedRecording(connection, recording);
+          offset = await sendAppendedData(connection, recordingId, file, offset, size);
+        }
+      });
+    } finally {
+      await file.close();
+    }
+
+    if (recording.recordingStatus === "unusable") {
+      return;
+    }
+    if (!recordingId) {
+      throw new Error(`Recording ended (${recording.recordingStatus}) before any data was sent`);
+    }
+
+    // Metadata (title, URL, duration) is only complete once the recording has ended
+    await setRecordingMetadata(connection, await validateRecordingMetadata(recording));
+    await finishRecording(connection, { recordingId });
   } finally {
-    await file.close();
+    connection.close();
   }
-
-  if (!recordingId) {
-    throw new Error(`Recording ended (${recording.recordingStatus}) before any data was sent`);
-  }
-
-  // Metadata (title, URL, duration) is only complete once the recording has ended
-  await setRecordingMetadata(client, await validateRecordingMetadata(recording));
-  await finishRecording(client, { recordingId });
 }
 
 async function createStreamedRecording(client: ProtocolClient, recording: LocalRecording) {

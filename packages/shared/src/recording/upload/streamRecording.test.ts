@@ -114,6 +114,19 @@ describe("streamRecording", () => {
     expect(recording.uploadStatus).toBe("failed");
   });
 
+  it("aborts an unusable recording that sent data: not finished, its connection closed", async () => {
+    write("AB");
+    onPolls(() => log("recordingUnusable", { reason: "test" }));
+
+    const recording = await stream();
+
+    const connection = require("../../protocol/ProtocolClient").default.mock.instances[0];
+    expect(sent).toEqual([{ offset: 0, data: "AB" }]);
+    expect(api.finishRecording).not.toHaveBeenCalled();
+    expect(connection.close).toHaveBeenCalledTimes(1);
+    expect(recording.uploadStatus).toBe("failed");
+  });
+
   it("falls back to a regular upload under a new server ID, keeping the local ID", async () => {
     write("AB");
     log("writeFinished");
