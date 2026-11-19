@@ -14,9 +14,10 @@ export async function launchBrowser(
     processGroupId?: string;
     record?: boolean;
     headless?: boolean;
+    streamedUpload?: boolean;
   }
 ) {
-  const { processGroupId, record = true, headless = false } = options;
+  const { processGroupId, record = true, headless = false, streamedUpload = false } = options;
 
   const profileDir = join(runtimePath, "profiles", runtimeMetadata.runtime);
   ensureDirSync(profileDir);
@@ -37,6 +38,7 @@ export async function launchBrowser(
       RECORD_REPLAY_DONT_RECORD: record ? undefined : "1",
       RECORD_REPLAY_DIRECTORY: getReplayPath(),
       RECORD_REPLAY_METADATA: processGroupId ? JSON.stringify({ processGroupId }) : undefined,
+      RECORD_REPLAY_STREAMED_UPLOAD: record && streamedUpload ? "1" : undefined,
       RECORD_REPLAY_VERBOSE: "1",
     },
     stdio: undefined,

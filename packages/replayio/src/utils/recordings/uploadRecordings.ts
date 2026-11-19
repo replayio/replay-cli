@@ -78,7 +78,7 @@ async function printDeferredRecordingActions(
   }
 }
 
-function printViewRecordingLinks(recordings: LocalRecording[]) {
+export function printViewRecordingLinks(recordings: LocalRecording[]) {
   switch (recordings.length) {
     case 0: {
       break;

@@ -5,6 +5,8 @@ export const multiPartChunkSize = process.env.REPLAY_MULTIPART_UPLOAD_CHUNK
   : undefined;
 export const multiPartMinSizeThreshold = 5 * 1024 * 1024;
 
+export const streamedUploadEnabled = !!process.env.REPLAY_STREAMED_UPLOAD;
+
 export const recordingLogPath = getReplayPath("recordings.log");
 
 export const recordingsPath = getReplayPath();

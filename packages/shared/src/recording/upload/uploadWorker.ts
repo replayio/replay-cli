@@ -3,6 +3,7 @@ import ProtocolClient from "../../protocol/ProtocolClient";
 import { createSettledDeferred } from "../createSettledDeferred";
 import { removeFromDisk } from "../removeFromDisk";
 import { LocalRecording } from "../types";
+import { streamRecording } from "./streamRecording";
 import { ProcessingBehavior } from "./types";
 import { uploadCrashedData } from "./uploadCrashData";
 import { uploadRecording } from "./uploadRecording";
@@ -12,11 +13,14 @@ export function createUploadWorker({
   deleteOnSuccess,
   noPresigned,
   processingBehavior,
+  streamedUpload,
 }: {
   accessToken: string;
   deleteOnSuccess?: boolean;
   noPresigned?: boolean;
   processingBehavior: ProcessingBehavior;
+  // Uploads in-progress recordings while they are being written
+  streamedUpload?: { recorderExited: AbortSignal };
 }) {
   const client = new ProtocolClient(accessToken);
   const deferredAuthenticated = createDeferred<boolean>();
@@ -36,7 +40,9 @@ export function createUploadWorker({
       const deferred = createSettledDeferred(recording, async () => {
         await deferredAuthenticated.promise;
 
-        if (recording.recordingStatus === "crashed") {
+        if (streamedUpload && recording.recordingStatus === "recording") {
+          await streamRecording(client, recording, { accessToken, ...streamedUpload });
+        } else if (recording.recordingStatus === "crashed") {
           await uploadCrashedData(client, recording);
         } else {
           await uploadRecording(client, recording, {
