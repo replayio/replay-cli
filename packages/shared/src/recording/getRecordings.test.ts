@@ -132,6 +132,20 @@ describe("getRecordings", () => {
     );
   });
 
+  it("should keep the local ID when the upload used a different server ID", () => {
+    mockReadFileSync.mockReturnValue(`
+      {"id":"fake","kind":"createRecording"}
+      {"id":"fake","kind":"addMetadata","metadata":{"uri":"https://www.fake.com/"}}
+      {"id":"fake","kind":"writeStarted","path":"~/.replay/recording-fake.dat"}
+      {"id":"fake","kind":"writeFinished"}
+      {"id":"fake","recordingId":"server","kind":"uploadFinished"}
+    `);
+
+    expect(getRecordings()).toEqual([
+      expect.objectContaining({ id: "fake", serverId: "server", uploadStatus: "uploaded" }),
+    ]);
+  });
+
   it("should gracefully handle missing recording log entries", () => {
     mockReadFileSync.mockReturnValue(`
       {"id":"fake","kind":"addMetadata","metadata":{"processGroupId":"fake"}}

@@ -77,10 +77,13 @@ export default class ProtocolClient {
   }
 
   sendCommand<Params extends Object, ResponseType extends Object | void>({
+    binary,
     method,
     params,
     sessionId,
   }: {
+    // Sent as a separate frame right after the command (protocol `binary` commands)
+    binary?: Buffer;
     method: string;
     params: Params;
     sessionId?: string;
@@ -94,6 +97,7 @@ export default class ProtocolClient {
     logDebug("Sending command", { id, method, params, sessionId });
 
     const command = {
+      binary: binary ? true : undefined,
       id,
       method,
       params,
@@ -103,13 +107,18 @@ export default class ProtocolClient {
     const deferred = createDeferred<ResponseType, CommandData>({ sessionId, command });
     this.pendingCommands.set(id, deferred);
 
-    this.socket.send(JSON.stringify(command), error => {
+    const onSendError = (error?: Error) => {
       if (error) {
         logDebug("Received socket error", { error });
         this.pendingCommands.delete(id);
         deferred.rejectIfPending(error instanceof Error ? error : new Error(String(error)));
       }
-    });
+    };
+
+    this.socket.send(JSON.stringify(command), onSendError);
+    if (binary) {
+      this.socket.send(binary, onSendError);
+    }
 
     return deferred.promise;
   }

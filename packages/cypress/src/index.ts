@@ -3,6 +3,7 @@
 import { logError, logInfo } from "@replay-cli/shared/logger";
 import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { waitForExitTasks } from "@replay-cli/shared/process/waitForExitTasks";
+import { streamedUploadRecorderEnv } from "@replay-cli/shared/recording/config";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import { initializeSession } from "@replay-cli/shared/session/initializeSession";
 import { RecordingEntry, initMetadataFile, warn } from "@replayio/test-utils";
@@ -114,6 +115,7 @@ function onBeforeBrowserLaunch(
       RECORD_REPLAY_ENABLE_ASSERTS: process.env.RECORD_REPLAY_ENABLE_ASSERTS,
       // it doesn't log anything eagerly but it makes it possible to enable verbose logs with DEBUG=cypress:launcher:browsers
       RECORD_REPLAY_VERBOSE: "1",
+      ...streamedUploadRecorderEnv,
     };
 
     const env: NodeJS.ProcessEnv = {

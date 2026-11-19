@@ -62,7 +62,7 @@ export async function uploadRecording(
   }
 ) {
   logInfo("UploadRecording:Started", { recordingId: recording.id });
-  const { buildId, id, path } = recording;
+  const { buildId, path, serverId } = recording;
   assert(path, "Recording path is required");
 
   const { accessToken, multiPartUpload, noPresigned, processingBehavior } = options;
@@ -84,14 +84,13 @@ export async function uploadRecording(
 
       const recordingId = await uploadRecordingWithoutPresignedUrls({
         accessToken,
-        recordingId: id,
+        recordingId: serverId,
         recordingPath: path,
         size,
       });
 
-      // The server assigns a new recording ID; update local state so
-      // metadata, processing, and view links use the correct ID.
-      recording.id = recordingId;
+      // The server assigns a new recording ID
+      recording.serverId = recordingId;
       recordingData.id = recordingId;
 
       await setMetadataWithRetry(client, metadata, recordingData);
@@ -101,7 +100,7 @@ export async function uploadRecording(
         {
           buildId: buildId,
           maxChunkSize: multiPartChunkSize,
-          recordingId: id,
+          recordingId: serverId,
           recordingSize: size,
         }
       );
@@ -123,7 +122,7 @@ export async function uploadRecording(
     } else {
       const { recordingId, uploadLink } = await beginRecordingUpload(client, {
         buildId: buildId,
-        recordingId: id,
+        recordingId: serverId,
         recordingSize: size,
       });
 
@@ -189,7 +188,7 @@ export async function uploadRecording(
       // In this code path, we intentionally don't update the "processingStatus" nor the recording log
       // because this would interfere with how the recordings are printed when the upload has finished
 
-      processRecording(client, { recordingId: recording.id }).catch(() => {
+      processRecording(client, { recordingId: recording.serverId }).catch(() => {
         // Ignore
       });
       break;
@@ -209,7 +208,7 @@ export async function uploadRecording(
         recording.processingStatus = "processing";
 
         await retryWithExponentialBackoff(
-          () => processRecording(client, { recordingId: recording.id }),
+          () => processRecording(client, { recordingId: recording.serverId }),
           (error: unknown, attemptNumber: number) => {
             logDebug(`Processing failed after ${attemptNumber} attempts`, { error });
           }

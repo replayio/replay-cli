@@ -7,6 +7,38 @@ import { readRecordingLog } from "./readRecordingLog";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
 export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
+  return (
+    readRecordings()
+      .filter(recording => {
+        if (processGroupIdFilter && recording.metadata.processGroupId !== processGroupIdFilter) {
+          return false;
+        }
+
+        switch (recording.recordingStatus) {
+          case "finished":
+            if (!recording.metadata.host) {
+              // Ignore new/empty tab recordings (see TT-1036)
+              //
+              // Note that we filter all "empty" recordings, not just root recordings,
+              // because Chrome loads its default new tab content via an <iframe>
+              //
+              // Also note that we only remove finished recordings in this way,
+              // because it's important to report unusable or crashed recordings to the user
+              // Those may have crashed before host metadata was added
+              return false;
+            }
+            break;
+        }
+
+        return true;
+      })
+      // Sort recordings in reverse chronological order
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+  );
+}
+
+// All recordings in the log, unfiltered and in log order
+export function readRecordings(): LocalRecording[] {
   const recordings: LocalRecording[] = [];
   const idToRecording: Record<string, LocalRecording> = {};
 
@@ -108,6 +140,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
             path: undefined,
             processingStatus: undefined,
             recordingStatus: "recording",
+            serverId: entry.id,
             unusableReason: undefined,
             uploadStatus: undefined,
             uploadError: undefined,
@@ -227,7 +260,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           break;
         }
         case RECORDING_LOG_KIND.uploadFailed: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -236,10 +269,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           }
 
           recording.uploadStatus = "failed";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.uploadFinished: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -248,10 +282,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           }
 
           recording.uploadStatus = "uploaded";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.uploadStarted: {
-          const { id } = entry;
+          const { id, recordingId } = entry;
 
           const recording = idToRecording[id];
           if (!recording) {
@@ -260,6 +295,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           }
 
           recording.uploadStatus = "uploading";
+          recording.serverId = recordingId ?? id;
           break;
         }
         case RECORDING_LOG_KIND.writeFinished: {
@@ -298,34 +334,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
 
   logDebug(`Found ${recordings.length} recordings`, { recordings });
 
-  return (
-    recordings
-      .filter(recording => {
-        if (processGroupIdFilter && recording.metadata.processGroupId !== processGroupIdFilter) {
-          return false;
-        }
-
-        switch (recording.recordingStatus) {
-          case "finished":
-            if (!recording.metadata.host) {
-              // Ignore new/empty tab recordings (see TT-1036)
-              //
-              // Note that we filter all "empty" recordings, not just root recordings,
-              // because Chrome loads its default new tab content via an <iframe>
-              //
-              // Also note that we only remove finished recordings in this way,
-              // because it's important to report unusable or crashed recordings to the user
-              // Those may have crashed before host metadata was added
-              return false;
-            }
-            break;
-        }
-
-        return true;
-      })
-      // Sort recordings in reverse chronological order
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
-  );
+  return recordings;
 }
 
 function logNotFoundWarning(recordingId: string, entry: LogEntry) {

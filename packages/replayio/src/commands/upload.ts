@@ -1,6 +1,10 @@
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { findRecordingsWithShortIds } from "@replay-cli/shared/recording/findRecordingsWithShortIds";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
+import {
+  assertStreamedUploadSupported,
+  streamedUploadEnabled,
+} from "@replay-cli/shared/recording/config";
 import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
 import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
 import { LocalRecording } from "@replay-cli/shared/recording/types";
@@ -13,6 +17,11 @@ registerCommand("upload", { requireAuthentication: true })
   .option("-a, --all", "Upload all recordings")
   .option("--process", "Start processing after upload", false)
   .option("--no-presigned", "Upload without presigned URLs (slower)")
+  .option(
+    "--streamed-upload",
+    "Also upload recordings that are still being recorded (default: REPLAY_STREAMED_UPLOAD)",
+    streamedUploadEnabled
+  )
   .description("Upload recording(s)")
   .action(upload);
 
@@ -22,12 +31,18 @@ async function upload(
     all = false,
     process: startProcessing = false,
     presigned = true,
+    streamedUpload = false,
   }: {
     all?: boolean;
     process?: boolean;
     presigned?: boolean;
+    streamedUpload?: boolean;
   } = {}
 ) {
+  if (streamedUpload) {
+    assertStreamedUploadSupported();
+  }
+
   const recordings = getRecordings();
 
   let selectedRecordings: LocalRecording[] = [];
@@ -51,6 +66,7 @@ async function upload(
         printRecordings(recordings, { showHeaderRow: false }),
       prompt: "Which recordings would you like to upload?",
       selectionMessage: "The following recording(s) will be uploaded:",
+      streamedUpload,
     });
   }
 
@@ -58,6 +74,7 @@ async function upload(
     await uploadRecordings(selectedRecordings, {
       processingBehavior: startProcessing ? "start-processing" : "do-not-process",
       noPresigned: !presigned,
+      streamedUpload,
     });
   }
 

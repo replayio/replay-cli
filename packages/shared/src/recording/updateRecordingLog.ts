@@ -13,7 +13,7 @@ export function updateRecordingLog(
   const entry: LogEntry = {
     ...partialEntry,
     id: recording.id,
-    recordingId: recording.id,
+    recordingId: recording.serverId,
     timestamp: Date.now(),
   };
 

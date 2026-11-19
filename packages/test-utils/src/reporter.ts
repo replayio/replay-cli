@@ -6,6 +6,7 @@ import {
   Properties,
   trackEvent,
 } from "@replay-cli/shared/mixpanelClient";
+import { streamedUploadEnabled } from "@replay-cli/shared/recording/config";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
 import { addMetadata } from "@replay-cli/shared/recording/metadata/addMetadata";
 import * as sourceMetadata from "@replay-cli/shared/recording/metadata/legacy/source";
@@ -250,6 +251,8 @@ export default class ReplayReporter<
   private _testRunShardIdPromise: Promise<TestRunPendingWork> | null = null;
   private _uploadStatusThreshold: UploadStatusThresholdInternal = "none";
   private _uploadWorker: UploadWorker | undefined;
+  // Aborted once all uploads are decided; still recording recordings are then finished as written
+  private _finishStreamedUploads = new AbortController();
   private _uploadedRecordings = new Set<string>();
   private _recordingMetadatas = new Map<
     string,
@@ -373,6 +376,9 @@ export default class ReplayReporter<
         accessToken: this._apiKey,
         deleteOnSuccess: true,
         processingBehavior: "do-not-process",
+        streamedUpload: streamedUploadEnabled
+          ? { finish: this._finishStreamedUploads.signal }
+          : undefined,
       });
     }
 
@@ -1193,6 +1199,7 @@ export default class ReplayReporter<
       "test-run": [] as Extract<TestRunPendingWork, { error: {} }>[],
       "test-run-tests": [] as Extract<TestRunTestsPendingWork, { error: {} }>[],
     };
+    this._finishStreamedUploads.abort();
     const uploads = await this._uploadWorker?.end();
     for (const r of results) {
       if ("error" in r) {

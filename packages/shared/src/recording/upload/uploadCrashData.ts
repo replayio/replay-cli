@@ -11,7 +11,7 @@ export async function uploadCrashedData(client: ProtocolClient, recording: Local
   const crashData = recording.crashData?.slice() ?? [];
   crashData.push({
     kind: "recordingMetadata",
-    recordingId: recording.id,
+    recordingId: recording.serverId,
   });
 
   try {

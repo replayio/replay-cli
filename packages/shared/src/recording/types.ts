@@ -88,6 +88,8 @@ export type LocalRecording = {
   path: string | undefined;
   processingStatus: "failed" | "processed" | "processing" | undefined;
   recordingStatus: "crashed" | "finished" | "recording" | "unusable";
+  // ID of the uploaded recording; differs from `id` when the server could not use the local ID
+  serverId: string;
   unusableReason: string | undefined;
   uploadError: Error | undefined;
   uploadStatus: "failed" | "uploading" | "uploaded" | undefined;

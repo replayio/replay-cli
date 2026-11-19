@@ -8,7 +8,7 @@ export async function validateRecordingMetadata(recording: LocalRecording): Prom
 }> {
   const {
     duration,
-    id,
+    serverId,
     metadata: { host, uri, ...rest },
   } = recording;
 
@@ -18,7 +18,7 @@ export async function validateRecordingMetadata(recording: LocalRecording): Prom
     metadata,
     recordingData: {
       duration: duration ?? 0,
-      id,
+      id: serverId,
       url: uri ?? "",
       title: host ?? "",
       // This info is only set for Gecko recordings

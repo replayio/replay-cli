@@ -1,3 +1,4 @@
+import { streamedUploadRecorderEnv } from "@replay-cli/shared/recording/config";
 import { spawn, spawnSync } from "child_process";
 import path from "path";
 import { cwd } from "process";
@@ -36,6 +37,7 @@ async function main() {
   }
 
   const replayProcess = spawn(replayNodeBinaryPath, [jestPath, ...process.argv.slice(2)], {
+    env: { ...process.env, ...streamedUploadRecorderEnv },
     stdio: "inherit",
   });
 

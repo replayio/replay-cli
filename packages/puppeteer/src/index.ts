@@ -1,3 +1,4 @@
+import { streamedUploadRecorderEnv } from "@replay-cli/shared/recording/config";
 import { getRuntimePath } from "@replay-cli/shared/runtime/getRuntimePath";
 import {
   getMetadataFilePath as getMetadataFilePathBase,
@@ -11,6 +12,7 @@ function getDeviceConfig() {
     ...process.env,
     RECORD_ALL_CONTENT: 1,
     RECORD_REPLAY_METADATA_FILE: initMetadataFile(getMetadataFilePath()),
+    ...streamedUploadRecorderEnv,
   };
 
   if (process.env.RECORD_REPLAY_NO_RECORD) {

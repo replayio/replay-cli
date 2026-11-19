@@ -3,6 +3,10 @@ import { logError } from "@replay-cli/shared/logger";
 import { trackEvent } from "@replay-cli/shared/mixpanelClient";
 import { exitProcess } from "@replay-cli/shared/process/exitProcess";
 import { canUpload } from "@replay-cli/shared/recording/canUpload";
+import {
+  assertStreamedUploadSupported,
+  streamedUploadEnabled,
+} from "@replay-cli/shared/recording/config";
 import { getRecordings } from "@replay-cli/shared/recording/getRecordings";
 import { printRecordings } from "@replay-cli/shared/recording/printRecordings";
 import { selectRecordings } from "@replay-cli/shared/recording/selectRecordings";
@@ -16,16 +20,25 @@ import { launchBrowser } from "../utils/browser/launchBrowser";
 import { reportBrowserCrash } from "../utils/browser/reportBrowserCrash";
 import { registerCommand } from "../utils/commander/registerCommand";
 import { confirm } from "../utils/confirm";
-import { uploadRecordings } from "../utils/recordings/uploadRecordings";
+import { startStreamedUploads } from "../utils/recordings/streamRecordings";
+import { printViewRecordingLinks, uploadRecordings } from "../utils/recordings/uploadRecordings";
 
 registerCommand("record", { checkForRuntimeUpdate: true, requireAuthentication: true })
   .argument("[url]", `URL to open (default: "about:blank")`)
   .description("Launch the replay browser in recording mode")
   .option("--headless", "Run the browser in headless mode", false)
+  .option(
+    "--streamed-upload",
+    "Upload recordings while recording (default: REPLAY_STREAMED_UPLOAD)",
+    streamedUploadEnabled
+  )
   .action(record)
   .allowUnknownOption();
 
-async function record(url: string = "about:blank", { headless }: { headless?: boolean }) {
+async function record(
+  url: string = "about:blank",
+  { headless, streamedUpload = false }: { headless?: boolean; streamedUpload?: boolean }
+) {
   // this flag is intentionally not listed in the command options
   const verbose = process.argv.includes("--verbose");
   if (verbose) {
@@ -34,10 +47,15 @@ async function record(url: string = "about:blank", { headless }: { headless?: bo
 
   const processGroupId = uuid();
 
+  if (streamedUpload) {
+    assertStreamedUploadSupported();
+  }
+  const streamedUploads = streamedUpload ? await startStreamedUploads(processGroupId) : undefined;
+
   try {
     await killBrowserIfRunning();
 
-    await launchBrowser(url, { processGroupId, headless });
+    await launchBrowser(url, { processGroupId, headless, streamedUpload });
   } catch (error) {
     if (error instanceof ProcessError) {
       logError("Record:BrowserCrash", { error: error.stderr });
@@ -53,11 +71,17 @@ async function record(url: string = "about:blank", { headless }: { headless?: bo
     }
   }
 
+  const streamedRecordings = streamedUploads ? await endStreamedUploads(streamedUploads) : [];
+
   const crashedRecordings: LocalRecording[] = [];
   const finishedRecordings: LocalRecording[] = [];
   const unusableRecordings: LocalRecording[] = [];
 
   getRecordings(processGroupId).forEach(recording => {
+    if (streamedUploads?.startedIds.has(recording.id)) {
+      return;
+    }
+
     switch (recording.recordingStatus) {
       case "crashed":
         if (canUpload(recording)) {
@@ -106,6 +130,7 @@ async function record(url: string = "about:blank", { headless }: { headless?: bo
 
   trackEvent("record.results", {
     crashedCount: crashedRecordings.length,
+    streamedCount: streamedRecordings.length,
     successCountsByType: finishedRecordings.reduce(
       (map, recording) => {
         const processType = recording.metadata.processType ?? "unknown";
@@ -161,10 +186,30 @@ async function record(url: string = "about:blank", { headless }: { headless?: bo
         await uploadRecordings(selectedRecordings, { processingBehavior: "do-not-process" });
       }
     }
-  } else if (crashedRecordings.length === 0) {
+  } else if (crashedRecordings.length === 0 && streamedRecordings.length === 0) {
     // It doesn't make sense to print this message if there were crashes
     console.log("No new recordings were created");
   }
 
   await exitProcess(0);
+}
+
+async function endStreamedUploads(
+  streamedUploads: Awaited<ReturnType<typeof startStreamedUploads>>
+) {
+  const progress = logAsyncOperation("Finishing recording uploads...");
+  const recordings = await streamedUploads.end();
+  const uploadedRecordings = recordings.filter(recording => recording.uploadStatus === "uploaded");
+
+  if (uploadedRecordings.length < recordings.length) {
+    progress.setFailed(
+      `${recordings.length - uploadedRecordings.length} recording(s) did not upload successfully`
+    );
+  } else {
+    progress.setSuccess(`${uploadedRecordings.length} recording(s) uploaded`);
+  }
+
+  printViewRecordingLinks(uploadedRecordings);
+
+  return recordings;
 }

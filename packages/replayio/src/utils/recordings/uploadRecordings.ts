@@ -78,14 +78,14 @@ async function printDeferredRecordingActions(
   }
 }
 
-function printViewRecordingLinks(recordings: LocalRecording[]) {
+export function printViewRecordingLinks(recordings: LocalRecording[]) {
   switch (recordings.length) {
     case 0: {
       break;
     }
     case 1: {
       const recording = recordings[0];
-      const url = `${replayAppHost}/recording/${recording.id}`;
+      const url = `${replayAppHost}/recording/${recording.serverId}`;
 
       console.log("View recording at:");
       console.log(link(url));
@@ -97,7 +97,7 @@ function printViewRecordingLinks(recordings: LocalRecording[]) {
       for (const recording of recordings) {
         const { processType, title } = formatRecording(recording);
 
-        const url = `${replayAppHost}/recording/${recording.id}`;
+        const url = `${replayAppHost}/recording/${recording.serverId}`;
 
         const formatted = processType ? `${title} ${processType}` : title;
 
@@ -124,10 +124,12 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
       noPresigned?: boolean;
       processingBehavior: ProcessingBehavior;
       silent?: boolean;
+      // Streams recordings that are still being recorded
+      streamedUpload?: boolean;
     }
   ) {
     recordings = recordings.filter(recording => {
-      if (!canUpload(recording)) {
+      if (!canUpload(recording, { streamedUpload: options.streamedUpload })) {
         logDebug(`Cannot upload recording ${recording.id}`, { recording });
         return false;
       }
@@ -141,7 +143,12 @@ export const uploadRecordings = createAsyncFunctionWithTracking(
 
     const { accessToken } = await getAccessToken();
     assert(accessToken, "No access token found");
-    const worker = createUploadWorker({ accessToken, ...options });
+    const { streamedUpload, ...workerOptions } = options;
+    const worker = createUploadWorker({
+      accessToken,
+      ...workerOptions,
+      streamedUpload: streamedUpload ? {} : undefined,
+    });
     const deferredActions = recordings.map(recording => worker.upload(recording));
 
     if (!silent) {
