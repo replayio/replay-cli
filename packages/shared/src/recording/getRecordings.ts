@@ -1,8 +1,8 @@
-import { existsSync } from "fs-extra";
+import { existsSync, realpathSync } from "fs-extra";
 import assert from "node:assert/strict";
-import { basename } from "path";
+import { basename, isAbsolute, relative, sep } from "path";
 import { logDebug, logError } from "../logger";
-import { recordingLogPath } from "./config";
+import { recordingLogPath, recordingsPath } from "./config";
 import { readRecordingLog } from "./readRecordingLog";
 import { LocalRecording, LogEntry, RECORDING_LOG_KIND } from "./types";
 
@@ -16,6 +16,7 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
     logDebug("Reading recording log", { entries, recordingLogPath });
 
     const idToStartTimestamp: Record<string, number> = {};
+    const droppedSourceMapIds = new Set<string>();
 
     for (let entry of entries) {
       switch (entry.kind) {
@@ -127,6 +128,13 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
             typeof parentOffset === "number",
             '"originalSourceAdded" entry must have a numeric "parentOffset"'
           );
+          if (droppedSourceMapIds.has(parentId)) {
+            continue;
+          }
+          if (!isInRecordingsDirectory(path)) {
+            logNotInRecordingsDirectoryWarning(entry);
+            continue;
+          }
 
           const recording = idToRecording[recordingId];
           if (!recording) {
@@ -208,6 +216,11 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
           assert(path, '"sourcemapAdded" entry must have a "path"');
           assert(baseURL, '"sourcemapAdded" entry must have a "baseURL"');
           assert(targetMapURLHash, '"sourcemapAdded" entry must have a "targetMapURLHash"');
+          if (!isInRecordingsDirectory(path)) {
+            logNotInRecordingsDirectoryWarning(entry);
+            droppedSourceMapIds.add(id);
+            continue;
+          }
 
           const recording = idToRecording[recordingId];
           if (!recording) {
@@ -326,6 +339,27 @@ export function getRecordings(processGroupIdFilter?: string): LocalRecording[] {
       // Sort recordings in reverse chronological order
       .sort((a, b) => b.date.getTime() - a.date.getTime())
   );
+}
+
+// recordings.log may name any file, e.g. one a recorded page named: only files
+// in the recordings directory, symbolic links resolved, are recording resources.
+function isInRecordingsDirectory(file: string) {
+  let realFile: string;
+  try {
+    realFile = realpathSync(file);
+  } catch (error) {
+    const { code } = error as NodeJS.ErrnoException;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      return false;
+    }
+    throw error;
+  }
+  const relativeFile = relative(realpathSync(recordingsPath), realFile);
+  return relativeFile !== ".." && !relativeFile.startsWith(`..${sep}`) && !isAbsolute(relativeFile);
+}
+
+function logNotInRecordingsDirectoryWarning(entry: LogEntry) {
+  logError("RecordingLog:ResourceNotInRecordingsDirectory", { entry });
 }
 
 function logNotFoundWarning(recordingId: string, entry: LogEntry) {
